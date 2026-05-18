@@ -69,7 +69,7 @@
       <div class="text-sm text-slate-700 font-semibold">
         目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票
       </div>
-      <div class="text-xs text-slate-400 font-medium">現階段展示：標準法人看盤矩陣面板</div>
+      <div class="text-xs text-slate-400 font-medium">現階段展示：標準法人看盤矩陣面板 (含近5日總結算)</div>
     </section>
 
     <section class="bg-white rounded-xl shadow-md border border-slate-200 overflow-x-auto">
@@ -78,6 +78,7 @@
           <tr class="border-b border-slate-200">
             <th rowspan="2" class="px-4 py-3 border-r border-slate-300 bg-slate-200/60 min-w-[120px]">標的 (代號/名稱)</th>
             <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-slate-100 font-bold text-xs min-w-[60px]">法人</th>
+            <th rowspan="2" class="px-3 py-3 border-r border-slate-300 bg-yellow-100/50 text-slate-900 font-black text-sm min-w-[80px]">近5日結</th>
             <th colspan="3" class="px-4 py-2 border-r border-slate-200 text-sm bg-slate-50">5月15日</th>
             <th colspan="3" class="px-4 py-2 border-r border-slate-200 text-sm bg-slate-50">5月14日</th>
             <th colspan="3" class="px-4 py-2 border-r border-slate-200 text-sm bg-slate-50">5月13日</th>
@@ -287,35 +288,46 @@
       renderMatrixTable(filteredData);
     }
 
-    // 💡 核心優化：依照你上傳的看盤格式，產生 3 列跨列聯集 HTML 結構 (現階段籌碼為網頁前端預載示範格式)
+    // 💡 矩陣渲染核心：加入「近5日結」統計數據欄位
     function renderMatrixTable(data) {
       document.getElementById("recordCount").innerText = data.length;
       const tbody = document.getElementById("stockTableBody");
       
       if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-12 text-center text-slate-400 text-sm">此分類下目前沒有股票名單</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="18" class="px-6 py-12 text-center text-slate-400 text-sm">此分類下目前沒有股票名單</td></tr>`;
         return;
       }
       
       let htmlString = "";
       
       data.forEach(item => {
-        // 模擬五天的法人數據 (待第二階段串接真實資料庫 daily_chip_data)
-        // 格式：[買, 賣, 結]
+        // 模擬五天的法人數據 (格式：[買, 賣, 結])
         const mockChip = {
           foreign:  [[150, 50, 100],  [200, 80, 120],  [90, 100, -10],  [300, 100, 200], [80, 120, -40]],
           investment:[[30, 10, 20],   [50, 0, 50],     [10, 20, -10],   [40, 10, 30],    [15, 15, 0]],
           dealer:   [[10, 20, -10],  [15, 15, 0],     [40, 10, 30],    [5, 25, -20],    [30, 10, 20]]
         };
 
-        // 輔助函式：幫「結算欄位」自動染上紅字或綠字底色
+        // 🧮 自動計算這 5 天的「結」總和
+        const sumForeign = mockChip.foreign.reduce((acc, cur) => acc + cur[2], 0);
+        const sumInvestment = mockChip.investment.reduce((acc, cur) => acc + cur[2], 0);
+        const sumDealer = mockChip.dealer.reduce((acc, cur) => acc + cur[2], 0);
+
+        // 輔助函式：單日「結」樣式
         const getResultCell = (val) => {
           if (val > 0) return `<td class="py-2 border-r border-slate-300 font-bold bg-red-50 text-red-600">+${val}</td>`;
           if (val < 0) return `<td class="py-2 border-r border-slate-300 font-bold bg-green-50 text-green-600">${val}</td>`;
           return `<td class="py-2 border-r border-slate-300 text-slate-400">0</td>`;
         };
 
-        // 1. 第一列：外資列 (包含跨3列的股票代號名稱主欄位)
+        // 輔助函式：大欄位「近5日總結算」高亮樣式
+        const getSumCell = (val) => {
+          if (val > 0) return `<td class="py-2 border-r border-slate-300 font-black bg-rose-100 text-rose-700 text-sm shadow-xs">+${val}</td>`;
+          if (val < 0) return `<td class="py-2 border-r border-slate-300 font-black bg-emerald-100 text-emerald-700 text-sm shadow-xs">${val}</td>`;
+          return `<td class="py-2 border-r border-slate-300 font-bold bg-slate-100 text-slate-500">0</td>`;
+        };
+
+        // 1. 第一列：外資列 (包含跨3列的股票主欄位)
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="3" class="px-4 py-4 border-r border-slate-300 font-mono font-bold text-slate-900 bg-slate-100/30 text-center leading-tight">
@@ -323,6 +335,7 @@
               <div class="text-xs text-slate-500 font-sans mt-1">${item.stock_name}</div>
             </td>
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">外資</td>
+            ${getSumCell(sumForeign)}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[0][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[0][1]}</td>${getResultCell(mockChip.foreign[0][2])}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[1][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[1][1]}</td>${getResultCell(mockChip.foreign[1][2])}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[2][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[2][1]}</td>${getResultCell(mockChip.foreign[2][2])}
@@ -335,6 +348,7 @@
         htmlString += `
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">投信</td>
+            ${getSumCell(sumInvestment)}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[0][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[0][1]}</td>${getResultCell(mockChip.investment[0][2])}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[1][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[1][1]}</td>${getResultCell(mockChip.investment[1][2])}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[2][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[2][1]}</td>${getResultCell(mockChip.investment[2][2])}
@@ -347,6 +361,7 @@
         htmlString += `
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">自營商</td>
+            ${getSumCell(sumDealer)}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[0][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[0][1]}</td>${getResultCell(mockChip.dealer[0][2])}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[1][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[1][1]}</td>${getResultCell(mockChip.dealer[1][2])}
             <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[2][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[2][1]}</td>${getResultCell(mockChip.dealer[2][2])}
