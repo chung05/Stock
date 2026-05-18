@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>成分股分析系統</title>
+  <title>牛牛分析站</title>
   
   <!-- 使用 Tailwind CSS v4 -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -19,15 +19,22 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
-  <!-- 頂部：改為清爽淺藍色漸層背景 -->
+  <!-- 頂部：淺藍色漸層背景 -->
   <div class="bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 pb-24 pt-6 shadow-xs border-b border-sky-300/30">
     <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">📊 成分股分析系統</h1>
-        <p class="text-xs text-slate-800/80 font-medium mt-1">自動比對 Excel 名單 · 追蹤法人每日籌碼趨勢</p>
+      
+      <!-- 左上方圖示與標題區塊 -->
+      <div class="flex items-center gap-3">
+        <!-- 1. 更換為 main_icon.png 且固定 50*50 大小 -->
+        <img src="main_icon.png" alt="牛牛標誌" class="w-[50px] h-[50px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
+        <div>
+          <!-- 2. 標題調整為 牛牛分析站 -->
+          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">牛牛分析站</h1>
+          <p class="text-xs text-slate-800/80 font-medium mt-0.5">自動比對 Excel 名單 · 追蹤法人每日籌碼趨勢</p>
+        </div>
       </div>
       
-      <!-- 2. 載入功能區 (配合淺藍調美化) -->
+      <!-- 載入功能區 -->
       <div class="flex items-center gap-3 bg-white/80 backdrop-blur-md p-2.5 px-4 rounded-xl border border-sky-200 w-full md:w-auto justify-between md:justify-start shadow-xs">
         <div class="flex flex-col">
           <span class="text-xs font-bold text-slate-700">更新成分股名單</span>
@@ -46,11 +53,10 @@
   <!-- 主內容區 -->
   <div class="max-w-7xl mx-auto px-4 -mt-16 pb-12">
     
-    <!-- 3. 來源標籤區 (Tabs) -> 滿版底色調整 -->
+    <!-- 來源標籤區 (Tabs) -->
     <section class="bg-white p-3 rounded-xl shadow-md border border-slate-200 mb-4">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
       <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
-        <!-- 未選取是淡底色，選取後變為滿版色。預設「全部」為啟動狀態 -->
         <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">
           🌐 全部成分股
         </button>
@@ -63,7 +69,7 @@
       </div>
     </section>
 
-    <!-- 4. 控制面板：過濾機制區 -->
+    <!-- 控制面板：過濾機制區 -->
     <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="w-full sm:w-auto flex items-center gap-2">
         <label class="text-xs font-bold text-blue-900 tracking-wider whitespace-nowrap">籌碼篩選：</label>
@@ -80,8 +86,8 @@
       </div>
     </section>
 
-    <!-- 5. 資料列表區 (Table) -> 文字加大、交錯淡藍色底色 (Bands) -->
-    <!-- 【電腦版表格：字體放大至 text-sm 14px，行高微調】 -->
+    <!-- 資料列表區 (Table) -->
+    <!-- 【電腦版表格】 -->
     <section class="hidden md:block bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
       <table class="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
         <thead class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200">
@@ -96,7 +102,7 @@
           </tr>
         </thead>
         <tbody id="stockTableBody" class="divide-y divide-slate-100 bg-white">
-          <!-- 資料透過 JS 緊湊渲染，並自帶交錯淡藍底色 -->
+          <!-- 資料透過 JS 渲染 -->
         </tbody>
       </table>
     </section>
@@ -109,9 +115,6 @@
   </div>
 
   <script>
-    // ==========================================
-    // 滿版顏色主題配置 (active: 被選取時的滿版色 | inactive: 未選取時的淡底色)
-    // ==========================================
     const colorThemes = {
       '全部': {
         active: 'bg-slate-800 text-white shadow-xs',
@@ -180,7 +183,6 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // 動態生成帶有淡底色外觀的標籤
     function updateTabButtons(sheets) {
       const container = document.getElementById("tabContainer");
       container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>`;
@@ -188,29 +190,25 @@
       sheets.forEach(sheet => {
         const theme = colorThemes[sheet] || colorThemes['預設'];
         container.innerHTML += `
-          <button onclick="switchTab('${sheet}')" id="tab('${sheet}')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer">
+          <button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer">
             📁 ${sheet}
           </button>
         `;
       });
     }
 
-    // 點擊後改為「滿版底色」
     function switchTab(sheetName) {
       currentSourceTab = sheetName;
       
       document.querySelectorAll(".tab-btn").forEach(btn => {
-        // 抓取按鈕對應的原本 ID 名字
         const id = btn.id.replace('tab-', '');
         const theme = colorThemes[id] || colorThemes['預設'];
-        // 全部恢復為未選取的淡底色
         btn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer`;
       });
       
       const activeBtn = document.getElementById(`tab-${sheetName}`);
       if (activeBtn) {
         const theme = colorThemes[sheetName] || colorThemes['預設'];
-        // 被選取的灌入滿版高亮色
         activeBtn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.active} whitespace-nowrap cursor-pointer`;
       }
       applyFilters();
@@ -235,9 +233,6 @@
       renderData(filteredData);
     }
 
-    // ==========================================
-    // 渲染機制：列表底色調整、文字放大、交錯斑馬紋
-    // ==========================================
     function renderData(data) {
       document.getElementById("recordCount").innerText = data.length;
       const tbody = document.getElementById("stockTableBody");
@@ -249,7 +244,7 @@
         return;
       }
       
-      // A. 電腦版表格 (文字調大為 text-[14px]，間距適中，新增 odd:bg-blue-50/20 交錯淡藍底色)
+      // A. 電腦版表格
       tbody.innerHTML = data.map(item => {
         const theme = colorThemes[item.sheet_source] || colorThemes['預設'];
         return `
@@ -273,7 +268,7 @@
         `;
       }).join('');
 
-      // B. 手機版卡片 (同步調大字體)
+      // B. 手機版卡片
       cardContainer.innerHTML = data.map(item => {
         const theme = colorThemes[item.sheet_source] || colorThemes['預設'];
         return `
