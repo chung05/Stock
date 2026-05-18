@@ -5,104 +5,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>成分股分析系統</title>
   
-  <!-- 使用 Tailwind CSS v4 進行響應式開發 -->
+  <!-- 使用 Tailwind CSS v4 -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   
-  <!-- 引入 SheetJS 用於在前端直接解析 Excel 檔案 -->
+  <!-- 引入 SheetJS 與 Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- 引入 Supabase JavaScript SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    /* 自訂滾動條，讓手機橫向滑動標籤時更美觀 */
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased">
 
-  <div class="max-w-7xl mx-auto px-4 py-4 md:py-8">
-    
-    <!-- 1. 標題與載入區 (手機上自動改為上下堆疊，電腦上左右並排) -->
-    <header class="mb-6 border-b border-gray-200 pb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+  <!-- 頂部深色高級感裝飾背景 -->
+  <div class="bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 text-white pb-24 pt-6 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">成分股分析系統</h1>
-        <p class="text-xs md:text-sm text-gray-500 mt-1">自動比對 Excel 名單，追蹤法人每日籌碼趨勢</p>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-white to-blue-200">📊 成分股分析系統</h1>
+        <p class="text-xs text-slate-400 mt-1">自動比對 Excel 名單 · 追蹤法人每日籌碼趨勢</p>
       </div>
       
-      <!-- 2. 載入功能區 -->
-      <div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-200 w-full md:w-auto justify-between md:justify-start">
-        <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-          <span class="text-xs md:text-sm font-medium text-gray-700">更新成分股:</span>
-          <span id="uploadStatus" class="text-[11px] md:text-xs text-gray-400 block">尚未載入檔案</span>
+      <!-- 2. 載入功能區 (美化為深色調卡片) -->
+      <div class="flex items-center gap-3 bg-slate-800/60 backdrop-blur-md p-2.5 px-4 rounded-xl border border-slate-700 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex flex-col">
+          <span class="text-xs font-semibold text-slate-300">更新成分股名單</span>
+          <span id="uploadStatus" class="text-[11px] text-amber-400 block mt-0.5">尚未載入檔案</span>
         </div>
         <div>
           <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
-          <label for="excelInput" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition shadow-xs whitespace-nowrap block">
+          <label for="excelInput" class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm whitespace-nowrap block">
             選擇 Excel
           </label>
         </div>
       </div>
-    </header>
+    </div>
+  </div>
 
-    <!-- 3. 來源標籤區 (Tabs) -> 手機版支援橫向滾動，按鈕不擠壓 -->
-    <section class="mb-4 md:mb-6">
-      <div class="flex overflow-x-auto gap-2 border-b border-gray-200 pb-3 scrollbar-none" id="tabContainer">
-        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-blue-600 text-white shadow-xs whitespace-nowrap">
-          全部成分股
+  <!-- 主內容區 (利用負 Margin 向上提，做出重疊層次感) -->
+  <div class="max-w-7xl mx-auto px-4 -mt-16 pb-12">
+    
+    <!-- 3. 來源標籤區 (Tabs) -> 背景白底圓角，按鈕給予專屬顏色 -->
+    <section class="bg-white p-3 rounded-xl shadow-md border border-slate-200 mb-4">
+      <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
+      <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
+        <!-- 「全部」使用冷灰色調 -->
+        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-sm whitespace-nowrap cursor-pointer">
+          🌐 全部成分股
         </button>
-        <button onclick="switchTab('高股息自選股')" id="tab-高股息自選股" class="tab-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 whitespace-nowrap">
-          高股息自選股 (示範)
+        <!-- 高股息使用暖橘色調 -->
+        <button onclick="switchTab('高股息自選股')" id="tab-高股息自選股" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-amber-600 hover:bg-amber-50 border border-amber-200 whitespace-nowrap cursor-pointer">
+          🍊 高股息自選股
         </button>
-        <button onclick="switchTab('電子權值股')" id="tab-電子權值股" class="tab-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 whitespace-nowrap">
-          電子權值股 (示範)
+        <!-- 電子權值使用靛藍色調 -->
+        <button onclick="switchTab('電子權值股')" id="tab-電子權值股" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 whitespace-nowrap cursor-pointer">
+          ⚡ 電子權值股
         </button>
       </div>
     </section>
 
-    <!-- 控制面板：4. 過濾機制區 (手機上選單拉寬好點選) -->
-    <section class="bg-white p-4 rounded-xl shadow-xs border border-gray-200 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div class="w-full sm:w-auto">
-        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">籌碼條件篩選</label>
-        <select id="filterCondition" onchange="applyFilters()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-full sm:w-64">
+    <!-- 4. 控制面板：過濾機制區 (改為淡藍底色) -->
+    <section class="bg-subtle bg-blue-50/80 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="w-full sm:w-auto flex items-center gap-2">
+        <label class="text-xs font-bold text-blue-900 tracking-wider whitespace-nowrap">籌碼篩選：</label>
+        <select id="filterCondition" onchange="applyFilters()" class="bg-white border border-blue-200 text-slate-800 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 w-full sm:w-60 font-medium shadow-2xs">
           <option value="all">顯示所有歷史紀錄</option>
-          <option value="foreign_buy_3">外資連續買超 ≥ 3天</option>
-          <option value="foreign_sell_3">外資連續賣超 ≥ 3天</option>
-          <option value="trust_buy_3">投信連續買超 ≥ 3天</option>
-          <option value="twin_buy">外資 + 投信當日同步買超</option>
+          <option value="foreign_buy_3">🔥 外資連續買超 ≥ 3天</option>
+          <option value="foreign_sell_3">📉 外資連續賣超 ≥ 3天</option>
+          <option value="trust_buy_3">🎯 投信連續買超 ≥ 3天</option>
+          <option value="twin_buy">🚀 外資 + 投信當日同步買超</option>
         </select>
       </div>
-      <div class="text-xs md:text-sm text-gray-500 text-right sm:text-left">
-        目前顯示: <span id="recordCount" class="font-bold text-blue-600">0</span> 檔股票資料
+      <div class="text-xs text-slate-600 font-medium">
+        符合條件結果: <span id="recordCount" class="font-bold text-base text-blue-600">0</span> 檔
       </div>
     </section>
 
-    <!-- 5. 資料顯示區 -->
-    <!-- 【電腦版視角】：大螢幕時顯示，手機上自動隱藏 (hidden md:block) -->
-    <section class="hidden md:block bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200 text-left text-sm text-gray-600">
-        <thead class="bg-gray-50 text-xs text-gray-700 uppercase font-semibold">
+    <!-- 5. 資料列表區 (Table) -> 縮減間距的緊湊型設計 (Compact) -->
+    <!-- 【電腦版：超緊湊表格】 -->
+    <section class="hidden md:block bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+      <table class="min-w-full divide-y divide-slate-200 text-left text-xs text-slate-600">
+        <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
           <tr>
-            <th class="px-6 py-4">交易日期</th>
-            <th class="px-6 py-4">股票代號</th>
-            <th class="px-6 py-4">股票名稱</th>
-            <th class="px-6 py-4">外資買賣超 (張)</th>
-            <th class="px-6 py-4">投信買賣超 (張)</th>
-            <th class="px-6 py-4">自營商買賣超 (張)</th>
-            <th class="px-6 py-4">來源成分股</th>
+            <th class="px-4 py-2.5">交易日期</th>
+            <th class="px-4 py-2.5">股票代號</th>
+            <th class="px-4 py-2.5">股票名稱</th>
+            <th class="px-4 py-2.5 text-right">外資買賣超 (張)</th>
+            <th class="px-4 py-2.5 text-right">投信買賣超 (張)</th>
+            <th class="px-4 py-2.5 text-right">自營商買賣超 (張)</th>
+            <th class="px-4 py-2.5 text-center">來源分類標籤</th>
           </tr>
         </thead>
-        <tbody id="stockTableBody" class="divide-y divide-gray-200 bg-white">
-          <!-- 電腦版資料渲染處 -->
+        <tbody id="stockTableBody" class="divide-y divide-slate-100 bg-white">
+          <!-- 資料透過 JS 緊湊渲染 -->
         </tbody>
       </table>
     </section>
 
-    <!-- 【手機版視角】：大螢幕隱藏，手機版才會蹦出來 (block md:hidden) -->
-    <section id="stockCardContainer" class="block md:hidden grid grid-cols-1 gap-4">
-      <!-- 手機版卡片資料渲染處 -->
+    <!-- 【手機版：緊湊型卡片】 -->
+    <section id="stockCardContainer" class="block md:hidden grid grid-cols-1 gap-2.5">
+      <!-- 手機版資料卡片 -->
     </section>
 
   </div>
 
   <script>
     // ==========================================
-    // MOCK DATA: 模擬資料
+    // 顏色定義配置 (讓動態生成的標籤也能有漂亮顏色)
     // ==========================================
+    const colorThemes = {
+      '全部': { bg: 'bg-slate-800', text: 'text-white', border: 'border-slate-800', badge: 'bg-slate-100 text-slate-700' },
+      '高股息自選股': { bg: 'bg-amber-500', text: 'text-white', border: 'border-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+      '電子權值股': { bg: 'bg-indigo-600', text: 'text-white', border: 'border-indigo-600', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+      '預設': { bg: 'bg-emerald-600', text: 'text-white', border: 'border-emerald-600', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+    };
+
     let currentSourceTab = '全部';
     let rawStockData = [
       { trade_date: '2026-05-18', stock_id: '2330', stock_name: '台積電', foreign_buy: 4500, trust_buy: 120, dealer_buy: -50, sheet_source: '電子權值股' },
@@ -120,49 +139,45 @@
       renderData(rawStockData);
     });
 
-    // ==========================================
-    // 解析載入的 Excel 資料
-    // ==========================================
+    // 解析 Excel
     function handleExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
       document.getElementById("uploadStatus").innerText = "解析中...";
       const reader = new FileReader();
       
       reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        
         let totalImported = 0;
         let detectedSheets = workbook.SheetNames;
         
         detectedSheets.forEach(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          
           jsonData.forEach(row => {
             const stockId = row['股票代號'] || row['代號'];
-            const stockName = row['股票名稱'] || row['名稱'];
             if (stockId) totalImported++;
           });
         });
 
-        document.getElementById("uploadStatus").innerText = `已載入 ${detectedSheets.length} 個分類，共 ${totalImported} 檔股票`;
+        document.getElementById("uploadStatus").innerText = `已匯入 ${detectedSheets.length} 組分類，共 ${totalImported} 檔`;
         updateTabButtons(detectedSheets);
       };
-      
       reader.readAsArrayBuffer(file);
     }
 
+    // 動態標籤配色生成
     function updateTabButtons(sheets) {
       const container = document.getElementById("tabContainer");
-      container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-blue-600 text-white shadow-xs whitespace-nowrap">全部成分股</button>`;
+      container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-sm whitespace-nowrap cursor-pointer">🌐 全部成分股</button>`;
       
       sheets.forEach(sheet => {
+        // 如果沒有預設顏色，就使用綠色系的自訂主題
+        const theme = colorThemes[sheet] || colorThemes['預設'];
         container.innerHTML += `
-          <button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 whitespace-nowrap transition">
-            ${sheet}
+          <button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 whitespace-nowrap transition cursor-pointer">
+            📁 ${sheet}
           </button>
         `;
       });
@@ -170,22 +185,25 @@
 
     function switchTab(sheetName) {
       currentSourceTab = sheetName;
+      
+      // 還原所有按鈕到未選取狀態
       document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.classList.remove("bg-blue-600", "text-white");
-        btn.classList.add("bg-white", "text-gray-600", "border-gray-200");
+        const id = btn.id.replace('tab-', '');
+        const theme = colorThemes[id] || colorThemes['預設'];
+        btn.className = "tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 whitespace-nowrap transition cursor-pointer";
       });
       
+      // 為當前選取的標籤灌入對應的亮眼色彩
       const activeBtn = document.getElementById(`tab-${sheetName}`);
       if (activeBtn) {
-        activeBtn.classList.remove("bg-white", "text-gray-600");
-        activeBtn.classList.add("bg-blue-600", "text-white");
+        const theme = colorThemes[sheetName] || colorThemes['預設'];
+        activeBtn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.bg} ${theme.text} ${theme.border} shadow-sm whitespace-nowrap cursor-pointer`;
       }
       applyFilters();
     }
 
     function applyFilters() {
       let filteredData = [...rawStockData];
-      
       if (currentSourceTab !== '全部') {
         filteredData = filteredData.filter(item => item.sheet_source === currentSourceTab);
       }
@@ -200,87 +218,85 @@
       } else if (condition === 'foreign_sell_3') {
         filteredData = [];
       }
-
       renderData(filteredData);
     }
 
     // ==========================================
-    // 渲染機制：同時生成電腦表格與手機卡片
+    // 渲染機制：全面縮減 Padding，落實緊湊排版
     // ==========================================
     function renderData(data) {
       document.getElementById("recordCount").innerText = data.length;
-      
       const tbody = document.getElementById("stockTableBody");
       const cardContainer = document.getElementById("stockCardContainer");
       
-      // 空資料處理
       if (data.length === 0) {
-        const noDataHtml = `<div class="p-8 text-center text-gray-400 text-sm">沒有符合條件的數據</div>`;
-        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">沒有符合條件的數據</td></tr>`;
-        cardContainer.innerHTML = noDataHtml;
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">沒有符合篩選條件的數據</td></tr>`;
+        cardContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs bg-white rounded-xl border">沒有符合條件的數據</div>`;
         return;
       }
       
-      // A. 渲染【電腦版表格】
-      tbody.innerHTML = data.map(item => `
-        <tr class="hover:bg-gray-50 transition">
-          <td class="px-6 py-4 font-mono text-xs">${item.trade_date}</td>
-          <td class="px-6 py-4 font-mono font-semibold">${item.stock_id}</td>
-          <td class="px-6 py-4 font-medium text-gray-900">${item.stock_name}</td>
-          <td class="px-6 py-4 font-mono ${item.foreign_buy > 0 ? 'text-red-600 font-semibold' : 'text-green-600'}">
-            ${item.foreign_buy > 0 ? '+' : ''}${item.foreign_buy.toLocaleString()}
-          </td>
-          <td class="px-6 py-4 font-mono ${item.trust_buy > 0 ? 'text-red-600 font-semibold' : 'text-green-600'}">
-            ${item.trust_buy > 0 ? '+' : ''}${item.trust_buy.toLocaleString()}
-          </td>
-          <td class="px-6 py-4 font-mono ${item.dealer_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-            ${item.dealer_buy > 0 ? '+' : ''}${item.dealer_buy.toLocaleString()}
-          </td>
-          <td class="px-6 py-4">
-            <span class="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full border border-gray-200">${item.sheet_source}</span>
-          </td>
-        </tr>
-      `).join('');
+      // A. 電腦版 (間距優化：py-2.5 縮減為 py-1.5，文字更細緻)
+      tbody.innerHTML = data.map(item => {
+        const theme = colorThemes[item.sheet_source] || colorThemes['預設'];
+        return `
+          <tr class="hover:bg-slate-50/80 transition text-[13px]">
+            <td class="px-4 py-1.5 font-mono text-slate-400">${item.trade_date}</td>
+            <td class="px-4 py-1.5 font-mono font-bold text-slate-900">${item.stock_id}</td>
+            <td class="px-4 py-1.5 font-semibold text-slate-700">${item.stock_name}</td>
+            <td class="px-4 py-1.5 font-mono text-right ${item.foreign_buy > 0 ? 'text-rose-600 font-bold bg-rose-50/30' : 'text-emerald-600 bg-emerald-50/30'}">
+              ${item.foreign_buy > 0 ? '+' : ''}${item.foreign_buy.toLocaleString()}
+            </td>
+            <td class="px-4 py-1.5 font-mono text-right ${item.trust_buy > 0 ? 'text-rose-600 font-bold bg-rose-50/30' : 'text-emerald-600 bg-emerald-50/30'}">
+              ${item.trust_buy > 0 ? '+' : ''}${item.trust_buy.toLocaleString()}
+            </td>
+            <td class="px-4 py-1.5 font-mono text-right ${item.dealer_buy > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+              ${item.dealer_buy > 0 ? '+' : ''}${item.dealer_buy.toLocaleString()}
+            </td>
+            <td class="px-4 py-1.5 text-center">
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-md border ${theme.badge}">${item.sheet_source}</span>
+            </td>
+          </tr>
+        `;
+      }).join('');
 
-      // B. 渲染【手機版卡片】
-      cardContainer.innerHTML = data.map(item => `
-        <div class="bg-white p-4 rounded-xl shadow-xs border border-gray-200">
-          <div class="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
-            <div>
-              <span class="text-xs font-mono text-gray-400">${item.trade_date}</span>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="font-mono font-bold text-gray-900 text-lg">${item.stock_id}</span>
-                <span class="font-medium text-gray-700 text-base">${item.stock_name}</span>
+      // B. 手機版 (緊湊型卡片)
+      cardContainer.innerHTML = data.map(item => {
+        const theme = colorThemes[item.sheet_source] || colorThemes['預設'];
+        return `
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-slate-900 text-base">${item.stock_id}</span>
+                <span class="font-bold text-slate-700 text-sm">${item.stock_name}</span>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${theme.badge}">${item.sheet_source}</span>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-400 font-mono mb-1.5">
+              <span>日期: ${item.trade_date}</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
+              <div class="bg-slate-50 p-1.5 rounded-lg">
+                <div class="text-[10px] text-slate-400 font-medium mb-0.5">外資</div>
+                <div class="font-mono font-bold ${item.foreign_buy > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                  ${item.foreign_buy > 0 ? '+' : ''}${item.foreign_buy.toLocaleString()}
+                </div>
+              </div>
+              <div class="bg-slate-50 p-1.5 rounded-lg">
+                <div class="text-[10px] text-slate-400 font-medium mb-0.5">投信</div>
+                <div class="font-mono font-bold ${item.trust_buy > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                  ${item.trust_buy > 0 ? '+' : ''}${item.trust_buy.toLocaleString()}
+                </div>
+              </div>
+              <div class="bg-slate-50 p-1.5 rounded-lg">
+                <div class="text-[10px] text-slate-400 font-medium mb-0.5">自營商</div>
+                <div class="font-mono font-bold ${item.dealer_buy > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                  ${item.dealer_buy > 0 ? '+' : ''}${item.dealer_buy.toLocaleString()}
+                </div>
               </div>
             </div>
-            <span class="bg-blue-50 text-blue-600 text-[10px] font-medium px-2 py-0.5 rounded-md border border-blue-100">
-              ${item.sheet_source}
-            </span>
           </div>
-          
-          <!-- 三大法人數據網格 (手機版並排) -->
-          <div class="grid grid-cols-3 gap-2 text-center">
-            <div class="bg-gray-50 p-2 rounded-lg">
-              <div class="text-[10px] text-gray-400 font-medium mb-0.5">外資</div>
-              <div class="font-mono text-xs sm:text-sm font-bold ${item.foreign_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-                ${item.foreign_buy > 0 ? '+' : ''}${item.foreign_buy.toLocaleString()}
-              </div>
-            </div>
-            <div class="bg-gray-50 p-2 rounded-lg">
-              <div class="text-[10px] text-gray-400 font-medium mb-0.5">投信</div>
-              <div class="font-mono text-xs sm:text-sm font-bold ${item.trust_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-                ${item.trust_buy > 0 ? '+' : ''}${item.trust_buy.toLocaleString()}
-              </div>
-            </div>
-            <div class="bg-gray-50 p-2 rounded-lg">
-              <div class="text-[10px] text-gray-400 font-medium mb-0.5">自營商</div>
-              <div class="font-mono text-xs sm:text-sm font-bold ${item.dealer_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-                ${item.dealer_buy > 0 ? '+' : ''}${item.dealer_buy.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
   </script>
 </body>
