@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>牛牛分析站 - 5大法人實時籌碼版</title>
+  <title>牛牛分析站 - 斷點續傳籌碼版</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   
@@ -20,8 +20,8 @@
   <div id="loadingModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-slate-100 flex flex-col items-center">
       <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <h3 class="text-base font-bold text-slate-900 mb-1">正在向 FinMind 擷取實時籌碼...</h3>
-      <p id="loadingDetail" class="text-xs text-slate-500 font-medium">準備中...</p>
+      <h3 class="text-base font-bold text-slate-900 mb-1">雲端籌碼智慧同步中...</h3>
+      <p id="loadingDetail" class="text-xs text-slate-500 font-medium">比對資料庫最新斷點...</p>
     </div>
   </div>
 
@@ -32,7 +32,7 @@
         <img src="main_icon.png" alt="牛牛標誌" class="w-[50px] h-[50px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
           <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">牛牛分析站</h1>
-          <p class="text-xs text-slate-800/80 font-medium mt-0.5">自動比對 Excel 名單 · 追蹤 5 大法人每日籌碼趨勢</p>
+          <p class="text-xs text-slate-800/80 font-medium mt-0.5">智慧斷點續傳 · 追蹤 5 大法人每日籌碼</p>
         </div>
       </div>
       
@@ -45,16 +45,16 @@
             </div>
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-              <span>法人籌碼：<span id="chipUpdateTime" class="text-slate-900 font-bold">載入中...</span></span>
+              <span>雲端最新籌碼日：<span id="chipUpdateTime" class="text-slate-900 font-bold">檢測中...</span></span>
             </div>
           </div>
           <div class="border-t border-slate-200/60 my-1"></div>
-          <div id="uploadStatus" class="text-[11px] text-blue-700 font-bold text-center sm:text-left">系統初始化中...</div>
+          <div id="uploadStatus" class="text-[11px] text-blue-700 font-bold text-center sm:text-left">檢查資料庫狀態中...</div>
         </div>
         
         <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-center">
-          <button onclick="autoLoadAndSyncExcel()" class="w-full sm:w-auto cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap text-center flex items-center justify-center gap-1">
-            🔄 同步 Excel & 籌碼
+          <button onclick="forceSyncFlow()" class="w-full sm:w-auto cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap text-center flex items-center justify-center gap-1">
+            ⚡ 執行智慧同步
           </button>
         </div>
       </div>
@@ -67,39 +67,30 @@
     <section class="bg-white p-3 rounded-xl shadow-md border border-slate-200 mb-4">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
       <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
-        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">
-          🌐 全部成分股
-        </button>
+        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>
       </div>
     </section>
 
     <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="text-sm text-slate-700 font-semibold">
-        目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票
-      </div>
-      <div class="text-xs text-slate-400 font-medium">現階段展示：5 大法人細分看盤矩陣面板 (含近5日總結算)</div>
+      <div class="text-sm text-slate-700 font-semibold">目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票</div>
+      <div id="dataSourceLabel" class="text-xs text-slate-500 font-bold bg-white px-2 py-1 rounded border border-blue-200">數據狀態：檢測中</div>
     </section>
 
     <section class="bg-white rounded-xl shadow-md border border-slate-200 overflow-x-auto">
       <table class="min-w-full text-center text-sm text-slate-700 border-collapse">
         <thead class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
-          <tr id="tableHeaderDates" class="border-b border-slate-200">
-            </tr>
-          <tr id="tableHeaderSub" class="text-xs text-slate-500 bg-slate-50/50">
-            </tr>
+          <tr id="tableHeaderDates" class="border-b border-slate-200"></tr>
+          <tr id="tableHeaderSub" class="text-xs text-slate-500 bg-slate-50/50"></tr>
         </thead>
-        <tbody id="stockTableBody" class="bg-white">
-          </tbody>
+        <tbody id="stockTableBody" class="bg-white"></tbody>
       </table>
     </section>
-
   </div>
 
   <script>
     const SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
     const colorThemes = {
@@ -110,22 +101,19 @@
     };
 
     let currentSourceTab = '全部';
-    let dbStockData = [];
+    let dbStockData = [];          
+    let globalChipCache = [];      
     let targetSheetsSet = new Set();
-    let latestDbListTime = null;
     let recentDates = []; 
 
-    // 生成最近 5 個交易日清單 (跳過週末)
+    // 🗓️ 智慧生成最近 5 個開盤日（供前端畫面排版使用）
     function generateRecentDates() {
       let dates = [];
       let d = new Date(); 
       while (dates.length < 5) {
         let day = d.getDay();
         if (day !== 0 && day !== 6) { 
-          let yyyy = d.getFullYear();
-          let mm = String(d.getMonth() + 1).padStart(2, '0');
-          let dd = String(d.getDate()).padStart(2, '0');
-          dates.push(`${yyyy}-${mm}-${dd}`);
+          dates.push(formatDateToString(d));
         }
         d.setDate(d.getDate() - 1);
       }
@@ -135,9 +123,151 @@
     document.addEventListener("DOMContentLoaded", async () => {
       recentDates = generateRecentDates();
       renderTableHeader(); 
-      await fetchTimestamps();
-      await autoLoadAndSyncExcel();
+      await forceSyncFlow(); 
     });
+
+    // 🚀 一條龍智慧同步與檢查
+    async function forceSyncFlow() {
+      const modal = document.getElementById("loadingModal");
+      const detailText = document.getElementById("loadingDetail");
+      modal.classList.remove("hidden");
+
+      // 1. 先同步 Excel 名單
+      detailText.innerText = "正在比對 Excel 標的名單...";
+      await autoLoadAndSyncExcelList();
+
+      // 2. 智慧斷點續傳檢查
+      detailText.innerText = "正在檢查雲端資料庫斷點戳記...";
+      await handleSmartBackfillFlow();
+
+      // 3. 全量載入最新的 5 天籌碼到記憶體快取
+      detailText.innerText = "正在載入雲端籌碼資料...";
+      await fetchAllChipsFromSupabase();
+
+      modal.classList.add("hidden");
+      applyFilters();
+    }
+
+    // 🧠 最核心：斷點續傳與補償範圍計算
+    async function handleSmartBackfillFlow() {
+      const statusText = document.getElementById("uploadStatus");
+      const detailText = document.getElementById("loadingDetail");
+
+      try {
+        // 🔍 A. 找出資料庫裡目前「最新一筆籌碼」的日期
+        const { data: latestRow, error } = await supabaseClient
+          .from('stock_chips')
+          .select('date')
+          .order('date', { ascending: false })
+          .limit(1);
+
+        let lastChipDateStr = null;
+        if (!error && latestRow && latestRow.length > 0) {
+          lastChipDateStr = latestRow[0].date; // 格式如 "2026-05-12"
+          document.getElementById("chipUpdateTime").innerText = lastChipDateStr;
+        } else {
+          document.getElementById("chipUpdateTime").innerText = "資料庫無紀錄";
+        }
+
+        // 🔍 B. 計算「今天市場上最新應該有的籌碼日期」
+        const now = new Date();
+        let targetEndDate = new Date();
+        if (now.getHours() < 16) {
+          targetEndDate.setDate(now.getDate() - 1); // 下午 4 點前，最新只到昨天
+        }
+        const targetEndDateStr = formatDateToString(targetEndDate);
+
+        // 🔍 C. 判定起點日期 (Start Date)
+        let startFetchDateStr = "";
+        if (!lastChipDateStr) {
+          // 如果資料庫完全沒資料，預設往前補 10 天
+          let defaultStart = new Date();
+          defaultStart.setDate(defaultStart.getDate() - 10);
+          startFetchDateStr = formatDateToString(defaultStart);
+        } else {
+          // 關鍵點：從資料庫最後一筆資料日期的「隔一天」開始補
+          let lastDateObj = new Date(lastChipDateStr);
+          lastDateObj.setDate(lastDateObj.getDate() + 1);
+          startFetchDateStr = formatDateToString(lastDateObj);
+        }
+
+        // 🔍 D. 檢查是否需要執行下載
+        if (startFetchDateStr > targetEndDateStr) {
+          statusText.innerText = "✅ 智慧檢查：雲端資料已接續到最新市場交易日，免下載！";
+          document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端快取供應中";
+          return; // 斷點已接上最新，直接收工
+        }
+
+        // 🔍 E. 啟動區間下載補償
+        statusText.innerText = `⚡ 發現資料中斷！準備補抓區間：${startFetchDateStr} ~ ${targetEndDateStr}`;
+        document.getElementById("dataSourceLabel").innerText = `🔄 正在補償籌碼區間 [${startFetchDateStr} ~ ${targetEndDateStr}]...`;
+
+        if (dbStockData.length === 0) return;
+
+        // 依不重複股票跑迴圈下載
+        for (let i = 0; i < dbStockData.length; i++) {
+          const stock = dbStockData[i];
+          detailText.innerText = `[智慧補抓區間] ${stock.stock_id} (${i+1}/${dbStockData.length})\n範圍: ${startFetchDateStr} ~ ${targetEndDateStr}`;
+
+          try {
+            const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startFetchDateStr}&end_date=${targetEndDateStr}`;
+            const res = await fetch(apiUrl);
+            const resJson = await res.json();
+
+            if (resJson.status === 200 && Array.isArray(resJson.data) && resJson.data.length > 0) {
+              const uploadRows = resJson.data.map(row => ({
+                stock_id: row.stock_id,
+                date: row.date,
+                legal_name: row.name,
+                buy: row.buy || 0,
+                sell: row.sell || 0
+              }));
+
+              // 寫入 Supabase，有唯一約束防重複
+              await supabaseClient
+                .from('stock_chips')
+                .upsert(uploadRows, { onConflict: 'stock_id,date,legal_name' });
+            }
+          } catch (err) {
+            console.error(`補抓 ${stock.stock_id} 失敗:`, err);
+          }
+        }
+
+        // 補抓完成，更新畫面的最新紀錄日
+        document.getElementById("chipUpdateTime").innerText = targetEndDateStr;
+        statusText.innerText = "✅ 智慧區間補抓並寫入資料庫完成！";
+
+      } catch (e) {
+        console.error("智慧補償流發生錯誤:", e);
+        statusText.innerText = "⚠️ 智慧補償流執行異常";
+      }
+    }
+
+    // 從 Supabase 撈取 5 天內所有的籌碼明細到前端緩存
+    async function fetchAllChipsFromSupabase() {
+      const startDate = recentDates[recentDates.length - 1];
+      const endDate = recentDates[0];
+
+      const { data, error } = await supabaseClient
+        .from('stock_chips')
+        .select('stock_id, date, legal_name, buy, sell')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (!error && data) {
+        globalChipCache = data; 
+      }
+    }
+
+    // 工具函式：標準化 YYYY-MM-DD 格式
+    function formatDateToString(dateObj) {
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 以下為界面渲染與過濾邏輯 ──────────────────────────────────────────
 
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
@@ -152,7 +282,7 @@
 
       recentDates.forEach((dateStr, index) => {
         const parts = dateStr.split('-');
-        const formattedDate = `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+        const formattedDate = `${parts[1]}月${parts[2]}日`;
         const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-200";
         datesHtml += `<th colspan="3" class="px-4 py-2 ${borderClass} text-sm bg-slate-50">${formattedDate}</th>`;
         
@@ -163,35 +293,14 @@
           <th class="py-1.5 ${subBorderClass} min-w-[60px]">結</th>
         `;
       });
-
       headerDates.innerHTML = datesHtml;
       headerSub.innerHTML = subHtml;
     }
 
-    async function fetchTimestamps() {
-      const { data: listData } = await supabaseClient
-        .from('stock_targets')
-        .select('updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(1);
-        
-      if (listData && listData.length > 0) {
-        latestDbListTime = new Date(listData[0].updated_at);
-        document.getElementById("listUpdateTime").innerText = formatDateTime(latestDbListTime);
-      } else {
-        document.getElementById("listUpdateTime").innerText = "尚無名單";
-      }
-      document.getElementById("chipUpdateTime").innerText = formatDateTime(new Date());
-    }
-
-    async function autoLoadAndSyncExcel() {
-      const statusText = document.getElementById("uploadStatus");
-      statusText.innerText = "正在連線獲取 Excel 設定檔...";
-
+    async function autoLoadAndSyncExcelList() {
       try {
         const response = await fetch(EXCEL_SOURCE_URL);
-        if (!response.ok) throw new Error(`狀態代碼: ${response.status}`);
-        
+        if (!response.ok) throw new Error();
         const arrayBuffer = await response.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -200,14 +309,13 @@
         workbook.SheetNames.forEach(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          
           jsonData.forEach(row => {
             const stockId = String(row['股票代號'] || row['代號'] || '').trim();
             const stockName = String(row['股票名稱'] || row['名稱'] || '').trim();
             if (stockId && stockName) {
               if (stockMap.has(stockId)) {
-                const existingItem = stockMap.get(stockId);
-                if (!existingItem.sheet_tags.includes(sheetName)) existingItem.sheet_tags.push(sheetName);
+                const item = stockMap.get(stockId);
+                if (!item.sheet_tags.includes(sheetName)) item.sheet_tags.push(sheetName);
               } else {
                 stockMap.set(stockId, { stock_id: stockId, stock_name: stockName, sheet_tags: [sheetName], updated_at: new Date().toISOString() });
               }
@@ -219,35 +327,17 @@
         if (rowsToUpload.length > 0) {
           await supabaseClient.from('stock_targets').upsert(rowsToUpload, { onConflict: 'stock_id' });
         }
-
-        statusText.innerText = "✅ 名單同步完成！";
-        await fetchStocksFromSupabase();
         
+        const { data: dbData } = await supabaseClient.from('stock_targets').select('stock_id, stock_name, sheet_tags').order('stock_id', { ascending: true });
+        dbStockData = dbData || [];
+        
+        targetSheetsSet.clear();
+        dbStockData.forEach(item => { if (Array.isArray(item.sheet_tags)) item.sheet_tags.forEach(tag => targetSheetsSet.add(tag)); });
+        updateTabButtons(Array.from(targetSheetsSet));
       } catch (err) {
-        console.error(err);
-        statusText.innerText = "⚠️ 載入發生限制，切換為現有名單讀取...";
-        await fetchStocksFromSupabase();
+        const { data: dbData } = await supabaseClient.from('stock_targets').select('stock_id, stock_name, sheet_tags').order('stock_id', { ascending: true });
+        dbStockData = dbData || [];
       }
-    }
-
-    async function fetchStocksFromSupabase() {
-      const { data, error } = await supabaseClient
-        .from('stock_targets')
-        .select('stock_id, stock_name, sheet_tags')
-        .order('stock_id', { ascending: true });
-        
-      if (error) return;
-      dbStockData = data || [];
-      
-      targetSheetsSet.clear();
-      dbStockData.forEach(item => {
-        if (Array.isArray(item.sheet_tags)) {
-          item.sheet_tags.forEach(tag => targetSheetsSet.add(tag));
-        }
-      });
-
-      updateTabButtons(Array.from(targetSheetsSet));
-      applyFilters();
     }
 
     function updateTabButtons(sheets) {
@@ -259,10 +349,6 @@
       });
       setActiveTabUI();
     }
-
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") applyFilters();
-    });
 
     function switchTab(sheetName) {
       currentSourceTab = sheetName;
@@ -282,46 +368,26 @@
       }
     }
 
-    async function applyFilters() {
+    function applyFilters() {
       setActiveTabUI();
-      let filteredData = [...dbStockData];
+      let filteredStocks = [...dbStockData];
       if (currentSourceTab !== '全部') {
-        filteredData = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
+        filteredStocks = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
       }
-      await fetchAndRenderRealChipData(filteredData);
+      renderMatrixTableFromCache(filteredStocks);
     }
 
-    // 📡 升級核心連結：清洗、歸納與加總 5 大細分法人數據
-    async function fetchAndRenderRealChipData(stocks) {
+    function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
-      
-      if (stocks.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="18" class="px-6 py-12 text-center text-slate-400 text-sm">此分類下目前沒有股票名單</td></tr>`;
-        return;
-      }
-
-      const modal = document.getElementById("loadingModal");
-      const detailText = document.getElementById("loadingDetail");
-      modal.classList.remove("hidden");
-
       let htmlString = "";
-      const startDate = recentDates[recentDates.length - 1]; 
-      const endDate = recentDates[0];                     
 
-      for (let i = 0; i < stocks.length; i++) {
-        const item = stocks[i];
-        detailText.innerText = `正在下載 ${item.stock_id} ${item.stock_name} ... (${i + 1} / ${stocks.length} 檔)`;
+      stocks.forEach(item => {
+        const stockChips = globalChipCache.filter(c => c.stock_id === item.stock_id);
 
-        // 🧠 擴展為 5 大獨立法人容器
         let chipMap = {
-          foreign: {},         // 外資
-          foreignDealer: {},   // 外資自營商
-          investment: {},      // 投信
-          dealerSelf: {} ,     // 自營商(自行買賣)
-          dealerHedging: {}    // 自營商(避險)
+          foreign: {}, foreignDealer: {}, investment: {}, dealerSelf: {} , dealerHedging: {}
         };
-        
         recentDates.forEach(d => {
           chipMap.foreign[d] = { buy: 0, sell: 0 };
           chipMap.foreignDealer[d] = { buy: 0, sell: 0 };
@@ -330,43 +396,19 @@
           chipMap.dealerHedging[d] = { buy: 0, sell: 0 };
         });
 
-        try {
-          const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${item.stock_id}&start_date=${startDate}&end_date=${endDate}`;
-          const res = await fetch(apiUrl);
-          const resJson = await res.json();
+        stockChips.forEach(row => {
+          const d = row.date;
+          if(!chipMap.foreign[d]) return;
+          const b = Math.round((row.buy || 0) / 1000);
+          const s = Math.round((row.sell || 0) / 1000);
 
-          if (resJson.status === 200 && Array.isArray(resJson.data)) {
-            resJson.data.forEach(row => {
-              const rowDate = row.date;
-              if (!chipMap.foreign[rowDate]) return; 
+          if (row.legal_name === 'Foreign_Investor') { chipMap.foreign[d] = { buy: b, sell: s }; }
+          else if (row.legal_name === 'Foreign_Dealer_Self') { chipMap.foreignDealer[d] = { buy: b, sell: s }; }
+          else if (row.legal_name === 'Investment_Trust') { chipMap.investment[d] = { buy: b, sell: s }; }
+          else if (row.legal_name === 'Dealer_self') { chipMap.dealerSelf[d] = { buy: b, sell: s }; }
+          else if (row.legal_name === 'Dealer_Hedging') { chipMap.dealerHedging[d] = { buy: b, sell: s }; }
+        });
 
-              const buyShares = Math.round((row.buy || 0) / 1000);
-              const sellShares = Math.round((row.sell || 0) / 1000);
-
-              // 🎯 精準分流至 5 大法人
-              if (row.name === 'Foreign_Investor') {
-                chipMap.foreign[rowDate].buy += buyShares;
-                chipMap.foreign[rowDate].sell += sellShares;
-              } else if (row.name === 'Foreign_Dealer_Self') {
-                chipMap.foreignDealer[rowDate].buy += buyShares;
-                chipMap.foreignDealer[rowDate].sell += sellShares;
-              } else if (row.name === 'Investment_Trust') {
-                chipMap.investment[rowDate].buy += buyShares;
-                chipMap.investment[rowDate].sell += sellShares;
-              } else if (row.name === 'Dealer_self') {
-                chipMap.dealerSelf[rowDate].buy += buyShares;
-                chipMap.dealerSelf[rowDate].sell += sellShares;
-              } else if (row.name === 'Dealer_Hedging') {
-                chipMap.dealerHedging[rowDate].buy += buyShares;
-                chipMap.dealerHedging[rowDate].sell += sellShares;
-              }
-            });
-          }
-        } catch (e) {
-          console.error(`無法獲取 ${item.stock_id} 的籌碼資料:`, e);
-        }
-
-        // 計算 5 日各自的結算總和
         const sumFin = recentDates.reduce((acc, d) => acc + (chipMap.foreign[d].buy - chipMap.foreign[d].sell), 0);
         const sumFinDea = recentDates.reduce((acc, d) => acc + (chipMap.foreignDealer[d].buy - chipMap.foreignDealer[d].sell), 0);
         const sumInv = recentDates.reduce((acc, d) => acc + (chipMap.investment[d].buy - chipMap.investment[d].sell), 0);
@@ -387,7 +429,6 @@
           return `<td class="py-2 border-r border-slate-300 font-bold bg-slate-100 text-slate-500">0</td>`;
         };
 
-        // 拼接五行不同的資料列
         let fRow = "", fdRow = "", iRow = "", dsRow = "", dhRow = "";
         recentDates.forEach(d => {
           fRow += getCell(chipMap.foreign[d].buy, chipMap.foreign[d].sell);
@@ -397,7 +438,6 @@
           dhRow += getCell(chipMap.dealerHedging[d].buy, chipMap.dealerHedging[d].sell);
         });
 
-        // HTML 結構：主要欄位設定 rowspan="5" 跨五列
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" class="px-4 py-4 border-r border-slate-300 font-mono font-bold text-slate-900 bg-slate-100/30 text-center leading-tight">
@@ -424,20 +464,9 @@
             ${getSumCell(sumDeaHed)}${dhRow}
           </tr>
         `;
-      }
+      });
 
       tbody.innerHTML = htmlString;
-      modal.classList.add("hidden");
-    }
-
-    function formatDateTime(date) {
-      if(!date || isNaN(date.getTime())) return "無紀錄";
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      const hh = String(date.getHours()).padStart(2, '0');
-      const mm = String(date.getMinutes()).padStart(2, '0');
-      return `${y}-${m}-${d} ${hh}:${mm}`;
     }
   </script>
 </body>
