@@ -8,7 +8,7 @@
   <!-- 使用 Tailwind CSS v4 -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   
-  <!-- 引入 SheetJS 與 Supabase -->
+  <!-- 引入 SheetJS 與 Supabase 官方 SDK -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -20,33 +20,40 @@
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
   <!-- 頂部：淺藍色漸層背景 -->
-  <div class="bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 pb-24 pt-6 shadow-xs border-b border-sky-300/30">
-    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+  <div class="bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 pb-28 pt-6 shadow-xs border-b border-sky-300/30">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
       
-      <!-- 左上方圖示與標題區塊 -->
+      <!-- 左上方圖示與標題 -->
       <div class="flex items-center gap-3">
-        <!-- 1. 更換為 main_icon.png 且固定 50*50 大小 -->
         <img src="main_icon.png" alt="牛牛標誌" class="w-[50px] h-[50px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
-          <!-- 2. 標題調整為 牛牛分析站 -->
           <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">牛牛分析站</h1>
           <p class="text-xs text-slate-800/80 font-medium mt-0.5">自動比對 Excel 名單 · 追蹤法人每日籌碼趨勢</p>
         </div>
       </div>
       
-      <!-- 載入功能區 -->
-      <div class="flex items-center gap-3 bg-white/80 backdrop-blur-md p-2.5 px-4 rounded-xl border border-sky-200 w-full md:w-auto justify-between md:justify-start shadow-xs">
-        <div class="flex flex-col">
-          <span class="text-xs font-bold text-slate-700">更新成分股名單</span>
-          <span id="uploadStatus" class="text-[11px] text-blue-700 font-bold block mt-0.5">尚未載入檔案</span>
+      <!-- 右上方：狀態與雙時間監控區 -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/90 backdrop-blur-md p-3 px-4 rounded-xl border border-sky-200 w-full md:w-auto shadow-sm">
+        <div class="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>名單更新：<span id="listUpdateTime" class="text-slate-900 font-bold">載入中...</span></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span>法人籌碼：<span id="chipUpdateTime" class="text-slate-900 font-bold">載入中...</span></span>
+          </div>
+          <div id="uploadStatus" class="text-[11px] text-blue-700 font-bold mt-0.5">系統就緒</div>
         </div>
-        <div>
+        
+        <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-end">
           <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
-          <label for="excelInput" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap block">
-            選擇 Excel
+          <label for="excelInput" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap block text-center">
+            📥 選擇 Excel 匯入
           </label>
         </div>
       </div>
+      
     </div>
   </div>
 
@@ -60,49 +67,30 @@
         <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">
           🌐 全部成分股
         </button>
-        <button onclick="switchTab('高股息自選股')" id="tab-高股息自選股" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 whitespace-nowrap cursor-pointer transition-colors">
-          🍊 高股息自選股
-        </button>
-        <button onclick="switchTab('電子權值股')" id="tab-電子權值股" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 whitespace-nowrap cursor-pointer transition-colors">
-          ⚡ 電子權值股
-        </button>
       </div>
     </section>
 
     <!-- 控制面板：過濾機制區 -->
     <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="w-full sm:w-auto flex items-center gap-2">
-        <label class="text-xs font-bold text-blue-900 tracking-wider whitespace-nowrap">籌碼篩選：</label>
-        <select id="filterCondition" onchange="applyFilters()" class="bg-white border border-blue-200 text-slate-800 text-sm rounded-lg block p-2 w-full sm:w-60 font-medium shadow-2xs">
-          <option value="all">顯示所有歷史紀錄</option>
-          <option value="foreign_buy_3">🔥 外資連續買超 ≥ 3天</option>
-          <option value="foreign_sell_3">📉 外資連續賣超 ≥ 3天</option>
-          <option value="trust_buy_3">🎯 投信連續買超 ≥ 3天</option>
-          <option value="twin_buy">🚀 外資 + 投信當日同步買超</option>
-        </select>
+      <div class="text-sm text-slate-700 font-semibold">
+        目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票
       </div>
-      <div class="text-sm text-slate-600 font-semibold">
-        符合條件結果: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔
-      </div>
+      <div class="text-xs text-slate-400 font-medium">現階段展示：資料庫基本名單與分頁標籤聯集</div>
     </section>
 
-    <!-- 資料列表區 (Table) -->
+    <!-- 資料列表區 -->
     <!-- 【電腦版表格】 -->
     <section class="hidden md:block bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
       <table class="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
         <thead class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200">
           <tr>
-            <th class="px-4 py-3">交易日期</th>
-            <th class="px-4 py-3">股票代號</th>
-            <th class="px-4 py-3">股票名稱</th>
-            <th class="px-4 py-3 text-right">外資買賣超 (張)</th>
-            <th class="px-4 py-3 text-right">投信買賣超 (張)</th>
-            <th class="px-4 py-3 text-right">自營商買賣超 (張)</th>
-            <th class="px-4 py-3 text-center">來源分類標籤</th>
+            <th class="px-6 py-3">股票代號</th>
+            <th class="px-6 py-3">股票名稱</th>
+            <th class="px-6 py-3 text-center">所屬分頁標籤 (Tags)</th>
           </tr>
         </thead>
         <tbody id="stockTableBody" class="divide-y divide-slate-100 bg-white">
-          <!-- 資料透過 JS 渲染 -->
+          <!-- 資料透過 JS 實時從 Supabase 渲染 -->
         </tbody>
       </table>
     </section>
@@ -115,74 +103,173 @@
   </div>
 
   <script>
+    // Supabase 初始化連線
+    const SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 顏色定義配置
     const colorThemes = {
-      '全部': {
-        active: 'bg-slate-800 text-white shadow-xs',
-        inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
-        badge: 'bg-slate-100 text-slate-700 border-slate-200'
-      },
-      '高股息自選股': {
-        active: 'bg-amber-500 text-white shadow-xs',
-        inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100',
-        badge: 'bg-amber-100 text-amber-800 border-amber-200'
-      },
-      '電子權值股': {
-        active: 'bg-indigo-600 text-white shadow-xs',
-        inactive: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100',
-        badge: 'bg-indigo-100 text-indigo-800 border-indigo-200'
-      },
-      '預設': {
-        active: 'bg-emerald-600 text-white shadow-xs',
-        inactive: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
-        badge: 'bg-emerald-100 text-emerald-800 border-emerald-200'
-      }
+      '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200', badge: 'bg-slate-100 text-slate-700 border-slate-200' },
+      '高股息自選股': { active: 'bg-amber-500 text-white shadow-xs', inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100', badge: 'bg-amber-100 text-amber-800 border-amber-200' },
+      '電子權值股': { active: 'bg-indigo-600 text-white shadow-xs', inactive: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100', badge: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
+      '預設': { active: 'bg-emerald-600 text-white shadow-xs', inactive: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200' }
     };
 
     let currentSourceTab = '全部';
-    let rawStockData = [
-      { trade_date: '2026-05-18', stock_id: '2330', stock_name: '台積電', foreign_buy: 4500, trust_buy: 120, dealer_buy: -50, sheet_source: '電子權值股' },
-      { trade_date: '2026-05-15', stock_id: '2330', stock_name: '台積電', foreign_buy: 1200, trust_buy: 80, dealer_buy: 10, sheet_source: '電子權值股' },
-      { trade_date: '2026-05-14', stock_id: '2330', stock_name: '台積電', foreign_buy: 800, trust_buy: -10, dealer_buy: 40, sheet_source: '電子權值股' },
-      
-      { trade_date: '2026-05-18', stock_id: '0056', stock_name: '元大高股息', foreign_buy: -1200, trust_buy: 8000, dealer_buy: 500, sheet_source: '高股息自選股' },
-      { trade_date: '2026-05-15', stock_id: '0056', stock_name: '元大高股息', foreign_buy: -500, trust_buy: 4500, dealer_buy: 200, sheet_source: '高股息自選股' },
-      { trade_date: '2026-05-14', stock_id: '0056', stock_name: '元大高股息', foreign_buy: 300, trust_buy: 3000, dealer_buy: 100, sheet_source: '高股息自選股' },
-      
-      { trade_date: '2026-05-18', stock_id: '2454', stock_name: '聯發科', foreign_buy: 500, trust_buy: 400, dealer_buy: -20, sheet_source: '電子權值股' },
-    ];
+    let dbStockData = [];          // 從 Supabase 取得的真實不重複名單
+    let targetSheetsSet = new Set();  // 現有的不重複分頁名稱
+    let latestDbListTime = null;   // 資料庫裡最新的名單更新時間
 
-    document.addEventListener("DOMContentLoaded", () => {
-      renderData(rawStockData);
+    document.addEventListener("DOMContentLoaded", async () => {
+      await fetchTimestamps();       // 1. 抓取並顯示兩個更新時間
+      await fetchStocksFromSupabase(); // 2. 抓取並呈現真實名單與標籤
     });
 
-    // 解析 Excel
-    function handleExcelUpload(event) {
+    // 📥 讀取並顯示「雙更新時間」
+    async function fetchTimestamps() {
+      // a. 獲取列表資料的最新時間 (從名單中找最新的一筆)
+      const { data: listData, error: listErr } = await supabaseClient
+        .from('stock_targets')
+        .select('updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+        
+      if (!listErr && listData && listData.length > 0) {
+        latestDbListTime = new Date(listData[0].updated_at);
+        document.getElementById("listUpdateTime").innerText = formatDateTime(latestDbListTime);
+      } else {
+        document.getElementById("listUpdateTime").innerText = "尚無名單";
+      }
+
+      // b. 獲取法人買賣觀測站的更新時間
+      const { data: sysData, error: sysErr } = await supabaseClient
+        .from('system_timestamps')
+        .select('updated_at')
+        .eq('key', 'chip_data_time')
+        .single();
+        
+      if (!sysErr && sysData) {
+        document.getElementById("chipUpdateTime").innerText = formatDateTime(new Date(sysData.updated_at));
+      } else {
+        document.getElementById("chipUpdateTime").innerText = "未更新";
+      }
+    }
+
+    // 📥 解析 Excel 並處理「檔案時間比對機制」
+    async function handleExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
-      document.getElementById("uploadStatus").innerText = "解析中...";
+      
+      const statusText = document.getElementById("uploadStatus");
+      
+      // 核心機制：檢查選擇的本機檔案修改時間
+      if (file.lastModified && latestDbListTime) {
+        const fileModifiedTime = new Date(file.lastModified);
+        
+        // 如果選擇的檔案時間，早於或等於資料庫現存的時間，進行提醒確認
+        if (fileModifiedTime <= latestDbListTime) {
+          const confirmUpload = confirm(`⚠️ 提示：\n您選擇的 Excel 檔案修改時間為 (${formatDateTime(fileModifiedTime)})\n資料庫現存名單時間為 (${formatDateTime(latestDbListTime)})\n檔案似乎沒有比較新，確定還要執行覆蓋更新嗎？`);
+          if (!confirmUpload) {
+            statusText.innerText = "已取消上傳";
+            event.target.value = ""; // 清空選擇
+            return;
+          }
+        }
+      }
+
+      statusText.innerText = "正在解析 Excel 分頁...";
       const reader = new FileReader();
       
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        let totalImported = 0;
-        let detectedSheets = workbook.SheetNames;
-        
-        detectedSheets.forEach(sheetName => {
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          jsonData.forEach(row => {
-            const stockId = row['股票代號'] || row['代號'];
-            if (stockId) totalImported++;
+      reader.onload = async function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const stockMap = new Map();
+          let sheetNames = workbook.SheetNames;
+          
+          sheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            
+            jsonData.forEach(row => {
+              const stockId = String(row['股票代號'] || row['代號'] || '').trim();
+              const stockName = String(row['股票名稱'] || row['名稱'] || '').trim();
+              
+              if (stockId && stockName) {
+                if (stockMap.has(stockId)) {
+                  const existingItem = stockMap.get(stockId);
+                  if (!existingItem.sheet_tags.includes(sheetName)) {
+                    existingItem.sheet_tags.push(sheetName);
+                  }
+                } else {
+                  stockMap.set(stockId, {
+                    stock_id: stockId,
+                    stock_name: stockName,
+                    sheet_tags: [sheetName],
+                    updated_at: new Date().toISOString() // 記錄本次寫入時間
+                  });
+                }
+              }
+            });
           });
-        });
 
-        document.getElementById("uploadStatus").innerText = `已載入 ${detectedSheets.length} 組分類，共 ${totalImported} 檔`;
-        updateTabButtons(detectedSheets);
+          const rowsToUpload = Array.from(stockMap.values());
+          if (rowsToUpload.length === 0) {
+            statusText.innerText = "❌ 未偵測到有效股票名單。";
+            return;
+          }
+
+          statusText.innerText = `同步中，共 ${rowsToUpload.length} 檔...`;
+
+          // 推送至 Supabase
+          const { error } = await supabaseClient
+            .from('stock_targets')
+            .upsert(rowsToUpload, { onConflict: 'stock_id' });
+
+          if (error) {
+            throw error;
+          }
+
+          statusText.innerText = "✅ 資料庫名單同步成功！";
+          await fetchTimestamps();       // 刷新時間顯示
+          await fetchStocksFromSupabase(); // 刷新網頁內容
+          
+        } catch (err) {
+          console.error(err);
+          statusText.innerText = "❌ 寫入失敗或 RLS 權限阻擋。";
+        }
       };
       reader.readAsArrayBuffer(file);
     }
 
+    // 📥 抓取資料庫真實資料並進行標籤分類提取
+    async function fetchStocksFromSupabase() {
+      const { data, error } = await supabaseClient
+        .from('stock_targets')
+        .select('stock_id, stock_name, sheet_tags')
+        .order('stock_id', { ascending: true });
+        
+      if (error) {
+        console.error("無法載入股票主檔:", error);
+        return;
+      }
+
+      dbStockData = data || [];
+      
+      // 攤平所有股票的標籤，收集到不重複的 Set 裡用來建立動態 Tab 按鈕
+      targetSheetsSet.clear();
+      dbStockData.forEach(item => {
+        if (Array.isArray(item.sheet_tags)) {
+          item.sheet_tags.forEach(tag => targetSheetsSet.add(tag));
+        }
+      });
+
+      updateTabButtons(Array.from(targetSheetsSet));
+      applyFilters();
+    }
+
+    // 動態更新頂部切換標籤 (全底色變換邏輯)
     function updateTabButtons(sheets) {
       const container = document.getElementById("tabContainer");
       container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>`;
@@ -195,11 +282,16 @@
           </button>
         `;
       });
+      
+      const activeBtn = document.getElementById(`tab-${currentSourceTab}`);
+      if (activeBtn) {
+        const theme = colorThemes[currentSourceTab] || colorThemes['預設'];
+        activeBtn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.active} whitespace-nowrap cursor-pointer`;
+      }
     }
 
     function switchTab(sheetName) {
       currentSourceTab = sheetName;
-      
       document.querySelectorAll(".tab-btn").forEach(btn => {
         const id = btn.id.replace('tab-', '');
         const theme = colorThemes[id] || colorThemes['預設'];
@@ -214,55 +306,40 @@
       applyFilters();
     }
 
+    // 💡 核心過濾機制：檢查陣列欄位裡面是否有包含目前點選的 Tag 名稱
     function applyFilters() {
-      let filteredData = [...rawStockData];
+      let filteredData = [...dbStockData];
       if (currentSourceTab !== '全部') {
-        filteredData = filteredData.filter(item => item.sheet_source === currentSourceTab);
-      }
-      
-      const condition = document.getElementById("filterCondition").value;
-      if (condition === 'twin_buy') {
-        filteredData = filteredData.filter(item => item.foreign_buy > 0 && item.trust_buy > 0);
-      } else if (condition === 'foreign_buy_3') {
-        filteredData = filteredData.filter(item => item.stock_id === '2330'); 
-      } else if (condition === 'trust_buy_3') {
-        filteredData = filteredData.filter(item => item.stock_id === '0056');
-      } else if (condition === 'foreign_sell_3') {
-        filteredData = [];
+        filteredData = dbStockData.filter(item => 
+          Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab)
+        );
       }
       renderData(filteredData);
     }
 
+    // 網頁呈現渲染 (現階段僅展示代號、名稱、以及它們擁有的多重分頁 Tags)
     function renderData(data) {
       document.getElementById("recordCount").innerText = data.length;
       const tbody = document.getElementById("stockTableBody");
       const cardContainer = document.getElementById("stockCardContainer");
       
       if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400 text-sm">沒有符合篩選條件的數據</td></tr>`;
-        cardContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm bg-white rounded-xl border">沒有符合條件的數據</div>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">此分類下目前沒有股票名單</td></tr>`;
+        cardContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm bg-white rounded-xl border">此分類下目前沒有股票名單</div>`;
         return;
       }
       
       // A. 電腦版表格
       tbody.innerHTML = data.map(item => {
-        const theme = colorThemes[item.sheet_source] || colorThemes['預設'];
         return `
           <tr class="hover:bg-blue-100/40 transition text-[14px] odd:bg-blue-50/20 bg-white">
-            <td class="px-4 py-2 font-mono text-slate-400">${item.trade_date}</td>
-            <td class="px-4 py-2 font-mono font-bold text-slate-900">${item.stock_id}</td>
-            <td class="px-4 py-2 font-bold text-slate-700">${item.stock_name}</td>
-            <td class="px-4 py-2 font-mono text-right ${item.foreign_buy > 0 ? 'text-red-600 font-extrabold bg-red-50/40' : 'text-green-600 bg-green-50/20'}">
-              ${item.foreign_buy > 0 ? '+' : ''}${item.foreign_buy.toLocaleString()}
-            </td>
-            <td class="px-4 py-2 font-mono text-right ${item.trust_buy > 0 ? 'text-red-600 font-extrabold bg-red-50/40' : 'text-green-600 bg-green-50/20'}">
-              ${item.trust_buy > 0 ? '+' : ''}${item.trust_buy.toLocaleString()}
-            </td>
-            <td class="px-4 py-2 font-mono text-right ${item.dealer_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-              ${item.dealer_buy > 0 ? '+' : ''}${item.dealer_buy.toLocaleString()}
-            </td>
-            <td class="px-4 py-2 text-center">
-              <span class="text-[12px] font-extrabold px-2.5 py-0.5 rounded-md border ${theme.badge}">${item.sheet_source}</span>
+            <td class="px-6 py-3 font-mono font-bold text-slate-900">${item.stock_id}</td>
+            <td class="px-6 py-3 font-bold text-slate-700">${item.stock_name}</td>
+            <td class="px-6 py-3 text-center flex flex-wrap gap-1.5 justify-center">
+              ${item.sheet_tags.map(tag => {
+                const theme = colorThemes[tag] || colorThemes['預設'];
+                return `<span class="text-[12px] font-extrabold px-2 py-0.5 rounded-md border ${theme.badge}">${tag}</span>`;
+              }).join('')}
             </td>
           </tr>
         `;
@@ -270,41 +347,34 @@
 
       // B. 手機版卡片
       cardContainer.innerHTML = data.map(item => {
-        const theme = colorThemes[item.sheet_source] || colorThemes['預設'];
         return `
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-            <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-1.5">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="flex justify-between items-start mb-2 gap-2">
               <div class="flex items-center gap-2">
                 <span class="font-mono font-bold text-slate-900 text-lg">${item.stock_id}</span>
                 <span class="font-extrabold text-slate-700 text-base">${item.stock_name}</span>
               </div>
-              <span class="text-[11px] font-bold px-2 py-0.5 rounded border ${theme.badge}">${item.sheet_source}</span>
             </div>
-            <div class="text-xs text-slate-400 font-mono mb-2">日期: ${item.trade_date}</div>
-            
-            <div class="grid grid-cols-3 gap-2 text-center text-sm">
-              <div class="bg-blue-50/40 p-2 rounded-lg">
-                <div class="text-[10px] text-slate-400 font-bold mb-0.5">外資</div>
-                <div class="font-mono font-extrabold ${item.foreign_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-                  ${item.foreign_buy > 0 ? '+' : ''}${item.foreign_buy.toLocaleString()}
-                </div>
-              </div>
-              <div class="bg-blue-50/40 p-2 rounded-lg">
-                <div class="text-[10px] text-slate-400 font-bold mb-0.5">投信</div>
-                <div class="font-mono font-extrabold ${item.trust_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-                  ${item.trust_buy > 0 ? '+' : ''}${item.trust_buy.toLocaleString()}
-                </div>
-              </div>
-              <div class="bg-blue-50/40 p-2 rounded-lg">
-                <div class="text-[10px] text-slate-400 font-bold mb-0.5">自營商</div>
-                <div class="font-mono font-bold ${item.dealer_buy > 0 ? 'text-red-600' : 'text-green-600'}">
-                  ${item.dealer_buy > 0 ? '+' : ''}${item.dealer_buy.toLocaleString()}
-                </div>
-              </div>
+            <div class="flex flex-wrap gap-1.5 mt-1">
+              ${item.sheet_tags.map(tag => {
+                const theme = colorThemes[tag] || colorThemes['預設'];
+                return `<span class="text-[10px] font-bold px-2 py-0.5 rounded border ${theme.badge}">${tag}</span>`;
+              }).join('')}
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    // 工具函式：格式化時間顯示
+    function formatDateTime(date) {
+      if(!date || isNaN(date.getTime())) return "無紀錄";
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const hh = String(date.getHours()).padStart(2, '0');
+      const mm = String(date.getMinutes()).padStart(2, '0');
+      return `${y}-${m}-${d} ${hh}:${mm}`;
     }
   </script>
 </body>
