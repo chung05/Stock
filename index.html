@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>牛牛分析站</title>
   
-  <!-- 使用 Tailwind CSS v4 -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   
-  <!-- 引入 SheetJS 與 Supabase 官方 SDK -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -19,11 +17,9 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
-  <!-- 頂部：淺藍色漸層背景 -->
   <div class="bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 pb-28 pt-6 shadow-xs border-b border-sky-300/30">
     <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
       
-      <!-- 左上方圖示與標題 -->
       <div class="flex items-center gap-3">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[50px] h-[50px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
@@ -32,7 +28,6 @@
         </div>
       </div>
       
-      <!-- 右上方：狀態、雙時間監控與手動更新按鈕區 -->
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/90 backdrop-blur-md p-3 px-4 rounded-xl border border-sky-200 w-full md:w-auto shadow-sm">
         <div class="flex flex-col gap-1 text-xs font-semibold text-slate-600 grow">
           <div class="flex items-center justify-between gap-4">
@@ -49,7 +44,6 @@
           <div id="uploadStatus" class="text-[11px] text-blue-700 font-bold text-center sm:text-left">系統初始化中...</div>
         </div>
         
-        <!-- 核心回歸：手動強制同步按鈕 -->
         <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-center">
           <button onclick="autoLoadAndSyncExcel()" class="w-full sm:w-auto cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap text-center flex items-center justify-center gap-1">
             🔄 同步 Excel
@@ -60,10 +54,8 @@
     </div>
   </div>
 
-  <!-- 主內容區 -->
   <div class="max-w-7xl mx-auto px-4 -mt-16 pb-12">
     
-    <!-- 來源標籤區 (Tabs) -->
     <section class="bg-white p-3 rounded-xl shadow-md border border-slate-200 mb-4">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
       <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
@@ -73,69 +65,65 @@
       </div>
     </section>
 
-    <!-- 控制面板：過濾機制區 -->
     <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="text-sm text-slate-700 font-semibold">
         目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票
       </div>
-      <div class="text-xs text-slate-400 font-medium">現階段展示：資料庫基本名單與分頁標籤聯集</div>
+      <div class="text-xs text-slate-400 font-medium">現階段展示：標準法人看盤矩陣面板</div>
     </section>
 
-    <!-- 資料列表區 -->
-    <!-- 【電腦版表格】 -->
-    <section class="hidden md:block bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-      <table class="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
-        <thead class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200">
-          <tr>
-            <th class="px-6 py-3">股票代號</th>
-            <th class="px-6 py-3">股票名稱</th>
-            <th class="px-6 py-3 text-center">所屬分頁標籤 (Tags)</th>
+    <section class="bg-white rounded-xl shadow-md border border-slate-200 overflow-x-auto">
+      <table class="min-w-full text-center text-sm text-slate-700 border-collapse">
+        <thead class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
+          <tr class="border-b border-slate-200">
+            <th rowspan="2" class="px-4 py-3 border-r border-slate-300 bg-slate-200/60 min-w-[120px]">標的 (代號/名稱)</th>
+            <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-slate-100 font-bold text-xs min-w-[60px]">法人</th>
+            <th colspan="3" class="px-4 py-2 border-r border-slate-200 text-sm bg-slate-50">5月15日</th>
+            <th colspan="3" class="px-4 py-2 border-r border-slate-200 text-sm bg-slate-50">5月14日</th>
+            <th colspan="3" class="px-4 py-2 border-r border-slate-200 text-sm bg-slate-50">5月13日</th>
+            <th colspan="3" class="px-4 py-2 border-r border-slate-200 text-sm bg-slate-50">5月12日</th>
+            <th colspan="3" class="px-4 py-2 text-sm bg-slate-50">5月11日</th>
+          </tr>
+          <tr class="text-xs text-slate-500 bg-slate-50/50">
+            <th class="py-1.5 border-r border-slate-200 min-w-[55px]">買</th><th class="py-1.5 border-r border-slate-200 min-w-[55px]">賣</th><th class="py-1.5 border-r border-slate-300 bg-slate-100/50 min-w-[60px]">結</th>
+            <th class="py-1.5 border-r border-slate-200 min-w-[55px]">買</th><th class="py-1.5 border-r border-slate-200 min-w-[55px]">賣</th><th class="py-1.5 border-r border-slate-300 bg-slate-100/50 min-w-[60px]">結</th>
+            <th class="py-1.5 border-r border-slate-200 min-w-[55px]">買</th><th class="py-1.5 border-r border-slate-200 min-w-[55px]">賣</th><th class="py-1.5 border-r border-slate-300 bg-slate-100/50 min-w-[60px]">結</th>
+            <th class="py-1.5 border-r border-slate-200 min-w-[55px]">買</th><th class="py-1.5 border-r border-slate-200 min-w-[55px]">賣</th><th class="py-1.5 border-r border-slate-300 bg-slate-100/50 min-w-[60px]">結</th>
+            <th class="py-1.5 border-r border-slate-200 min-w-[55px]">買</th><th class="py-1.5 border-r border-slate-200 min-w-[55px]">賣</th><th class="py-1.5 bg-slate-100/50 min-w-[60px]">結</th>
           </tr>
         </thead>
-        <tbody id="stockTableBody" class="divide-y divide-slate-100 bg-white">
-          <!-- 資料透過 JS 實時從 Supabase 渲染 -->
-        </tbody>
+        <tbody id="stockTableBody" class="bg-white">
+          </tbody>
       </table>
-    </section>
-
-    <!-- 【手機版卡片】 -->
-    <section id="stockCardContainer" class="block md:hidden grid grid-cols-1 gap-2.5">
-      <!-- 手機版資料卡片 -->
     </section>
 
   </div>
 
   <script>
-    // Supabase 初始化連線
     const SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 💡 Excel 來源配置：本地測試請用 "./Stock_list.xlsx"，放上 GitHub 後可換成 GitHub Raw URL
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
-    // 顏色定義配置
     const colorThemes = {
-      '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200', badge: 'bg-slate-100 text-slate-700 border-slate-200' },
-      '高股息自選股': { active: 'bg-amber-500 text-white shadow-xs', inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100', badge: 'bg-amber-100 text-amber-800 border-amber-200' },
-      '電子權值股': { active: 'bg-indigo-600 text-white shadow-xs', inactive: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100', badge: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-      '預設': { active: 'bg-emerald-600 text-white shadow-xs', inactive: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200' }
+      '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200' },
+      '高股息自選股': { active: 'bg-amber-500 text-white shadow-xs', inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
+      '電子權值股': { active: 'bg-indigo-600 text-white shadow-xs', inactive: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' },
+      '預設': { active: 'bg-emerald-600 text-white shadow-xs', inactive: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }
     };
 
     let currentSourceTab = '全部';
-    let dbStockData = [];            // 從 Supabase 取得的真實不重複名單
-    let targetSheetsSet = new Set();    // 現有的不重複分頁名稱
-    let latestDbListTime = null;     // 資料庫裡最新的名單更新時間
+    let dbStockData = [];
+    let targetSheetsSet = new Set();
+    let latestDbListTime = null;
 
-    // 網頁啟動核心流程
     document.addEventListener("DOMContentLoaded", async () => {
-      await fetchTimestamps();         // 1. 抓取並顯示雙更新時間
-      await autoLoadAndSyncExcel();    // 2. 自動在背景加載 Excel 並執行更新與比對
+      await fetchTimestamps();
+      await autoLoadAndSyncExcel();
     });
 
-    // 📥 讀取並顯示「雙更新時間」
     async function fetchTimestamps() {
-      // a. 獲取列表資料的最新時間 (從名單中找最新的一筆)
       const { data: listData, error: listErr } = await supabaseClient
         .from('stock_targets')
         .select('updated_at')
@@ -149,7 +137,6 @@
         document.getElementById("listUpdateTime").innerText = "尚無名單";
       }
 
-      // b. 獲取法人買賣觀測站的更新時間
       const { data: sysData, error: sysErr } = await supabaseClient
         .from('system_timestamps')
         .select('updated_at')
@@ -163,22 +150,17 @@
       }
     }
 
-    // 🔄 獲取 Excel 檔案並與 Supabase 進行標籤化同步（可由網頁開啟自動觸發，亦可手動點擊按鈕觸發）
     async function autoLoadAndSyncExcel() {
       const statusText = document.getElementById("uploadStatus");
       statusText.innerText = "正在連線獲取 Excel 設定檔...";
 
       try {
-        // 1. 下載二進位 Excel 檔案
         const response = await fetch(EXCEL_SOURCE_URL);
-        if (!response.ok) {
-          throw new Error(`無法載入 Excel 檔案，狀態代碼: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`狀態代碼: ${response.status}`);
         
         const arrayBuffer = await response.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);
         
-        // 2. 使用 SheetJS 解析分頁
         const workbook = XLSX.read(data, { type: 'array' });
         const stockMap = new Map();
         let sheetNames = workbook.SheetNames;
@@ -216,9 +198,8 @@
           return;
         }
 
-        statusText.innerText = `強制同步中，共 ${rowsToUpload.length} 檔不重複名單...`;
+        statusText.innerText = `同步中，共 ${rowsToUpload.length} 檔不重複名單...`;
 
-        // 3. 自動以「主鍵 upsert」寫入 Supabase 確保雲端維持最新狀態
         const { error } = await supabaseClient
           .from('stock_targets')
           .upsert(rowsToUpload, { onConflict: 'stock_id' });
@@ -226,18 +207,16 @@
         if (error) throw error;
 
         statusText.innerText = "✅ 名單同步完成！";
-        await fetchTimestamps();         // 刷新右上角時間
-        await fetchStocksFromSupabase();   // 渲染最新資料
+        await fetchTimestamps();
+        await fetchStocksFromSupabase();
         
       } catch (err) {
-        console.error("載入同步發生錯誤:", err);
+        console.error(err);
         statusText.innerText = "⚠️ 無法讀取實時 Excel，切換為歷史緩存讀取...";
-        // 當本地 CORS 限制或網路斷開時，依然確保能展現資料庫現有緩存
         await fetchStocksFromSupabase();
       }
     }
 
-    // 📥 讀取資料庫真實內容並動態產出分類標籤
     async function fetchStocksFromSupabase() {
       const { data, error } = await supabaseClient
         .from('stock_targets')
@@ -245,13 +224,12 @@
         .order('stock_id', { ascending: true });
         
       if (error) {
-        console.error("無法自資料庫提取股票名單:", error);
+        console.error(error);
         return;
       }
 
       dbStockData = data || [];
       
-      // 提取所有不重複的分頁標籤名稱
       targetSheetsSet.clear();
       dbStockData.forEach(item => {
         if (Array.isArray(item.sheet_tags)) {
@@ -263,7 +241,6 @@
       applyFilters();
     }
 
-    // 動態更新分類按鈕 UI
     function updateTabButtons(sheets) {
       const container = document.getElementById("tabContainer");
       container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>`;
@@ -284,7 +261,6 @@
       }
     }
 
-    // 切換分類標籤
     function switchTab(sheetName) {
       currentSourceTab = sheetName;
       document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -301,7 +277,6 @@
       applyFilters();
     }
 
-    // 篩選與陣列標籤交叉比對
     function applyFilters() {
       let filteredData = [...dbStockData];
       if (currentSourceTab !== '全部') {
@@ -309,59 +284,81 @@
           Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab)
         );
       }
-      renderData(filteredData);
+      renderMatrixTable(filteredData);
     }
 
-    // 網頁視窗動態渲染
-    function renderData(data) {
+    // 💡 核心優化：依照你上傳的看盤格式，產生 3 列跨列聯集 HTML 結構 (現階段籌碼為網頁前端預載示範格式)
+    function renderMatrixTable(data) {
       document.getElementById("recordCount").innerText = data.length;
       const tbody = document.getElementById("stockTableBody");
-      const cardContainer = document.getElementById("stockCardContainer");
       
       if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-slate-400 text-sm">此分類下目前沒有股票名單</td></tr>`;
-        cardContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm bg-white rounded-xl border">此分類下目前沒有股票名單</div>`;
+        tbody.innerHTML = `<tr><td colspan="17" class="px-6 py-12 text-center text-slate-400 text-sm">此分類下目前沒有股票名單</td></tr>`;
         return;
       }
       
-      // A. 電腦版表格渲染
-      tbody.innerHTML = data.map(item => {
-        return `
-          <tr class="hover:bg-blue-100/40 transition text-[14px] odd:bg-blue-50/20 bg-white">
-            <td class="px-6 py-3 font-mono font-bold text-slate-900">${item.stock_id}</td>
-            <td class="px-6 py-3 font-bold text-slate-700">${item.stock_name}</td>
-            <td class="px-6 py-3 text-center flex flex-wrap gap-1.5 justify-center">
-              ${item.sheet_tags.map(tag => {
-                const theme = colorThemes[tag] || colorThemes['預設'];
-                return `<span class="text-[12px] font-extrabold px-2 py-0.5 rounded-md border ${theme.badge}">${tag}</span>`;
-              }).join('')}
+      let htmlString = "";
+      
+      data.forEach(item => {
+        // 模擬五天的法人數據 (待第二階段串接真實資料庫 daily_chip_data)
+        // 格式：[買, 賣, 結]
+        const mockChip = {
+          foreign:  [[150, 50, 100],  [200, 80, 120],  [90, 100, -10],  [300, 100, 200], [80, 120, -40]],
+          investment:[[30, 10, 20],   [50, 0, 50],     [10, 20, -10],   [40, 10, 30],    [15, 15, 0]],
+          dealer:   [[10, 20, -10],  [15, 15, 0],     [40, 10, 30],    [5, 25, -20],    [30, 10, 20]]
+        };
+
+        // 輔助函式：幫「結算欄位」自動染上紅字或綠字底色
+        const getResultCell = (val) => {
+          if (val > 0) return `<td class="py-2 border-r border-slate-300 font-bold bg-red-50 text-red-600">+${val}</td>`;
+          if (val < 0) return `<td class="py-2 border-r border-slate-300 font-bold bg-green-50 text-green-600">${val}</td>`;
+          return `<td class="py-2 border-r border-slate-300 text-slate-400">0</td>`;
+        };
+
+        // 1. 第一列：外資列 (包含跨3列的股票代號名稱主欄位)
+        htmlString += `
+          <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
+            <td rowspan="3" class="px-4 py-4 border-r border-slate-300 font-mono font-bold text-slate-900 bg-slate-100/30 text-center leading-tight">
+              <div class="text-base">${item.stock_id}</div>
+              <div class="text-xs text-slate-500 font-sans mt-1">${item.stock_name}</div>
             </td>
+            <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">外資</td>
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[0][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[0][1]}</td>${getResultCell(mockChip.foreign[0][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[1][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[1][1]}</td>${getResultCell(mockChip.foreign[1][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[2][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[2][1]}</td>${getResultCell(mockChip.foreign[2][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[3][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[3][1]}</td>${getResultCell(mockChip.foreign[3][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.foreign[4][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.foreign[4][1]}</td>${getResultCell(mockChip.foreign[4][2])}
           </tr>
         `;
-      }).join('');
 
-      // B. 手機版卡片渲染
-      cardContainer.innerHTML = data.map(item => {
-        return `
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-            <div class="flex justify-between items-start mb-2 gap-2">
-              <div class="flex items-center gap-2">
-                <span class="font-mono font-bold text-slate-900 text-lg">${item.stock_id}</span>
-                <span class="font-extrabold text-slate-700 text-base">${item.stock_name}</span>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-1.5 mt-1">
-              ${item.sheet_tags.map(tag => {
-                const theme = colorThemes[tag] || colorThemes['預設'];
-                return `<span class="text-[10px] font-bold px-2 py-0.5 rounded border ${theme.badge}">${tag}</span>`;
-              }).join('')}
-            </div>
-          </div>
+        // 2. 第二列：投信列
+        htmlString += `
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">投信</td>
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[0][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[0][1]}</td>${getResultCell(mockChip.investment[0][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[1][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[1][1]}</td>${getResultCell(mockChip.investment[1][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[2][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[2][1]}</td>${getResultCell(mockChip.investment[2][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[3][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[3][1]}</td>${getResultCell(mockChip.investment[3][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.investment[4][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.investment[4][1]}</td>${getResultCell(mockChip.investment[4][2])}
+          </tr>
         `;
-      }).join('');
+
+        // 3. 第三列：自營商列
+        htmlString += `
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">自營商</td>
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[0][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[0][1]}</td>${getResultCell(mockChip.dealer[0][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[1][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[1][1]}</td>${getResultCell(mockChip.dealer[1][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[2][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[2][1]}</td>${getResultCell(mockChip.dealer[2][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[3][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[3][1]}</td>${getResultCell(mockChip.dealer[3][2])}
+            <td class="py-2 border-r border-slate-200 text-emerald-600">${mockChip.dealer[4][0]}</td><td class="py-2 border-r border-slate-200 text-rose-600">${mockChip.dealer[4][1]}</td>${getResultCell(mockChip.dealer[4][2])}
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = htmlString;
     }
 
-    // 時間格式化工具
     function formatDateTime(date) {
       if(!date || isNaN(date.getTime())) return "無紀錄";
       const y = date.getFullYear();
