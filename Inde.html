@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>成分股分析系統</title>
+  <!-- 引入 Tailwind CSS 進行網頁美化 -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- 引入 SheetJS 用於在前端直接解析 Excel 檔案 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- 引入 Supabase JavaScript SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    
+    <!-- 1. 標題區 -->
+    <header class="mb-8 border-b border-gray-200 pb-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">成分股分析系統</h1>
+        <p class="text-sm text-gray-500 mt-1">自動比對 Excel 名單，追蹤法人每日籌碼趨勢</p>
+      </div>
+      
+      <!-- 2. 載入功能區 -->
+      <div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+        <span class="text-sm font-medium text-gray-700">更新成分股：</span>
+        <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+        <label for="excelInput" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-xs">
+          選擇 Excel 檔案 (.xlsx)
+        </label>
+        <span id="uploadStatus" class="text-xs text-gray-400">尚未載入檔案</span>
+      </div>
+    </header>
+
+    <!-- 3. 來源標籤區 (Tabs) -->
+    <section class="mb-6">
+      <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-3" id="tabContainer">
+        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-xs">
+          全部成分股
+        </button>
+        <!-- 動態標籤會透過 JavaScript 插入在此處 -->
+        <button onclick="switchTab('高股息自選股')" id="tab-高股息自選股" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 border border-gray-200">
+          高股息自選股 (示範)
+        </button>
+        <button onclick="switchTab('電子權值股')" id="tab-電子權值股" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 border border-gray-200">
+          電子權值股 (示範)
+        </button>
+      </div>
+    </section>
+
+    <!-- 控制面板：4. 過濾機制區 -->
+    <section class="bg-white p-4 rounded-xl shadow-xs border border-gray-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-4 flex-wrap">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">籌碼條件篩選</label>
+          <select id="filterCondition" onchange="applyFilters()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-64">
+            <option value="all">顯示所有歷史紀錄</option>
+            <option value="foreign_buy_3">外資連續買超 ≥ 3天</option>
+            <option value="foreign_sell_3">外資連續賣超 ≥ 3天</option>
+            <option value="trust_buy_3">投信連續買超 ≥ 3天</option>
+            <option value="twin_buy">外資 + 投信當日同步買超</option>
+          </select>
+        </div>
+      </div>
+      <div class="text-sm text-gray-500">
+        目前顯示: <span id="recordCount" class="font-bold text-blue-600">0</span> 檔股票資料
+      </div>
+    </section>
+
+    <!-- 5. 資料列表區 (Table) -->
+    <section class="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200 text-left text-sm text-gray-600">
+        <thead class="bg-gray-50 text-xs text-gray-700 uppercase font-semibold">
+          <tr>
+            <th class="px-6 py-4">交易日期</th>
+            <th class="px-6 py-4">股票代號</th>
+            <th class="px-6 py-4">股票名稱</th>
+            <th class="px-6 py-4">外資買賣超 (張)</th>
+            <th class="px-6 py-4">投信買賣超 (張)</th>
+            <th class="px-6 py-4">自營商買賣超 (張)</th>
+            <th class="px-6 py-4">來源成分股 Sheet</th>
+          </tr>
+        </thead>
+        <tbody id="stockTableBody" class="divide-y divide-gray-200 bg-white">
+          <!-- 資料列會透過 JavaScript 動態渲染在此處 -->
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // CONFIG: Supabase 連線設定 (後續更換為你的金鑰)
+    // ==========================================
+    const SUPABASE_URL = "https://your-project.supabase.co";
+    const SUPABASE_KEY = "your-anon-key";
+    let supabase = null;
+    
+    // 如果填入了真正的金鑰，就初始化 Supabase
+    if(!SUPABASE_URL.includes("your-project")) {
+       supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+
+    // ==========================================
+    // MOCK DATA: 模擬資料 (方便你直接開網頁測試介面)
+    // ==========================================
+    let currentSourceTab = '全部';
+    let rawStockData = [
+      { trade_date: '2026-05-18', stock_id: '2330', stock_name: '台積電', foreign_buy: 4500, trust_buy: 120, dealer_buy: -50, sheet_source: '電子權值股' },
+      { trade_date: '2026-05-15', stock_id: '2330', stock_name: '台積電', foreign_buy: 1200, trust_buy: 80, dealer_buy: 10, sheet_source: '電子權值股' },
+      { trade_date: '2026-05-14', stock_id: '2330', stock_name: '台積電', foreign_buy: 800, trust_buy: -10, dealer_buy: 40, sheet_source: '電子權值股' },
+      
+      { trade_date: '2026-05-18', stock_id: '0056', stock_name: '元大高股息', foreign_buy: -1200, trust_buy: 8000, dealer_buy: 500, sheet_source: '高股息自選股' },
+      { trade_date: '2026-05-15', stock_id: '0056', stock_name: '元大高股息', foreign_buy: -500, trust_buy: 4500, dealer_buy: 200, sheet_source: '高股息自選股' },
+      { trade_date: '2026-05-14', stock_id: '0056', stock_name: '元大高股息', foreign_buy: 300, trust_buy: 3000, dealer_buy: 100, sheet_source: '高股息自選股' },
+      
+      { trade_date: '2026-05-18', stock_id: '2454', stock_name: '聯發科', foreign_buy: 500, trust_buy: 400, dealer_buy: -20, sheet_source: '電子權值股' },
+    ];
+
+    // 初始化網頁顯示
+    document.addEventListener("DOMContentLoaded", () => {
+      renderTableData(rawStockData);
+    });
+
+    // ==========================================
+    // 功能 2：解析載入的 Excel 資料 (支援多 Sheet)
+    // ==========================================
+    function handleExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      document.getElementById("uploadStatus").innerText = "解析中...";
+      const reader = new FileReader();
+      
+      reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        let totalImported = 0;
+        let detectedSheets = workbook.SheetNames;
+        
+        // 巡迴所有的 Sheet
+        detectedSheets.forEach(sheetName => {
+          const worksheet = workbook.Sheets[sheetName];
+          // 將 Sheet 轉成 JSON 陣列
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          
+          jsonData.forEach(row => {
+            // 抓取 Excel 中的欄位 (對應你的：股票代號、股票名稱)
+            const stockId = row['股票代號'] || row['代號'];
+            const stockName = row['股票名稱'] || row['名稱'];
+            
+            if (stockId) {
+              totalImported++;
+              // 💡 這裡未來直接呼叫 Supabase 的比對與寫入邏輯：
+              // if (supabase) {
+              //    await supabase.from('stock_pool').upsert({ stock_id: stockId, stock_name: stockName, sheet_source: sheetName })
+              // }
+              console.log(`解析到股票: ${stockId} (${stockName}) 來自 Sheet: ${sheetName}`);
+            }
+          });
+        });
+
+        document.getElementById("uploadStatus").innerText = `成功解析 ${detectedSheets.length} 個 Sheet，共 ${totalImported} 筆股票名單！`;
+        updateTabButtons(detectedSheets);
+      };
+      
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 動態更新來源標籤按鈕
+    function updateTabButtons(sheets) {
+      const container = document.getElementById("tabContainer");
+      // 保留第一個「全部」按鈕
+      container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-xs">全部成分股</button>`;
+      
+      sheets.forEach(sheet => {
+        container.innerHTML += `
+          <button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-600 hover:bg-gray-100 border border-gray-200 transition">
+            ${sheet}
+          </button>
+        `;
+      });
+    }
+
+    // ==========================================
+    // 功能 3：切換成分股來源標籤 (Tabs)
+    // ==========================================
+    function switchTab(sheetName) {
+      currentSourceTab = sheetName;
+      
+      // 切換按鈕高亮樣式
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.remove("bg-blue-600", "text-white");
+        btn.classList.add("bg-white", "text-gray-600", "border-gray-200");
+      });
+      
+      const activeBtn = document.getElementById(`tab-${sheetName}`);
+      if (activeBtn) {
+        activeBtn.classList.remove("bg-white", "text-gray-600");
+        activeBtn.classList.add("bg-blue-600", "text-white");
+      }
+      
+      applyFilters();
+    }
+
+    // ==========================================
+    // 功能 4 & 5：執行篩選機制並列出符合資料
+    // ==========================================
+    function applyFilters() {
+      let filteredData = [...rawStockData];
+      
+      // A. 先依據「來源標籤」過濾
+      if (currentSourceTab !== '全部') {
+        filteredData = filteredData.filter(item => item.sheet_source === currentSourceTab);
+      }
+      
+      // B. 再依據「籌碼篩選條件」過濾
+      const condition = document.getElementById("filterCondition").value;
+      
+      if (condition === 'twin_buy') {
+        // 外資投信同買：當天兩個都要大於 0
+        filteredData = filteredData.filter(item => item.foreign_buy > 0 && item.trust_buy > 0);
+      } 
+      else if (condition === 'foreign_buy_3') {
+        // 模擬外資連3買邏輯 (範例中台積電 2330 符合)
+        filteredData = filteredData.filter(item => item.stock_id === '2330'); 
+      }
+      else if (condition === 'trust_buy_3') {
+        // 模擬投信連3買邏輯 (範例中元大高股息 0056 符合)
+        filteredData = filteredData.filter(item => item.stock_id === '0056');
+      }
+      else if (condition === 'foreign_sell_3') {
+        // 沒有符合的就清空
+        filteredData = [];
+      }
+
+      renderTableData(filteredData);
+    }
+
+    // 將資料渲染進 HTML 表格中
+    function renderTableData(data) {
+      const tbody = document.getElementById("stockTableBody");
+      document.getElementById("recordCount").innerText = data.length;
+      
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">沒有符合當前篩選條件的數據</td></tr>`;
+        return;
+      }
+      
+      tbody.innerHTML = data.map(item => `
+        <tr class="hover:bg-gray-50 transition">
+          <td class="px-6 py-4 font-mono">${item.trade_date}</td>
+          <td class="px-6 py-4 font-mono font-semibold">${item.stock_id}</td>
+          <td class="px-6 py-4 text-gray-900 font-medium">${item.stock_name}</td>
+          <td class="px-6 py-4 font-mono ${item.foreign_buy > 0 ? 'text-red-600 font-semibold' : 'text-green-600'}">
+            ${item.foreign_buy > 0 ? '+' : ''}${item.foreign_buy.toLocaleString()}
+          </td>
+          <td class="px-6 py-4 font-mono ${item.trust_buy > 0 ? 'text-red-600 font-semibold' : 'text-green-600'}">
+            ${item.trust_buy > 0 ? '+' : ''}${item.trust_buy.toLocaleString()}
+          </td>
+          <td class="px-6 py-4 font-mono ${item.dealer_buy > 0 ? 'text-red-600' : 'text-green-600'}">
+            ${item.dealer_buy > 0 ? '+' : ''}${item.dealer_buy.toLocaleString()}
+          </td>
+          <td class="px-6 py-4">
+            <span class="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full border border-gray-200">
+              ${item.sheet_source}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
