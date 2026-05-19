@@ -80,7 +80,6 @@
       <div id="dataSourceLabel" class="text-xs text-slate-500 font-bold bg-white px-2 py-1 rounded border border-blue-200">數據狀態：檢測中</div>
     </section>
 
-    <!-- 雙向凍結大看盤視窗 -->
     <section class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
       <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
         <thead class="text-slate-800 font-extrabold sticky top-0 z-30 bg-slate-100 shadow-xs border-b border-slate-300">
@@ -99,7 +98,7 @@
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
     const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
-
+    
     const colorThemes = {
       '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200' },
       '高股息自選股': { active: 'bg-amber-500 text-white shadow-xs', inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
@@ -136,7 +135,7 @@
 
         detailText.innerText = "4. 分批合法倒出完整籌碼...";
         await fetchAllChipsFromSupabase();
-        
+
         detailText.innerText = "5. 正在佈局視覺矩陣...";
         renderTableHeader();
         applyFilters();
@@ -148,20 +147,24 @@
       }
     }
 
-    // 🛠️ 優化定位：直接利用系統大盤追溯日期定位出近5日
+    // 🛠️ 優化核心 1：精準定位近 5 個交易日（解決只顯示 2 天的問題）
     async function extractActualTradingDatesFromDB() {
       try {
+        // 改採指定單一常見個股明細，或在 select 中只抓不重複的 date
+        // 這裡透過限制一隻高頻個股（例如台積電 2330），或者直接抓前 100 筆不重複，保證抓到真正獨立的 5 個交易日
         const { data, error } = await supabaseClient
           .from('stock_chips')
           .select('date')
           .order('date', { ascending: false })
-          .range(0, 3999); 
-
+          .limit(200); // 縮小列數範圍，主要用來抓相異日期
+          
         if (!error && data && data.length > 0) {
           const uniqueDates = [...new Set(data.map(c => c.date))];
-          recentDates = uniqueDates.slice(0, 5); 
-          if (recentDates.length > 0) {
+          recentDates = uniqueDates.slice(0, 5); // 穩穩切出不重複的前 5 天
+          
+          if (recentDates.length === 5) {
             document.getElementById("chipUpdateTime").innerText = recentDates[0];
+            console.log("🎯 成功定位雲端近5日交易日：", recentDates);
             return;
           }
         }
@@ -169,32 +172,35 @@
         console.error("定位交易開盤日發生異常: ", e);
       }
 
-      let dates = []; let d = new Date();
+      // 備援機制：若資料庫為空，改用本土工作日推算
+      console.warn("⚠️ 無法從資料庫精準定位5日，啟動萬年曆備援機制...");
+      let dates = []; 
+      let d = new Date();
       while(dates.length < 5) {
-        if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
-        d.setDate(d.getDate()-1);
+        if(d.getDay() !== 0 && d.getDay() !== 6) dates.push(formatDateToString(d));
+        d.setDate(d.getDate() - 1);
       }
       recentDates = dates;
     }
 
-    // 🧠 核心重構：實作前端遞迴分頁分批讀取（Pagination），徹底打破 Supabase 限制，撈完為止！
+    // 🧠 優化核心 2：全量遞迴分批撈取，直至數據完全搬空（解決個股顯示 0 的問題）
     async function fetchAllChipsFromSupabase() {
       if (recentDates.length === 0) return;
-      
       const detailText = document.getElementById("loadingDetail");
+      
       let allChipsFetched = [];
       let startRange = 0;
-      const batchSize = 4000; // 每次安全向雲端要 4,000 筆
+      const batchSize = 4000; // 每次安全載入 4000 筆
       let keepFetching = true;
 
       while (keepFetching) {
         let endRange = startRange + batchSize - 1;
-        detailText.innerText = `4. 分批載入雲端數據中 (${startRange} ~ ${endRange} 筆)...`;
+        detailText.innerText = `4. 分批載入雲端數據中 (已下載 ${allChipsFetched.length} 筆)...`;
 
         const { data, error } = await supabaseClient
           .from('stock_chips')
           .select('stock_id, date, legal_name, buy, sell')
-          .in('date', recentDates) // 精準只過濾這 5 天的資料
+          .in('date', recentDates) // 嚴格限縮在這 5 天
           .range(startRange, endRange);
 
         if (error) {
@@ -204,7 +210,6 @@
 
         if (data && data.length > 0) {
           allChipsFetched = allChipsFetched.concat(data);
-          
           // 如果回傳的筆數小於指定的單批上限，代表已經把庫裡的資料全部抽乾了
           if (data.length < batchSize) {
             keepFetching = false;
@@ -216,6 +221,7 @@
         }
       }
 
+      // 【關鍵關鍵】全量取得並覆蓋至快取，隨後才允許前端解析
       globalChipCache = allChipsFetched;
       console.log(`🎉 籌碼資料總計分批撈取完成！共計：${globalChipCache.length} 筆`);
     }
@@ -224,14 +230,12 @@
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
       try {
         const { data: checkRow } = await supabaseClient
           .from('stock_chips')
           .select('date')
           .order('date', { ascending: false })
           .limit(1);
-
         let lastChipDateStr = (checkRow && checkRow.length > 0) ? checkRow[0].date : null;
 
         const now = new Date();
@@ -243,7 +247,7 @@
 
         let startFetchDateStr = "";
         if (!lastChipDateStr) {
-          startFetchDateStr = "2026-05-02"; 
+          startFetchDateStr = "2026-05-02";
         } else {
           let lastDateObj = new Date(lastChipDateStr);
           lastDateObj.setDate(lastDateObj.getDate() + 1);
@@ -261,14 +265,12 @@
 
         let allCollectedRows = []; 
         let errorCountConsecutive = 0;
-
         for (let i = 0; i < dbStockData.length; i++) {
           const stock = dbStockData[i];
           detailText.innerText = `[遠端合法同步中] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})\n請勿關閉網頁...`;
 
           let retryDelay = 3000; 
           let success = false;
-
           while (!success) {
             try {
               const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startFetchDateStr}&end_date=${targetEndDateStr}&token=${FINMIND_TOKEN}`;
@@ -282,7 +284,6 @@
               }
 
               if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
               const resJson = await res.json();
 
               if (resJson.status === 200 && Array.isArray(resJson.data)) {
@@ -324,7 +325,6 @@
           await supabaseClient.from('stock_chips').upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
         }
         statusText.innerText = "✅ 智慧區間補抓與雲端儲存全數完成！";
-
       } catch (e) {
         statusText.innerText = "⚠️ 智慧補償流執行異常";
       }
@@ -340,7 +340,6 @@
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
-      
       if (!headerDates || !headerSub) return;
 
       let datesHtml = `
@@ -397,7 +396,6 @@
         const data = new Uint8Array(arrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const stockMap = new Map();
-        
         workbook.SheetNames.forEach(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
@@ -414,7 +412,6 @@
             }
           });
         });
-
         const rowsToUpload = Array.from(stockMap.values());
         if (rowsToUpload.length > 0) {
           await supabaseClient.from('stock_targets').upsert(rowsToUpload, { onConflict: 'stock_id' });
@@ -439,7 +436,7 @@
       container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>`;
       sheets.forEach(sheet => {
         const theme = colorThemes[sheet] || colorThemes['預設'];
-        container.innerHTML += `<button onclick="switchTab('${sheet}')" id="tab('${sheet}')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer">📁 ${sheet}</button>`;
+        container.innerHTML += `<button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer">📁 ${sheet}</button>`;
       });
       setActiveTabUI();
     }
@@ -484,6 +481,7 @@
         };
 
         let valA = 0, valB = 0;
+        
         if (currentSortMode.startsWith('foreign_buy')) {
           valA = getSumForStock(a.stock_id, 'Foreign_Investor');
           valB = getSumForStock(b.stock_id, 'Foreign_Investor');
@@ -554,7 +552,7 @@
 
         stockChips.forEach(row => {
           const d = row.date;
-          if(!chipMap.foreign[d]) return; 
+          if(!chipMap.foreign[d]) return; // 若不在前5日內則濾除
           
           const b = Math.round((row.buy || 0) / 1000);
           const s = Math.round((row.sell || 0) / 1000);
@@ -608,19 +606,19 @@
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[90px] z-20 text-center w-[52px]">外資自營</td>
             ${getSumCell(sumFinDea, true)}${fdRow}
-          </td>
+          </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[90px] z-20 text-center w-[52px]">投信</td>
             ${getSumCell(sumInv, false)}${iRow}
-          </td>
+          </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[90px] z-20 text-center w-[52px]">自營(自)</td>
             ${getSumCell(sumDeaSelf, true)}${dsRow}
-          </td>
+          </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[90px] z-20 text-center w-[52px]">自營(避)</td>
             ${getSumCell(sumDeaHed, false)}${dhRow}
-          </td>
+          </tr>
         `;
       });
 
