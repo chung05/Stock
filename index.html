@@ -130,13 +130,10 @@
         detailText.innerText = "2. 檢查並補抓雲端籌碼 (FinMind)...";
         await handleSmartBackfillFlow();
 
-        detailText.innerText = "3. 分析並定位最新開盤日...";
-        await extractActualTradingDatesFromDB();
-
-        detailText.innerText = "4. 分批合法倒出完整籌碼...";
+        detailText.innerText = "3. 精準對接雲端成分股籌碼歷程...";
         await fetchAllChipsFromSupabase();
 
-        detailText.innerText = "5. 正在佈局視覺矩陣...";
+        detailText.innerText = "4. 正在佈局看盤矩陣...";
         renderTableHeader();
         applyFilters();
 
@@ -147,60 +144,29 @@
       }
     }
 
-    // 🛠️ 優化核心 1：精準定位近 5 個交易日（解決只顯示 2 天的問題）
-    async function extractActualTradingDatesFromDB() {
-      try {
-        // 改採指定單一常見個股明細，或在 select 中只抓不重複的 date
-        // 這裡透過限制一隻高頻個股（例如台積電 2330），或者直接抓前 100 筆不重複，保證抓到真正獨立的 5 個交易日
-        const { data, error } = await supabaseClient
-          .from('stock_chips')
-          .select('date')
-          .order('date', { ascending: false })
-          .limit(200); // 縮小列數範圍，主要用來抓相異日期
-          
-        if (!error && data && data.length > 0) {
-          const uniqueDates = [...new Set(data.map(c => c.date))];
-          recentDates = uniqueDates.slice(0, 5); // 穩穩切出不重複的前 5 天
-          
-          if (recentDates.length === 5) {
-            document.getElementById("chipUpdateTime").innerText = recentDates[0];
-            console.log("🎯 成功定位雲端近5日交易日：", recentDates);
-            return;
-          }
-        }
-      } catch (e) {
-        console.error("定位交易開盤日發生異常: ", e);
-      }
-
-      // 備援機制：若資料庫為空，改用本土工作日推算
-      console.warn("⚠️ 無法從資料庫精準定位5日，啟動萬年曆備援機制...");
-      let dates = []; 
-      let d = new Date();
-      while(dates.length < 5) {
-        if(d.getDay() !== 0 && d.getDay() !== 6) dates.push(formatDateToString(d));
-        d.setDate(d.getDate() - 1);
-      }
-      recentDates = dates;
-    }
-
-    // 🧠 優化核心 2：全量遞迴分批撈取，直至數據完全搬空（解決個股顯示 0 的問題）
+    // 🧠 核心重大修正：直接拿名單內的所有 stock_id 去精準撈取最新的歷史籌碼，不再盲撈日期
     async function fetchAllChipsFromSupabase() {
-      if (recentDates.length === 0) return;
+      if (dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
+      
+      // 1. 取得名單中所有的股票代號陣列
+      const stockIdsInList = dbStockData.map(s => s.stock_id);
       
       let allChipsFetched = [];
       let startRange = 0;
-      const batchSize = 4000; // 每次安全載入 4000 筆
+      const batchSize = 3000; 
       let keepFetching = true;
 
+      // 2. 利用分批（Pagination）把這群股票代號的所有最新資料通通撈回來
       while (keepFetching) {
         let endRange = startRange + batchSize - 1;
-        detailText.innerText = `4. 分批載入雲端數據中 (已下載 ${allChipsFetched.length} 筆)...`;
+        detailText.innerText = `3. 正在從雲端取回精準個股籌碼歷程 (${allChipsFetched.length} 筆)...`;
 
         const { data, error } = await supabaseClient
           .from('stock_chips')
           .select('stock_id, date, legal_name, buy, sell')
-          .in('date', recentDates) // 嚴格限縮在這 5 天
+          .in('stock_id', stockIdsInList) // 🎯 精準過濾：只拿有名單的股票！
+          .order('date', { ascending: false }) // 日期由新到舊排序
           .range(startRange, endRange);
 
         if (error) {
@@ -210,20 +176,39 @@
 
         if (data && data.length > 0) {
           allChipsFetched = allChipsFetched.concat(data);
-          // 如果回傳的筆數小於指定的單批上限，代表已經把庫裡的資料全部抽乾了
           if (data.length < batchSize) {
             keepFetching = false;
           } else {
-            startRange += batchSize; // 往下一頁推進
+            startRange += batchSize;
           }
         } else {
-          keepFetching = false; // 沒資料了，停止
+          keepFetching = false;
         }
       }
 
-      // 【關鍵關鍵】全量取得並覆蓋至快取，隨後才允許前端解析
       globalChipCache = allChipsFetched;
-      console.log(`🎉 籌碼資料總計分批撈取完成！共計：${globalChipCache.length} 筆`);
+      console.log(`🎉 籌碼資料讀取完畢，共計：${globalChipCache.length} 筆`);
+
+      // 3. 【關鍵】從完全拿到手的資料中，提取出最新、不重複的 5 個交易日
+      const uniqueDatesInCache = [...new Set(globalChipCache.map(c => c.date))];
+      // 依日期字串降冪排序，確保最前面的就是最新交易日
+      uniqueDatesInCache.sort((a, b) => b.localeCompare(a));
+      
+      recentDates = uniqueDatesInCache.slice(0, 5);
+      console.log("🎯 成功從個股資料中精準切出 5 個交易日：", recentDates);
+
+      if (recentDates.length > 0) {
+        document.getElementById("chipUpdateTime").innerText = recentDates[0];
+      } else {
+        document.getElementById("chipUpdateTime").innerText = "無資料";
+        // 萬一完全沒資料的備援
+        let dates = []; let d = new Date();
+        while(dates.length < 5) {
+          if(d.getDay() !== 0 && d.getDay() !== 6) dates.push(formatDateToString(d));
+          d.setDate(d.getDate() - 1);
+        }
+        recentDates = dates;
+      }
     }
 
     async function handleSmartBackfillFlow() {
