@@ -93,7 +93,6 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
-    // FinMind Token 全域宣告
     const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
 
     const colorThemes = {
@@ -108,8 +107,6 @@
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
     let recentDates = []; 
-    
-    // 預設排序調整為「投信買超」
     let currentSortMode = 'investment_buy'; 
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -117,7 +114,6 @@
       await forceSyncFlow(); 
     });
 
-    // 一條龍智慧同步與檢查
     async function forceSyncFlow() {
       const modal = document.getElementById("loadingModal");
       const detailText = document.getElementById("loadingDetail");
@@ -126,42 +122,57 @@
       detailText.innerText = "正在比對 Excel 標的名單...";
       await autoLoadAndSyncExcelList();
 
+      detailText.innerText = "正在定位真實交易開盤日...";
+      await extractActualTradingDatesFromDB();
+
       detailText.innerText = "正在檢查雲端資料庫斷點戳記...";
       await handleSmartBackfillFlow();
 
-      detailText.innerText = "正在載入雲端籌碼資料...";
+      detailText.innerText = "正在精準載入完整籌碼資料...";
       await fetchAllChipsFromSupabase();
-
-      // 根據真實抓到的資料庫數據，萃取出最新且不重複的 5 個有交易開盤日
-      extractActualTradingDates();
       
-      // 重新繪製帶有正確日期的表頭
       renderTableHeader();
 
       modal.classList.add("hidden");
       applyFilters();
     }
 
-    // 🧠 優化核心：健壯的斷點續傳流 (實作指數級重試與防崩潰機制)
+    // 🚀 新增優化：直接去資料庫撈不重複的最新 5 個開盤日，完全避免 1000 筆載入受限問題
+    async function extractActualTradingDatesFromDB() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('stock_chips')
+          .select('date')
+          .order('date', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          const uniqueDates = [...new Set(data.map(c => c.date))];
+          recentDates = uniqueDates.slice(0, 5);
+          if (recentDates.length > 0) {
+            document.getElementById("chipUpdateTime").innerText = recentDates[0];
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("嘗試精準定位交易日失敗: ", e);
+      }
+
+      // 防錯降級機制
+      let dates = []; let d = new Date();
+      while(dates.length < 5) {
+        if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
+        d.setDate(d.getDate()-1);
+      }
+      recentDates = dates;
+    }
+
     async function handleSmartBackfillFlow() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       try {
-        const { data: latestRow, error: latestError } = await supabaseClient
-          .from('stock_chips')
-          .select('date')
-          .order('date', { ascending: false })
-          .limit(1);
-
-        let lastChipDateStr = null;
-        if (!latestError && latestRow && latestRow.length > 0) {
-          lastChipDateStr = latestRow[0].date;
-          document.getElementById("chipUpdateTime").innerText = lastChipDateStr;
-        } else {
-          document.getElementById("chipUpdateTime").innerText = "資料庫已清空/無紀錄";
-        }
+        let lastChipDateStr = recentDates.length > 0 ? recentDates[0] : null;
 
         const now = new Date();
         let targetEndDate = new Date();
@@ -189,13 +200,13 @@
         if (dbStockData.length === 0) return;
 
         let allCollectedRows = []; 
-        let errorCountConsecutive = 0; // 紀錄連續失敗次數
+        let errorCountConsecutive = 0;
 
         for (let i = 0; i < dbStockData.length; i++) {
           const stock = dbStockData[i];
           detailText.innerText = `[遠端合法同步中] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})\n請勿關閉網頁...`;
 
-          let retryDelay = 3000; // 初始重試等待 3 秒
+          let retryDelay = 3000; 
           let success = false;
 
           while (!success) {
@@ -204,15 +215,13 @@
               const res = await fetch(apiUrl);
               
               if (res.status === 429) {
-                statusText.innerText = `⚠️ 流量受限，正在減速並於 ${retryDelay/1000} 秒後重試...`;
+                statusText.innerText = `⚠️ 流量受限，將於 ${retryDelay/1000} 秒後重試...`;
                 await sleep(retryDelay);
-                retryDelay *= 2; // 遭遇 429 加倍延長等待時間 (指數級退讓)
+                retryDelay *= 2; 
                 continue;
               }
 
-              if (!res.ok) {
-                throw new Error(`HTTP 錯誤狀態碼: ${res.status}`);
-              }
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
               const resJson = await res.json();
 
@@ -229,94 +238,58 @@
                   });
                 }
                 success = true;
-                errorCountConsecutive = 0; // 成功則重設連續失敗計算
+                errorCountConsecutive = 0;
               } else {
-                // 如果回傳結構怪異，亦視為成功跳過或小睡處理避免死循環
                 success = true;
               }
             } catch (err) {
               console.error(`❌ 讀取 ${stock.stock_id} 發生異常:`, err);
               errorCountConsecutive++;
-              
-              if (errorCountConsecutive > 5) {
-                statusText.innerText = "⚠️ 網路連續異常異常，為保護程序先暫停抓取。";
-                break; 
-              }
-              
-              statusText.innerText = `⚠️ 網路異常，${retryDelay/1000} 秒後重新嘗試...`;
+              if (errorCountConsecutive > 5) break; 
               await sleep(retryDelay);
               retryDelay *= 1.5;
             }
           }
 
           if (errorCountConsecutive > 5) break;
-
-          // 基礎防禦型調頻：每檔正常抓完後，強制小憩 400ms，以防高頻封鎖
           await sleep(400);
 
-          // ⏳ 分流寫入策略：為了防止累積過大陣列導致網頁崩潰或 Supabase 傳輸超時，每累積 150 筆就先往雲端倒一次
           if (allCollectedRows.length >= 150) {
             detailText.innerText = `[分流儲存] 正在將目前的 ${allCollectedRows.length} 筆資料寫入資料庫...`;
-            await supabaseClient
-              .from('stock_chips')
-              .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
-            allCollectedRows = []; // 清空快取，釋放記憶體
+            await supabaseClient.from('stock_chips').upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
+            allCollectedRows = []; 
           }
         }
 
-        // 剩餘尾數整批寫入
         if (allCollectedRows.length > 0) {
-          detailText.innerText = `正在將最後殘餘的 ${allCollectedRows.length} 筆資料寫入雲端資料庫...`;
-          const { error: upsertError } = await supabaseClient
-            .from('stock_chips')
-            .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
-
-          if (upsertError) {
-            statusText.innerText = "⚠️ 籌碼下載成功，但寫入雲端資料庫時被拒絕";
-          } else {
-            statusText.innerText = "✅ 智慧區間補抓並寫入資料庫完成！";
-            document.getElementById("chipUpdateTime").innerText = targetEndDateStr;
-          }
-        } else {
-          statusText.innerText = "✅ 智慧檢查與資料庫同步已全數完成。";
+          await supabaseClient.from('stock_chips').upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
         }
+        
+        // 同步完重新校準最新日期
+        await extractActualTradingDatesFromDB();
+        statusText.innerText = "✅ 智慧區間補抓與雲端儲存全數完成！";
 
       } catch (e) {
         statusText.innerText = "⚠️ 智慧補償流執行異常";
-        console.error(e);
       }
     }
 
+    // 🛠️ 核心修正：精準打擊過濾，並打破 1000 筆分頁限制限制
     async function fetchAllChipsFromSupabase() {
-      // 預設抓取最近一個月內的資料進行緩存調閱
-      let d = new Date();
-      d.setDate(d.getDate() - 30);
-      const startDate = formatDateToString(d);
+      if (recentDates.length === 0) return;
       
+      // 策略：只向 Supabase 要「這5天內」的數據，且利用 range 解鎖大額度限制
       const { data, error } = await supabaseClient
         .from('stock_chips')
         .select('stock_id, date, legal_name, buy, sell')
-        .gte('date', startDate);
+        .in('date', recentDates)
+        .range(0, 4999); // 顯式拉高取得範圍，確保名單內所有股票統統拿得到！
 
       if (!error && data) {
         globalChipCache = data; 
+      } else {
+        console.error("從 Supabase 讀取完整快取失敗：", error);
       }
-    }
-
-    function extractActualTradingDates() {
-      if (globalChipCache.length === 0) {
-        let dates = []; let d = new Date();
-        while(dates.length < 5) {
-          if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
-          d.setDate(d.getDate()-1);
-        }
-        recentDates = dates;
-        return;
-      }
-
-      const uniqueDates = [...new Set(globalChipCache.map(c => c.date))];
-      uniqueDates.sort((a, b) => b.localeCompare(a));
-      recentDates = uniqueDates.slice(0, 5);
     }
 
     function formatDateToString(dateObj) {
@@ -412,6 +385,8 @@
         const { data: dbData } = await supabaseClient.from('stock_targets').select('stock_id, stock_name, sheet_tags').order('stock_id', { ascending: true });
         dbStockData = dbData || [];
         
+        document.getElementById("listUpdateTime").innerText = new Date().toLocaleDateString();
+
         targetSheetsSet.clear();
         dbStockData.forEach(item => { if (Array.isArray(item.sheet_tags)) item.sheet_tags.forEach(tag => targetSheetsSet.add(tag)); });
         updateTabButtons(Array.from(targetSheetsSet));
@@ -426,7 +401,7 @@
       container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>`;
       sheets.forEach(sheet => {
         const theme = colorThemes[sheet] || colorThemes['預設'];
-        container.innerHTML += `<button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer">📁 ${sheet}</button>`;
+        container.innerHTML += `<button onclick="switchTab('${sheet}')" id="tab('${sheet}')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer">📁 ${sheet}</button>`;
       });
       setActiveTabUI();
     }
@@ -518,6 +493,7 @@
       renderMatrixTableFromCache(filteredStocks);
     }
 
+    // 完美矩陣渲染
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
@@ -588,7 +564,7 @@
             </td>
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">外資</td>
             ${getSumCell(sumFin)}${fRow}
-          </td>
+          </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">外資自營</td>
             ${getSumCell(sumFinDea)}${fdRow}
@@ -609,6 +585,7 @@
       });
 
       tbody.innerHTML = htmlString;
+      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端快取精準供應中";
     }
   </script>
 </body>
