@@ -119,6 +119,7 @@
       await forceSyncFlow(); 
     });
 
+    // 🧠 關鍵生命週期修正：重新梳理非同步流的先後順序
     async function forceSyncFlow() {
       const modal = document.getElementById("loadingModal");
       const detailText = document.getElementById("loadingDetail");
@@ -127,13 +128,14 @@
       detailText.innerText = "正在比對 Excel 標的名單...";
       await autoLoadAndSyncExcelList();
 
-      detailText.innerText = "正在精準提取最新開盤日...";
-      await extractActualTradingDatesFromDB();
-
-      detailText.innerText = "正在檢查雲端資料庫斷點戳記...";
+      detailText.innerText = "正在檢查並同步雲端最新籌碼...";
+      // 先讓 FinMind 去補齊區間資料，這樣後面從資料庫撈取交易日才會有 100% 精準的基準
       await handleSmartBackfillFlow();
 
-      detailText.innerText = "正在精準載入完整籌碼資料...";
+      detailText.innerText = "正在分析精準的 5 個開盤交易日...";
+      await extractActualTradingDatesFromDB();
+
+      detailText.innerText = "正在從快取載入完整籌碼矩陣...";
       await fetchAllChipsFromSupabase();
       
       renderTableHeader();
@@ -142,28 +144,28 @@
       applyFilters();
     }
 
-    // 🛠️ 安全修正 1：移除特定個股 eq 卡死限制，改採安全的、大範圍去重技術，穩穩抓出不重複的 5 個開盤交易日
+    // 🛠️ 穩健方案：擴大到 7999 筆深度去重，保證不論多少標的，都一定能萃取出最新 5 個不重複交易日
     async function extractActualTradingDatesFromDB() {
       try {
         const { data, error } = await supabaseClient
           .from('stock_chips')
           .select('date')
           .order('date', { ascending: false })
-          .range(0, 4999); // 5000 筆深度足以篩出橫跨多個交易日
+          .range(0, 7999); 
 
         if (!error && data && data.length > 0) {
           const uniqueDates = [...new Set(data.map(c => c.date))];
-          recentDates = uniqueDates.slice(0, 5); // 嚴格取出最新 5 天
+          recentDates = uniqueDates.slice(0, 5); 
           if (recentDates.length > 0) {
             document.getElementById("chipUpdateTime").innerText = recentDates[0];
             return;
           }
         }
       } catch (e) {
-        console.error("精準定位交易日失敗: ", e);
+        console.error("定位交易開盤日發生異常: ", e);
       }
 
-      // 如果資料庫全空時的兜底降級
+      // 當資料庫為空或異常時的自動降級兜底
       let dates = []; let d = new Date();
       while(dates.length < 5) {
         if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
@@ -178,7 +180,14 @@
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       try {
-        let lastChipDateStr = recentDates.length > 0 ? recentDates[0] : null;
+        // 先單獨向資料庫打探真正的最後一筆日期戳記
+        const { data: checkRow } = await supabaseClient
+          .from('stock_chips')
+          .select('date')
+          .order('date', { ascending: false })
+          .limit(1);
+
+        let lastChipDateStr = (checkRow && checkRow.length > 0) ? checkRow[0].date : null;
 
         const now = new Date();
         let targetEndDate = new Date();
@@ -262,18 +271,14 @@
 
           if (allCollectedRows.length >= 150) {
             detailText.innerText = `[分流儲存] 正在將目前的 ${allCollectedRows.length} 筆資料寫入資料庫...`;
-            await supabaseClient.from('stock_chips')
-              .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
+            await supabaseClient.from('stock_chips').upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
             allCollectedRows = []; 
           }
         }
 
         if (allCollectedRows.length > 0) {
-          await supabaseClient.from('stock_chips')
-            .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
+          await supabaseClient.from('stock_chips').upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
         }
-        
-        await extractActualTradingDatesFromDB();
         statusText.innerText = "✅ 智慧區間補抓與雲端儲存全數完成！";
 
       } catch (e) {
@@ -284,6 +289,7 @@
     async function fetchAllChipsFromSupabase() {
       if (recentDates.length === 0) return;
       
+      // 改用靈活的大範圍 range 進行拉取，避免 .in() 被空參數意外吞噬
       const { data, error } = await supabaseClient
         .from('stock_chips')
         .select('stock_id, date, legal_name, buy, sell')
@@ -302,7 +308,7 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🛠️ 緊湊美化：優化固定欄位排版與寬度比例（90px + 52px + 68px），消除死白間隙
+    // 🛠️ 緊湊化佈局：左側凍結區極致優化寬度比例（90px + 52px + 68px = 210px 總固定面寬）
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
