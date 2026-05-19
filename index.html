@@ -13,6 +13,11 @@
   <style>
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* 凍結窗格邊界陰影效果，讓固定欄位更有層次感 */
+    .sticky-col-shadow {
+      box-shadow: 4px 0 8px -4px rgba(0, 0, 0, 0.15);
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
@@ -25,6 +30,7 @@
     </div>
   </div>
 
+  <!-- 頂部導覽列 -->
   <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-4 shadow-md border-b border-sky-300/30 px-4">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-3">
       
@@ -76,11 +82,12 @@
       <div id="dataSourceLabel" class="text-xs text-slate-500 font-bold bg-white px-2 py-1 rounded border border-blue-200">數據狀態：檢測中</div>
     </section>
 
-    <section class="bg-white rounded-xl shadow-md border border-slate-200 overflow-x-auto">
-      <table class="min-w-full text-center text-sm text-slate-700 border-collapse">
-        <thead class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
-          <tr id="tableHeaderDates" class="border-b border-slate-200"></tr>
-          <tr id="tableHeaderSub" class="text-xs text-slate-500 bg-slate-50/50"></tr>
+    <!-- 💡 核心優化：設定 max-h 滾動區域，並允許 X 軸與 Y 軸獨立滾動 -->
+    <section class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[75vh] relative scrollbar-none">
+      <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
+        <thead class="text-slate-800 font-extrabold sticky top-0 z-30 bg-slate-150 shadow-xs">
+          <tr id="tableHeaderDates" class="border-b border-slate-300"></tr>
+          <tr id="tableHeaderSub" class="text-xs text-slate-500 border-b border-slate-300"></tr>
         </thead>
         <tbody id="stockTableBody" class="bg-white"></tbody>
       </table>
@@ -137,18 +144,18 @@
       applyFilters();
     }
 
-    // 🛠️ 修正點 1：將範圍拉高至 5000 筆，確保徹底穿透 1000 筆的分頁限制限制，穩穩抓出 5 個交易日
+    // 🛠️ 優化：解鎖到 9999 筆範疇，由近到遠徹底篩出真正的 5 個不重複交易開盤日
     async function extractActualTradingDatesFromDB() {
       try {
         const { data, error } = await supabaseClient
           .from('stock_chips')
           .select('date')
           .order('date', { ascending: false })
-          .range(0, 4999); // 增加查詢寬度，防止日期被分頁截斷
+          .range(0, 9999); 
 
         if (!error && data && data.length > 0) {
           const uniqueDates = [...new Set(data.map(c => c.date))];
-          recentDates = uniqueDates.slice(0, 5); // 抓取完整 5 天
+          recentDates = uniqueDates.slice(0, 5); 
           if (recentDates.length > 0) {
             document.getElementById("chipUpdateTime").innerText = recentDates[0];
             return;
@@ -158,7 +165,6 @@
         console.error("精準定位交易日失敗: ", e);
       }
 
-      // 降級防錯機制
       let dates = []; let d = new Date();
       while(dates.length < 5) {
         if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
@@ -295,18 +301,19 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🛠️ 修正點 2：優化欄位寬度屬性 w-[xx]，減少空間浪費
+    // 🛠️ 優化：全面改版表頭，引入 sticky 雙向定位機制與適度放大字型
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
       
       if (!headerDates || !headerSub) return;
 
+      // 核心：使用 z-40 確保左上角交會點永遠覆蓋其他物件
       let datesHtml = `
-        <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-slate-200/60 w-[105px] max-w-[105px] align-middle text-center">
-          <div class="flex flex-col items-center gap-1">
-            <span class="font-bold text-xs whitespace-nowrap">標的(代號/名稱)</span>
-            <select onchange="changeSortMode(this.value)" class="text-[10px] border border-slate-300 rounded px-1 py-0.5 bg-white font-normal cursor-pointer focus:outline-none w-full max-w-[95px]">
+        <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-slate-200 sticky left-0 z-40 w-[110px] min-w-[110px] align-middle text-center">
+          <div class="flex flex-col items-center gap-1.5">
+            <span class="font-extrabold text-sm text-slate-900 whitespace-nowrap">標的(代號/名稱)</span>
+            <select onchange="changeSortMode(this.value)" class="text-xs border border-slate-400 rounded px-1.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800">
               <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 依代號</option>
               <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買</option>
               <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外資自營買</option>
@@ -321,22 +328,22 @@
             </select>
           </div>
         </th>
-        <th rowspan="2" class="px-1 py-3 border-r border-slate-300 bg-slate-100 font-bold text-xs w-[65px] min-w-[65px] align-middle whitespace-nowrap">法人別</th>
-        <th rowspan="2" class="px-1 py-3 border-r border-slate-300 bg-yellow-100/50 text-slate-900 font-black text-xs w-[65px] min-w-[65px] align-middle whitespace-nowrap">近5日結</th>
+        <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-sm text-slate-800 sticky left-[110px] z-40 w-[75px] min-w-[75px] align-middle whitespace-nowrap">法人別</th>
+        <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-amber-100 font-black text-sm text-amber-950 sticky left-[185px] z-40 w-[80px] min-w-[80px] align-middle whitespace-nowrap sticky-col-shadow">近5日結</th>
       `;
       let subHtml = "";
 
       recentDates.forEach((dateStr, index) => {
         const parts = dateStr.split('-');
         const formattedDate = parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr;
-        const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-200";
-        datesHtml += `<th colspan="3" class="px-2 py-2 ${borderClass} text-xs bg-slate-50 font-bold whitespace-nowrap">${formattedDate}</th>`;
+        const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300";
+        datesHtml += `<th colspan="3" class="px-3 py-2.5 ${borderClass} text-sm bg-slate-100 text-slate-900 font-bold whitespace-nowrap">${formattedDate}</th>`;
         
-        const subBorderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300 bg-slate-100/50";
+        const subBorderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300 bg-slate-50";
         subHtml += `
-          <th class="py-1 border-r border-slate-200 min-w-[45px] text-xs">買</th>
-          <th class="py-1 border-r border-slate-200 min-w-[45px] text-xs">賣</th>
-          <th class="py-1 ${subBorderClass} min-w-[50px] text-xs">結</th>
+          <th class="py-2 border-r border-slate-200 w-[55px] min-w-[55px] text-sm bg-slate-50/90 font-bold text-slate-600">買</th>
+          <th class="py-2 border-r border-slate-200 w-[55px] min-w-[55px] text-sm bg-slate-50/90 font-bold text-slate-600">賣</th>
+          <th class="py-2 ${subBorderClass} w-[65px] min-w-[65px] text-sm bg-slate-50/90 font-bold text-slate-700">結</th>
         `;
       });
       headerDates.innerHTML = datesHtml;
@@ -530,18 +537,20 @@
         const sumDeaSelf = recentDates.reduce((acc, d) => acc + (chipMap.dealerSelf[d].buy - chipMap.dealerSelf[d].sell), 0);
         const sumDeaHed = recentDates.reduce((acc, d) => acc + (chipMap.dealerHedging[d].buy - chipMap.dealerHedging[d].sell), 0);
 
+        // 💡 調整重點：字體大小調成 text-sm 或 font-bold，提高對比與數據清晰度
         const getCell = (buy, sell) => {
           const net = buy - sell;
-          let netHtml = `<td class="py-1.5 border-r border-slate-300 text-slate-400 text-xs">0</td>`;
-          if (net > 0) netHtml = `<td class="py-1.5 border-r border-slate-300 font-bold bg-red-50 text-red-600 text-xs">+${net}</td>`;
-          if (net < 0) netHtml = `<td class="py-1.5 border-r border-slate-300 font-bold bg-green-50 text-green-600 text-xs">${net}</td>`;
-          return `<td class="py-1.5 border-r border-slate-200 text-emerald-600 text-xs">${buy}</td><td class="py-1.5 border-r border-slate-200 text-rose-600 text-xs">${sell}</td>${netHtml}`;
+          let netHtml = `<td class="py-2.5 border-r border-slate-300 text-slate-400 font-medium text-sm">0</td>`;
+          if (net > 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-extrabold bg-red-50 text-red-600 text-sm">+${net}</td>`;
+          if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-extrabold bg-green-50 text-green-600 text-sm">${net}</td>`;
+          return `<td class="py-2.5 border-r border-slate-200 text-emerald-600 font-medium text-sm">${buy}</td><td class="py-2.5 border-r border-slate-200 text-rose-600 font-medium text-sm">${sell}</td>${netHtml}`;
         };
 
-        const getSumCell = (val) => {
-          if (val > 0) return `<td class="py-1.5 border-r border-slate-300 font-black bg-rose-100 text-rose-700 text-xs shadow-xs whitespace-nowrap">+${val}</td>`;
-          if (val < 0) return `<td class="py-1.5 border-r border-slate-300 font-black bg-emerald-100 text-emerald-700 text-xs shadow-xs whitespace-nowrap">${val}</td>`;
-          return `<td class="py-1.5 border-r border-slate-300 font-bold bg-slate-100 text-slate-500 text-xs whitespace-nowrap">0</td>`;
+        const getSumCell = (val, isDarkRow) => {
+          const bgClass = isDarkRow ? 'bg-amber-50/50' : 'bg-amber-50';
+          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-700 text-sm sticky left-[185px] z-20 ${bgClass} sticky-col-shadow">+${val}</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-700 text-sm sticky left-[185px] z-20 ${bgClass} sticky-col-shadow">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[185px] z-20 ${bgClass} sticky-col-shadow">0</td>`;
         };
 
         let fRow = "", fdRow = "", iRow = "", dsRow = "", dhRow = "";
@@ -553,30 +562,31 @@
           dhRow += getCell(chipMap.dealerHedging[d].buy, chipMap.dealerHedging[d].sell);
         });
 
+        // 💡 凍結左側三欄：給予 sticky 與 left 定位，並在過度列交叉處設定正確的 z-index 與背景色
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" class="px-2 py-3 border-r border-slate-300 font-mono font-bold text-slate-900 bg-slate-100/30 text-center leading-tight w-[105px] max-w-[105px] overflow-hidden truncate">
-              <div class="text-sm">${item.stock_id}</div>
-              <div class="text-[11px] text-slate-500 font-sans mt-0.5 truncate">${item.stock_name}</div>
+            <td rowspan="5" class="px-2 py-4 border-r border-slate-300 font-mono font-bold text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[110px] max-w-[110px] overflow-hidden truncate">
+              <div class="text-base font-extrabold">${item.stock_id}</div>
+              <div class="text-xs text-slate-600 font-sans mt-1 truncate">${item.stock_name}</div>
             </td>
-            <td class="py-1.5 border-r border-slate-300 bg-slate-50/80 font-bold text-[11px] text-slate-600 whitespace-nowrap px-1">外資</td>
-            ${getSumCell(sumFin)}${fRow}
+            <td class="py-2.5 border-r border-slate-300 bg-slate-50 font-bold text-xs text-slate-700 whitespace-nowrap px-1.5 sticky left-[110px] z-20">外資</td>
+            ${getSumCell(sumFin, false)}${fRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-1.5 border-r border-slate-300 bg-slate-50/80 font-bold text-[11px] text-slate-600 whitespace-nowrap px-1">外資自營</td>
-            ${getSumCell(sumFinDea)}${fdRow}
+            <td class="py-2.5 border-r border-slate-300 bg-slate-100 font-bold text-xs text-slate-700 whitespace-nowrap px-1.5 sticky left-[110px] z-20">外資自營</td>
+            ${getSumCell(sumFinDea, true)}${fdRow}
           </td>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-1.5 border-r border-slate-300 bg-slate-50/80 font-bold text-[11px] text-slate-600 whitespace-nowrap px-1">投信</td>
-            ${getSumCell(sumInv)}${iRow}
+            <td class="py-2.5 border-r border-slate-300 bg-slate-50 font-bold text-xs text-slate-700 whitespace-nowrap px-1.5 sticky left-[110px] z-20">投信</td>
+            ${getSumCell(sumInv, false)}${iRow}
           </td>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-1.5 border-r border-slate-300 bg-slate-50/80 font-bold text-[11px] text-slate-600 whitespace-nowrap px-1">自營(自行)</td>
-            ${getSumCell(sumDeaSelf)}${dsRow}
+            <td class="py-2.5 border-r border-slate-300 bg-slate-100 font-bold text-xs text-slate-700 whitespace-nowrap px-1.5 sticky left-[110px] z-20">自營(自行)</td>
+            ${getSumCell(sumDeaSelf, true)}${dsRow}
           </td>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-1.5 border-r border-slate-300 bg-slate-50/80 font-bold text-[11px] text-slate-600 whitespace-nowrap px-1">自營(避險)</td>
-            ${getSumCell(sumDeaHed)}${dhRow}
+            <td class="py-2.5 border-r border-slate-300 bg-slate-50 font-bold text-xs text-slate-700 whitespace-nowrap px-1.5 sticky left-[110px] z-20">自營(避險)</td>
+            ${getSumCell(sumDeaHed, false)}${dhRow}
           </td>
         `;
       });
