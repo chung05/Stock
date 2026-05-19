@@ -127,7 +127,7 @@
       detailText.innerText = "正在比對 Excel 標的名單...";
       await autoLoadAndSyncExcelList();
 
-      detailText.innerText = "正在精準提取最新 5 個開盤日...";
+      detailText.innerText = "正在精準提取最新開盤日...";
       await extractActualTradingDatesFromDB();
 
       detailText.innerText = "正在檢查雲端資料庫斷點戳記...";
@@ -142,38 +142,18 @@
       applyFilters();
     }
 
-    // 🛠️ 核心修正 1：利用只拉取 date 欄位、並多段向下跳躍偵測的方法，徹底穿透分頁限額，確保完美抓齊 5 天開盤日
+    // 🛠️ 安全修正 1：移除特定個股 eq 卡死限制，改採安全的、大範圍去重技術，穩穩抓出不重複的 5 個開盤交易日
     async function extractActualTradingDatesFromDB() {
       try {
-        // 先拉最新一檔核心個股（例如2330，或清單第一檔）的日期紀錄，這可以極速且乾淨地直接得到最近的交易開盤日
-        const targetIdForDateRequest = dbStockData.length > 0 ? dbStockData[0].stock_id : "2330";
-        
         const { data, error } = await supabaseClient
           .from('stock_chips')
           .select('date')
-          .eq('stock_id', targetIdForDateRequest)
           .order('date', { ascending: false })
-          .range(0, 100); // 單一股票 100 筆範圍絕對足夠萃取 5 天
+          .range(0, 4999); // 5000 筆深度足以篩出橫跨多個交易日
 
         if (!error && data && data.length > 0) {
           const uniqueDates = [...new Set(data.map(c => c.date))];
-          recentDates = uniqueDates.slice(0, 5); 
-          if (recentDates.length === 5) {
-            document.getElementById("chipUpdateTime").innerText = recentDates[0];
-            return;
-          }
-        }
-        
-        // 備用方案：若特定個股資料不全，則執行大範圍日期掃描
-        const { data: fallbackData, error: fbErr } = await supabaseClient
-          .from('stock_chips')
-          .select('date')
-          .order('date', { ascending: false })
-          .range(0, 4000); 
-
-        if (!fbErr && fallbackData && fallbackData.length > 0) {
-          const uniqueDates = [...new Set(fallbackData.map(c => c.date))];
-          recentDates = uniqueDates.slice(0, 5);
+          recentDates = uniqueDates.slice(0, 5); // 嚴格取出最新 5 天
           if (recentDates.length > 0) {
             document.getElementById("chipUpdateTime").innerText = recentDates[0];
             return;
@@ -183,7 +163,7 @@
         console.error("精準定位交易日失敗: ", e);
       }
 
-      // 降級兜底
+      // 如果資料庫全空時的兜底降級
       let dates = []; let d = new Date();
       while(dates.length < 5) {
         if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
@@ -282,13 +262,15 @@
 
           if (allCollectedRows.length >= 150) {
             detailText.innerText = `[分流儲存] 正在將目前的 ${allCollectedRows.length} 筆資料寫入資料庫...`;
-            await supabaseClient.from('stock_chips').upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
+            await supabaseClient.from('stock_chips')
+              .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
             allCollectedRows = []; 
           }
         }
 
         if (allCollectedRows.length > 0) {
-          await supabaseClient.from('stock_chips').upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
+          await supabaseClient.from('stock_chips')
+            .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
         }
         
         await extractActualTradingDatesFromDB();
@@ -320,7 +302,7 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🛠️ 核心修正 2：緊湊化左側三大欄位寬度（90px + 52px + 68px = 210px），消除空隙與浪費空間
+    // 🛠️ 緊湊美化：優化固定欄位排版與寬度比例（90px + 52px + 68px），消除死白間隙
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -569,7 +551,6 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[142px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        // 🛠️ 配合新寬度（90px、52px、142px起點）重算左端凍結位置
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[90px] max-w-[90px] overflow-hidden">
