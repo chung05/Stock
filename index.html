@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>牛牛分析站 - 寬資料大成版</title>
+  <title>牛牛分析站 - 寬資料智慧排序版</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
@@ -29,7 +31,7 @@
         <img src="main_icon.png" alt="牛牛標誌" class="w-[42px] h-[42px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
           <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-950 leading-tight">牛牛分析站</h1>
-          <p class="text-[11px] text-slate-800/80 font-medium">精準5個交易日 · 寬資料扁平架構</p>
+          <p class="text-[11px] text-slate-800/80 font-medium">精準5個交易日 · 寬資料動態排序架構</p>
         </div>
       </div>
       
@@ -79,33 +81,38 @@
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
     const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
     
+    const colorThemes = {
+      '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200' },
+      '高股息自選股': { active: 'bg-amber-500 text-white shadow-xs', inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
+      '電子權值股': { active: 'bg-indigo-600 text-white shadow-xs', inactive: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' },
+      '預設': { active: 'bg-emerald-600 text-white shadow-xs', inactive: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }
+    };
+
     let currentSourceTab = '全部';
     let dbStockData = [];          
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
     let recentDates = []; 
-    let currentSortMode = 'stock_id'; 
+    let currentSortMode = 'stock_id'; // 預設排序：股票代號
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 🎯 核心修正 1：一開網頁，前端直接硬性算出最近 5 個工作日，不再被資料庫綁架
       calculateRecentFiveTradeDays();
       renderTableHeader();
       await forceSyncFlow(); 
     });
 
-    // 💡 鐵腕計算最近5個可能交易日（排除週末）
+    // 💡 鐵腕計算最近 5 個可能交易日（排除週末）
     function calculateRecentFiveTradeDays() {
       let dates = [];
       let d = new Date();
-      // 如果現在是下午4點前，籌碼未出，可能要多往前推一天，這裡直接預抓大範圍
       while(dates.length < 5) {
         let day = d.getDay();
-        if (day !== 0 && day !== 6) { // 排除週六週日
+        if (day !== 0 && day !== 6) { 
           dates.push(formatDateToString(d));
         }
         d.setDate(d.getDate() - 1);
       }
-      recentDates = dates; // 取得強制定向的 5 個日期
+      recentDates = dates; 
       document.getElementById("chipUpdateTime").innerText = recentDates[0];
       console.log("🎯 前端硬性指定的5個看盤交易日區間：", recentDates);
     }
@@ -122,10 +129,10 @@
         detailText.innerText = "2. 檢查雲端缺口並精準回補 (FinMind)...";
         await handleSmartWideBackfill();
 
-        detailText.innerText = "3. 從寬資料表取回全量 5 日籌碼...";
+        detailText.innerText = "3. 從新寬資料表取回全量 5 日籌碼...";
         await fetchWideChipsFromSupabase();
 
-        detailText.innerText = "4. 建立多窗格看盤矩陣...";
+        detailText.innerText = "4. 建立多窗格看盤矩陣與排序...";
         renderTableHeader();
         applyFilters();
 
@@ -136,7 +143,7 @@
       }
     }
 
-    // ⚡ 一次性拉回所有人這 5 天的資料（200檔 × 5天 = 1000筆，完美避開斷尾限制）
+    // 拉回目標股票這 5 天的寬資料（精準且不重複）
     async function fetchWideChipsFromSupabase() {
       if (dbStockData.length === 0) return;
       const stockIdsInList = dbStockData.map(s => s.stock_id);
@@ -145,7 +152,7 @@
         .from('stock_chips_daily')
         .select('*')
         .in('stock_id', stockIdsInList)
-        .in('date', recentDates); // 🎯 核心修正 2：精準只抓前端指定的這5天
+        .in('date', recentDates);
 
       if (error) {
         console.error("讀取新寬表失敗:", error);
@@ -153,10 +160,10 @@
       }
 
       globalChipCache = data || [];
-      console.log(`🎉 記憶體載入完成，共 ${globalChipCache.length} 筆不重複日資料。`);
+      console.log(`🎉 寬資料載入完成，共 ${globalChipCache.length} 筆資料。`);
     }
 
-    // ⚡ 精準大補網：檢查這 5 天誰在資料庫缺席，就幫誰打 API 補抓
+    // 精準補網機制
     async function handleSmartWideBackfill() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
@@ -164,26 +171,21 @@
 
       if (dbStockData.length === 0) return;
       
-      // 算出需要的日期邊界
       const startDateStr = recentDates[recentDates.length - 1];
       const endDateStr = recentDates[0];
 
       statusText.innerText = `🔄 正在核對雲端 5 日寬資料完整度...`;
 
-      // 預先查出這群股票在這5天內，資料庫裡已經有哪些資料了
       const { data: existingRows } = await supabaseClient
         .from('stock_chips_daily')
         .select('stock_id, date')
         .in('stock_id', dbStockData.map(s => s.stock_id))
         .in('date', recentDates);
 
-      // 建立索引加速比對
       const existingSet = new Set((existingRows || []).map(r => `${r.stock_id}_${r.date}`));
 
       for (let i = 0; i < dbStockData.length; i++) {
         const stock = dbStockData[i];
-        
-        // 檢查此股票是否 5 天在資料庫裡都健在？
         let isMissing = false;
         for (let d of recentDates) {
           if (!existingSet.has(`${stock.stock_id}_${d}`)) {
@@ -192,12 +194,9 @@
           }
         }
 
-        // 如果資料庫早就存好這 5 天的寬資料了，直接跳過不打 API，省流量、免卡死！
-        if (!isMissing) {
-          continue; 
-        }
+        if (!isMissing) continue; 
 
-        detailText.innerText = `[精準回補缺缺口] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})`;
+        detailText.innerText = `[精準回補寬缺口] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})`;
 
         try {
           const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
@@ -207,7 +206,6 @@
           const resJson = await res.json();
           if (resJson.status === 200 && Array.isArray(resJson.data) && resJson.data.length > 0) {
             
-            // 💡 將抓回來的多元法人明細，揉捏成一檔個股一天的「寬結構」
             const dateMap = {};
             resJson.data.forEach(row => {
               const d = row.date;
@@ -223,7 +221,6 @@
 
             const rowsToUpsert = Object.values(dateMap);
             if (rowsToUpsert.length > 0) {
-              // 🎯 寫入新表，PrimaryKey 鎖死 (stock_id, date)，重複只會覆蓋更新，絕不重複！
               await supabaseClient.from('stock_chips_daily').upsert(rowsToUpsert);
             }
           }
@@ -242,30 +239,56 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
+    // 🎯 核心更換：完美找回並內嵌排序下拉選單
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
       if (!headerDates || !headerSub) return;
 
       let datesHtml = `
-        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[90px] min-w-[90px] text-center border-r border-slate-300 font-extrabold text-[11px]">標的</th>
-        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs sticky left-[90px] z-40 w-[52px] border-r border-slate-300 text-center">法人</th>
-        <th rowspan="2" class="px-1 py-2 bg-amber-100 font-black text-xs sticky left-[142px] z-40 w-[68px] border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
+        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[94px] min-w-[94px] max-w-[94px] align-middle text-center border-r border-slate-300">
+          <div class="flex flex-col items-center gap-1">
+            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的(代號/名稱)</span>
+            <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
+              <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
+              <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超</option>
+              <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外自營買</option>
+              <option value="investment_buy" ${currentSortMode==='investment_buy'?'selected':''}>🔺 投信買超</option>
+              <option value="dealer_self_buy" ${currentSortMode==='dealer_self_buy'?'selected':''}>🔺 自營自行</option>
+              <option value="dealer_hedging_buy" ${currentSortMode==='dealer_hedging_buy'?'selected':''}>🔺 自營避險</option>
+              <option value="foreign_sell" ${currentSortMode==='foreign_sell'?'selected':''}>🔻 外資賣超</option>
+              <option value="foreign_dealer_sell" ${currentSortMode==='foreign_dealer_sell'?'selected':''}>🔻 外自營賣</option>
+              <option value="investment_sell" ${currentSortMode==='investment_sell'?'selected':''}>🔻 投信賣超</option>
+              <option value="dealer_self_sell" ${currentSortMode==='dealer_self_sell'?'selected':''}>🔻 自營自行賣</option>
+              <option value="dealer_hedging_sell" ${currentSortMode==='dealer_hedging_sell'?'selected':''}>🔻 自營避險賣</option>
+            </select>
+          </div>
+        </th>
+        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[94px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
+        <th rowspan="2" class="px-1 py-2 bg-amber-100 font-black text-xs text-amber-950 sticky left-[146px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
       `;
       let subHtml = "";
 
-      recentDates.forEach((dateStr) => {
+      recentDates.forEach((dateStr, index) => {
         const parts = dateStr.split('-');
         const formattedDate = parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr;
-        datesHtml += `<th colspan="3" class="px-2 py-2 border-r border-slate-300 text-sm bg-slate-100 text-slate-900 font-bold">${formattedDate}</th>`;
+        const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300";
+        datesHtml += `<th colspan="3" class="px-2 py-2 ${borderClass} text-sm bg-slate-100 text-slate-900 font-bold whitespace-nowrap">${formattedDate}</th>`;
+        
+        const subBorderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300 bg-slate-50";
         subHtml += `
-          <th class="py-1.5 border-r border-slate-200 w-[55px] text-xs font-bold text-slate-600">買</th>
-          <th class="py-1.5 border-r border-slate-200 w-[55px] text-xs font-bold text-slate-600">賣</th>
-          <th class="py-1.5 border-r border-slate-300 w-[65px] font-extrabold text-slate-800 bg-slate-50">結</th>
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">買</th>
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">賣</th>
+          <th class="py-1.5 ${subBorderClass} w-[65px] min-w-[65px] text-sm font-extrabold text-slate-800">結</th>
         `;
       });
       headerDates.innerHTML = datesHtml;
       headerSub.innerHTML = subHtml;
+    }
+
+    function changeSortMode(val) {
+      currentSortMode = val;
+      applyFilters();
     }
 
     async function autoLoadAndSyncExcelList() {
@@ -309,10 +332,12 @@
 
     function updateTabButtons(sheets) {
       const container = document.getElementById("tabContainer");
-      container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white cursor-pointer">🌐 全部成分股</button>`;
+      container.innerHTML = `<button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>`;
       sheets.forEach(sheet => {
-        container.innerHTML += `<button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer">📁 ${sheet}</button>`;
+        const theme = colorThemes[sheet] || colorThemes['預設'];
+        container.innerHTML += `<button onclick="switchTab('${sheet}')" id="tab-${sheet}" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer">📁 ${sheet}</button>`;
       });
+      setActiveTabUI();
     }
 
     function switchTab(sheetName) {
@@ -320,17 +345,97 @@
       applyFilters();
     }
 
+    function setActiveTabUI() {
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        const id = btn.id.replace('tab-', '');
+        const theme = colorThemes[id] || colorThemes['預設'];
+        btn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer`;
+      });
+      const activeBtn = document.getElementById(`tab-${currentSourceTab}`);
+      if (activeBtn) {
+        const theme = colorThemes[currentSourceTab] || colorThemes['預設'];
+        activeBtn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.active} whitespace-nowrap cursor-pointer`;
+      }
+    }
+
+    // 🎯 核心更換：依據新「寬資料欄位」在前端極速完成5日綜合運算排序
     function applyFilters() {
+      setActiveTabUI();
       let filteredStocks = [...dbStockData];
       if (currentSourceTab !== '全部') {
         filteredStocks = dbStockData.filter(item => item.sheet_tags && item.sheet_tags.includes(currentSourceTab));
       }
+
+      // 多維度排序規則運算
+      filteredStocks.sort((a, b) => {
+        if (currentSortMode === 'stock_id') {
+          return a.stock_id.localeCompare(b.stock_id, undefined, { numeric: true, sensitivity: 'base' });
+        }
+
+        // 輔助函式：累計該檔股票這5天指定法人的淨損益 (單位：張)
+        const getSumForStock = (stockId, buyField, sellField) => {
+          const chips = globalChipCache.filter(c => c.stock_id === stockId);
+          return chips.reduce((acc, row) => {
+            const b = Math.round((row[buyField] || 0) / 1000);
+            const s = Math.round((row[sellField] || 0) / 1000);
+            return acc + (b - s);
+          }, 0);
+        };
+
+        let valA = 0, valB = 0;
+        switch (currentSortMode) {
+          case 'foreign_buy':
+            valA = getSumForStock(a.stock_id, 'f_buy', 'f_sell');
+            valB = getSumForStock(b.stock_id, 'f_buy', 'f_sell');
+            return valB - valA; // 買超降序
+          case 'foreign_dealer_buy':
+            valA = getSumForStock(a.stock_id, 'fd_buy', 'fd_sell');
+            valB = getSumForStock(b.stock_id, 'fd_buy', 'fd_sell');
+            return valB - valA;
+          case 'investment_buy':
+            valA = getSumForStock(a.stock_id, 'it_buy', 'it_sell');
+            valB = getSumForStock(b.stock_id, 'it_buy', 'it_sell');
+            return valB - valA;
+          case 'dealer_self_buy':
+            valA = getSumForStock(a.stock_id, 'ds_buy', 'ds_sell');
+            valB = getSumForStock(b.stock_id, 'ds_buy', 'ds_sell');
+            return valB - valA;
+          case 'dealer_hedging_buy':
+            valA = getSumForStock(a.stock_id, 'dh_buy', 'dh_sell');
+            valB = getSumForStock(b.stock_id, 'dh_buy', 'dh_sell');
+            return valB - valA;
+          case 'foreign_sell':
+            valA = getSumForStock(a.stock_id, 'f_buy', 'f_sell');
+            valB = getSumForStock(b.stock_id, 'f_buy', 'f_sell');
+            return valA - valB; // 賣超升序 (負越多越前面)
+          case 'foreign_dealer_sell':
+            valA = getSumForStock(a.stock_id, 'fd_buy', 'fd_sell');
+            valB = getSumForStock(b.stock_id, 'fd_buy', 'fd_sell');
+            return valA - valB;
+          case 'investment_sell':
+            valA = getSumForStock(a.stock_id, 'it_buy', 'it_sell');
+            valB = getSumForStock(b.stock_id, 'it_buy', 'it_sell');
+            return valA - valB;
+          case 'dealer_self_sell':
+            valA = getSumForStock(a.stock_id, 'ds_buy', 'ds_sell');
+            valB = getSumForStock(b.stock_id, 'ds_buy', 'ds_sell');
+            return valA - valB;
+          case 'dealer_hedging_sell':
+            valA = getSumForStock(a.stock_id, 'dh_buy', 'dh_sell');
+            valB = getSumForStock(b.stock_id, 'dh_buy', 'dh_sell');
+            return valA - valB;
+          default:
+            return 0;
+        }
+      });
+
       renderMatrixTableFromCache(filteredStocks);
     }
 
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
+      if (!tbody) return;
       let htmlString = "";
 
       stocks.forEach(item => {
@@ -365,42 +470,43 @@
           dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
         });
 
-        const getSumCell = (val) => {
-          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-700 bg-amber-50 sticky left-[142px] z-20 sticky-col-shadow">+${val}</td>`;
-          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-700 bg-amber-50 sticky left-[142px] z-20 sticky-col-shadow">${val}</td>`;
-          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 bg-amber-50 sticky left-[142px] z-20 sticky-col-shadow">0</td>`;
+        const getSumCell = (val, isDarkRow) => {
+          const bgClass = isDarkRow ? 'bg-amber-50/70' : 'bg-amber-50';
+          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
         htmlString += `
-          <tr class="border-t-2 border-slate-300">
-            <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[90px]">
-              <div class="text-sm font-black">${item.stock_id}</div>
-              <div class="text-[11px] text-slate-600 font-extrabold truncate">${item.stock_name}</div>
+          <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
+            <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden">
+              <div class="text-sm font-black tracking-tighter text-slate-950">${item.stock_id}</div>
+              <div class="text-[11px] text-slate-600 font-sans mt-0.5 font-extrabold truncate tracking-tighter">${item.stock_name}</div>
             </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[90px] z-20 text-center w-[52px]">外資</td>
-            ${getSumCell(sumF)}${fRow}
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
+            ${getSumCell(sumF, false)}${fRow}
           </tr>
-          <tr class="border-t border-slate-200">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[90px] z-20 text-center w-[52px]">外資自營</td>
-            ${getSumCell(sumFD)}${fdRow}
-          </tr>
-          <tr class="border-t border-slate-200">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[90px] z-20 text-center w-[52px]">投信</td>
-            ${getSumCell(sumIT)}${iRow}
-          </tr>
-          <tr class="border-t border-slate-200">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[90px] z-20 text-center w-[52px]">自營(自)</td>
-            ${getSumCell(sumDS)}${dsRow}
-          </tr>
-          <tr class="border-t border-slate-200">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[90px] z-20 text-center w-[52px]">自營(避)</td>
-            ${getSumCell(sumDH)}${dhRow}
-          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資自營</td>
+            ${getSumCell(sumFD, true)}${fdRow}
+          </td>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">投信</td>
+            ${getSumCell(sumIT, false)}${iRow}
+          </td>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(自)</td>
+            ${getSumCell(sumDS, true)}${dsRow}
+          </td>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
+            ${getSumCell(sumDH, false)}${dhRow}
+          </td>
         `;
       });
 
       tbody.innerHTML = htmlString;
-      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：5日指定寬資料極速渲染完畢";
+      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：5日指定寬資料極速排序渲染完畢";
     }
   </script>
 </body>
