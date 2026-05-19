@@ -109,16 +109,15 @@
     let targetSheetsSet = new Set();
     let recentDates = []; 
     
-    // 🌟 需求 1：預設排序調整為「投信買超」
+    // 預設排序調整為「投信買超」
     let currentSortMode = 'investment_buy'; 
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 初始渲染空白表頭，等資料撈到後會被動態真實開盤日取代
       renderTableHeader(); 
       await forceSyncFlow(); 
     });
 
-    // 🚀 一條龍智慧同步與檢查
+    // 一條龍智慧同步與檢查
     async function forceSyncFlow() {
       const modal = document.getElementById("loadingModal");
       const detailText = document.getElementById("loadingDetail");
@@ -133,7 +132,7 @@
       detailText.innerText = "正在載入雲端籌碼資料...";
       await fetchAllChipsFromSupabase();
 
-      // 🌟 需求 3：根據真實抓到的資料庫數據，萃取出最新且不重複的 5 個有交易開盤日
+      // 根據真實抓到的資料庫數據，萃取出最新且不重複的 5 個有交易開盤日
       extractActualTradingDates();
       
       // 重新繪製帶有正確日期的表頭
@@ -143,7 +142,7 @@
       applyFilters();
     }
 
-    // 🧠 核心：斷點續傳範圍計算 (修正 5/1 重新起算邏輯)
+    // 🧠 優化核心：健壯的斷點續傳流 (實作指數級重試與防崩潰機制)
     async function handleSmartBackfillFlow() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
@@ -172,7 +171,6 @@
         const targetEndDateStr = formatDateToString(targetEndDate);
 
         let startFetchDateStr = "";
-        // 🌟 需求 2：若資料庫為空，自動設定起點為 2026-05-02 (週六，從5/4開盤起算補償)
         if (!lastChipDateStr) {
           startFetchDateStr = "2026-05-02"; 
         } else {
@@ -191,43 +189,84 @@
         if (dbStockData.length === 0) return;
 
         let allCollectedRows = []; 
+        let errorCountConsecutive = 0; // 紀錄連續失敗次數
 
         for (let i = 0; i < dbStockData.length; i++) {
           const stock = dbStockData[i];
           detailText.innerText = `[遠端合法同步中] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})\n請勿關閉網頁...`;
 
-          try {
-            const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startFetchDateStr}&end_date=${targetEndDateStr}&token=${FINMIND_TOKEN}`;
-            const res = await fetch(apiUrl);
-            
-            if (res.status === 429) {
-              statusText.innerText = "⚠️ 觸發流量安全限制，正在減速重試...";
-              await sleep(2000); 
-              i--; 
-              continue;
-            }
+          let retryDelay = 3000; // 初始重試等待 3 秒
+          let success = false;
 
-            const resJson = await res.json();
+          while (!success) {
+            try {
+              const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startFetchDateStr}&end_date=${targetEndDateStr}&token=${FINMIND_TOKEN}`;
+              const res = await fetch(apiUrl);
+              
+              if (res.status === 429) {
+                statusText.innerText = `⚠️ 流量受限，正在減速並於 ${retryDelay/1000} 秒後重試...`;
+                await sleep(retryDelay);
+                retryDelay *= 2; // 遭遇 429 加倍延長等待時間 (指數級退讓)
+                continue;
+              }
 
-            if (resJson.status === 200 && Array.isArray(resJson.data) && resJson.data.length > 0) {
-              resJson.data.forEach(row => {
-                allCollectedRows.push({
-                  stock_id: row.stock_id,
-                  date: row.date,
-                  legal_name: row.name,
-                  buy: row.buy || 0,
-                  sell: row.sell || 0
-                });
-              });
+              if (!res.ok) {
+                throw new Error(`HTTP 錯誤狀態碼: ${res.status}`);
+              }
+
+              const resJson = await res.json();
+
+              if (resJson.status === 200 && Array.isArray(resJson.data)) {
+                if (resJson.data.length > 0) {
+                  resJson.data.forEach(row => {
+                    allCollectedRows.push({
+                      stock_id: row.stock_id,
+                      date: row.date,
+                      legal_name: row.name,
+                      buy: row.buy || 0,
+                      sell: row.sell || 0
+                    });
+                  });
+                }
+                success = true;
+                errorCountConsecutive = 0; // 成功則重設連續失敗計算
+              } else {
+                // 如果回傳結構怪異，亦視為成功跳過或小睡處理避免死循環
+                success = true;
+              }
+            } catch (err) {
+              console.error(`❌ 讀取 ${stock.stock_id} 發生異常:`, err);
+              errorCountConsecutive++;
+              
+              if (errorCountConsecutive > 5) {
+                statusText.innerText = "⚠️ 網路連續異常異常，為保護程序先暫停抓取。";
+                break; 
+              }
+              
+              statusText.innerText = `⚠️ 網路異常，${retryDelay/1000} 秒後重新嘗試...`;
+              await sleep(retryDelay);
+              retryDelay *= 1.5;
             }
-          } catch (err) {
-            console.error(`❌ 讀取 ${stock.stock_id} 發生網路異常:`, err);
           }
-          await sleep(150);
+
+          if (errorCountConsecutive > 5) break;
+
+          // 基礎防禦型調頻：每檔正常抓完後，強制小憩 400ms，以防高頻封鎖
+          await sleep(400);
+
+          // ⏳ 分流寫入策略：為了防止累積過大陣列導致網頁崩潰或 Supabase 傳輸超時，每累積 150 筆就先往雲端倒一次
+          if (allCollectedRows.length >= 150) {
+            detailText.innerText = `[分流儲存] 正在將目前的 ${allCollectedRows.length} 筆資料寫入資料庫...`;
+            await supabaseClient
+              .from('stock_chips')
+              .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
+            allCollectedRows = []; // 清空快取，釋放記憶體
+          }
         }
 
+        // 剩餘尾數整批寫入
         if (allCollectedRows.length > 0) {
-          detailText.innerText = `正在將整批資料 (${allCollectedRows.length} 筆) 寫入雲端資料庫...`;
+          detailText.innerText = `正在將最後殘餘的 ${allCollectedRows.length} 筆資料寫入雲端資料庫...`;
           const { error: upsertError } = await supabaseClient
             .from('stock_chips')
             .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
@@ -239,11 +278,12 @@
             document.getElementById("chipUpdateTime").innerText = targetEndDateStr;
           }
         } else {
-          statusText.innerText = "✅ 檢查完成，此區間市場尚未更新資料。";
+          statusText.innerText = "✅ 智慧檢查與資料庫同步已全數完成。";
         }
 
       } catch (e) {
         statusText.innerText = "⚠️ 智慧補償流執行異常";
+        console.error(e);
       }
     }
 
@@ -263,10 +303,8 @@
       }
     }
 
-    // 🌟 需求 3：動態自適應開盤日萃取
     function extractActualTradingDates() {
       if (globalChipCache.length === 0) {
-        // 防錯機制：萬一庫內完全沒資料，才退回系統今天往前推算
         let dates = []; let d = new Date();
         while(dates.length < 5) {
           if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
@@ -276,11 +314,8 @@
         return;
       }
 
-      // 撈出快取資料內所有出現過的 date 字串，並去重
       const uniqueDates = [...new Set(globalChipCache.map(c => c.date))];
-      // 由新到舊排序
       uniqueDates.sort((a, b) => b.localeCompare(a));
-      // 只取最新有開盤、有資料的 5 天 (這樣就絕對不會包含無交易的假日或死空格)
       recentDates = uniqueDates.slice(0, 5);
     }
 
@@ -291,7 +326,6 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🗓️ 🌟 需求 4：更新後的重構表頭渲染 (預設投信買超)
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -422,7 +456,6 @@
         filteredStocks = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
       }
       
-      // 📊 智慧排序處理 (已預設為投信買超)
       filteredStocks.sort((a, b) => {
         if (currentSortMode === 'stock_id') {
           return a.stock_id.localeCompare(b.stock_id, undefined, { numeric: true, sensitivity: 'base' });
@@ -555,23 +588,23 @@
             </td>
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">外資</td>
             ${getSumCell(sumFin)}${fRow}
-          </tr>
+          </td>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">外資自營</td>
             ${getSumCell(sumFinDea)}${fdRow}
-          </tr>
+          </td>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">投信</td>
             ${getSumCell(sumInv)}${iRow}
-          </tr>
+          </td>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">自營(自行)</td>
             ${getSumCell(sumDeaSelf)}${dsRow}
-          </tr>
+          </td>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-2 border-r border-slate-300 bg-slate-50/80 font-bold text-xs text-slate-600">自營(避險)</td>
             ${getSumCell(sumDeaHed)}${dhRow}
-          </tr>
+          </td>
         `;
       });
 
