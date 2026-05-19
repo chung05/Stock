@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>牛牛分析站 - 斷點續傳籌碼版</title>
+  <title>牛牛分析站 - 智慧過濾籌碼版</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   
@@ -32,7 +32,7 @@
         <img src="main_icon.png" alt="牛牛標誌" class="w-[42px] h-[42px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
           <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-950 leading-tight">牛牛分析站</h1>
-          <p class="text-[11px] text-slate-800/80 font-medium">智慧斷點續傳 · 追蹤 5 大法人每日籌碼</p>
+          <p class="text-[11px] text-slate-800/80 font-medium">智慧斷點續傳 · 動態過濾無交易假日</p>
         </div>
       </div>
       
@@ -108,24 +108,12 @@
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
     let recentDates = []; 
-    let currentSortMode = 'stock_id'; // 預設排序模式：股票代號
-
-    // 🗓️ 智慧生成最近 5 個開盤日
-    function generateRecentDates() {
-      let dates = [];
-      let d = new Date(); 
-      while (dates.length < 5) {
-        let day = d.getDay();
-        if (day !== 0 && day !== 6) { 
-          dates.push(formatDateToString(d));
-        }
-        d.setDate(d.getDate() - 1);
-      }
-      return dates;
-    }
+    
+    // 🌟 需求 1：預設排序調整為「投信買超」
+    let currentSortMode = 'investment_buy'; 
 
     document.addEventListener("DOMContentLoaded", async () => {
-      recentDates = generateRecentDates();
+      // 初始渲染空白表頭，等資料撈到後會被動態真實開盤日取代
       renderTableHeader(); 
       await forceSyncFlow(); 
     });
@@ -145,11 +133,17 @@
       detailText.innerText = "正在載入雲端籌碼資料...";
       await fetchAllChipsFromSupabase();
 
+      // 🌟 需求 3：根據真實抓到的資料庫數據，萃取出最新且不重複的 5 個有交易開盤日
+      extractActualTradingDates();
+      
+      // 重新繪製帶有正確日期的表頭
+      renderTableHeader();
+
       modal.classList.add("hidden");
       applyFilters();
     }
 
-    // 🧠 核心：斷點續傳範圍計算
+    // 🧠 核心：斷點續傳範圍計算 (修正 5/1 重新起算邏輯)
     async function handleSmartBackfillFlow() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
@@ -167,7 +161,7 @@
           lastChipDateStr = latestRow[0].date;
           document.getElementById("chipUpdateTime").innerText = lastChipDateStr;
         } else {
-          document.getElementById("chipUpdateTime").innerText = "資料庫無紀錄";
+          document.getElementById("chipUpdateTime").innerText = "資料庫已清空/無紀錄";
         }
 
         const now = new Date();
@@ -178,10 +172,9 @@
         const targetEndDateStr = formatDateToString(targetEndDate);
 
         let startFetchDateStr = "";
+        // 🌟 需求 2：若資料庫為空，自動設定起點為 2026-05-02 (週六，從5/4開盤起算補償)
         if (!lastChipDateStr) {
-          let defaultStart = new Date();
-          defaultStart.setDate(defaultStart.getDate() - 5); 
-          startFetchDateStr = formatDateToString(defaultStart);
+          startFetchDateStr = "2026-05-02"; 
         } else {
           let lastDateObj = new Date(lastChipDateStr);
           lastDateObj.setDate(lastDateObj.getDate() + 1);
@@ -230,7 +223,7 @@
           } catch (err) {
             console.error(`❌ 讀取 ${stock.stock_id} 發生網路異常:`, err);
           }
-          await sleep(200);
+          await sleep(150);
         }
 
         if (allCollectedRows.length > 0) {
@@ -255,17 +248,40 @@
     }
 
     async function fetchAllChipsFromSupabase() {
-      const startDate = recentDates[recentDates.length - 1];
-      const endDate = recentDates[0];
+      // 預設抓取最近一個月內的資料進行緩存調閱
+      let d = new Date();
+      d.setDate(d.getDate() - 30);
+      const startDate = formatDateToString(d);
+      
       const { data, error } = await supabaseClient
         .from('stock_chips')
         .select('stock_id, date, legal_name, buy, sell')
-        .gte('date', startDate)
-        .lte('date', endDate);
+        .gte('date', startDate);
 
       if (!error && data) {
         globalChipCache = data; 
       }
+    }
+
+    // 🌟 需求 3：動態自適應開盤日萃取
+    function extractActualTradingDates() {
+      if (globalChipCache.length === 0) {
+        // 防錯機制：萬一庫內完全沒資料，才退回系統今天往前推算
+        let dates = []; let d = new Date();
+        while(dates.length < 5) {
+          if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
+          d.setDate(d.getDate()-1);
+        }
+        recentDates = dates;
+        return;
+      }
+
+      // 撈出快取資料內所有出現過的 date 字串，並去重
+      const uniqueDates = [...new Set(globalChipCache.map(c => c.date))];
+      // 由新到舊排序
+      uniqueDates.sort((a, b) => b.localeCompare(a));
+      // 只取最新有開盤、有資料的 5 天 (這樣就絕對不會包含無交易的假日或死空格)
+      recentDates = uniqueDates.slice(0, 5);
     }
 
     function formatDateToString(dateObj) {
@@ -275,12 +291,13 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🗓️ 渲染表頭與「排序功能下拉選單」
+    // 🗓️ 🌟 需求 4：更新後的重構表頭渲染 (預設投信買超)
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
       
-      // 增加排序變更的處理事件
+      if (!headerDates || !headerSub) return;
+
       let datesHtml = `
         <th rowspan="2" class="px-4 py-3 border-r border-slate-300 bg-slate-200/60 min-w-[150px] align-middle">
           <div class="flex flex-col items-center gap-1">
@@ -307,7 +324,7 @@
 
       recentDates.forEach((dateStr, index) => {
         const parts = dateStr.split('-');
-        const formattedDate = `${parts[1]}月${parts[2]}日`;
+        const formattedDate = parts.length === 3 ? `${parts[1]}月${parts[2]}日` : dateStr;
         const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-200";
         datesHtml += `<th colspan="3" class="px-4 py-2 ${borderClass} text-sm bg-slate-50">${formattedDate}</th>`;
         
@@ -322,7 +339,6 @@
       headerSub.innerHTML = subHtml;
     }
 
-    // 變更排序規則並重新渲染
     function changeSortMode(val) {
       currentSortMode = val;
       applyFilters();
@@ -406,15 +422,14 @@
         filteredStocks = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
       }
       
-      // 📊 智慧排序核心邏輯處理
+      // 📊 智慧排序處理 (已預設為投信買超)
       filteredStocks.sort((a, b) => {
         if (currentSortMode === 'stock_id') {
           return a.stock_id.localeCompare(b.stock_id, undefined, { numeric: true, sensitivity: 'base' });
         }
 
-        // 計算 5 天總額以便排序
         const getSumForStock = (stockId, targetLegal) => {
-          const chips = globalChipCache.filter(c => c.stock_id === stockId && c.legal_name === targetLegal);
+          const chips = globalChipCache.filter(c => c.stock_id === stockId && c.legal_name === targetLegal && recentDates.includes(c.date));
           return chips.reduce((acc, row) => {
             const buy = Math.round((row.buy || 0) / 1000);
             const sell = Math.round((row.sell || 0) / 1000);
@@ -426,7 +441,7 @@
         if (currentSortMode.startsWith('foreign_buy')) {
           valA = getSumForStock(a.stock_id, 'Foreign_Investor');
           valB = getSumForStock(b.stock_id, 'Foreign_Investor');
-          return valB - valA; // 買超多到少排序
+          return valB - valA;
         } else if (currentSortMode.startsWith('foreign_dealer_buy')) {
           valA = getSumForStock(a.stock_id, 'Foreign_Dealer_Self');
           valB = getSumForStock(b.stock_id, 'Foreign_Dealer_Self');
@@ -446,7 +461,7 @@
         } else if (currentSortMode.startsWith('foreign_sell')) {
           valA = getSumForStock(a.stock_id, 'Foreign_Investor');
           valB = getSumForStock(b.stock_id, 'Foreign_Investor');
-          return valA - valB; // 賣超多到少排序 (值越負代表賣越多)
+          return valA - valB;
         } else if (currentSortMode.startsWith('foreign_dealer_sell')) {
           valA = getSumForStock(a.stock_id, 'Foreign_Dealer_Self');
           valB = getSumForStock(b.stock_id, 'Foreign_Dealer_Self');
@@ -473,6 +488,7 @@
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
+      if (!tbody) return;
       let htmlString = "";
 
       stocks.forEach(item => {
