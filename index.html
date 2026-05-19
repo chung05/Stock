@@ -131,11 +131,11 @@
         detailText.innerText = "2. 檢查並補抓雲端籌碼 (FinMind)...";
         await handleSmartBackfillFlow();
 
-        detailText.innerText = "3. 從雲端讀取核心籌碼快取...";
-        await fetchAllChipsFromSupabase();
+        detailText.innerText = "3. 分析並定位最新開盤日...";
+        await extractActualTradingDatesFromDB();
 
-        detailText.innerText = "4. 分析並篩選最近 5 個交易日...";
-        extractActualTradingDatesFromCache();
+        detailText.innerText = "4. 分批合法倒出完整籌碼...";
+        await fetchAllChipsFromSupabase();
         
         detailText.innerText = "5. 正在佈局視覺矩陣...";
         renderTableHeader();
@@ -148,43 +148,76 @@
       }
     }
 
-    // 🛠️ 終極修正點：將 .range 限制一口氣放大到 30,000 筆，徹底解決個股缺漏、顯示不全的問題
-    async function fetchAllChipsFromSupabase() {
-      let d = new Date();
-      d.setDate(d.getDate() - 14); 
-      const startDateStr = formatDateToString(d);
-      
-      const { data, error } = await supabaseClient
-        .from('stock_chips')
-        .select('stock_id, date, legal_name, buy, sell')
-        .gte('date', startDateStr)
-        .range(0, 29999); // 👈 允許撈取最多三萬筆紀錄，100% 覆蓋所有自選股與大量法人欄位
+    // 🛠️ 優化定位：直接利用系統大盤追溯日期定位出近5日
+    async function extractActualTradingDatesFromDB() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('stock_chips')
+          .select('date')
+          .order('date', { ascending: false })
+          .range(0, 3999); 
 
-      if (!error && data) {
-        globalChipCache = data; 
-      } else {
-        console.error("從 Supabase 下載快取失敗:", error);
+        if (!error && data && data.length > 0) {
+          const uniqueDates = [...new Set(data.map(c => c.date))];
+          recentDates = uniqueDates.slice(0, 5); 
+          if (recentDates.length > 0) {
+            document.getElementById("chipUpdateTime").innerText = recentDates[0];
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("定位交易開盤日發生異常: ", e);
       }
+
+      let dates = []; let d = new Date();
+      while(dates.length < 5) {
+        if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
+        d.setDate(d.getDate()-1);
+      }
+      recentDates = dates;
     }
 
-    function extractActualTradingDatesFromCache() {
-      if (!globalChipCache || globalChipCache.length === 0) {
-        let dates = []; let d = new Date();
-        while(dates.length < 5) {
-          if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
-          d.setDate(d.getDate()-1);
+    // 🧠 核心重構：實作前端遞迴分頁分批讀取（Pagination），徹底打破 Supabase 限制，撈完為止！
+    async function fetchAllChipsFromSupabase() {
+      if (recentDates.length === 0) return;
+      
+      const detailText = document.getElementById("loadingDetail");
+      let allChipsFetched = [];
+      let startRange = 0;
+      const batchSize = 4000; // 每次安全向雲端要 4,000 筆
+      let keepFetching = true;
+
+      while (keepFetching) {
+        let endRange = startRange + batchSize - 1;
+        detailText.innerText = `4. 分批載入雲端數據中 (${startRange} ~ ${endRange} 筆)...`;
+
+        const { data, error } = await supabaseClient
+          .from('stock_chips')
+          .select('stock_id, date, legal_name, buy, sell')
+          .in('date', recentDates) // 精準只過濾這 5 天的資料
+          .range(startRange, endRange);
+
+        if (error) {
+          console.error("分批讀取雲端快取遭遇異常:", error);
+          break;
         }
-        recentDates = dates;
-        return;
+
+        if (data && data.length > 0) {
+          allChipsFetched = allChipsFetched.concat(data);
+          
+          // 如果回傳的筆數小於指定的單批上限，代表已經把庫裡的資料全部抽乾了
+          if (data.length < batchSize) {
+            keepFetching = false;
+          } else {
+            startRange += batchSize; // 往下一頁推進
+          }
+        } else {
+          keepFetching = false; // 沒資料了，停止
+        }
       }
 
-      const uniqueDates = [...new Set(globalChipCache.map(c => c.date))];
-      uniqueDates.sort((a, b) => b.localeCompare(a));
-      recentDates = uniqueDates.slice(0, 5); 
-
-      if (recentDates.length > 0) {
-        document.getElementById("chipUpdateTime").innerText = recentDates[0];
-      }
+      globalChipCache = allChipsFetched;
+      console.log(`🎉 籌碼資料總計分批撈取完成！共計：${globalChipCache.length} 筆`);
     }
 
     async function handleSmartBackfillFlow() {
@@ -338,13 +371,13 @@
         const parts = dateStr.split('-');
         const formattedDate = parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr;
         const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300";
-        datesHtml += `<th colspan="3" class="px-3 py-2.5 ${borderClass} text-sm bg-slate-100 text-slate-900 font-extrabold whitespace-nowrap">${formattedDate}</th>`;
+        datesHtml += `<th colspan="3" class="px-2 py-2 ${borderClass} text-sm bg-slate-100 text-slate-900 font-bold whitespace-nowrap">${formattedDate}</th>`;
         
         const subBorderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300 bg-slate-50";
         subHtml += `
-          <th class="py-2 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">買</th>
-          <th class="py-2 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">賣</th>
-          <th class="py-2 ${subBorderClass} w-[65px] min-w-[65px] text-sm font-extrabold text-slate-800">結</th>
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">買</th>
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">賣</th>
+          <th class="py-1.5 ${subBorderClass} w-[65px] min-w-[65px] text-sm font-extrabold text-slate-800">結</th>
         `;
       });
       headerDates.innerHTML = datesHtml;
@@ -592,7 +625,7 @@
       });
 
       tbody.innerHTML = htmlString;
-      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端快取精準供應中";
+      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端快取精準分批供應中";
     }
   </script>
 </body>
