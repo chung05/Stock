@@ -33,7 +33,7 @@
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-3">
       
       <div class="flex items-center gap-3">
-        <img src="main_icon.png" alt="牛牛標誌" class="w-[42px] h-[42px object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
+        <img src="main_icon.png" alt="牛牛標誌" class="w-[42px] h-[42px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
           <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-950 leading-tight">牛牛分析站</h1>
           <p class="text-[11px] text-slate-800/80 font-medium">智慧斷點續傳 · 多維窗格凍結看盤</p>
@@ -148,17 +148,17 @@
       }
     }
 
-    // 🛠️ 穩健優化 1：直接去撈最近 14 天內的所有資料，安全打破 1000 筆的分頁限制
+    // 🛠️ 終極修正點：將 .range 限制一口氣放大到 30,000 筆，徹底解決個股缺漏、顯示不全的問題
     async function fetchAllChipsFromSupabase() {
       let d = new Date();
-      d.setDate(d.getDate() - 14); // 往前推 14 天，絕對能含括 5 個完整開盤日
+      d.setDate(d.getDate() - 14); 
       const startDateStr = formatDateToString(d);
       
       const { data, error } = await supabaseClient
         .from('stock_chips')
         .select('stock_id, date, legal_name, buy, sell')
         .gte('date', startDateStr)
-        .range(0, 4999); // 擴大抓取範圍，確保名單內的股票全部都能載入
+        .range(0, 29999); // 👈 允許撈取最多三萬筆紀錄，100% 覆蓋所有自選股與大量法人欄位
 
       if (!error && data) {
         globalChipCache = data; 
@@ -167,10 +167,8 @@
       }
     }
 
-    // 🛠️ 穩健優化 2：從已經下載到網頁的快取中，100% 精準篩選出最新 5 個開盤日，不受限於分頁
     function extractActualTradingDatesFromCache() {
       if (!globalChipCache || globalChipCache.length === 0) {
-        // 如果庫裡真的全空，才執行系統日期兜底
         let dates = []; let d = new Date();
         while(dates.length < 5) {
           if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateToString(d));
@@ -180,10 +178,9 @@
         return;
       }
 
-      // 去重並從新到舊排序
       const uniqueDates = [...new Set(globalChipCache.map(c => c.date))];
       uniqueDates.sort((a, b) => b.localeCompare(a));
-      recentDates = uniqueDates.slice(0, 5); // 精準保留最新 5 天
+      recentDates = uniqueDates.slice(0, 5); 
 
       if (recentDates.length > 0) {
         document.getElementById("chipUpdateTime").innerText = recentDates[0];
@@ -307,7 +304,6 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🛠️ 緊湊美化：左側凍結區極致緊湊（90px + 52px + 68px = 210px 總固定面寬），大字體看盤
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -315,10 +311,10 @@
       if (!headerDates || !headerSub) return;
 
       let datesHtml = `
-        <th rowspan="2" class="px-1 py-3 bg-slate-200 sticky left-0 z-40 w-[90px] min-w-[90px] max-w-[90px] align-middle text-center border-r border-slate-300">
+        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[90px] min-w-[90px] max-w-[90px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
-            <span class="font-extrabold text-[12px] text-slate-900 whitespace-nowrap tracking-tighter">標的(代號/名稱)</span>
-            <select onchange="changeSortMode(this.value)" class="text-xs border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
+            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的(代號/名稱)</span>
+            <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
               <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
               <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超</option>
               <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外自營買</option>
@@ -333,8 +329,8 @@
             </select>
           </div>
         </th>
-        <th rowspan="2" class="px-1 py-3 bg-slate-100 font-extrabold text-sm text-slate-800 sticky left-[90px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
-        <th rowspan="2" class="px-1 py-3 bg-amber-100 font-black text-sm text-amber-950 sticky left-[142px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
+        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[90px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
+        <th rowspan="2" class="px-1 py-2 bg-amber-100 font-black text-xs text-amber-950 sticky left-[142px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
       `;
       let subHtml = "";
 
@@ -502,7 +498,6 @@
       renderMatrixTableFromCache(filteredStocks);
     }
 
-    // 🛠️ 終極修正 3：修正大寫比對與高強度 Optional Chaining 映射，100% 絕不報錯白屏
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
@@ -516,7 +511,6 @@
           foreign: {}, foreignDealer: {}, investment: {}, dealerSelf: {} , dealerHedging: {}
         };
         
-        // 100% 安全初始化
         recentDates.forEach(d => {
           chipMap.foreign[d] = { buy: 0, sell: 0 };
           chipMap.foreignDealer[d] = { buy: 0, sell: 0 };
@@ -525,10 +519,9 @@
           chipMap.dealerHedging[d] = { buy: 0, sell: 0 };
         });
 
-        // 修正點：映射時嚴格採用資料庫內實際的 FinMind 大寫英文字串名稱
         stockChips.forEach(row => {
           const d = row.date;
-          if(!chipMap.foreign[d]) return; // 若日期非最近5日，過濾
+          if(!chipMap.foreign[d]) return; 
           
           const b = Math.round((row.buy || 0) / 1000);
           const s = Math.round((row.sell || 0) / 1000);
@@ -540,7 +533,6 @@
           else if (row.legal_name === 'Dealer_Hedging') { chipMap.dealerHedging[d] = { buy: b, sell: s }; }
         });
 
-        // 大字體、安全加總
         const sumFin = recentDates.reduce((acc, d) => acc + ((chipMap.foreign[d]?.buy || 0) - (chipMap.foreign[d]?.sell || 0)), 0);
         const sumFinDea = recentDates.reduce((acc, d) => acc + ((chipMap.foreignDealer[d]?.buy || 0) - (chipMap.foreignDealer[d]?.sell || 0)), 0);
         const sumInv = recentDates.reduce((acc, d) => acc + ((chipMap.investment[d]?.buy || 0) - (chipMap.investment[d]?.sell || 0)), 0);
@@ -549,17 +541,17 @@
 
         const getCell = (buy, sell) => {
           const net = buy - sell;
-          let netHtml = `<td class="py-3 border-r border-slate-300 text-slate-400 font-bold text-sm">0</td>`;
-          if (net > 0) netHtml = `<td class="py-3 border-r border-slate-300 font-black bg-red-50 text-red-600 text-sm">+${net}</td>`;
-          if (net < 0) netHtml = `<td class="py-3 border-r border-slate-300 font-black bg-green-50 text-green-600 text-sm">${net}</td>`;
-          return `<td class="py-3 border-r border-slate-200 text-emerald-600 font-bold text-sm">${buy}</td><td class="py-3 border-r border-slate-200 text-rose-600 font-bold text-sm">${sell}</td>${netHtml}`;
+          let netHtml = `<td class="py-2.5 border-r border-slate-300 text-slate-400 font-bold text-sm">0</td>`;
+          if (net > 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-red-50 text-red-600 text-sm">+${net}</td>`;
+          if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-green-50 text-green-600 text-sm">${net}</td>`;
+          return `<td class="py-2.5 border-r border-slate-200 text-emerald-600 font-bold text-sm">${buy}</td><td class="py-2.5 border-r border-slate-200 text-rose-600 font-bold text-sm">${sell}</td>${netHtml}`;
         };
 
         const getSumCell = (val, isDarkRow) => {
-          const bgClass = isDarkRow ? 'bg-amber-50/80' : 'bg-amber-50';
-          if (val > 0) return `<td class="py-3 border-r border-slate-300 font-black text-rose-700 text-sm sticky left-[142px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          if (val < 0) return `<td class="py-3 border-r border-slate-300 font-black text-emerald-700 text-sm sticky left-[142px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
-          return `<td class="py-3 border-r border-slate-300 font-extrabold text-slate-500 text-sm sticky left-[142px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
+          const bgClass = isDarkRow ? 'bg-amber-50/70' : 'bg-amber-50';
+          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-700 text-sm sticky left-[142px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-700 text-sm sticky left-[142px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[142px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
         let fRow = "", fdRow = "", iRow = "", dsRow = "", dhRow = "";
@@ -574,7 +566,7 @@
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[90px] max-w-[90px] overflow-hidden">
-              <div class="text-base font-black tracking-tighter text-slate-950">${item.stock_id}</div>
+              <div class="text-sm font-black tracking-tighter text-slate-950">${item.stock_id}</div>
               <div class="text-[11px] text-slate-600 font-sans mt-0.5 font-extrabold truncate tracking-tighter">${item.stock_name}</div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[90px] z-20 text-center w-[52px]">外資</td>
