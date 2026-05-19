@@ -93,6 +93,9 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
+    // 🎯 FinMind Token 統一宣告在頂層全域位置
+    const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
+
     const colorThemes = {
       '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200' },
       '高股息自選股': { active: 'bg-amber-500 text-white shadow-xs', inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
@@ -106,7 +109,7 @@
     let targetSheetsSet = new Set();
     let recentDates = []; 
 
-    // 🗓️ 智慧生成最近 5 個開盤日（供前端畫面排版使用）
+    // 🗓️ 智慧生成最近 5 個開盤日
     function generateRecentDates() {
       let dates = [];
       let d = new Date(); 
@@ -148,134 +151,129 @@
       applyFilters();
     }
 
-    // 🧠 最核心：斷點續傳與補償範圍計算
+    // 🧠 核心：斷點續傳與補償範圍計算 (已修正重複巢狀錯誤)
     async function handleSmartBackfillFlow() {
-// 1. 在程式碼最上方（與 SUPABASE_URL 放一起的地方）加上 Token 宣告
-const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
+      const statusText = document.getElementById("uploadStatus");
+      const detailText = document.getElementById("loadingDetail");
 
-// 2. 更新後的智慧補償流函式（已帶入 Token 授權）
-async function handleSmartBackfillFlow() {
-  const statusText = document.getElementById("uploadStatus");
-  const detailText = document.getElementById("loadingDetail");
-
-  // 工具函式：讓程式暫停指定的毫秒數 (ms)
-  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-  try {
-    // 🔍 A. 找出資料庫裡目前最新一筆籌碼的日期
-    const { data: latestRow, error: latestError } = await supabaseClient
-      .from('stock_chips')
-      .select('date')
-      .order('date', { ascending: false })
-      .limit(1);
-
-    let lastChipDateStr = null;
-    if (!latestError && latestRow && latestRow.length > 0) {
-      lastChipDateStr = latestRow[0].date;
-      document.getElementById("chipUpdateTime").innerText = lastChipDateStr;
-    } else {
-      document.getElementById("chipUpdateTime").innerText = "資料庫無紀錄";
-    }
-
-    // 🔍 B. 計算今天市場上最新應該有的籌碼日期 (下午 4 點前算昨天)
-    const now = new Date();
-    let targetEndDate = new Date();
-    if (now.getHours() < 16) {
-      targetEndDate.setDate(now.getDate() - 1);
-    }
-    const targetEndDateStr = formatDateToString(targetEndDate);
-
-    // 🔍 C. 判定起點日期
-    let startFetchDateStr = "";
-    if (!lastChipDateStr) {
-      let defaultStart = new Date();
-      defaultStart.setDate(defaultStart.getDate() - 5); // 預設只補5天防爆
-      startFetchDateStr = formatDateToString(defaultStart);
-    } else {
-      let lastDateObj = new Date(lastChipDateStr);
-      lastDateObj.setDate(lastDateObj.getDate() + 1);
-      startFetchDateStr = formatDateToString(lastDateObj);
-    }
-
-    // 🔍 D. 檢查是否真的需要下載
-    if (startFetchDateStr > targetEndDateStr) {
-      statusText.innerText = "✅ 智慧檢查：雲端資料已是最新的，免下載！";
-      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端快取供應中";
-      return; 
-    }
-
-    statusText.innerText = `⚡ 準備補抓區間：${startFetchDateStr} ~ ${targetEndDateStr}`;
-    if (dbStockData.length === 0) return;
-
-    let allCollectedRows = []; // 整批收集，最後一次寫入
-
-    // 依不重複股票跑迴圈下載
-    for (let i = 0; i < dbStockData.length; i++) {
-      const stock = dbStockData[i];
-      detailText.innerText = `[遠端合法同步中] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})\n請勿關閉網頁...`;
+      // 工具函式：讓程式暫停指定的毫秒數 (ms)
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       try {
-        // 🎯 關鍵改動：在 API 網址後方帶入 &token=${FINMIND_TOKEN}
-        const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startFetchDateStr}&end_date=${targetEndDateStr}&token=${FINMIND_TOKEN}`;
-        
-        const res = await fetch(apiUrl);
-        
-        // 偵測是否被 FinMind 限制頻率 (即使有 Token，如果點太快偶爾還是會觸發安全機制)
-        if (res.status === 429) {
-          console.error("⚠️ 觸發 FinMind API 頻率限制(429)！網頁暫時安全降速。");
-          statusText.innerText = "⚠️ 觸發流量安全限制，正在減速重試...";
-          await sleep(2000); // 休息 2 秒
-          i--; // 讓這一檔股票重新重試
-          continue;
+        // 🔍 A. 找出資料庫裡目前最新一筆籌碼的日期
+        const { data: latestRow, error: latestError } = await supabaseClient
+          .from('stock_chips')
+          .select('date')
+          .order('date', { ascending: false })
+          .limit(1);
+
+        let lastChipDateStr = null;
+        if (!latestError && latestRow && latestRow.length > 0) {
+          lastChipDateStr = latestRow[0].date;
+          document.getElementById("chipUpdateTime").innerText = lastChipDateStr;
+        } else {
+          document.getElementById("chipUpdateTime").innerText = "資料庫無紀錄";
         }
 
-        const resJson = await res.json();
-
-        if (resJson.status === 200 && Array.isArray(resJson.data) && resJson.data.length > 0) {
-          resJson.data.forEach(row => {
-            allCollectedRows.push({
-              stock_id: row.stock_id,
-              date: row.date,
-              legal_name: row.name,
-              buy: row.buy || 0,
-              sell: row.sell || 0
-            });
-          });
-          console.log(`📡 [FinMind] ${stock.stock_id} 讀取成功，暫存 ${resJson.data.length} 筆明細`);
+        // 🔍 B. 計算今天市場上最新應該有的籌碼日期 (下午 4 點前算昨天)
+        const now = new Date();
+        let targetEndDate = new Date();
+        if (now.getHours() < 16) {
+          targetEndDate.setDate(now.getDate() - 1);
         }
-      } catch (err) {
-        console.error(`❌ 讀取 ${stock.stock_id} 發生網路異常:`, err);
+        const targetEndDateStr = formatDateToString(targetEndDate);
+
+        // 🔍 C. 判定起點日期
+        let startFetchDateStr = "";
+        if (!lastChipDateStr) {
+          let defaultStart = new Date();
+          defaultStart.setDate(defaultStart.getDate() - 5); // 預設只補5天防爆
+          startFetchDateStr = formatDateToString(defaultStart);
+        } else {
+          let lastDateObj = new Date(lastChipDateStr);
+          lastDateObj.setDate(lastDateObj.getDate() + 1);
+          startFetchDateStr = formatDateToString(lastDateObj);
+        }
+
+        // 🔍 D. 檢查是否真的需要下載
+        if (startFetchDateStr > targetEndDateStr) {
+          statusText.innerText = "✅ 智慧檢查：雲端資料已是最新的，免下載！";
+          document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端快取供應中";
+          return; 
+        }
+
+        statusText.innerText = `⚡ 準備補抓區間：${startFetchDateStr} ~ ${targetEndDateStr}`;
+        if (dbStockData.length === 0) return;
+
+        let allCollectedRows = []; // 整批收集，最後一次寫入
+
+        // 依不重複股票跑迴圈下載
+        for (let i = 0; i < dbStockData.length; i++) {
+          const stock = dbStockData[i];
+          detailText.innerText = `[遠端合法同步中] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})\n請勿關閉網頁...`;
+
+          try {
+            // 🎯 在 API 網址後方帶入全域的 &token=${FINMIND_TOKEN}
+            const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startFetchDateStr}&end_date=${targetEndDateStr}&token=${FINMIND_TOKEN}`;
+            
+            const res = await fetch(apiUrl);
+            
+            // 偵測是否被 FinMind 限制頻率
+            if (res.status === 429) {
+              console.error("⚠️ 觸發 FinMind API 頻率限制(429)！網頁暫時安全降速。");
+              statusText.innerText = "⚠️ 觸發流量安全限制，正在減速重試...";
+              await sleep(2000); // 休息 2 秒
+              i--; // 讓這一檔股票重新重試
+              continue;
+            }
+
+            const resJson = await res.json();
+
+            if (resJson.status === 200 && Array.isArray(resJson.data) && resJson.data.length > 0) {
+              resJson.data.forEach(row => {
+                allCollectedRows.push({
+                  stock_id: row.stock_id,
+                  date: row.date,
+                  legal_name: row.name,
+                  buy: row.buy || 0,
+                  sell: row.sell || 0
+                });
+              });
+              console.log(`📡 [FinMind] ${stock.stock_id} 讀取成功，暫存 ${resJson.data.length} 筆明細`);
+            }
+          } catch (err) {
+            console.error(`❌ 讀取 ${stock.stock_id} 發生網路異常:`, err);
+          }
+
+          // 💡 安全緩衝：200毫秒
+          await sleep(200);
+        }
+
+        // 🎯 E. 離開迴圈後，將收集到的所有人資料，一口氣「整批 Upsert」進 Supabase
+        if (allCollectedRows.length > 0) {
+          detailText.innerText = `正在將整批資料 (${allCollectedRows.length} 筆) 寫入雲端資料庫...`;
+          
+          const { error: upsertError } = await supabaseClient
+            .from('stock_chips')
+            .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
+
+          if (upsertError) {
+            console.error("❌ 批次寫入 Supabase 失敗：", upsertError.message);
+            statusText.innerText = "⚠️ 籌碼下載成功，但寫入雲端資料庫時被拒絕(請確認 RLS 政策)";
+          } else {
+            console.log(`\u2705 成功一口氣同步 ${allCollectedRows.length} 筆籌碼至雲端！`);
+            statusText.innerText = "✅ 智慧區間補抓並寫入資料庫完成！";
+            document.getElementById("chipUpdateTime").innerText = targetEndDateStr;
+          }
+        } else {
+          statusText.innerText = "✅ 檢查完成，此區間市場尚未更新資料。";
+        }
+
+      } catch (e) {
+        console.error("智慧補償流發生未知錯誤:", e);
+        statusText.innerText = "⚠️ 智慧補償流執行異常";
       }
-
-      // 💡 安全緩衝：因為有了 Token 權限提高，間隔時間可以稍微縮短至 200 毫秒，加快整體同步速度！
-      await sleep(200);
     }
-
-    // 🎯 E. 離開迴圈後，將收集到的所有人資料，一口氣「整批 Upsert」進 Supabase
-    if (allCollectedRows.length > 0) {
-      detailText.innerText = `正在將整批資料 (${allCollectedRows.length} 筆) 寫入雲端資料庫...`;
-      
-      const { error: upsertError } = await supabaseClient
-        .from('stock_chips')
-        .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
-
-      if (upsertError) {
-        console.error("❌ 批次寫入 Supabase 失敗：", upsertError.message);
-        statusText.innerText = "⚠️ 籌碼下載成功，但寫入雲端資料庫時被拒絕(請確認 RLS 政策)";
-      } else {
-        console.log(`\u2705 成功一口氣同步 ${allCollectedRows.length} 筆籌碼至雲端！`);
-        statusText.innerText = "✅ 智慧區間補抓並寫入資料庫完成！";
-        document.getElementById("chipUpdateTime").innerText = targetEndDateStr;
-      }
-    } else {
-      statusText.innerText = "✅ 檢查完成，此區間市場尚未更新資料。";
-    }
-
-  } catch (e) {
-    console.error("智慧補償流發生未知錯誤:", e);
-    statusText.innerText = "⚠️ 智慧補償流執行異常";
-  }
-}
 
     // 從 Supabase 撈取 5 天內所有的籌碼明細到前端緩存
     async function fetchAllChipsFromSupabase() {
