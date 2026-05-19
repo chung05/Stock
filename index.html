@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>牛牛分析站 - 寬資料智慧排序版</title>
+  <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -20,47 +20,59 @@
   <div id="loadingModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-slate-100 flex flex-col items-center">
       <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <h3 class="text-base font-bold text-slate-900 mb-1">5日寬數據智慧過濾中...</h3>
-      <p id="loadingDetail" class="text-xs text-slate-500 font-medium">請稍候...</p>
+      <h3 class="text-base font-bold text-slate-900 mb-1">雲端籌碼智慧同步中...</h3>
+      <p id="loadingDetail" class="text-xs text-slate-500 font-medium">安全連線中...</p>
     </div>
   </div>
 
   <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-4 shadow-md border-b border-sky-300/30 px-4">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+      
       <div class="flex items-center gap-3">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[42px] h-[42px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
           <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-950 leading-tight">牛牛分析站</h1>
-          <p class="text-[11px] text-slate-800/80 font-medium">精準5個交易日 · 寬資料動態排序架構</p>
+          <p class="text-[11px] text-slate-800/80 font-medium">智慧斷點續傳 · 多維寬資窗格凍結看盤</p>
         </div>
       </div>
       
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/90 backdrop-blur-md p-2.5 px-4 rounded-xl border border-sky-200 w-full md:w-auto shadow-sm">
         <div class="flex flex-col gap-0.5 text-xs font-semibold text-slate-600 grow">
           <div class="flex items-center justify-between gap-4">
-            <div>名單同步日：<span id="listUpdateTime" class="text-slate-900 font-bold">載入中...</span></div>
-            <div>指定看盤起日：<span id="chipUpdateTime" class="text-slate-900 font-bold">檢測中...</span></div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>名單更新：<span id="listUpdateTime" class="text-slate-900 font-bold">載入中...</span></span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span>指定看盤起日：<span id="chipUpdateTime" class="text-slate-900 font-bold">檢測中...</span></span>
+            </div>
           </div>
           <div class="border-t border-slate-200/60 my-0.5"></div>
-          <div id="uploadStatus" class="text-[11px] text-blue-700 font-bold">系統就緒</div>
+          <div id="uploadStatus" class="text-[11px] text-blue-700 font-bold text-center sm:text-left">同步檢查中...</div>
         </div>
-        <button onclick="forceSyncFlow()" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs text-center flex items-center justify-center gap-1">
-          ⚡ 智慧檢查並回補
-        </button>
+        
+        <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-center">
+          <button onclick="forceSyncFlow()" class="w-full sm:w-auto cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap text-center flex items-center justify-center gap-1">
+            ⚡ 執行智慧同步
+          </button>
+        </div>
       </div>
+      
     </div>
   </div>
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-3">
+      <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
       <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
-        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer">🌐 全部成分股</button>
+        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>
       </div>
     </section>
 
-    <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex justify-between items-center">
+    <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="text-sm text-slate-700 font-semibold">目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票</div>
-      <div id="dataSourceLabel" class="text-xs text-slate-500 font-bold bg-white px-2 py-1 rounded border border-blue-200">狀態：初始化</div>
+      <div id="dataSourceLabel" class="text-xs text-slate-500 font-bold bg-white px-2 py-1 rounded border border-blue-200">數據狀態：檢測中</div>
     </section>
 
     <section class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
@@ -80,7 +92,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
     const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
-    
+
     const colorThemes = {
       '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200' },
       '高股息自選股': { active: 'bg-amber-500 text-white shadow-xs', inactive: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
@@ -93,15 +105,15 @@
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
     let recentDates = []; 
-    let currentSortMode = 'stock_id'; // 預設排序：股票代號
+    let currentSortMode = 'stock_id'; // 預設排序
 
     document.addEventListener("DOMContentLoaded", async () => {
-      calculateRecentFiveTradeDays();
-      renderTableHeader();
+      calculateRecentFiveTradeDays(); // 🚀 先行計算好硬性5日交易區間，防止畫面空白
+      renderTableHeader(); 
       await forceSyncFlow(); 
     });
 
-    // 💡 鐵腕計算最近 5 個可能交易日（排除週末）
+    // 💡 鐵腕推算最近5個可能交易日（排除週六、週日）
     function calculateRecentFiveTradeDays() {
       let dates = [];
       let d = new Date();
@@ -114,7 +126,6 @@
       }
       recentDates = dates; 
       document.getElementById("chipUpdateTime").innerText = recentDates[0];
-      console.log("🎯 前端硬性指定的5個看盤交易日區間：", recentDates);
     }
 
     async function forceSyncFlow() {
@@ -123,48 +134,74 @@
       modal.classList.remove("hidden");
 
       try {
-        detailText.innerText = "1. 讀取並更新 Excel 標的名單...";
+        detailText.innerText = "1. 比對 Excel 標的名單...";
         await autoLoadAndSyncExcelList();
 
-        detailText.innerText = "2. 檢查雲端缺口並精準回補 (FinMind)...";
-        await handleSmartWideBackfill();
+        detailText.innerText = "2. 檢查並補抓雲端籌碼 (FinMind 寬資料格式)...";
+        await handleSmartBackfillFlow();
 
-        detailText.innerText = "3. 從新寬資料表取回全量 5 日籌碼...";
-        await fetchWideChipsFromSupabase();
+        detailText.innerText = "3. 自動定位最新寬資料開盤日...";
+        calculateRecentFiveTradeDays();
 
-        detailText.innerText = "4. 建立多窗格看盤矩陣與排序...";
+        detailText.innerText = "4. 分批合法倒出完整新表籌碼...";
+        await fetchAllChipsFromSupabase();
+
+        detailText.innerText = "5. 正在佈局視覺矩陣...";
         renderTableHeader();
         applyFilters();
 
       } catch (err) {
-        console.error("總流程異常:", err);
+        console.error("同步總流程發生未預期錯誤:", err);
       } finally {
         modal.classList.add("hidden");
       }
     }
 
-    // 拉回目標股票這 5 天的寬資料（精準且不重複）
-    async function fetchWideChipsFromSupabase() {
-      if (dbStockData.length === 0) return;
+    // 🧠 讀取全量寬資料：分批安全載入新表 stock_chips_daily 數據
+    async function fetchAllChipsFromSupabase() {
+      if (recentDates.length === 0 || dbStockData.length === 0) return;
+      const detailText = document.getElementById("loadingDetail");
       const stockIdsInList = dbStockData.map(s => s.stock_id);
+      
+      let allChipsFetched = [];
+      let startRange = 0;
+      const batchSize = 3000;
+      let keepFetching = true;
 
-      const { data, error } = await supabaseClient
-        .from('stock_chips_daily')
-        .select('*')
-        .in('stock_id', stockIdsInList)
-        .in('date', recentDates);
+      while (keepFetching) {
+        let endRange = startRange + batchSize - 1;
+        detailText.innerText = `4. 分批載入雲端寬數據中 (${startRange} ~ ${endRange} 筆)...`;
 
-      if (error) {
-        console.error("讀取新寬表失敗:", error);
-        return;
+        const { data, error } = await supabaseClient
+          .from('stock_chips_daily')
+          .select('*')
+          .in('stock_id', stockIdsInList)
+          .in('date', recentDates)
+          .range(startRange, endRange);
+
+        if (error) {
+          console.error("分批讀取寬表雲端快取異常:", error);
+          break;
+        }
+
+        if (data && data.length > 0) {
+          allChipsFetched = allChipsFetched.concat(data);
+          if (data.length < batchSize) {
+            keepFetching = false;
+          } else {
+            startRange += batchSize;
+          }
+        } else {
+          keepFetching = false;
+        }
       }
 
-      globalChipCache = data || [];
-      console.log(`🎉 寬資料載入完成，共 ${globalChipCache.length} 筆資料。`);
+      globalChipCache = allChipsFetched;
+      console.log(`🎉 寬資料總計分批撈取完成！共計：${globalChipCache.length} 筆`);
     }
 
-    // 精準補網機制
-    async function handleSmartWideBackfill() {
+    // ⚡ 智慧寬資料回補補網機制
+    async function handleSmartBackfillFlow() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -176,6 +213,7 @@
 
       statusText.innerText = `🔄 正在核對雲端 5 日寬資料完整度...`;
 
+      // 預先拉出資料庫裡已存的股票日期配對，避免重複抓取
       const { data: existingRows } = await supabaseClient
         .from('stock_chips_daily')
         .select('stock_id, date')
@@ -194,9 +232,9 @@
           }
         }
 
-        if (!isMissing) continue; 
+        if (!isMissing) continue; // 這檔股票5天都有了，跳過
 
-        detailText.innerText = `[精準回補寬缺口] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})`;
+        detailText.innerText = `[寬資料精準同步] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})`;
 
         try {
           const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
@@ -229,7 +267,8 @@
         }
         await sleep(300); 
       }
-      statusText.innerText = "✅ 5日寬化庫對接檢查全數落幕！";
+      statusText.innerText = "✅ 智慧區間補抓與雲端儲存全數完成！";
+      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端寬資料快取供應中";
     }
 
     function formatDateToString(dateObj) {
@@ -239,7 +278,7 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🎯 核心更換：完美找回並內嵌排序下拉選單
+    // 🎯 建立內嵌排序下拉選單的 TableHeader
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -294,10 +333,12 @@
     async function autoLoadAndSyncExcelList() {
       try {
         const response = await fetch(EXCEL_SOURCE_URL);
+        if (!response.ok) throw new Error();
         const arrayBuffer = await response.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const stockMap = new Map();
+        
         workbook.SheetNames.forEach(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
@@ -306,26 +347,30 @@
             const stockName = String(row['股票名稱'] || row['名稱'] || '').trim();
             if (stockId && stockName) {
               if (stockMap.has(stockId)) {
-                if(!stockMap.get(stockId).sheet_tags.includes(sheetName)) stockMap.get(stockId).sheet_tags.push(sheetName);
+                const item = stockMap.get(stockId);
+                if (!item.sheet_tags.includes(sheetName)) item.sheet_tags.push(sheetName);
               } else {
-                stockMap.set(stockId, { stock_id: stockId, stock_name: stockName, sheet_tags: [sheetName] });
+                stockMap.set(stockId, { stock_id: stockId, stock_name: stockName, sheet_tags: [sheetName], updated_at: new Date().toISOString() });
               }
             }
           });
         });
+
         const rowsToUpload = Array.from(stockMap.values());
         if (rowsToUpload.length > 0) {
           await supabaseClient.from('stock_targets').upsert(rowsToUpload, { onConflict: 'stock_id' });
         }
-        const { data: dbData } = await supabaseClient.from('stock_targets').select('*');
-        dbStockData = dbData || [];
-        document.getElementById("listUpdateTime").innerText = new Date().toLocaleDateString();
         
+        const { data: dbData } = await supabaseClient.from('stock_targets').select('stock_id, stock_name, sheet_tags').order('stock_id', { ascending: true });
+        dbStockData = dbData || [];
+        
+        document.getElementById("listUpdateTime").innerText = new Date().toLocaleDateString();
+
         targetSheetsSet.clear();
-        dbStockData.forEach(item => { if(item.sheet_tags) item.sheet_tags.forEach(tag => targetSheetsSet.add(tag)); });
+        dbStockData.forEach(item => { if (Array.isArray(item.sheet_tags)) item.sheet_tags.forEach(tag => targetSheetsSet.add(tag)); });
         updateTabButtons(Array.from(targetSheetsSet));
       } catch (err) {
-        const { data: dbData } = await supabaseClient.from('stock_targets').select('*');
+        const { data: dbData } = await supabaseClient.from('stock_targets').select('stock_id, stock_name, sheet_tags').order('stock_id', { ascending: true });
         dbStockData = dbData || [];
       }
     }
@@ -358,27 +403,26 @@
       }
     }
 
-    // 🎯 核心更換：依據新「寬資料欄位」在前端極速完成5日綜合運算排序
+    // 🎯 核心運算：在新「寬資料欄位」下，進行極速前端5日跨度加總排序
     function applyFilters() {
       setActiveTabUI();
       let filteredStocks = [...dbStockData];
       if (currentSourceTab !== '全部') {
-        filteredStocks = dbStockData.filter(item => item.sheet_tags && item.sheet_tags.includes(currentSourceTab));
+        filteredStocks = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
       }
-
-      // 多維度排序規則運算
+      
       filteredStocks.sort((a, b) => {
         if (currentSortMode === 'stock_id') {
           return a.stock_id.localeCompare(b.stock_id, undefined, { numeric: true, sensitivity: 'base' });
         }
 
-        // 輔助函式：累計該檔股票這5天指定法人的淨損益 (單位：張)
+        // 智慧型新寬欄位 5日累計加總計算器
         const getSumForStock = (stockId, buyField, sellField) => {
           const chips = globalChipCache.filter(c => c.stock_id === stockId);
           return chips.reduce((acc, row) => {
-            const b = Math.round((row[buyField] || 0) / 1000);
-            const s = Math.round((row[sellField] || 0) / 1000);
-            return acc + (b - s);
+            const buy = Math.round((row[buyField] || 0) / 1000);
+            const sell = Math.round((row[sellField] || 0) / 1000);
+            return acc + (buy - sell);
           }, 0);
         };
 
@@ -387,7 +431,7 @@
           case 'foreign_buy':
             valA = getSumForStock(a.stock_id, 'f_buy', 'f_sell');
             valB = getSumForStock(b.stock_id, 'f_buy', 'f_sell');
-            return valB - valA; // 買超降序
+            return valB - valA; 
           case 'foreign_dealer_buy':
             valA = getSumForStock(a.stock_id, 'fd_buy', 'fd_sell');
             valB = getSumForStock(b.stock_id, 'fd_buy', 'fd_sell');
@@ -407,7 +451,7 @@
           case 'foreign_sell':
             valA = getSumForStock(a.stock_id, 'f_buy', 'f_sell');
             valB = getSumForStock(b.stock_id, 'f_buy', 'f_sell');
-            return valA - valB; // 賣超升序 (負越多越前面)
+            return valA - valB; // 降序（賣超越多排越前）
           case 'foreign_dealer_sell':
             valA = getSumForStock(a.stock_id, 'fd_buy', 'fd_sell');
             valB = getSumForStock(b.stock_id, 'fd_buy', 'fd_sell');
@@ -477,6 +521,7 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
+        // 🚀 此處修正了原本 code1.txt 中的 </tr> 標籤閉合語法漏洞
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden">
@@ -489,7 +534,7 @@
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資自營</td>
             ${getSumCell(sumFD, true)}${fdRow}
-          </td>
+          </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">投信</td>
             ${getSumCell(sumIT, false)}${iRow}
@@ -506,7 +551,7 @@
       });
 
       tbody.innerHTML = htmlString;
-      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：5日指定寬資料極速排序渲染完畢";
+      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：5日寬化庫對接檢查且動態排序渲染完畢";
     }
   </script>
 </body>
