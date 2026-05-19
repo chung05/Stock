@@ -25,19 +25,19 @@
     </div>
   </div>
 
-  <div class="bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 pb-28 pt-6 shadow-xs border-b border-sky-300/30">
-    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+  <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-4 shadow-md border-b border-sky-300/30 px-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-3">
       
       <div class="flex items-center gap-3">
-        <img src="main_icon.png" alt="牛牛標誌" class="w-[50px] h-[50px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
+        <img src="main_icon.png" alt="牛牛標誌" class="w-[42px] h-[42px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
         <div>
-          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-950">牛牛分析站</h1>
-          <p class="text-xs text-slate-800/80 font-medium mt-0.5">智慧斷點續傳 · 追蹤 5 大法人每日籌碼</p>
+          <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-950 leading-tight">牛牛分析站</h1>
+          <p class="text-[11px] text-slate-800/80 font-medium">智慧斷點續傳 · 追蹤 5 大法人每日籌碼</p>
         </div>
       </div>
       
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/90 backdrop-blur-md p-3 px-4 rounded-xl border border-sky-200 w-full md:w-auto shadow-sm">
-        <div class="flex flex-col gap-1 text-xs font-semibold text-slate-600 grow">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/90 backdrop-blur-md p-2.5 px-4 rounded-xl border border-sky-200 w-full md:w-auto shadow-sm">
+        <div class="flex flex-col gap-0.5 text-xs font-semibold text-slate-600 grow">
           <div class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -48,12 +48,12 @@
               <span>雲端最新籌碼日：<span id="chipUpdateTime" class="text-slate-900 font-bold">檢測中...</span></span>
             </div>
           </div>
-          <div class="border-t border-slate-200/60 my-1"></div>
+          <div class="border-t border-slate-200/60 my-0.5"></div>
           <div id="uploadStatus" class="text-[11px] text-blue-700 font-bold text-center sm:text-left">檢查資料庫狀態中...</div>
         </div>
         
         <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-center">
-          <button onclick="forceSyncFlow()" class="w-full sm:w-auto cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap text-center flex items-center justify-center gap-1">
+          <button onclick="forceSyncFlow()" class="w-full sm:w-auto cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap text-center flex items-center justify-center gap-1">
             ⚡ 執行智慧同步
           </button>
         </div>
@@ -62,9 +62,9 @@
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto px-4 -mt-16 pb-12">
+  <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     
-    <section class="bg-white p-3 rounded-xl shadow-md border border-slate-200 mb-4">
+    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-3">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
       <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
         <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>
@@ -93,7 +93,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
-    // 🎯 FinMind Token 統一宣告在頂層全域位置
+    // FinMind Token 全域宣告
     const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
 
     const colorThemes = {
@@ -108,6 +108,7 @@
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
     let recentDates = []; 
+    let currentSortMode = 'stock_id'; // 預設排序模式：股票代號
 
     // 🗓️ 智慧生成最近 5 個開盤日
     function generateRecentDates() {
@@ -135,15 +136,12 @@
       const detailText = document.getElementById("loadingDetail");
       modal.classList.remove("hidden");
 
-      // 1. 先同步 Excel 名單
       detailText.innerText = "正在比對 Excel 標的名單...";
       await autoLoadAndSyncExcelList();
 
-      // 2. 智慧斷點續傳檢查
       detailText.innerText = "正在檢查雲端資料庫斷點戳記...";
       await handleSmartBackfillFlow();
 
-      // 3. 全量載入最新的 5 天籌碼到記憶體快取
       detailText.innerText = "正在載入雲端籌碼資料...";
       await fetchAllChipsFromSupabase();
 
@@ -151,16 +149,13 @@
       applyFilters();
     }
 
-    // 🧠 核心：斷點續傳與補償範圍計算 (已修正重複巢狀錯誤)
+    // 🧠 核心：斷點續傳範圍計算
     async function handleSmartBackfillFlow() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
-
-      // 工具函式：讓程式暫停指定的毫秒數 (ms)
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       try {
-        // 🔍 A. 找出資料庫裡目前最新一筆籌碼的日期
         const { data: latestRow, error: latestError } = await supabaseClient
           .from('stock_chips')
           .select('date')
@@ -175,7 +170,6 @@
           document.getElementById("chipUpdateTime").innerText = "資料庫無紀錄";
         }
 
-        // 🔍 B. 計算今天市場上最新應該有的籌碼日期 (下午 4 點前算昨天)
         const now = new Date();
         let targetEndDate = new Date();
         if (now.getHours() < 16) {
@@ -183,11 +177,10 @@
         }
         const targetEndDateStr = formatDateToString(targetEndDate);
 
-        // 🔍 C. 判定起點日期
         let startFetchDateStr = "";
         if (!lastChipDateStr) {
           let defaultStart = new Date();
-          defaultStart.setDate(defaultStart.getDate() - 5); // 預設只補5天防爆
+          defaultStart.setDate(defaultStart.getDate() - 5); 
           startFetchDateStr = formatDateToString(defaultStart);
         } else {
           let lastDateObj = new Date(lastChipDateStr);
@@ -195,7 +188,6 @@
           startFetchDateStr = formatDateToString(lastDateObj);
         }
 
-        // 🔍 D. 檢查是否真的需要下載
         if (startFetchDateStr > targetEndDateStr) {
           statusText.innerText = "✅ 智慧檢查：雲端資料已是最新的，免下載！";
           document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端快取供應中";
@@ -205,25 +197,20 @@
         statusText.innerText = `⚡ 準備補抓區間：${startFetchDateStr} ~ ${targetEndDateStr}`;
         if (dbStockData.length === 0) return;
 
-        let allCollectedRows = []; // 整批收集，最後一次寫入
+        let allCollectedRows = []; 
 
-        // 依不重複股票跑迴圈下載
         for (let i = 0; i < dbStockData.length; i++) {
           const stock = dbStockData[i];
           detailText.innerText = `[遠端合法同步中] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})\n請勿關閉網頁...`;
 
           try {
-            // 🎯 在 API 網址後方帶入全域的 &token=${FINMIND_TOKEN}
             const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startFetchDateStr}&end_date=${targetEndDateStr}&token=${FINMIND_TOKEN}`;
-            
             const res = await fetch(apiUrl);
             
-            // 偵測是否被 FinMind 限制頻率
             if (res.status === 429) {
-              console.error("⚠️ 觸發 FinMind API 頻率限制(429)！網頁暫時安全降速。");
               statusText.innerText = "⚠️ 觸發流量安全限制，正在減速重試...";
-              await sleep(2000); // 休息 2 秒
-              i--; // 讓這一檔股票重新重試
+              await sleep(2000); 
+              i--; 
               continue;
             }
 
@@ -239,29 +226,22 @@
                   sell: row.sell || 0
                 });
               });
-              console.log(`📡 [FinMind] ${stock.stock_id} 讀取成功，暫存 ${resJson.data.length} 筆明細`);
             }
           } catch (err) {
             console.error(`❌ 讀取 ${stock.stock_id} 發生網路異常:`, err);
           }
-
-          // 💡 安全緩衝：200毫秒
           await sleep(200);
         }
 
-        // 🎯 E. 離開迴圈後，將收集到的所有人資料，一口氣「整批 Upsert」進 Supabase
         if (allCollectedRows.length > 0) {
           detailText.innerText = `正在將整批資料 (${allCollectedRows.length} 筆) 寫入雲端資料庫...`;
-          
           const { error: upsertError } = await supabaseClient
             .from('stock_chips')
             .upsert(allCollectedRows, { onConflict: 'stock_id,date,legal_name' });
 
           if (upsertError) {
-            console.error("❌ 批次寫入 Supabase 失敗：", upsertError.message);
-            statusText.innerText = "⚠️ 籌碼下載成功，但寫入雲端資料庫時被拒絕(請確認 RLS 政策)";
+            statusText.innerText = "⚠️ 籌碼下載成功，但寫入雲端資料庫時被拒絕";
           } else {
-            console.log(`\u2705 成功一口氣同步 ${allCollectedRows.length} 筆籌碼至雲端！`);
             statusText.innerText = "✅ 智慧區間補抓並寫入資料庫完成！";
             document.getElementById("chipUpdateTime").innerText = targetEndDateStr;
           }
@@ -270,16 +250,13 @@
         }
 
       } catch (e) {
-        console.error("智慧補償流發生未知錯誤:", e);
         statusText.innerText = "⚠️ 智慧補償流執行異常";
       }
     }
 
-    // 從 Supabase 撈取 5 天內所有的籌碼明細到前端緩存
     async function fetchAllChipsFromSupabase() {
       const startDate = recentDates[recentDates.length - 1];
       const endDate = recentDates[0];
-
       const { data, error } = await supabaseClient
         .from('stock_chips')
         .select('stock_id, date, legal_name, buy, sell')
@@ -291,7 +268,6 @@
       }
     }
 
-    // 工具函式：標準化 YYYY-MM-DD 格式
     function formatDateToString(dateObj) {
       const yyyy = dateObj.getFullYear();
       const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -299,16 +275,33 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 以下為界面渲染與過濾邏輯 ──────────────────────────────────────────
-
+    // 🗓️ 渲染表頭與「排序功能下拉選單」
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
       
+      // 增加排序變更的處理事件
       let datesHtml = `
-        <th rowspan="2" class="px-4 py-3 border-r border-slate-300 bg-slate-200/60 min-w-[130px]">標的 (代號/名稱)</th>
-        <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-slate-100 font-bold text-xs min-w-[85px]">法人別</th>
-        <th rowspan="2" class="px-3 py-3 border-r border-slate-300 bg-yellow-100/50 text-slate-900 font-black text-sm min-w-[85px]">近5日結</th>
+        <th rowspan="2" class="px-4 py-3 border-r border-slate-300 bg-slate-200/60 min-w-[150px] align-middle">
+          <div class="flex flex-col items-center gap-1">
+            <span>標的 (代號/名稱)</span>
+            <select onchange="changeSortMode(this.value)" class="text-xs border border-slate-300 rounded px-1.5 py-0.5 bg-white font-normal cursor-pointer focus:outline-none">
+              <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 依代號排序</option>
+              <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超多</option>
+              <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外資自營買多</option>
+              <option value="investment_buy" ${currentSortMode==='investment_buy'?'selected':''}>🔺 投信買超多</option>
+              <option value="dealer_self_buy" ${currentSortMode==='dealer_self_buy'?'selected':''}>🔺 自營(自行)買多</option>
+              <option value="dealer_hedging_buy" ${currentSortMode==='dealer_hedging_buy'?'selected':''}>🔺 自營(避險)買多</option>
+              <option value="foreign_sell" ${currentSortMode==='foreign_sell'?'selected':''}>🔻 外資賣超多</option>
+              <option value="foreign_dealer_sell" ${currentSortMode==='foreign_dealer_sell'?'selected':''}>🔻 外資自營賣多</option>
+              <option value="investment_sell" ${currentSortMode==='investment_sell'?'selected':''}>🔻 投信賣超多</option>
+              <option value="dealer_self_sell" ${currentSortMode==='dealer_self_sell'?'selected':''}>🔻 自營(自行)賣多</option>
+              <option value="dealer_hedging_sell" ${currentSortMode==='dealer_hedging_sell'?'selected':''}>🔻 自營(避險)賣多</option>
+            </select>
+          </div>
+        </th>
+        <th rowspan="2" class="px-2 py-3 border-r border-slate-300 bg-slate-100 font-bold text-xs min-w-[85px] align-middle">法人別</th>
+        <th rowspan="2" class="px-3 py-3 border-r border-slate-300 bg-yellow-100/50 text-slate-900 font-black text-sm min-w-[85px] align-middle">近5日結</th>
       `;
       let subHtml = "";
 
@@ -327,6 +320,12 @@
       });
       headerDates.innerHTML = datesHtml;
       headerSub.innerHTML = subHtml;
+    }
+
+    // 變更排序規則並重新渲染
+    function changeSortMode(val) {
+      currentSortMode = val;
+      applyFilters();
     }
 
     async function autoLoadAndSyncExcelList() {
@@ -406,6 +405,68 @@
       if (currentSourceTab !== '全部') {
         filteredStocks = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
       }
+      
+      // 📊 智慧排序核心邏輯處理
+      filteredStocks.sort((a, b) => {
+        if (currentSortMode === 'stock_id') {
+          return a.stock_id.localeCompare(b.stock_id, undefined, { numeric: true, sensitivity: 'base' });
+        }
+
+        // 計算 5 天總額以便排序
+        const getSumForStock = (stockId, targetLegal) => {
+          const chips = globalChipCache.filter(c => c.stock_id === stockId && c.legal_name === targetLegal);
+          return chips.reduce((acc, row) => {
+            const buy = Math.round((row.buy || 0) / 1000);
+            const sell = Math.round((row.sell || 0) / 1000);
+            return acc + (buy - sell);
+          }, 0);
+        };
+
+        let valA = 0, valB = 0;
+        if (currentSortMode.startsWith('foreign_buy')) {
+          valA = getSumForStock(a.stock_id, 'Foreign_Investor');
+          valB = getSumForStock(b.stock_id, 'Foreign_Investor');
+          return valB - valA; // 買超多到少排序
+        } else if (currentSortMode.startsWith('foreign_dealer_buy')) {
+          valA = getSumForStock(a.stock_id, 'Foreign_Dealer_Self');
+          valB = getSumForStock(b.stock_id, 'Foreign_Dealer_Self');
+          return valB - valA;
+        } else if (currentSortMode.startsWith('investment_buy')) {
+          valA = getSumForStock(a.stock_id, 'Investment_Trust');
+          valB = getSumForStock(b.stock_id, 'Investment_Trust');
+          return valB - valA;
+        } else if (currentSortMode.startsWith('dealer_self_buy')) {
+          valA = getSumForStock(a.stock_id, 'Dealer_self');
+          valB = getSumForStock(b.stock_id, 'Dealer_self');
+          return valB - valA;
+        } else if (currentSortMode.startsWith('dealer_hedging_buy')) {
+          valA = getSumForStock(a.stock_id, 'Dealer_Hedging');
+          valB = getSumForStock(b.stock_id, 'Dealer_Hedging');
+          return valB - valA;
+        } else if (currentSortMode.startsWith('foreign_sell')) {
+          valA = getSumForStock(a.stock_id, 'Foreign_Investor');
+          valB = getSumForStock(b.stock_id, 'Foreign_Investor');
+          return valA - valB; // 賣超多到少排序 (值越負代表賣越多)
+        } else if (currentSortMode.startsWith('foreign_dealer_sell')) {
+          valA = getSumForStock(a.stock_id, 'Foreign_Dealer_Self');
+          valB = getSumForStock(b.stock_id, 'Foreign_Dealer_Self');
+          return valA - valB;
+        } else if (currentSortMode.startsWith('investment_sell')) {
+          valA = getSumForStock(a.stock_id, 'Investment_Trust');
+          valB = getSumForStock(b.stock_id, 'Investment_Trust');
+          return valA - valB;
+        } else if (currentSortMode.startsWith('dealer_self_sell')) {
+          valA = getSumForStock(a.stock_id, 'Dealer_self');
+          valB = getSumForStock(b.stock_id, 'Dealer_self');
+          return valA - valB;
+        } else if (currentSortMode.startsWith('dealer_hedging_sell')) {
+          valA = getSumForStock(a.stock_id, 'Dealer_Hedging');
+          valB = getSumForStock(b.stock_id, 'Dealer_Hedging');
+          return valA - valB;
+        }
+        return 0;
+      });
+
       renderMatrixTableFromCache(filteredStocks);
     }
 
