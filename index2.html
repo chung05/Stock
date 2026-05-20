@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -95,8 +95,12 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
-    // 公開 CORS 跨域代理伺服器（規避證交所阻擋網頁前端）
-    const CORS_PROXY = "https://corsproxy.io/?";
+    // 🛠️ 多重防封鎖代理網域清單 (自動容錯切換)
+    const PROXY_POOL = [
+      "https://api.allorigins.win/get?url=",
+      "https://corsproxy.io/?",
+      "https://thingproxy.freeboard.io/fetch/"
+    ];
 
     const colorThemes = {
       '全部': { active: 'bg-slate-800 text-white shadow-xs', inactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200' },
@@ -113,15 +117,13 @@
     let currentSortMode = 'investment_buy'; 
 
     document.addEventListener("DOMContentLoaded", async () => {
-      calculateTargetTradingDates(); // 先產生預測的最近5個工作日
+      calculateTargetTradingDates(); 
       renderTableHeader(); 
       await forceSyncFlow(); 
     });
 
-    // 預先產生最近5個工作天（降級兜底與比對基底）
     function calculateTargetTradingDates() {
       let dates = []; let d = new Date();
-      // 如果還沒到下午 5 點官方盤後籌碼整理好，則從昨天開始算
       if (d.getHours() < 17) { d.setDate(d.getDate() - 1); }
       while(dates.length < 5) {
         if(d.getDay() !== 0 && d.getDay() !== 6) { dates.push(formatDateToString(d)); }
@@ -139,7 +141,7 @@
         detailText.innerText = "1. 比對 Excel 標的名單...";
         await autoLoadAndSyncExcelList();
 
-        detailText.innerText = "2. 檢查官方資料庫斷點並同步...";
+        detailText.innerText = "2. 正在跨域請求官方籌碼大數據...";
         await syncOfficialExchangeData();
 
         detailText.innerText = "3. 從雲端分批加載官方籌碼...";
@@ -159,7 +161,6 @@
       }
     }
 
-    // 從倒回來的資料中校準最新日期
     function extractActualTradingDatesFromCache() {
       if (globalChipCache && globalChipCache.length > 0) {
         const uniqueDates = [...new Set(globalChipCache.map(c => c.date))];
@@ -171,12 +172,31 @@
       }
     }
 
-    // 🧠 智慧一網打盡引擎：抓取證交所與櫃買中心單日「全市場」資料並高效率 Upsert 寫入
+    // 🛠️ 核心重構：智慧代理切換安全抓取函式
+    async function fetchWithProxyRetry(targetUrl) {
+      for (let proxy of PROXY_POOL) {
+        try {
+          let reqUrl = proxy.includes("allorigins") ? `${proxy}${encodeURIComponent(targetUrl)}` : `${proxy}${targetUrl}`;
+          const res = await fetch(reqUrl);
+          if (!res.ok) continue;
+          
+          if (proxy.includes("allorigins")) {
+            const wrapper = await res.json();
+            return JSON.parse(wrapper.contents);
+          } else {
+            return await res.json();
+          }
+        } catch (e) {
+          console.warn(`代理 ${proxy} 請求失敗，嘗試下一個...`);
+        }
+      }
+      throw new Error("所有 CORS 跨域代理節點均失效，無法連線證交所。");
+    }
+
     async function syncOfficialExchangeData() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
       
-      // 檢查 Supabase 內目前最新的一天是哪天
       const { data: checkRow } = await supabaseClient
         .from('official_stock_chips')
         .select('date')
@@ -185,19 +205,18 @@
 
       let lastDateInDB = checkRow && checkRow.length > 0 ? checkRow[0].date : "2026-05-01";
       
-      // 針對我們預期需要的最近 5 個工作天，如果資料庫缺漏，就向官方要
       for (let dateStr of recentDates) {
-        if (dateStr <= lastDateInDB) continue; // 如果庫裡已經有這天或比這天更新，跳過免抓
+        if (dateStr <= lastDateInDB) continue; 
         
         detailText.innerText = `正在向官方請求 ${dateStr} 全市場籌碼日報...`;
-        const rawDateFormatted = dateStr.replace(/-/g, ""); // 轉為 20260519 格式
+        const rawDateFormatted = dateStr.replace(/-/g, ""); 
         let dailyRowsMap = new Map();
 
-        // ── 1. 抓取證交所 (上市) ──
+        // ── 1. 讀取證交所 (上市籌碼大矩陣) ──
         try {
-          const twseUrl = `${CORS_PROXY}https://www.twse.com.tw/rwd/zh/fund/T86W?date=${rawDateFormatted}&response=json`;
-          const res = await fetch(twseUrl);
-          const json = await res.json();
+          const twseTarget = `https://www.twse.com.tw/rwd/zh/fund/T86W?date=${rawDateFormatted}&response=json`;
+          const json = await fetchWithProxyRetry(twseTarget);
+          
           if (json.stat === "OK" && Array.isArray(json.data)) {
             json.data.forEach(row => {
               const stockId = String(row[0]).trim();
@@ -216,18 +235,16 @@
               });
             });
           }
-        } catch(e) { console.error(`${dateStr} 證交所抓取落空或當日無交易`); }
+        } catch(e) { console.error(`${dateStr} 上市籌碼抓取落空:`, e); }
 
-        // ── 2. 抓取櫃買中心 (上櫃) ──
+        // ── 2. 讀取櫃買中心 (上櫃籌碼大矩陣) ──
         try {
-          // 櫃買中心日期需轉換為民國年格式, 如 115/05/19
           const parts = dateStr.split('-');
           const rocYear = parseInt(parts[0]) - 1911;
           const tpexDateStr = `${rocYear}/${parts[1]}/${parts[2]}`;
-          const tpexUrl = `${CORS_PROXY}https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?d=${tpexDateStr}&se=EW&response=json`;
+          const tpexTarget = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?d=${tpexDateStr}&se=EW&response=json`;
           
-          const res = await fetch(tpexUrl);
-          const json = await res.json();
+          const json = await fetchWithProxyRetry(tpexTarget);
           if (json.aaData && Array.isArray(json.aaData)) {
             json.aaData.forEach(row => {
               const stockId = String(row[0]).trim();
@@ -246,22 +263,21 @@
               });
             });
           }
-        } catch(e) { console.error(`${dateStr} 櫃買中心抓取落空或當日無交易`); }
+        } catch(e) { console.error(`${dateStr} 上櫃籌碼抓取落空:`, e); }
 
-        // ── 3. 將當天整批合併後的官方數據一次性上傳 Supabase ──
+        // ── 3. 合併上傳至 Supabase 的 official_stock_chips 資料表 ──
         const uploadArray = Array.from(dailyRowsMap.values());
         if (uploadArray.length > 0) {
-          statusText.innerText = `⚡ 正在將 ${dateStr} 共 ${uploadArray.length} 檔官方數據寫入資料庫...`;
+          statusText.innerText = `⚡ 正在將 ${dateStr} 共 ${uploadArray.length} 檔官方籌碼寫入資料庫...`;
           await supabaseClient
             .from('official_stock_chips')
             .upsert(uploadArray, { onConflict: 'stock_id,date' });
         }
-        await new Promise(r => setTimeout(r, 1000)); // 禮貌性延遲，避免代理伺服器封鎖
+        await new Promise(r => setTimeout(r, 1200)); 
       }
       statusText.innerText = "✅ 官方數據與雲端資料庫智慧同步完成！";
     }
 
-    // 前端分批遞迴分頁讀取（Pagination），確保打破 Supabase 硬上限限制
     async function fetchAllChipsFromSupabase() {
       const detailText = document.getElementById("loadingDetail");
       let allChipsFetched = [];
@@ -290,7 +306,6 @@
       globalChipCache = allChipsFetched;
     }
 
-    // 欄位緊湊度優化佈局
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -399,19 +414,7 @@
       applyFilters();
     }
 
-    function setActiveTabUI() {
-      document.querySelectorAll(".tab-btn").forEach(btn => {
-        const id = btn.id.replace('tab-', '');
-        const theme = colorThemes[id] || colorThemes['預設'];
-        btn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer`;
-      });
-      const activeBtn = document.getElementById(`tab-${currentSourceTab}`);
-      if (activeBtn) {
-        const theme = colorThemes[currentSourceTab] || colorThemes['預設'];
-        activeBtn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.active} whitespace-nowrap cursor-pointer`;
-      }
-    }
-
+    // 同步啟用分流過濾
     function applyFilters() {
       setActiveTabUI();
       let filteredStocks = [...dbStockData];
@@ -419,7 +422,6 @@
         filteredStocks = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
       }
       
-      // 📊 權重排序計算與自適應
       filteredStocks.sort((a, b) => {
         if (currentSortMode === 'stock_id') {
           return a.stock_id.localeCompare(b.stock_id, undefined, { numeric: true, sensitivity: 'base' });
@@ -463,7 +465,6 @@
       renderMatrixTableFromCache(filteredStocks);
     }
 
-    // 完美橫向/縱向凍結矩陣渲染
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
@@ -471,7 +472,6 @@
       let htmlString = "";
 
       stocks.forEach(item => {
-        // 抓出這檔股票所有的歷史紀錄
         const stockChips = globalChipCache.filter(c => c.stock_id === item.stock_id);
 
         let chipMap = {
@@ -560,4 +560,4 @@
     }
   </script>
 </body>
-</html> 
+</html>
