@@ -63,10 +63,23 @@
   </div>
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
-    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-3">
-      <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
-      <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
-        <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>
+    <!-- 搜尋與分類區塊整合 -->
+    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="grow overflow-hidden">
+        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
+        <div class="flex overflow-x-auto gap-2 scrollbar-none" id="tabContainer">
+          <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>
+        </div>
+      </div>
+      <!-- 右側新增：個股搜尋輸入框與按鈕 -->
+      <div class="flex items-center gap-2 pt-2 md:pt-4 shrink-0 border-t border-slate-100 md:border-t-0">
+        <div class="relative flex items-center">
+          <input type="text" id="keywordInput" onkeyup="handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-40 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+          <button onclick="clearSearchField()" id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <button onclick="executeStockSearch()" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">
+          🔍 搜尋
+        </button>
       </div>
     </section>
 
@@ -106,14 +119,14 @@
     let targetSheetsSet = new Set();
     let recentDates = []; 
     let currentSortMode = 'stock_id'; // 預設排序
+    let searchKeyword = ""; // 新增：搜尋關鍵字全域變數
 
     document.addEventListener("DOMContentLoaded", async () => {
-      calculateRecentFiveTradeDays(); // 🚀 先行計算好硬性5日交易區間，防止畫面空白
+      calculateRecentFiveTradeDays(); 
       renderTableHeader(); 
       await forceSyncFlow(); 
     });
 
-    // 💡 鐵腕推算最近5個可能交易日（排除週六、週日）
     function calculateRecentFiveTradeDays() {
       let dates = [];
       let d = new Date();
@@ -157,7 +170,6 @@
       }
     }
 
-    // 🧠 讀取全量寬資料：分批安全載入新表 stock_chips_daily 數據
     async function fetchAllChipsFromSupabase() {
       if (recentDates.length === 0 || dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
@@ -200,7 +212,6 @@
       console.log(`🎉 寬資料總計分批撈取完成！共計：${globalChipCache.length} 筆`);
     }
 
-    // ⚡ 智慧寬資料回補補網機制
     async function handleSmartBackfillFlow() {
       const statusText = document.getElementById("uploadStatus");
       const detailText = document.getElementById("loadingDetail");
@@ -213,7 +224,6 @@
 
       statusText.innerText = `🔄 正在核對雲端 5 日寬資料完整度...`;
 
-      // 預先拉出資料庫裡已存的股票日期配對，避免重複抓取
       const { data: existingRows } = await supabaseClient
         .from('stock_chips_daily')
         .select('stock_id, date')
@@ -232,7 +242,7 @@
           }
         }
 
-        if (!isMissing) continue; // 這檔股票5天都有了，跳過
+        if (!isMissing) continue; 
 
         detailText.innerText = `[寬資料精準同步] ${stock.stock_id} ${stock.stock_name} (${i+1}/${dbStockData.length})`;
 
@@ -278,7 +288,6 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 🎯 建立內嵌排序下拉選單的 TableHeader
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -403,12 +412,54 @@
       }
     }
 
-    // 🎯 核心運算：在新「寬資料欄位」下，進行極速前端5日跨度加總排序
+    // 新增：處理鍵盤 Enter 事件
+    function handleSearchKeyup(e) {
+      const input = document.getElementById("keywordInput");
+      const clearBtn = document.getElementById("clearSearchBtn");
+      
+      // 控管清除按鈕顯示
+      if (input.value.trim() !== "") {
+        clearBtn.classList.remove("hidden");
+      } else {
+        clearBtn.classList.add("hidden");
+      }
+
+      if (e.key === "Enter") {
+        executeStockSearch();
+      }
+    }
+
+    // 新增：觸發個股搜尋
+    function executeStockSearch() {
+      const input = document.getElementById("keywordInput");
+      searchKeyword = input.value.trim().toLowerCase();
+      applyFilters();
+    }
+
+    // 新增：清除搜尋欄位
+    function clearSearchField() {
+      const input = document.getElementById("keywordInput");
+      input.value = "";
+      document.getElementById("clearSearchBtn").classList.add("hidden");
+      searchKeyword = "";
+      applyFilters();
+    }
+
     function applyFilters() {
       setActiveTabUI();
       let filteredStocks = [...dbStockData];
+      
+      // 1. 先過濾分類頁籤
       if (currentSourceTab !== '全部') {
         filteredStocks = dbStockData.filter(item => Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
+      }
+      
+      // 2. 新增：再過濾關鍵字搜尋（支援模糊匹配股票代號或名稱）
+      if (searchKeyword !== "") {
+        filteredStocks = filteredStocks.filter(item => 
+          item.stock_id.toLowerCase().includes(searchKeyword) || 
+          item.stock_name.toLowerCase().includes(searchKeyword)
+        );
       }
       
       filteredStocks.sort((a, b) => {
@@ -416,7 +467,6 @@
           return a.stock_id.localeCompare(b.stock_id, undefined, { numeric: true, sensitivity: 'base' });
         }
 
-        // 智慧型新寬欄位 5日累計加總計算器
         const getSumForStock = (stockId, buyField, sellField) => {
           const chips = globalChipCache.filter(c => c.stock_id === stockId);
           return chips.reduce((acc, row) => {
@@ -451,7 +501,7 @@
           case 'foreign_sell':
             valA = getSumForStock(a.stock_id, 'f_buy', 'f_sell');
             valB = getSumForStock(b.stock_id, 'f_buy', 'f_sell');
-            return valA - valB; // 降序（賣超越多排越前）
+            return valA - valB; 
           case 'foreign_dealer_sell':
             valA = getSumForStock(a.stock_id, 'fd_buy', 'fd_sell');
             valB = getSumForStock(b.stock_id, 'fd_buy', 'fd_sell');
@@ -521,7 +571,7 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        // 🚀 此處修正了原本 code1.txt 中的 </tr> 標籤閉合語法漏洞
+        // 🚀 此處同步修正了原程式碼中 </tr> 未正確閉合的語法漏洞
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden">
@@ -538,15 +588,15 @@
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">投信</td>
             ${getSumCell(sumIT, false)}${iRow}
-          </td>
+          </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(自)</td>
             ${getSumCell(sumDS, true)}${dsRow}
-          </td>
+          </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
             ${getSumCell(sumDH, false)}${dhRow}
-          </td>
+          </tr>
         `;
       });
 
