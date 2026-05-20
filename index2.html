@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>牛牛分析站 - 官方證交所/櫃買智慧版</title>
+  <title>牛牛分析站 - 官方證交所/櫃買智慧診斷版</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   
@@ -28,34 +28,28 @@
   </div>
 
   <!-- 頂部導覽 -->
-  <div class="sticky top-0 z-40 bg-linear-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 py-4 shadow-md border-b border-amber-300/30 px-4">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+  <div class="bg-linear-to-r from-slate-900 to-slate-800 text-white py-4 shadow-md border-b border-slate-700 px-4">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between lg:items-center gap-4">
       <div class="flex items-center gap-3">
-        <img src="main_icon.png" alt="牛牛標誌" class="w-[42px] h-[42px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5">
+        <img src="main_icon.png" alt="牛牛標誌" class="w-[44px] h-[44px] object-contain rounded-lg bg-white/10 p-1">
         <div>
-          <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-950 leading-tight">牛牛分析站</h1>
-          <p class="text-[11px] text-slate-900/80 font-bold">官方證交所/櫃買直接對接版 · 雙向窗格凍結</p>
+          <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-amber-400 leading-tight">牛牛分析站</h1>
+          <p class="text-[11px] text-slate-400 font-bold">官方證交所/櫃買直接對接版 · 智慧除錯診斷後台</p>
         </div>
       </div>
       
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white/90 backdrop-blur-md p-2.5 px-4 rounded-xl border border-amber-200 w-full md:w-auto shadow-sm">
-        <div class="flex flex-col gap-0.5 text-xs font-semibold text-slate-600 grow">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-850 p-2.5 rounded-xl border border-slate-700 grow max-w-2xl text-xs">
+        <div class="flex flex-col gap-0.5 grow font-medium text-slate-300">
           <div class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>名單更新：<span id="listUpdateTime" class="text-slate-900 font-bold">載入中...</span></span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-amber-600"></span>
-              <span>雲端最新籌碼日：<span id="chipUpdateTime" class="text-slate-900 font-bold">檢測中...</span></span>
-            </div>
+            <div>🌐 上市更新：<span id="listUpdateTime" class="text-white font-bold">載入中...</span></div>
+            <div>📅 雲端最新開盤日：<span id="chipUpdateTime" class="text-amber-400 font-bold">檢測中...</span></div>
           </div>
-          <div class="border-t border-slate-200/60 my-0.5"></div>
-          <div id="uploadStatus" class="text-[11px] text-amber-800 font-bold text-center sm:text-left">檢查官方快取狀態...</div>
+          <div class="border-t border-slate-700 my-1"></div>
+          <div id="uploadStatus" class="text-[11px] text-emerald-400 font-bold">系統就緒。等待操作指令...</div>
         </div>
-        <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-center">
-          <button onclick="forceSyncFlow()" class="w-full sm:w-auto cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap text-center">
-            ⚡ 執行官方同步
+        <div class="border-t sm:border-t-0 sm:border-l border-slate-700 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-center">
+          <button onclick="forceSyncFlow()" class="w-full sm:w-auto cursor-pointer bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-lg font-black tracking-wider transition shadow-sm text-center whitespace-nowrap">
+            ⚡ 執行一條龍同步
           </button>
         </div>
       </div>
@@ -63,6 +57,36 @@
   </div>
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
+    
+    <!-- 💡 需求優化：左側核心控制步驟按鈕 + 右側即時控制台 Console 日誌日誌 -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+      <div class="lg:col-span-4 bg-white p-4 rounded-xl shadow-xs border border-slate-200 flex flex-col gap-2.5">
+        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider px-0.5">官方籌碼分步手動診斷</div>
+        <button onclick="manualSyncTarget('TWSE')" class="cursor-pointer text-left w-full bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs py-2.5 px-3 rounded-lg border border-sky-200/60 transition flex items-center justify-between shadow-xs">
+          <span>🌐 步驟 1：單獨執行【上市籌碼下載】</span>
+          <span class="text-[10px] bg-sky-600 text-white px-1.5 py-0.5 rounded font-mono">TWSE</span>
+        </button>
+        <button onclick="manualSyncTarget('TPEX')" class="cursor-pointer text-left w-full bg-orange-50 hover:bg-orange-100 text-orange-800 font-bold text-xs py-2.5 px-3 rounded-lg border border-orange-200/60 transition flex items-center justify-between shadow-xs">
+          <span>📁 步驟 2：單獨執行【上櫃籌碼下載】</span>
+          <span class="text-[10px] bg-orange-600 text-white px-1.5 py-0.5 rounded font-mono">TPEx</span>
+        </button>
+        <button onclick="fetchCachedChipsWithLogs()" class="cursor-pointer text-left w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs py-2.5 px-3 rounded-lg border border-emerald-200/60 transition flex items-center justify-between shadow-xs">
+          <span>📊 步驟 3：強制重新渲染表格資料</span>
+          <span class="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-mono">RENDER</span>
+        </button>
+      </div>
+      
+      <div class="lg:col-span-8 bg-slate-900 rounded-xl p-3 shadow-md border border-slate-800 flex flex-col h-[155px]">
+        <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 px-1 font-mono">
+          <span>Diagnostic Live Terminal (即時連線日誌)</span>
+          <button onclick="clearDiagnosticLogs()" class="text-slate-500 hover:text-slate-300 transition cursor-pointer">[清除日誌]</button>
+        </div>
+        <div id="diagnosticConsole" class="w-full grow bg-slate-950 font-mono text-xs p-2.5 rounded border border-slate-800 text-emerald-400 overflow-y-auto leading-relaxed scrollbar-none select-text selection:bg-slate-700">
+          <div class="text-slate-500">&gt;_ 診斷主機初始化成功。等待發送官方 API 封包...</div>
+        </div>
+      </div>
+    </section>
+
     <!-- 分類 Tab -->
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-3">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">成分股來源分類</div>
@@ -72,13 +96,13 @@
     </section>
 
     <!-- 計數器 -->
-    <section class="bg-amber-50 p-3 rounded-xl border border-amber-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="text-sm text-slate-700 font-semibold">目前分類共有: <span id="recordCount" class="font-bold text-lg text-amber-700">0</span> 檔股票</div>
-      <div id="dataSourceLabel" class="text-xs text-slate-500 font-bold bg-white px-2 py-1 rounded border border-amber-200">數據狀態：檢測中</div>
+    <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="text-sm text-slate-700 font-semibold">目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票</div>
+      <div id="dataSourceLabel" class="text-xs text-slate-500 font-bold bg-white px-2 py-1 rounded border border-blue-200">數據狀態：檢測中</div>
     </section>
 
     <!-- 看盤矩陣核心視窗 -->
-    <section class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
+    <section class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[62vh] relative scrollbar-none">
       <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
         <thead class="text-slate-800 font-extrabold sticky top-0 z-30 bg-slate-100 shadow-xs border-b border-slate-300">
           <tr id="tableHeaderDates"></tr>
@@ -95,7 +119,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const EXCEL_SOURCE_URL = "./Stock_list.xlsx"; 
 
-    // 🛠️ 多重防封鎖代理網域清單 (自動容錯切換)
+    // 安全、分流、具備自動容錯機制的公開 CORS 代理叢集
     const PROXY_POOL = [
       "https://api.allorigins.win/get?url=",
       "https://corsproxy.io/?",
@@ -122,6 +146,23 @@
       await forceSyncFlow(); 
     });
 
+    // 噴日誌到控制台的引擎
+    function pushLog(message, type = "info") {
+      const consoleNode = document.getElementById("diagnosticConsole");
+      if (!consoleNode) return;
+      let colorClass = "text-emerald-400";
+      if (type === "warning") colorClass = "text-amber-500 font-bold";
+      if (type === "error") colorClass = "text-rose-500 font-black";
+      if (type === "success") colorClass = "text-cyan-400 font-bold";
+      
+      consoleNode.innerHTML += `<div class="${colorClass}">&gt; [${new Date().toLocaleTimeString()}] ${message}</div>`;
+      consoleNode.scrollTop = consoleNode.scrollHeight; // 自動捲動到最底部
+    }
+
+    function clearDiagnosticLogs() {
+      document.getElementById("diagnosticConsole").innerHTML = `<div class="text-slate-500">&gt;_ 控制台已清空。就緒...</div>`;
+    }
+
     function calculateTargetTradingDates() {
       let dates = []; let d = new Date();
       if (d.getHours() < 17) { d.setDate(d.getDate() - 1); }
@@ -130,6 +171,7 @@
         d.setDate(d.getDate() - 1);
       }
       recentDates = dates;
+      pushLog(`初步分析最近5個潛在工作開盤日：${recentDates.join(', ')}`, "info");
     }
 
     async function forceSyncFlow() {
@@ -138,10 +180,11 @@
       modal.classList.remove("hidden");
 
       try {
+        pushLog("啟動一條龍智慧自動檢查流...", "success");
         detailText.innerText = "1. 比對 Excel 標的名單...";
         await autoLoadAndSyncExcelList();
 
-        detailText.innerText = "2. 正在跨域請求官方籌碼大數據...";
+        detailText.innerText = "2. 檢查官方資料庫斷點並同步...";
         await syncOfficialExchangeData();
 
         detailText.innerText = "3. 從雲端分批加載官方籌碼...";
@@ -150,12 +193,12 @@
         detailText.innerText = "4. 重新定位真實有交易之開盤日...";
         extractActualTradingDatesFromCache();
         
-        detailText.innerText = "5. 正在渲染跨維度看盤矩陣...";
+        detailText.innerText = "5. 正在佈局視覺矩陣...";
         renderTableHeader();
         applyFilters();
 
       } catch (err) {
-        console.error("對接總流程發生未預期錯誤:", err);
+        pushLog(`一條龍流程觸發例外中斷: ${err.message}`, "error");
       } finally {
         modal.classList.add("hidden");
       }
@@ -168,17 +211,25 @@
         recentDates = uniqueDates.slice(0, 5);
         if (recentDates.length > 0) {
           document.getElementById("chipUpdateTime").innerText = recentDates[0];
+          pushLog(`已完成最近5天真實交易日校準：${recentDates.join(', ')}`, "success");
         }
       }
     }
 
-    // 🛠️ 核心重構：智慧代理切換安全抓取函式
+    // 多重代理自動退讓與封包解鎖引擎
     async function fetchWithProxyRetry(targetUrl) {
-      for (let proxy of PROXY_POOL) {
+      let lastErrorMessage = "";
+      for (let i = 0; i < PROXY_POOL.length; i++) {
+        let proxy = PROXY_POOL[i];
         try {
           let reqUrl = proxy.includes("allorigins") ? `${proxy}${encodeURIComponent(targetUrl)}` : `${proxy}${targetUrl}`;
+          pushLog(`[代理試探] 正在透過節點 ${i+1}/${PROXY_POOL.length} 轉接官方封包...`, "info");
+          
           const res = await fetch(reqUrl);
-          if (!res.ok) continue;
+          if (!res.ok) {
+            lastErrorMessage = `HTTP 狀態碼 ${res.status}`;
+            continue;
+          }
           
           if (proxy.includes("allorigins")) {
             const wrapper = await res.json();
@@ -187,15 +238,101 @@
             return await res.json();
           }
         } catch (e) {
-          console.warn(`代理 ${proxy} 請求失敗，嘗試下一個...`);
+          lastErrorMessage = e.message;
+          pushLog(`節點 ${i+1} 遭證交所阻擋(CORS或連線超時)，準備切換兜底代理...`, "warning");
         }
       }
-      throw new Error("所有 CORS 跨域代理節點均失效，無法連線證交所。");
+      throw new Error(`全數跨域代理節點崩潰。最後回報錯誤: ${lastErrorMessage}`);
+    }
+
+    // 手動執行特定目標的獨立按鍵觸發器
+    async function manualSyncTarget(marketType) {
+      pushLog(`[手動診斷] 觸發獨立【${marketType === 'TWSE' ? '上市證交所' : '上櫃櫃買'}】籌碼獲取流...`, "success");
+      const statusText = document.getElementById("uploadStatus");
+      
+      try {
+        for (let dateStr of recentDates) {
+          const rawDateFormatted = dateStr.replace(/-/g, ""); 
+          let dailyRowsMap = new Map();
+
+          if (marketType === 'TWSE') {
+            pushLog(`[下載中] 請求證交所 ${dateStr} 日報表資料...`);
+            const twseTarget = `https://www.twse.com.tw/rwd/zh/fund/T86W?date=${rawDateFormatted}&response=json`;
+            const json = await fetchWithProxyRetry(twseTarget);
+            
+            if (json && json.stat === "OK" && Array.isArray(json.data)) {
+              json.data.forEach(row => {
+                const stockId = String(row[0]).trim();
+                dailyRowsMap.set(stockId, {
+                  stock_id: stockId, date: dateStr,
+                  foreign_buy: parseInt(row[2].replace(/,/g, "")) || 0,
+                  foreign_sell: parseInt(row[3].replace(/,/g, "")) || 0,
+                  foreign_dealer_buy: parseInt(row[5].replace(/,/g, "")) || 0,
+                  foreign_dealer_sell: parseInt(row[6].replace(/,/g, "")) || 0,
+                  investment_buy: parseInt(row[8].replace(/,/g, "")) || 0,
+                  investment_sell: parseInt(row[9].replace(/,/g, "")) || 0,
+                  dealer_self_buy: parseInt(row[12].replace(/,/g, "")) || 0,
+                  dealer_self_sell: parseInt(row[13].replace(/,/g, "")) || 0,
+                  dealer_hedging_buy: parseInt(row[15].replace(/,/g, "")) || 0,
+                  dealer_hedging_sell: parseInt(row[16].replace(/,/g, "")) || 0
+                });
+              });
+              pushLog(`成功自證交所解析出 ${dailyRowsMap.size} 檔上市個股籌碼資料`, "success");
+            } else {
+              pushLog(`證交所回報空數據，可能 ${dateStr} 為非交易市場假日。`, "warning");
+            }
+          } else {
+            pushLog(`[下載中] 請求櫃買中心 ${dateStr} 日報表資料...`);
+            const parts = dateStr.split('-');
+            const rocYear = parseInt(parts[0]) - 1911;
+            const tpexDateStr = `${rocYear}/${parts[1]}/${parts[2]}`;
+            const tpexTarget = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?d=${tpexDateStr}&se=EW&response=json`;
+            
+            const json = await fetchWithProxyRetry(tpexTarget);
+            if (json && json.aaData && Array.isArray(json.aaData)) {
+              json.aaData.forEach(row => {
+                const stockId = String(row[0]).trim();
+                dailyRowsMap.set(stockId, {
+                  stock_id: stockId, date: dateStr,
+                  foreign_buy: parseInt(row[2].replace(/,/g, "")) || 0,
+                  foreign_sell: parseInt(row[3].replace(/,/g, "")) || 0,
+                  foreign_dealer_buy: parseInt(row[5].replace(/,/g, "")) || 0,
+                  foreign_dealer_sell: parseInt(row[6].replace(/,/g, "")) || 0,
+                  investment_buy: parseInt(row[8].replace(/,/g, "")) || 0,
+                  investment_sell: parseInt(row[9].replace(/,/g, "")) || 0,
+                  dealer_self_buy: parseInt(row[11].replace(/,/g, "")) || 0,
+                  dealer_self_sell: parseInt(row[12].replace(/,/g, "")) || 0,
+                  dealer_hedging_buy: parseInt(row[14].replace(/,/g, "")) || 0,
+                  dealer_hedging_sell: parseInt(row[15].replace(/,/g, "")) || 0
+                });
+              });
+              pushLog(`成功自櫃買中心解析出 ${dailyRowsMap.size} 檔上櫃個股籌碼資料`, "success");
+            } else {
+              pushLog(`櫃買中心回報空數據，可能 ${dateStr} 為非交易市場假日。`, "warning");
+            }
+          }
+
+          const uploadArray = Array.from(dailyRowsMap.values());
+          if (uploadArray.length > 0) {
+            pushLog(`[寫入資料庫中] 正在將 ${dateStr} 的 ${uploadArray.length} 筆官方大矩陣上傳到 Supabase...`);
+            const { error } = await supabaseClient.from('official_stock_chips').upsert(uploadArray, { onConflict: 'stock_id,date' });
+            if (error) {
+              pushLog(`寫入 Supabase 遭資料庫拒絕！錯誤原因: ${error.message}`, "error");
+            } else {
+              pushLog(`✅ ${dateStr} 雲端官方資料 Upsert 儲存成功！`, "success");
+            }
+          }
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        statusText.innerText = "手動單獨同步工作圓滿完成。";
+      } catch (err) {
+        pushLog(`手動執行遭阻斷: ${err.message}`, "error");
+        statusText.innerText = "🚨 診斷流發生 HTTP/CORS 錯誤";
+      }
     }
 
     async function syncOfficialExchangeData() {
       const statusText = document.getElementById("uploadStatus");
-      const detailText = document.getElementById("loadingDetail");
       
       const { data: checkRow } = await supabaseClient
         .from('official_stock_chips')
@@ -206,18 +343,20 @@
       let lastDateInDB = checkRow && checkRow.length > 0 ? checkRow[0].date : "2026-05-01";
       
       for (let dateStr of recentDates) {
-        if (dateStr <= lastDateInDB) continue; 
+        if (dateStr <= lastDateInDB) {
+          pushLog(`智慧跳過：資料庫已存在 ${dateStr} 籌碼，免重複抓取。`, "info");
+          continue; 
+        }
         
-        detailText.innerText = `正在向官方請求 ${dateStr} 全市場籌碼日報...`;
         const rawDateFormatted = dateStr.replace(/-/g, ""); 
         let dailyRowsMap = new Map();
 
-        // ── 1. 讀取證交所 (上市籌碼大矩陣) ──
+        // 1. 上市
         try {
+          pushLog(`自動化巡航：嘗試補抓上市 ${dateStr}...`);
           const twseTarget = `https://www.twse.com.tw/rwd/zh/fund/T86W?date=${rawDateFormatted}&response=json`;
           const json = await fetchWithProxyRetry(twseTarget);
-          
-          if (json.stat === "OK" && Array.isArray(json.data)) {
+          if (json && json.stat === "OK" && Array.isArray(json.data)) {
             json.data.forEach(row => {
               const stockId = String(row[0]).trim();
               dailyRowsMap.set(stockId, {
@@ -235,17 +374,18 @@
               });
             });
           }
-        } catch(e) { console.error(`${dateStr} 上市籌碼抓取落空:`, e); }
+        } catch(e) { console.error(e); }
 
-        // ── 2. 讀取櫃買中心 (上櫃籌碼大矩陣) ──
+        // 2. 上櫃
         try {
+          pushLog(`自動化巡航：嘗試補抓上櫃 ${dateStr}...`);
           const parts = dateStr.split('-');
           const rocYear = parseInt(parts[0]) - 1911;
           const tpexDateStr = `${rocYear}/${parts[1]}/${parts[2]}`;
           const tpexTarget = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?d=${tpexDateStr}&se=EW&response=json`;
           
           const json = await fetchWithProxyRetry(tpexTarget);
-          if (json.aaData && Array.isArray(json.aaData)) {
+          if (json && json.aaData && Array.isArray(json.aaData)) {
             json.aaData.forEach(row => {
               const stockId = String(row[0]).trim();
               dailyRowsMap.set(stockId, {
@@ -263,31 +403,35 @@
               });
             });
           }
-        } catch(e) { console.error(`${dateStr} 上櫃籌碼抓取落空:`, e); }
+        } catch(e) { console.error(e); }
 
-        // ── 3. 合併上傳至 Supabase 的 official_stock_chips 資料表 ──
         const uploadArray = Array.from(dailyRowsMap.values());
         if (uploadArray.length > 0) {
-          statusText.innerText = `⚡ 正在將 ${dateStr} 共 ${uploadArray.length} 檔官方籌碼寫入資料庫...`;
-          await supabaseClient
-            .from('official_stock_chips')
-            .upsert(uploadArray, { onConflict: 'stock_id,date' });
+          pushLog(`正在將自動補抓的 ${dateStr} 全球籌碼 (${uploadArray.length} 筆) 寫入雲端資料庫...`);
+          await supabaseClient.from('official_stock_chips').upsert(uploadArray, { onConflict: 'stock_id,date' });
         }
-        await new Promise(r => setTimeout(r, 1200)); 
+        await new Promise(r => setTimeout(r, 1000));
       }
-      statusText.innerText = "✅ 官方數據與雲端資料庫智慧同步完成！";
+      statusText.innerText = "智慧連線巡航完畢。";
+    }
+
+    async function fetchCachedChipsWithLogs() {
+      pushLog("強制啟動雲端快取數據同步機制...", "info");
+      await fetchAllChipsFromSupabase();
+      extractActualTradingDatesFromCache();
+      applyFilters();
+      pushLog("表格數據本地重繪完畢！", "success");
     }
 
     async function fetchAllChipsFromSupabase() {
-      const detailText = document.getElementById("loadingDetail");
-      let allChipsFetched = [];
       let startRange = 0;
       const batchSize = 4000; 
       let keepFetching = true;
+      let allChipsFetched = [];
 
       while (keepFetching) {
         let endRange = startRange + batchSize - 1;
-        detailText.innerText = `3. 分批下載官方籌碼緩存 (${startRange} ~ ${endRange} 筆)...`;
+        pushLog(`正在向 Supabase 提取第 ${startRange} ~ ${endRange} 筆官方快取...`);
 
         const { data, error } = await supabaseClient
           .from('official_stock_chips')
@@ -295,7 +439,10 @@
           .in('date', recentDates)
           .range(startRange, endRange);
 
-        if (error) { break; }
+        if (error) {
+          pushLog(`快取提取被拒絕: ${error.message}`, "error");
+          break; 
+        }
 
         if (data && data.length > 0) {
           allChipsFetched = allChipsFetched.concat(data);
@@ -304,6 +451,14 @@
         } else { keepFetching = false; }
       }
       globalChipCache = allChipsFetched;
+      pushLog(`雲端歷史快取分批接駁完成，網頁前端共進駐 ${globalChipCache.length} 筆法人數據。`, "success");
+    }
+
+    function formatDateToString(dateObj) {
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     }
 
     function renderTableHeader() {
@@ -414,7 +569,19 @@
       applyFilters();
     }
 
-    // 同步啟用分流過濾
+    function setActiveTabUI() {
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        const id = btn.id.replace('tab-', '');
+        const theme = colorThemes[id] || colorThemes['預設'];
+        btn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.inactive} whitespace-nowrap transition-colors cursor-pointer`;
+      });
+      const activeBtn = document.getElementById(`tab-${currentSourceTab}`);
+      if (activeBtn) {
+        const theme = colorThemes[currentSourceTab] || colorThemes['預設'];
+        activeBtn.className = `tab-btn px-4 py-1.5 rounded-lg text-xs font-bold ${theme.active} whitespace-nowrap cursor-pointer`;
+      }
+    }
+
     function applyFilters() {
       setActiveTabUI();
       let filteredStocks = [...dbStockData];
@@ -556,7 +723,7 @@
       });
 
       tbody.innerHTML = htmlString;
-      document.getElementById("dataSourceLabel").innerText = "🔴 數據狀態：證交所/櫃買中心官方快取精準供應中";
+      document.getElementById("dataSourceLabel").innerText = "🟠 數據狀態：官方直接接駁核心中 (分頁 Pagination 模式)";
     }
   </script>
 </body>
