@@ -3,12 +3,10 @@ const axios = require('axios');
 const XLSX = require('xlsx');
 const { createClient } = require('@supabase/supabase-js');
 
-// 1. 初始化環境變數 (由 GitHub Secrets 提供)
+// 1. 初始化環境變數
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 const EXCEL_SOURCE_URL = "https://raw.githubusercontent.com/" + process.env.GITHUB_REPOSITORY + "/main/Stock_list.xlsx"; 
-
-// 💡 修正一：直接填入您原本網頁測試ok的 Token，排除 Secrets 填錯的可能
 const FINMIND_TOKEN = process.env.FINMIND_TOKEN;
 // const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
 
@@ -26,6 +24,7 @@ function formatDateToString(dateObj) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// 計算常規的最近 5 個交易日（保底用）
 function getRecentFiveTradeDays() {
   let dates = [];
   let d = new Date();
@@ -41,8 +40,9 @@ function getRecentFiveTradeDays() {
 
 async function run() {
   try {
-    console.log("🚀 開始執行智慧同步總流程...");
+    console.log("🚀 開始執行【智慧型動態增量】同步總流程...");
 
+    // ---- 步驟一：同步 Excel 名單 ----
     console.log("1. 正在下載並解析 Excel 標的名單...");
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
     const workbook = XLSX.read(response.data, { type: 'buffer' });
@@ -67,7 +67,6 @@ async function run() {
 
     const rowsToUpload = Array.from(stockMap.values());
     if (rowsToUpload.length > 0) {
-      console.log(`將同步 ${rowsToUpload.length} 檔標的名單至 stock_targets...`);
       const { error: err1 } = await supabase.from('stock_targets').upsert(rowsToUpload, { onConflict: 'stock_id' });
       if (err1) throw err1;
     }
@@ -80,37 +79,60 @@ async function run() {
       return;
     }
 
-    const recentDates = getRecentFiveTradeDays();
-    const startDateStr = recentDates[recentDates.length - 1];
-    const endDateStr = recentDates[0];
-    console.log(`2. 檢查區間：${startDateStr} ~ ${endDateStr} 的雲端寬資料...`);
-
-    const { data: existingRows } = await supabase
+    // ---- 💡 步驟二：智慧判斷資料庫到底缺幾天 ----
+    console.log("2. 正在向資料庫比對目前的最新數據日期...");
+    
+    // 找出目前資料庫裡最新的一筆籌碼日期是哪一天
+    const { data: latestDbRow, error: err3 } = await supabase
       .from('stock_chips_daily')
-      .select('stock_id, date')
-      .in('stock_id', dbStockData.map(s => s.stock_id))
-      .in('date', recentDates);
+      .select('date')
+      .order('date', { ascending: false })
+      .limit(1);
 
-    const existingSet = new Set((existingRows || []).map(r => `${r.stock_id}_${r.date}`));
+    if (err3) throw err3;
+
+    const nativeRecent5Days = getRecentFiveTradeDays();
+    let startDateStr = nativeRecent5Days[nativeRecent5Days.length - 1]; // 預設 5 天前
+    let endDateStr = nativeRecent5Days[0]; // 預設今天
+
+    if (latestDbRow && latestDbRow.length > 0) {
+      const lastAvailableDateStr = latestDbRow[0].date;
+      console.log(`📊 資料庫目前最新資料停留在：${lastAvailableDateStr}`);
+
+      if (lastAvailableDateStr === endDateStr) {
+        // 狀況 A：今天資料庫已經有最新一天的資料了，這代表有人剛點過或是今天跑過了
+        console.log("✨ 檢測到今日籌碼已是最新，啟動【無破洞安全覆蓋】機制（僅向 FinMind 覆蓋檢查今天一日）。");
+        startDateStr = endDateStr; 
+      } else {
+        // 狀況 B：資料庫最新的日子比今天舊（例如停在 5/20，或停在 5/19）
+        // 那我們的起算點（Start Date）就設定為資料庫最新日期的「隔一天」
+        let nextDay = new Date(lastAvailableDateStr);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        const calculatedStartDate = formatDateToString(nextDay);
+        
+        // 安全機制：如果斷訊太久（缺超過5天），我們還是保底只抓5天，避免打API打到超時
+        if (new Date(calculatedStartDate) < new Date(startDateStr)) {
+          console.log(`⚠️ 資料庫缺失天數過多，為確保效能，本次將保底補抓最近 5 天。`);
+        } else {
+          startDateStr = calculatedStartDate;
+          console.log(`🔥 智慧增量判定：本次僅需精準補抓【${startDateStr} ~ ${endDateStr}】這段缺失的區間！`);
+        }
+      }
+    } else {
+      console.log("🆕 資料庫為全新空白狀態，將直接啟動完整 5 日初始化抓取。");
+    }
+
+    // ---- 步驟三：精準下載與寫入 ----
+    console.log(`🚀 執行 FinMind 請求區間：${startDateStr} 至 ${endDateStr}`);
 
     for (let i = 0; i < dbStockData.length; i++) {
       const stock = dbStockData[i];
-      let isMissing = false;
-      for (let d of recentDates) {
-        if (!existingSet.has(`${stock.stock_id}_${d}`)) {
-          isMissing = true;
-          break;
-        }
-      }
-
-      if (!isMissing) continue; 
-
-      console.log(`[補抓] 正在同步 (${i + 1}/${dbStockData.length}) ${stock.stock_id} ${stock.stock_name}`);
+      console.log(`[增量同步] (${i + 1}/${dbStockData.length}) ${stock.stock_id} ${stock.stock_name}`);
 
       try {
         const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         
-        // 💡 修正二：在這裡加上真實瀏覽器的 Headers 偽裝
         const res = await axios.get(apiUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -119,7 +141,6 @@ async function run() {
         });
         
         if (res.status === 429) { 
-          console.log("⚠️ 觸發 FinMind 速率限制，等待 4 秒...");
           await sleep(4000); 
           i--; 
           continue; 
@@ -148,10 +169,10 @@ async function run() {
       } catch (err) {
         console.error(`❌ 同步 ${stock.stock_id} 發生錯誤:`, err.message);
       }
-      await sleep(350); 
+      await sleep(150); // 💡 因為每次只抓 1~2 天，資料量變小，安全延遲可以從 350ms 縮短到 150ms，速度再飆快一倍！
     }
 
-    console.log("🎉 恭喜！每日自動定時排程全數安全執行完畢！");
+    console.log("🎉 恭喜！動態增量排程全數安全執行完畢！");
 
   } catch (error) {
     console.error("❌ 核心流程中斷，發生未預期錯誤:", error);
