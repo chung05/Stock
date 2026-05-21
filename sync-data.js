@@ -113,7 +113,12 @@ async function run() {
 
       try {
         const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
-        const res = await axios.get(apiUrl);
+        const res = await axios.get(apiUrl, {
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json'
+  }
+});
         
         if (res.status === 429) { 
           console.log("⚠️ 觸發 FinMind 速率限制，等待 4 秒...");
