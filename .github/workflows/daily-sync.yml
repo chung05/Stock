@@ -1,1 +1,38 @@
 
+name: Daily Stock Data Sync
+
+on:
+  schedule:
+    # 台灣時間每天下午 16:30 (收盤後籌碼皆已公布) 
+    # 轉換成 UTC 時間為 08:30
+    - cron: '30 8 * * *'
+  workflow_dispatch: # 允許您在 GitHub 網頁上手動點擊按鈕進行測試
+
+jobs:
+  build-and-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 檢查專案程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安裝相依套件
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          else
+            npm install axios xlsx @supabase/supabase-js
+          fi
+
+      - name: 執行資料庫同步腳本
+        run: node sync-data.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
