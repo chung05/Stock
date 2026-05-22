@@ -495,12 +495,13 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        // 綁定點擊事件至個股欄位 (維持原始寬度 w-[94px])
+        // 💡 調整 1：在第一個 TD 加上 `group` 類別，並在其內的股票代號與名稱區塊加上 `group-hover:text-blue-600 hover:underline` 樣式
+        // 當滑鼠移入時，文字會自動變成深藍色並帶有下底線，提供明顯的可點選網頁視覺回饋。
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openNewsModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50/70 transition-colors">
-              <div class="text-sm font-black tracking-tighter text-slate-950">${item.stock_id}</div>
-              <div class="text-[11px] text-slate-600 font-sans mt-0.5 font-extrabold truncate tracking-tighter">${item.stock_name || ''}</div>
+            <td rowspan="5" onclick="openNewsModal('${item.stock_id}', '${item.stock_name || ''}')" class="group px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50/60 transition-colors">
+              <div class="text-sm font-black tracking-tighter text-slate-950 group-hover:text-blue-600 hover:underline">${item.stock_id}</div>
+              <div class="text-[11px] text-slate-600 font-sans mt-0.5 font-extrabold truncate tracking-tighter group-hover:text-blue-600 hover:underline">${item.stock_name || ''}</div>
               <div class="text-[11px] text-blue-600 font-bold mt-0.5 tracking-tighter">${currentPrice}</div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
@@ -528,7 +529,7 @@
       tbody.innerHTML = htmlString;
     }
 
-    // 方案一新增：處理新聞 Popup 的免資料庫即時呼叫邏輯
+    // 處理新聞 Popup 的免資料庫即時呼叫邏輯
     async function openNewsModal(stockId, stockName) {
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 即時新聞資訊`;
       const listZone = document.getElementById("newsListZone");
@@ -552,28 +553,34 @@
           return;
         }
 
-        // 格式化新聞並完整保留連結物件
-        activeNewsData = json.items.map(item => {
+        // 💡 調整 2：在 map 處理完新聞資料後，加入時間序的排序邏輯。
+        // 將原始發布日期字串轉為毫秒級時間戳記做比對（b.timestamp - a.timestamp），確保最新發布的新聞被精準排列在最上方。
+        let mappedNews = json.items.map(item => {
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
           return {
             date: dateStr,
+            timestamp: pubDate.getTime(), // 紀錄時間戳記供排序使用
             source: item.author || "財經媒體",
             title: item.title,
             content: item.description ? item.description.replace(/<[^>]*>/g, '') : "點選下方按鈕直接閱讀原文詳細內文報導。",
-            link: item.link // 💡 正確映射 RSS 的 link 欄位
+            link: item.link 
           };
         });
+
+        // 執行降冪排序 (最新日期放在陣列最前面)
+        mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+        activeNewsData = mappedNews;
 
         let listHtml = "";
         activeNewsData.forEach((news, idx) => {
           listHtml += `
-            <div onclick="showNewsDetail(${idx})" class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left">
+            <div onclick="showNewsDetail(${idx})" class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
               <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
                 <span>📅 ${news.date}</span>
                 <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
               </div>
-              <h4 class="text-sm font-extrabold text-slate-900 leading-snug">${news.title}</h4>
+              <h4 class="text-sm font-extrabold text-slate-900 leading-snug group-hover/item:text-blue-600 group-hover/item:underline">${news.title}</h4>
             </div>
           `;
         });
@@ -597,7 +604,6 @@
       document.getElementById("innerNewsDate").innerText = `發布日期：${news.date}`;
       document.getElementById("innerNewsSource").innerText = `新聞來源：${news.source}`;
       
-      // 💡 修復點：將原本的 news.url 修正為正確的 news.link，讓前往原文連結的 a 標籤按鈕能正確引導使用者
       document.getElementById("innerNewsContent").innerHTML = `
         <div class="font-normal text-slate-700 text-left leading-relaxed">${news.content}</div>
         <div class="mt-6 pt-4 border-t border-slate-200 text-center">
