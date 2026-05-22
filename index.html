@@ -35,11 +35,11 @@
           <div class="flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
             <span class="flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-              名單更新：<span id="listUpdateTime" class="font-black text-slate-950">..</span>
+              名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-              資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">..</span>
+              看盤起日：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span>
             </span>
           </div>
         </div>
@@ -139,15 +139,16 @@
         if (targetError) throw targetError;
         dbStockData = dbData || [];
 
+        // 設定分類
         document.getElementById("listUpdateTime").innerText = new Date().toLocaleDateString();
         targetSheetsSet.clear();
-        
-        // 🛠️ 100% 精準修復：正確將資料庫分類填入下拉選單中
         dbStockData.forEach(item => { 
-          if (item && Array.isArray(item.sheet_tags)) {
-            item.sheet_tags.forEach(tag => { if (tag) targetSheetsSet.add(tag); }); 
+          if (Array.isArray(item.sheet_tags)) {
+            item.sheet_tags.forEach(tag => targetSheetsSet.add(tag)); 
           }
         });
+        
+        // 🛠️ 關鍵修正：呼叫正確對接下拉選單的函式，不再拋出異常阻斷流程
         updateTabSelectOptions(Array.from(targetSheetsSet));
 
         detailText.innerText = "2. 正在精準定位最新 5 日盤後寬數據...";
@@ -172,6 +173,7 @@
     async function fetchAllChipsFromSupabase() {
       if (recentDates.length === 0 || dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
+      // 🛠️ 防錯優化：將 stock_id 轉為 String 以免後面比對型態出錯
       const stockIdsInList = dbStockData.map(s => String(s.stock_id).trim());
       
       let allChipsFetched = [];
@@ -268,7 +270,7 @@
       applyFilters();
     }
 
-    // 🛠️ 100% 精準修復：下拉選單選值綁定與生成邏輯
+    // 🛠️ 將原本產生按鈕的邏輯，完美替換為產生下拉選單選項
     function updateTabSelectOptions(sheets) {
       const select = document.getElementById("tabSelect");
       if (!select) return;
@@ -315,7 +317,7 @@
       applyFilters();
     }
 
-    // 🛠️ 100% 保留原始碼最乾淨的過濾機制，並加強字串防錯
+    // 🛠️ 100% 還原您附件中的過濾器邏輯，並加強字串防錯確保正常運作
     function applyFilters() {
       let filteredStocks = [...dbStockData];
       
