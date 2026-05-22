@@ -8,7 +8,6 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 const EXCEL_SOURCE_URL = "https://raw.githubusercontent.com/" + process.env.GITHUB_REPOSITORY + "/main/Stock_list.xlsx"; 
 const FINMIND_TOKEN = process.env.FINMIND_TOKEN;
-// const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -40,7 +39,7 @@ function getRecentFiveTradeDays() {
 
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧型動態增量】同步總流程...");
+    console.log("🚀 開始執行【智慧型動態增量 + 股價同步】總流程...");
 
     // ---- 步驟一：同步 Excel 名單 ----
     console.log("1. 正在下載並解析 Excel 標的名單...");
@@ -82,7 +81,6 @@ async function run() {
     // ---- 💡 步驟二：智慧判斷資料庫到底缺幾天 ----
     console.log("2. 正在向資料庫比對目前的最新數據日期...");
     
-    // 找出目前資料庫裡最新的一筆籌碼日期是哪一天
     const { data: latestDbRow, error: err3 } = await supabase
       .from('stock_chips_daily')
       .select('date')
@@ -97,21 +95,17 @@ async function run() {
 
     if (latestDbRow && latestDbRow.length > 0) {
       const lastAvailableDateStr = latestDbRow[0].date;
-      console.log(`📊 資料庫目前最新資料停留在：${lastAvailableDateStr}`);
+      console.log(`📊 資料庫目前最新資料停停留：${lastAvailableDateStr}`);
 
       if (lastAvailableDateStr === endDateStr) {
-        // 狀況 A：今天資料庫已經有最新一天的資料了，這代表有人剛點過或是今天跑過了
         console.log("✨ 檢測到今日籌碼已是最新，啟動【無破洞安全覆蓋】機制（僅向 FinMind 覆蓋檢查今天一日）。");
         startDateStr = endDateStr; 
       } else {
-        // 狀況 B：資料庫最新的日子比今天舊（例如停在 5/20，或停在 5/19）
-        // 那我們的起算點（Start Date）就設定為資料庫最新日期的「隔一天」
         let nextDay = new Date(lastAvailableDateStr);
         nextDay.setDate(nextDay.getDate() + 1);
         
         const calculatedStartDate = formatDateToString(nextDay);
         
-        // 安全機制：如果斷訊太久（缺超過5天），我們還是保底只抓5天，避免打API打到超時
         if (new Date(calculatedStartDate) < new Date(startDateStr)) {
           console.log(`⚠️ 資料庫缺失天數過多，為確保效能，本次將保底補抓最近 5 天。`);
         } else {
@@ -126,33 +120,31 @@ async function run() {
     // ---- 步驟三：精準下載與寫入 ----
     console.log(`🚀 執行 FinMind 請求區間：${startDateStr} 至 ${endDateStr}`);
 
+    const commonHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json'
+    };
+
     for (let i = 0; i < dbStockData.length; i++) {
       const stock = dbStockData[i];
       console.log(`[增量同步] (${i + 1}/${dbStockData.length}) ${stock.stock_id} ${stock.stock_name}`);
 
       try {
-        const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
+        // 1. 抓取法人籌碼資料
+        const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
+        const chipRes = await axios.get(chipUrl, { headers: commonHeaders });
         
-        const res = await axios.get(apiUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/json'
-          }
-        });
+        if (chipRes.status === 429) { await sleep(4000); i--; continue; } 
         
-        if (res.status === 429) { 
-          await sleep(4000); 
-          i--; 
-          continue; 
-        } 
+        const dateMap = {};
+        const chipJson = chipRes.data;
         
-        const resJson = res.data;
-        if (resJson.status === 200 && Array.isArray(resJson.data) && resJson.data.length > 0) {
-          const dateMap = {};
-          resJson.data.forEach(row => {
+        if (chipJson.status === 200 && Array.isArray(chipJson.data) && chipJson.data.length > 0) {
+          chipJson.data.forEach(row => {
             const d = row.date;
             if (!dateMap[d]) {
-              dateMap[d] = { stock_id: stock.stock_id, date: d, f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
+              // 💡 預設新增 price 欄位為 null
+              dateMap[d] = { stock_id: stock.stock_id, date: d, price: null, f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
             }
             if (row.name === 'Foreign_Investor') { dateMap[d].f_buy = row.buy; dateMap[d].f_sell = row.sell; }
             else if (row.name === 'Foreign_Dealer_Self') { dateMap[d].fd_buy = row.buy; dateMap[d].fd_sell = row.sell; }
@@ -160,19 +152,42 @@ async function run() {
             else if (row.name === 'Dealer_self') { dateMap[d].ds_buy = row.buy; dateMap[d].ds_sell = row.sell; }
             else if (row.name === 'Dealer_Hedging') { dateMap[d].dh_buy = row.buy; dateMap[d].dh_sell = row.sell; }
           });
-
-          const rowsToUpsert = Object.values(dateMap);
-          if (rowsToUpsert.length > 0) {
-            await supabase.from('stock_chips_daily').upsert(rowsToUpsert);
-          }
         }
+
+        // 2. 💡 緊接著抓取該標的的日股價資料 (TaiwanStockPrice)
+        const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
+        const priceRes = await axios.get(priceUrl, { headers: commonHeaders });
+        
+        if (priceRes.status === 429) { await sleep(4000); i--; continue; }
+
+        const priceJson = priceRes.data;
+        if (priceJson.status === 200 && Array.isArray(priceJson.data) && priceJson.data.length > 0) {
+          priceJson.data.forEach(pRow => {
+            const d = pRow.date;
+            // 如果籌碼那邊沒建立該日期的 map (極少見)，則在此建立
+            if (!dateMap[d]) {
+              dateMap[d] = { stock_id: stock.stock_id, date: d, price: null, f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
+            }
+            // 💡 將收盤價 (close) 填入剛才在資料庫開好的 price 欄位
+            dateMap[d].price = pRow.close;
+          });
+        }
+
+        // 3. 合併資料後 Upsert 寫入資料庫
+        const rowsToUpsert = Object.values(dateMap);
+        if (rowsToUpsert.length > 0) {
+          await supabase.from('stock_chips_daily').upsert(rowsToUpsert);
+        }
+
       } catch (err) {
         console.error(`❌ 同步 ${stock.stock_id} 發生錯誤:`, err.message);
       }
-      await sleep(150); // 💡 因為每次只抓 1~2 天，資料量變小，安全延遲可以從 350ms 縮短到 150ms，速度再飆快一倍！
+      
+      // 💡 因為一輪迴圈內發了兩次不同的 API 請求，我們微調安全延遲至 250ms，避免打擊頻率過高
+      await sleep(250); 
     }
 
-    console.log("🎉 恭喜！動態增量排程全數安全執行完畢！");
+    console.log("🎉 恭喜！動態增量排程（含股價同步）全數安全執行完畢！");
 
   } catch (error) {
     console.error("❌ 核心流程中斷，發生未預期錯誤:", error);
