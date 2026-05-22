@@ -35,11 +35,11 @@
           <div class="flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
             <span class="flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-              名單更新：<span id="listUpdateTime" class="font-black text-slate-950">..</span>
+              名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-              資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">..</span>
+              資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span>
             </span>
           </div>
         </div>
@@ -113,19 +113,15 @@
     function calculateRecentFiveTradeDays() {
       let dates = [];
       let d = new Date();
-      let safetyCount = 0;
-      while(dates.length < 5 && safetyCount < 15) {
+      while(dates.length < 5) {
         let day = d.getDay();
         if (day !== 0 && day !== 6) { 
           dates.push(formatDateToString(d));
         }
         d.setDate(d.getDate() - 1);
-        safetyCount++;
       }
       recentDates = dates; 
-      if(recentDates.length > 0) {
-        document.getElementById("chipUpdateTime").innerText = recentDates[0];
-      }
+      document.getElementById("chipUpdateTime").innerText = recentDates[0];
     }
 
     async function forceSyncFlow() {
@@ -143,17 +139,12 @@
         if (targetError) throw targetError;
         dbStockData = dbData || [];
 
-        if (dbStockData.length === 0) {
-          document.getElementById("dataSourceLabel").innerText = "🟡 數據狀態：stock_targets 表格為空";
-          renderMatrixTableFromCache([]);
-          return;
-        }
-
+        // 💡 100% 還原原始碼中完全正常的下拉清單產出語法，確保標籤不遺漏
         document.getElementById("listUpdateTime").innerText = new Date().toLocaleDateString();
         targetSheetsSet.clear();
         dbStockData.forEach(item => { 
-          if (item && Array.isArray(item.sheet_tags)) {
-            item.sheet_tags.forEach(tag => { if(tag) targetSheetsSet.add(tag); }); 
+          if (Array.isArray(item.sheet_tags)) {
+            item.sheet_tags.forEach(tag => targetSheetsSet.add(tag)); 
           }
         });
         updateTabSelectOptions(Array.from(targetSheetsSet));
@@ -168,6 +159,8 @@
         renderTableHeader();
         applyFilters();
 
+        document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：Supabase 雲端寬資料快取供應中";
+
       } catch (err) {
         console.error("讀取雲端快取資料流程發生異常:", err);
       } finally {
@@ -176,16 +169,13 @@
     }
 
     async function fetchAllChipsFromSupabase() {
-      if (recentDates.length === 0 || dbStockData.length === 0) {
-        globalChipCache = [];
-        return;
-      }
+      if (recentDates.length === 0 || dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
-      const stockIdsInList = dbStockData.map(s => String(s.stock_id).trim());
+      const stockIdsInList = dbStockData.map(s => s.stock_id);
       
       let allChipsFetched = [];
       let startRange = 0;
-      const batchSize = 3000; 
+      const batchSize = 3000;
       let keepFetching = true;
 
       while (keepFetching) {
@@ -233,251 +223,4 @@
 
       let datesHtml = `
         <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[94px] min-w-[94px] max-w-[94px] align-middle text-center border-r border-slate-300">
-          <div class="flex flex-col items-center gap-1">
-            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的(代號/名稱)</span>
-            <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
-              <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
-              <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超</option>
-              <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外自營買</option>
-              <option value="investment_buy" ${currentSortMode==='investment_buy'?'selected':''}>🔺 投信買超</option>
-              <option value="dealer_self_buy" ${currentSortMode==='dealer_self_buy'?'selected':''}>🔺 自營自行</option>
-              <option value="dealer_hedging_buy" ${currentSortMode==='dealer_hedging_buy'?'selected':''}>🔺 自營避險</option>
-              <option value="foreign_sell" ${currentSortMode==='foreign_sell'?'selected':''}>🔻 外資賣超</option>
-              <option value="foreign_dealer_sell" ${currentSortMode==='foreign_dealer_sell'?'selected':''}>🔻 外自營賣</option>
-              <option value="investment_sell" ${currentSortMode==='investment_sell'?'selected':''}>🔻 投信賣超</option>
-              <option value="dealer_self_sell" ${currentSortMode==='dealer_self_sell'?'selected':''}>🔻 自營自行賣</option>
-              <option value="dealer_hedging_sell" ${currentSortMode==='dealer_hedging_sell'?'selected':''}>🔻 自營避險賣</option>
-            </select>
-          </div>
-        </th>
-        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[94px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
-        <th rowspan="2" class="px-1 py-2 bg-amber-100 font-black text-xs text-amber-950 sticky left-[146px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
-      `;
-      let subHtml = "";
-
-      recentDates.forEach((dateStr, index) => {
-        const parts = dateStr.split('-');
-        const formattedDate = parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr;
-        const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300";
-        datesHtml += `<th colspan="3" class="px-2 py-2 ${borderClass} text-sm bg-slate-100 text-slate-900 font-bold whitespace-nowrap">${formattedDate}</th>`;
-        
-        const subBorderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300 bg-slate-50";
-        subHtml += `
-          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">買</th>
-          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">賣</th>
-          <th class="py-1.5 ${subBorderClass} w-[65px] min-w-[65px] text-sm font-extrabold text-slate-800">結</th>
-        `;
-      });
-      headerDates.innerHTML = datesHtml;
-      headerSub.innerHTML = subHtml;
-    }
-
-    function changeSortMode(val) {
-      currentSortMode = val;
-      applyFilters();
-    }
-
-    function updateTabSelectOptions(sheets) {
-      const select = document.getElementById("tabSelect");
-      if (!select) return;
-      
-      select.innerHTML = `<option value="全部">🌐 全部成分股</option>`;
-      sheets.forEach(sheet => {
-        if(!sheet) return;
-        select.innerHTML += `<option value="${sheet}">📁 ${sheet}</option>`;
-      });
-      select.value = currentSourceTab;
-    }
-
-    function switchTab(sheetName) {
-      currentSourceTab = sheetName;
-      applyFilters();
-    }
-
-    function handleSearchKeyup(e) {
-      const input = document.getElementById("keywordInput");
-      const clearBtn = document.getElementById("clearSearchBtn");
-      if (input.value.trim() !== "") {
-        clearBtn.classList.remove("hidden");
-      } else {
-        clearBtn.classList.add("hidden");
-      }
-      if (e.key === "Enter") {
-        executeStockSearch();
-      }
-    }
-
-    function executeStockSearch() {
-      const input = document.getElementById("keywordInput");
-      searchKeyword = input.value.trim().toLowerCase();
-      applyFilters();
-    }
-
-    function clearSearchField() {
-      const input = document.getElementById("keywordInput");
-      input.value = "";
-      document.getElementById("clearSearchBtn").classList.add("hidden");
-      searchKeyword = "";
-      applyFilters();
-    }
-
-    function applyFilters() {
-      let filteredStocks = [...dbStockData];
-      
-      if (currentSourceTab !== '全部') {
-        filteredStocks = dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(currentSourceTab));
-      }
-      
-      if (searchKeyword !== "") {
-        filteredStocks = filteredStocks.filter(item => 
-          item && (
-            String(item.stock_id).toLowerCase().includes(searchKeyword) || 
-            String(item.stock_name).toLowerCase().includes(searchKeyword)
-          )
-        );
-      }
-      
-      filteredStocks.sort((a, b) => {
-        const idA = String(a.stock_id).trim();
-        const idB = String(b.stock_id).trim();
-
-        if (currentSortMode === 'stock_id') {
-          return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
-        }
-
-        const getSumForStock = (stockId, buyField, sellField) => {
-          const chips = globalChipCache.filter(c => String(c.stock_id).trim() === stockId);
-          return chips.reduce((acc, row) => {
-            const buy = Math.round((row[buyField] || 0) / 1000);
-            const sell = Math.round((row[sellField] || 0) / 1000);
-            return acc + (buy - sell);
-          }, 0);
-        };
-
-        let valA = 0, valB = 0;
-        switch (currentSortMode) {
-          case 'foreign_buy':
-            valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell');
-            return valB - valA; 
-          case 'foreign_dealer_buy':
-            valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell');
-            return valB - valA;
-          case 'investment_buy':
-            valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell');
-            return valB - valA;
-          case 'dealer_self_buy':
-            valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell');
-            return valB - valA;
-          case 'dealer_hedging_buy':
-            valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell');
-            return valB - valA;
-          case 'foreign_sell':
-            valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell');
-            return valA - valB; 
-          case 'foreign_dealer_sell':
-            valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell');
-            return valA - valB;
-          case 'investment_sell':
-            valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell');
-            return valA - valB;
-          case 'dealer_self_sell':
-            valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell');
-            return valA - valB;
-          case 'dealer_hedging_sell':
-            valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell');
-            return valA - valB;
-          default:
-            return 0;
-        }
-      });
-
-      renderMatrixTableFromCache(filteredStocks);
-    }
-
-    function renderMatrixTableFromCache(stocks) {
-      document.getElementById("recordCount").innerText = stocks.length;
-      const tbody = document.getElementById("stockTableBody");
-      if (!tbody) return;
-      
-      if (stocks.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${3 + recentDates.length * 3}" class="py-8 text-slate-400 font-medium text-center">無符合條件的股票資料</td></tr>`;
-        return;
-      }
-
-      let htmlString = "";
-
-      stocks.forEach(item => {
-        if (!item) return;
-        const currentIdStr = String(item.stock_id).trim();
-        const myChips = globalChipCache.filter(c => String(c.stock_id).trim() === currentIdStr);
-
-        let sumF = 0, sumFD = 0, sumIT = 0, sumDS = 0, sumDH = 0;
-        let fRow = "", fdRow = "", iRow = "", dsRow = "", dhRow = "";
-
-        const getCell = (b, s) => {
-          const buy = Math.round((b || 0) / 1000);
-          const sell = Math.round((s || 0) / 1000);
-          const net = buy - sell;
-          let netHtml = `<td class="py-2.5 border-r border-slate-300 text-slate-400 font-bold text-sm">0</td>`;
-          if (net > 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-red-50 text-red-600 text-sm">+${net}</td>`;
-          if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-green-50 text-green-600 text-sm">${net}</td>`;
-          return `<td class="py-2.5 border-r border-slate-200 text-emerald-600 font-bold text-xs">${buy}</td><td class="py-2.5 border-r border-slate-200 text-rose-600 font-bold text-xs">${sell}</td>${netHtml}`;
-        };
-
-        recentDates.forEach(d => {
-          const dayData = myChips.find(c => String(c.date) === d) || { f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
-          
-          sumF += (Math.round((dayData.f_buy||0)/1000) - Math.round((dayData.f_sell||0)/1000));
-          sumFD += (Math.round((dayData.fd_buy||0)/1000) - Math.round((dayData.fd_sell||0)/1000));
-          sumIT += (Math.round((dayData.it_buy||0)/1000) - Math.round((dayData.it_sell||0)/1000));
-          sumDS += (Math.round((dayData.ds_buy||0)/1000) - Math.round((dayData.ds_sell||0)/1000));
-          sumDH += (Math.round((dayData.dh_buy||0)/1000) - Math.round((dayData.dh_sell||0)/1000));
-
-          fRow += getCell(dayData.f_buy, dayData.f_sell);
-          fdRow += getCell(dayData.fd_buy, dayData.fd_sell);
-          iRow += getCell(dayData.it_buy, dayData.it_sell);
-          dsRow += getCell(dayData.ds_buy, dayData.ds_sell);
-          dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
-        });
-
-        const getSumCell = (val, isDarkRow) => {
-          const bgClass = isDarkRow ? 'bg-amber-50/70' : 'bg-amber-50';
-          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
-          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
-        };
-
-        htmlString += `
-          <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden">
-              <div class="text-sm font-black tracking-tighter text-slate-950">${item.stock_id}</div>
-              <div class="text-[11px] text-slate-600 font-sans mt-0.5 font-extrabold truncate tracking-tighter">${item.stock_name || ''}</div>
-            </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
-            ${getSumCell(sumF, false)}${fRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資自營</td>
-            ${getSumCell(sumFD, true)}${fdRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">投信</td>
-            ${getSumCell(sumIT, false)}${iRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(自)</td>
-            ${getSumCell(sumDS, true)}${dsRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
-            ${getSumCell(sumDH, false)}${dhRow}
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = htmlString;
-      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：5日寬化庫對接檢查且動態排序渲染完畢";
-    }
-  </script>
-</body>
-</html>
+          <div class="flex flex-col items-center
