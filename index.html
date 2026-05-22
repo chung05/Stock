@@ -35,11 +35,11 @@
           <div class="flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
             <span class="flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-              名單更新: <span id="listUpdateTime" class="font-black text-slate-950">..</span>
+              名單更新：<span id="listUpdateTime" class="font-black text-slate-950">..</span>
             </span>
             <span class="flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-              資料更新: <span id="chipUpdateTime" class="font-black text-slate-950">..</span>
+              資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">..</span>
             </span>
           </div>
         </div>
@@ -156,7 +156,7 @@
             item.sheet_tags.forEach(tag => { if(tag) targetSheetsSet.add(tag); }); 
           }
         });
-        updateTabButtons(Array.from(targetSheetsSet));
+        updateTabSelectOptions(Array.from(targetSheetsSet));
 
         detailText.innerText = "2. 正在精準定位最新 5 日盤後寬數據...";
         calculateRecentFiveTradeDays();
@@ -170,7 +170,7 @@
 
       } catch (err) {
         console.error("讀取雲端快取資料流程發生異常:", err);
-      } finaly {
+      } finally {
         modal.classList.add("hidden");
       }
     }
@@ -185,7 +185,7 @@
       
       let allChipsFetched = [];
       let startRange = 0;
-      const batchSize = 2000; 
+      const batchSize = 3000; 
       let keepFetching = true;
 
       while (keepFetching) {
@@ -277,7 +277,7 @@
       applyFilters();
     }
 
-    function updateTabButtons(sheets) {
+    function updateTabSelectOptions(sheets) {
       const select = document.getElementById("tabSelect");
       if (!select) return;
       
@@ -286,19 +286,12 @@
         if(!sheet) return;
         select.innerHTML += `<option value="${sheet}">📁 ${sheet}</option>`;
       });
-      setActiveTabUI();
+      select.value = currentSourceTab;
     }
 
     function switchTab(sheetName) {
       currentSourceTab = sheetName;
       applyFilters();
-    }
-
-    function setActiveTabUI() {
-      const select = document.getElementById("tabSelect");
-      if (select) {
-        select.value = currentSourceTab;
-      }
     }
 
     function handleSearchKeyup(e) {
@@ -329,7 +322,6 @@
     }
 
     function applyFilters() {
-      setActiveTabUI();
       let filteredStocks = [...dbStockData];
       
       if (currentSourceTab !== '全部') {
@@ -433,4 +425,59 @@
         };
 
         recentDates.forEach(d => {
-          const dayData = myChips.find(c => String(c.date) === d) || { f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0
+          const dayData = myChips.find(c => String(c.date) === d) || { f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
+          
+          sumF += (Math.round((dayData.f_buy||0)/1000) - Math.round((dayData.f_sell||0)/1000));
+          sumFD += (Math.round((dayData.fd_buy||0)/1000) - Math.round((dayData.fd_sell||0)/1000));
+          sumIT += (Math.round((dayData.it_buy||0)/1000) - Math.round((dayData.it_sell||0)/1000));
+          sumDS += (Math.round((dayData.ds_buy||0)/1000) - Math.round((dayData.ds_sell||0)/1000));
+          sumDH += (Math.round((dayData.dh_buy||0)/1000) - Math.round((dayData.dh_sell||0)/1000));
+
+          fRow += getCell(dayData.f_buy, dayData.f_sell);
+          fdRow += getCell(dayData.fd_buy, dayData.fd_sell);
+          iRow += getCell(dayData.it_buy, dayData.it_sell);
+          dsRow += getCell(dayData.ds_buy, dayData.ds_sell);
+          dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
+        });
+
+        const getSumCell = (val, isDarkRow) => {
+          const bgClass = isDarkRow ? 'bg-amber-50/70' : 'bg-amber-50';
+          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
+        };
+
+        htmlString += `
+          <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
+            <td rowspan="5" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden">
+              <div class="text-sm font-black tracking-tighter text-slate-950">${item.stock_id}</div>
+              <div class="text-[11px] text-slate-600 font-sans mt-0.5 font-extrabold truncate tracking-tighter">${item.stock_name || ''}</div>
+            </td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
+            ${getSumCell(sumF, false)}${fRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資自營</td>
+            ${getSumCell(sumFD, true)}${fdRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">投信</td>
+            ${getSumCell(sumIT, false)}${iRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(自)</td>
+            ${getSumCell(sumDS, true)}${dsRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
+            ${getSumCell(sumDH, false)}${dhRow}
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = htmlString;
+      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：5日寬化庫對接檢查且動態排序渲染完畢";
+    }
+  </script>
+</body>
+</html>
