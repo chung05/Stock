@@ -58,18 +58,22 @@
   </div>
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
-    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       
-      <div class="flex items-center gap-2 grow sm:max-w-xs">
-        <label for="tabSelect" class="text-xs font-bold text-slate-400 shrink-0 whitespace-nowrap uppercase tracking-wider">成分股來源</label>
-        <select id="tabSelect" onchange="switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white cursor-pointer transition-colors">
-          <option value="全部">🌐 全部成分股</option>
-        </select>
+      <div class="flex items-center gap-3 grow sm:max-w-xl">
+        <div class="w-40 md:w-48 shrink-0">
+          <select id="tabSelect" onchange="switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white cursor-pointer transition-colors">
+            <option value="全部">🌐 全部成分股</option>
+          </select>
+        </div>
+        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票
+        </div>
       </div>
       
-      <div class="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
+      <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
         <div class="relative flex items-center">
-          <input type="text" id="keywordInput" onkeyup="handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-40 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+          <input type="text" id="keywordInput" onkeyup="handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
           <button onclick="clearSearchField()" id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
         </div>
         <button onclick="executeStockSearch()" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">
@@ -77,10 +81,6 @@
         </button>
       </div>
     </section>
-
-    <section class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="text-sm text-slate-700 font-semibold">目前分類共有: <span id="recordCount" class="font-bold text-lg text-blue-600">0</span> 檔股票</div>
-      </section>
 
     <section class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
       <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
@@ -126,7 +126,6 @@
       updateDisplayDates(recentDates[0]);
     }
 
-    // 統一更新網頁上的看盤起日顯示
     function updateDisplayDates(startDateStr) {
       const el = document.getElementById("chipUpdateTime");
       const elMob = document.getElementById("chipUpdateTimeMob");
@@ -149,7 +148,6 @@
         if (targetError) throw targetError;
         dbStockData = dbData || [];
 
-        // 設定分類與名單更新時間
         const todayStr = new Date().toLocaleDateString();
         if(document.getElementById("listUpdateTime")) document.getElementById("listUpdateTime").innerText = todayStr;
         if(document.getElementById("listUpdateTimeMob")) document.getElementById("listUpdateTimeMob").innerText = todayStr;
@@ -220,16 +218,12 @@
 
       globalChipCache = allChipsFetched;
 
-      // 💡 需求 2：動態過濾尚未更新資料的日期
-      // 檢查推算出來的最新交易日（recentDates[0]），在撈出來的 globalChipCache 中是否有資料
       if (recentDates.length > 0) {
         const latestDate = recentDates[0];
         const hasData = globalChipCache.some(c => String(c.date) === latestDate);
         
-        // 如果最新的一天完全沒有任何籌碼數據，代表尚未更新，則從畫面的顯示清單中剔除該日期
         if (!hasData) {
           recentDates = recentDates.filter(d => d !== latestDate);
-          // 同步將上方顯示的看盤起日更新為有資料的那一天
           if (recentDates.length > 0) {
             updateDisplayDates(recentDates[0]);
           }
