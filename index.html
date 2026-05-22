@@ -38,7 +38,7 @@
           <button onclick="backToNewsList()" class="text-xs font-bold text-blue-600 hover:text-blue-800 mb-3 flex items-center gap-1 cursor-pointer">
             ⬅ 返回新聞列表
           </button>
-          <h4 id="innerNewsTitle" class="text-base font-black text-slate-950 mb-2 leading-snug"></h4>
+          <h4 id="innerNewsTitle" class="text-base font-black text-slate-950 mb-2 leading-snug text-left"></h4>
           <div class="text-[11px] text-slate-400 font-medium mb-4 flex gap-3">
             <span id="innerNewsDate"></span>
             <span id="innerNewsSource"></span>
@@ -130,7 +130,7 @@
     let recentDates = []; 
     let currentSortMode = 'stock_id'; 
     let searchKeyword = ""; 
-    let activeNewsData = []; // 💡 用來暫存當前點選個股即時抓取回來的新聞列表
+    let activeNewsData = []; 
 
     document.addEventListener("DOMContentLoaded", async () => {
       calculateRecentFiveTradeDays(); 
@@ -495,7 +495,7 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        // 💡 擴充點：在第一直欄加上 `onclick` 點擊事件、`cursor-pointer` 與 `hover:bg-blue-50/70`
+        // 綁定點擊事件至個股欄位 (維持原始寬度 w-[94px])
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" onclick="openNewsModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50/70 transition-colors">
@@ -528,20 +528,18 @@
       tbody.innerHTML = htmlString;
     }
 
-    // 💡 方案一新增：處理新聞 Popup 的全套免資料庫即時呼叫 JS 邏輯
+    // 方案一新增：處理新聞 Popup 的免資料庫即時呼叫邏輯
     async function openNewsModal(stockId, stockName) {
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 即時新聞資訊`;
       const listZone = document.getElementById("newsListZone");
       const contentZone = document.getElementById("newsContentZone");
       
-      // 初始化頁面顯示狀態
       listZone.classList.remove("hidden");
       contentZone.classList.add("hidden");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
       document.getElementById("newsModal").classList.remove("hidden");
 
       try {
-        // 利用 Google 新聞搜尋 RSS，並透過 rss2json 免費網關在前端直接進行跨域 (CORS) 安全請求
         const targetQuery = `${stockId} ${stockName}`;
         const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
         const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
@@ -554,7 +552,7 @@
           return;
         }
 
-        // 將抓取回來的資料格式化並暫存至全域陣列中
+        // 格式化新聞並完整保留連結物件
         activeNewsData = json.items.map(item => {
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
@@ -563,11 +561,10 @@
             source: item.author || "財經媒體",
             title: item.title,
             content: item.description ? item.description.replace(/<[^>]*>/g, '') : "點選下方按鈕直接閱讀原文詳細內文報導。",
-            url: item.link
+            link: item.link // 💡 正確映射 RSS 的 link 欄位
           };
         });
 
-        // 渲染生成新聞標題列表
         let listHtml = "";
         activeNewsData.forEach((news, idx) => {
           listHtml += `
@@ -600,11 +597,11 @@
       document.getElementById("innerNewsDate").innerText = `發布日期：${news.date}`;
       document.getElementById("innerNewsSource").innerText = `新聞來源：${news.source}`;
       
-      // 顯示新聞摘要，並渲染直接前往原媒體網址的按鈕
+      // 💡 修復點：將原本的 news.url 修正為正確的 news.link，讓前往原文連結的 a 標籤按鈕能正確引導使用者
       document.getElementById("innerNewsContent").innerHTML = `
         <div class="font-normal text-slate-700 text-left leading-relaxed">${news.content}</div>
         <div class="mt-6 pt-4 border-t border-slate-200 text-center">
-          <a href="${news.url}" target="_blank" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs">
+          <a href="${news.link}" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs cursor-pointer">
             🌐 前往原媒體網站閱讀完整報導
           </a>
         </div>
