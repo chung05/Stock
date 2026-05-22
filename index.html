@@ -11,7 +11,7 @@
   <style>
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
-    .sticky-col-shadow { box-shadow: 3px 0 6px -3px rgba(0, 0, 0, 0.25); }
+    .sticky-col-shadow { box-shadow: 3px 0 6px -3px rgba(0, 0, 0, 0.3); }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
@@ -69,6 +69,7 @@
           <button onclick="switchTab('全部')" id="tab-全部" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white shadow-xs whitespace-nowrap cursor-pointer transition-colors">🌐 全部成分股</button>
         </div>
       </div>
+      
       <div class="flex items-center gap-2 pt-2 md:pt-4 shrink-0 border-t border-slate-100 md:border-t-0">
         <div class="relative flex items-center">
           <input type="text" id="keywordInput" onkeyup="handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-40 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
@@ -125,7 +126,6 @@
     function calculateRecentFiveTradeDays() {
       let dates = [];
       let d = new Date();
-      // 防呆：最多往前找 15 天，避免無限迴圈
       let safetyCount = 0;
       while(dates.length < 5 && safetyCount < 15) {
         let day = d.getDay();
@@ -159,7 +159,6 @@
         if (targetError) throw targetError;
         dbStockData = dbData || [];
 
-        // 核心修正：如果名單是空的，提示使用者
         if (dbStockData.length === 0) {
           statusText.innerText = "⚠️ 警告：Supabase 內無股票名單資料";
           document.getElementById("dataSourceLabel").innerText = "🟡 數據狀態：stock_targets 表格為空";
@@ -167,7 +166,6 @@
           return;
         }
 
-        // 設定分類頁籤 UI
         document.getElementById("listUpdateTime").innerText = new Date().toLocaleDateString();
         targetSheetsSet.clear();
         dbStockData.forEach(item => { 
@@ -204,12 +202,11 @@
         return;
       }
       const detailText = document.getElementById("loadingDetail");
-      // 確保將 stock_id 轉成字串型態，避免與資料庫比對出錯
       const stockIdsInList = dbStockData.map(s => String(s.stock_id).trim());
       
       let allChipsFetched = [];
       let startRange = 0;
-      const batchSize = 2000; // 略為縮減批次，提升網頁請求穩定度
+      const batchSize = 2000; 
       let keepFetching = true;
 
       while (keepFetching) {
@@ -241,7 +238,6 @@
       }
 
       globalChipCache = allChipsFetched;
-      console.log(`🎉 寬資料總計分批撈取完成！共計：${globalChipCache.length} 筆`);
     }
 
     function formatDateToString(dateObj) {
@@ -334,13 +330,11 @@
     function handleSearchKeyup(e) {
       const input = document.getElementById("keywordInput");
       const clearBtn = document.getElementById("clearSearchBtn");
-      
       if (input.value.trim() !== "") {
         clearBtn.classList.remove("hidden");
       } else {
         clearBtn.classList.add("hidden");
       }
-
       if (e.key === "Enter") {
         executeStockSearch();
       }
@@ -386,7 +380,6 @@
         }
 
         const getSumForStock = (stockId, buyField, sellField) => {
-          // 強制轉字串防呆比對
           const chips = globalChipCache.filter(c => String(c.stock_id).trim() === stockId);
           return chips.reduce((acc, row) => {
             const buy = Math.round((row[buyField] || 0) / 1000);
@@ -398,44 +391,34 @@
         let valA = 0, valB = 0;
         switch (currentSortMode) {
           case 'foreign_buy':
-            valA = getSumForStock(idA, 'f_buy', 'f_sell');
-            valB = getSumForStock(idB, 'f_buy', 'f_sell');
+            valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell');
             return valB - valA; 
           case 'foreign_dealer_buy':
-            valA = getSumForStock(idA, 'fd_buy', 'fd_sell');
-            valB = getSumForStock(idB, 'fd_buy', 'fd_sell');
+            valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell');
             return valB - valA;
           case 'investment_buy':
-            valA = getSumForStock(idA, 'it_buy', 'it_sell');
-            valB = getSumForStock(idB, 'it_buy', 'it_sell');
+            valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell');
             return valB - valA;
           case 'dealer_self_buy':
-            valA = getSumForStock(idA, 'ds_buy', 'ds_sell');
-            valB = getSumForStock(idB, 'ds_buy', 'ds_sell');
+            valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell');
             return valB - valA;
           case 'dealer_hedging_buy':
-            valA = getSumForStock(idA, 'dh_buy', 'dh_sell');
-            valB = getSumForStock(idB, 'dh_buy', 'dh_sell');
+            valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell');
             return valB - valA;
           case 'foreign_sell':
-            valA = getSumForStock(idA, 'f_buy', 'f_sell');
-            valB = getSumForStock(idB, 'f_buy', 'f_sell');
+            valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell');
             return valA - valB; 
           case 'foreign_dealer_sell':
-            valA = getSumForStock(idA, 'fd_buy', 'fd_sell');
-            valB = getSumForStock(idB, 'fd_buy', 'fd_sell');
+            valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell');
             return valA - valB;
           case 'investment_sell':
-            valA = getSumForStock(idA, 'it_buy', 'it_sell');
-            valB = getSumForStock(idB, 'it_buy', 'it_sell');
+            valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell');
             return valA - valB;
           case 'dealer_self_sell':
-            valA = getSumForStock(idA, 'ds_buy', 'ds_sell');
-            valB = getSumForStock(idB, 'ds_buy', 'ds_sell');
+            valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell');
             return valA - valB;
           case 'dealer_hedging_sell':
-            valA = getSumForStock(idA, 'dh_buy', 'dh_sell');
-            valB = getSumForStock(idB, 'dh_buy', 'dh_sell');
+            valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell');
             return valA - valB;
           default:
             return 0;
@@ -460,8 +443,6 @@
       stocks.forEach(item => {
         if (!item) return;
         const currentIdStr = String(item.stock_id).trim();
-
-        // 核心優化：更精確地撈出該股快取籌碼
         const myChips = globalChipCache.filter(c => String(c.stock_id).trim() === currentIdStr);
 
         let sumF = 0, sumFD = 0, sumIT = 0, sumDS = 0, sumDH = 0;
@@ -478,7 +459,6 @@
         };
 
         recentDates.forEach(d => {
-          // 保底空物件防呆
           const dayData = myChips.find(c => String(c.date) === d) || { f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
           
           sumF += (Math.round((dayData.f_buy||0)/1000) - Math.round((dayData.f_sell||0)/1000));
@@ -530,7 +510,6 @@
       });
 
       tbody.innerHTML = htmlString;
-      document.getElementById("dataSourceLabel").innerText = "🟢 數據狀態：5日寬化庫對接檢查且動態排序渲染完畢";
     }
   </script>
 </body>
