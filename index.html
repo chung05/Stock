@@ -25,7 +25,7 @@
   </div>
 
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col border border-slate-100">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col border border-slate-100">
       <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
         <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
         <button onclick="closeNewsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
@@ -45,9 +45,9 @@
         <div id="trendZone" class="block space-y-4">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-3 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日)</h4>
-            <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 px-2 border-b border-slate-200 relative overflow-x-auto scrollbar-none">
+            <div id="trendPriceChart" class="flex items-end justify-between h-28 pt-6 px-1 border-b border-slate-200 relative w-full">
               </div>
-            <div id="trendPriceDates" class="flex justify-between text-[10px] text-slate-400 font-bold mt-1.5 px-1"></div>
+            <div id="trendPriceDates" class="flex justify-between text-xs text-slate-400 font-bold mt-1.5 px-1 w-full"></div>
           </div>
 
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
@@ -155,8 +155,8 @@
     let dbStockData = [];          
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
-    let recentDates = []; // 💡 前端畫面欄位維繫 5 天
-    let extendedTrendDates = []; // 💡 用於走勢圖的 20 天陣列
+    let recentDates = []; 
+    let extendedTrendDates = []; 
     let currentSortMode = 'stock_id'; 
     let searchKeyword = ""; 
     let activeNewsData = []; 
@@ -167,7 +167,6 @@
       await forceSyncFlow(); 
     });
 
-    // 💡 智慧優化：同時計算畫面的 5 日陣列與走勢圖所需的 20 日擴充陣列
     function calculateTradeDaysLists() {
       let dates20 = [];
       let d = new Date();
@@ -178,8 +177,8 @@
         }
         d.setDate(d.getDate() - 1);
       }
-      extendedTrendDates = dates20; // 擴充 20 日走勢
-      recentDates = dates20.slice(0, 5); // 畫面表格保持最精華 5 日
+      extendedTrendDates = dates20; 
+      recentDates = dates20.slice(0, 5); 
       updateDisplayDates(recentDates[0]);
     }
 
@@ -235,7 +234,6 @@
       }
     }
 
-    // 💡 智慧優化：向 Supabase 撈取時，直接一口氣向下拉取 extendedTrendDates (20天份)
     async function fetchAllChipsFromSupabase() {
       if (extendedTrendDates.length === 0 || dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
@@ -254,7 +252,7 @@
           .from('stock_chips_daily')
           .select('*')
           .in('stock_id', stockIdsInList)
-          .in('date', extendedTrendDates) // 下拉 20 天份快取
+          .in('date', extendedTrendDates) 
           .range(startRange, endRange);
 
         if (error) {
@@ -541,10 +539,10 @@
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              <div class="text-base font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
+              <div class="text-sm font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
               <div class="mt-2 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
-                <div class="text-base text-slate-900 font-bold">${currentPrice}</div>
-                <div class="text-base mt-0.5">${priceChangeHtml}</div>
+                <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
+                <div class="text-xs mt-0.5">${priceChangeHtml}</div>
               </div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
@@ -596,13 +594,8 @@
       switchModalTab('trend');
       document.getElementById("newsModal").classList.remove("hidden");
 
-      // 💡 智慧適應過濾：篩選出該個股在全域快取裡「實際存在」的所有天數資料
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
-      
-      // 💡 核心機制：比對 20 日目標日期，找出目前資料庫真正有資料的交集日子
       const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
-      
-      // 將時間軸順序反轉（由舊到新排列）以利走勢波形繪製
       const chronDates = [...availableTrendDates].reverse();
 
       const priceChartEl = document.getElementById("trendPriceChart");
@@ -626,18 +619,18 @@
           chronDates.forEach((d, idx) => {
             const price = pricePoints[idx];
             const displayP = price !== null ? price : '--';
-            const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 60) + 15 : 40;
+            const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 55) + 10 : 40;
             const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
-            // 💡 動態調整節點間距：若現有資料多（接近20天），則自動收緊節點寬度，完美適應不破版
+            // 💡 優化 1 & 2：文字全數放大至 text-xs (12px)，並利用 flex-1 讓所有節點自適應拉伸，不用滑動
             priceHtml += `
-              <div class="flex flex-col items-center flex-1 min-w-[32px] max-w-[50px] h-full justify-end relative group">
-                <div class="absolute w-2 h-2 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
-                <div class="absolute w-[1px] bg-slate-200/70 bottom-0 top-0 left-1/2 -translate-x-1/2 border-dashed"></div>
-                <span class="text-[9px] font-black text-slate-800 absolute bg-slate-100 px-0.5 rounded border border-slate-200/50 scale-90 whitespace-nowrap" style="bottom: calc(${heightPercent}% + 10px);">${displayP}</span>
+              <div class="flex flex-col items-center flex-1 h-full justify-end relative group min-w-0">
+                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
+                <div class="absolute w-[1px] bg-slate-200 bottom-0 top-0 left-1/2 -translate-x-1/2 border-dashed"></div>
+                <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            dateHtml += `<span class="flex-1 text-center font-bold text-[9px] min-w-[32px] max-w-[50px]">${datePart}</span>`;
+            dateHtml += `<span class="flex-1 text-center font-bold text-[11px] truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
           priceDatesEl.innerHTML = dateHtml;
@@ -646,7 +639,7 @@
           priceDatesEl.innerHTML = "";
         }
 
-        // --- B. 渲染法人籌碼能量圖 (同步適應現有天數長度) ---
+        // --- B. 渲染法人籌碼能量圖 (滿版自適應優化版) ---
         const chipChartEl = document.getElementById("trendChipChart");
         let chipHtml = "";
 
@@ -665,14 +658,16 @@
 
           let absMax = Math.max(...nets.map(Math.abs), 1);
 
+          // 💡 優化 1 & 2：籌碼直方圖移除左右滾動，改用 flex 撐滿滿版，買超往上、賣超往下，數值文字放大至 text-xs 且留空避免擠壓
           chipHtml += `
-            <div class="border border-slate-100 p-2.5 rounded-lg bg-slate-50/50">
-              <span class="text-[11px] font-black text-slate-700 block mb-2">📊 ${type.label}</span>
-              <div class="flex items-center justify-between h-14 bg-white rounded border border-slate-200 px-2 relative overflow-x-auto scrollbar-none">
-                <div class="absolute left-0 right-0 h-[1px] bg-slate-300 top-1/2"></div>
+            <div class="border border-slate-100 p-2.5 rounded-lg bg-slate-50/50 w-full">
+              <span class="text-xs font-black text-slate-700 block mb-2">📊 ${type.label}</span>
+              <div class="flex items-center justify-between h-20 bg-white rounded border border-slate-200 px-1 relative w-full">
+                <div class="absolute left-0 right-0 h-[1.5px] bg-slate-300 top-1/2"></div>
                 ${nets.map((netValue, i) => {
                   const isPositive = netValue >= 0;
-                  const heightPct = Math.min(Math.round((Math.abs(netValue) / absMax) * 100), 100);
+                  // 高度限制在 85% 以內，留下上下 15% 空間給放大的數值文字
+                  const heightPct = Math.min(Math.round((Math.abs(netValue) / absMax) * 85), 85);
                   const barStyle = isPositive 
                     ? `height: ${heightPct / 2}%; margin-bottom: auto; transform: translateY(100%);` 
                     : `height: ${heightPct / 2}%; margin-top: auto; transform: translateY(100%);`;
@@ -681,9 +676,9 @@
                   const valColor = netValue > 0 ? 'text-rose-600' : (netValue < 0 ? 'text-emerald-600' : 'text-slate-400');
 
                   return `
-                    <div class="flex flex-col items-center flex-1 min-w-[32px] max-w-[50px] h-full justify-center relative group">
-                      <div class="w-4 ${colorClass} rounded-xs transition-all group-hover:opacity-80 shadow-2xs" style="${barStyle}"></div>
-                      <span class="text-[8px] font-black ${valColor} absolute ${isPositive ? 'bottom-[55%]' : 'top-[55%]'} z-10 tracking-tighter bg-white/90 px-0.5 rounded shadow-3xs scale-90 whitespace-nowrap">${signStr}</span>
+                    <div class="flex flex-col items-center flex-1 h-full justify-center relative group min-w-0">
+                      <div class="w-full max-w-[20px] min-w-[3px] ${colorClass} rounded-xs transition-all group-hover:opacity-80 shadow-2xs" style="${barStyle}"></div>
+                      <span class="text-xs font-black ${valColor} absolute ${isPositive ? 'bottom-[54%]' : 'top-[54%]'} z-10 tracking-tighter bg-white/90 px-0.5 rounded shadow-3xs scale-90 whitespace-nowrap">${signStr}</span>
                     </div>
                   `;
                 }).join('')}
