@@ -720,14 +720,15 @@
         let listHtml = "";
         activeNewsData.forEach((news) => {
           // 💡 優化 1：直接在列表標題的 <a> 標籤中加入 href 與 target="_blank"，讓使用者一鍵直接在新視窗開啟第三方報導頁面，移除二層摘要
-          listHtml += `
-            <a href="${news.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+listHtml += `
+            <div onclick="window.open('${news.link}', 'news_popup', 'width=800,height=700,scrollbars=yes,resizable=yes')" 
+                 class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
               <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
                 <span>📅 ${news.date}</span>
                 <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
               </div>
               <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
-            </a>
+            </div>
           `;
         });
         listZone.innerHTML = listHtml;
