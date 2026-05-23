@@ -46,10 +46,10 @@
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-3 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日，手機版可左右滑動)</h4>
             
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[640px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-28 pt-6 border-b border-slate-200 relative w-full">
-                  </div>
+                </div>
                 <div id="trendPriceDates" class="flex justify-between text-xs text-slate-400 font-bold mt-1.5 w-full"></div>
               </div>
             </div>
@@ -58,7 +58,7 @@
 
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 法人三大籌碼買賣超能量 (張)</h4>
               <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                 <button id="subTabF" onclick="switchChipSubTab('f')" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
                 <button id="subTabIT" onclick="switchChipSubTab('it')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
@@ -66,9 +66,9 @@
               </div>
             </div>
             
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[640px]">
-                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -151,7 +151,7 @@
       </div>
     </section>
 
-    <section class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
+    <section id="mainTableWrapper" class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
       <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
         <thead class="text-slate-800 font-extrabold sticky top-0 z-30 bg-slate-100 shadow-xs border-b border-slate-300">
           <tr id="tableHeaderDates"></tr>
@@ -320,7 +320,7 @@
       let datesHtml = `
         <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[94px] min-w-[94px] max-w-[94px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
-            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的</span>
+            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的(代號/名稱)</span>
             <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
               <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
               <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超</option>
@@ -480,6 +480,12 @@
       });
 
       renderMatrixTableFromCache(filteredStocks);
+      
+      // 💡 需求 3：切換控制選單或搜尋完成時，自動滾動讓主網頁表格 Scrollbar 回到最上方置頂
+      const tableWrapper = document.getElementById("mainTableWrapper");
+      if (tableWrapper) {
+        tableWrapper.scrollTop = 0;
+      }
     }
 
     function renderMatrixTableFromCache(stocks) {
@@ -557,10 +563,10 @@
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              <div class="text-base font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
+              <div class="text-sm font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
               <div class="mt-2 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
-                <div class="text-base text-slate-900 font-bold">${currentPrice}</div>
-                <div class="text-base mt-0.5">${priceChangeHtml}</div>
+                <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
+                <div class="text-xs mt-0.5">${priceChangeHtml}</div>
               </div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
@@ -599,6 +605,8 @@
         btnNews.className = "py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
         zoneTrend.classList.replace("hidden", "block");
         zoneNews.classList.replace("block", "hidden");
+        // 💡 需求 2：開啟/切換至走勢圖分頁時，自動將手機滑動條位置推向最新日期（最右側）
+        scrollToLatestTrend();
       } else {
         btnNews.className = "py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
         btnTrend.className = "py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
@@ -620,6 +628,16 @@
         }
       });
       renderChipTrendChart();
+    }
+
+    // 💡 需求 2：定義自動尋找並拉動滑動條至最右側最新資訊的非同步函數
+    function scrollToLatestTrend() {
+      setTimeout(() => {
+        const pWrapper = document.getElementById("priceScrollWrapper");
+        const cWrapper = document.getElementById("chipScrollWrapper");
+        if (pWrapper) pWrapper.scrollLeft = pWrapper.scrollWidth;
+        if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
+      }, 60);
     }
 
     async function openCombinedModal(stockId, stockName) {
@@ -674,6 +692,8 @@
         }
 
         renderChipTrendChart();
+        // 💡 需求 2：開啟視窗且數據載入後，立即將滾動條推向最右邊（最新交易日）
+        scrollToLatestTrend();
       } else {
         priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
         document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
@@ -770,6 +790,8 @@
         const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80);
         const signStr = isPositive && val > 0 ? `+${val}` : val;
         const valColor = val > 0 ? 'text-rose-600' : (val < 0 ? 'text-emerald-600' : 'text-slate-400');
+        // 💡 需求 1：擷取格式化日期 (MM/DD) 以標註在籌碼零軸中央
+        const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
         return `
           <div class="flex flex-col flex-1 h-full min-w-0 relative items-center">
@@ -785,6 +807,8 @@
                 <div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div>
                 <span class="text-xs font-black ${valColor} mt-1 tracking-tighter whitespace-nowrap">${signStr}</span>
               ` : ''}
+              
+              <span class="absolute top-[2px] text-[10px] text-slate-400 font-extrabold tracking-tighter pointer-events-none">${datePart}</span>
             </div>
           </div>
         `;
