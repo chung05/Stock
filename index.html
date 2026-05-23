@@ -25,7 +25,7 @@
   </div>
 
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col border border-slate-100">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col border border-slate-100">
       <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
         <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
         <button onclick="closeNewsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
@@ -51,8 +51,16 @@
           </div>
 
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <h4 class="text-xs font-black text-slate-500 mb-3 flex items-center gap-1">🔹 法人三大籌碼買賣超能量 (張)</h4>
-            <div id="trendChipChart" class="space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 法人三大籌碼買賣超能量 (張)</h4>
+              <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button id="subTabF" onclick="switchChipSubTab('f')" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
+                <button id="subTabIT" onclick="switchChipSubTab('it')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
+                <button id="subTabDS" onclick="switchChipSubTab('ds')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
+              </div>
+            </div>
+            
+            <div id="trendChipChart" class="w-full">
               </div>
           </div>
         </div>
@@ -160,6 +168,8 @@
     let currentSortMode = 'stock_id'; 
     let searchKeyword = ""; 
     let activeNewsData = []; 
+    let currentActiveStockId = ""; // 暫存目前點選的個股ID
+    let currentChipSubTab = "f";   // 暫存目前籌碼子頁籤
 
     document.addEventListener("DOMContentLoaded", async () => {
       calculateTradeDaysLists(); 
@@ -539,10 +549,10 @@
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              <div class="text-base font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
+              <div class="text-sm font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
               <div class="mt-2 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
-                <div class="text-base text-slate-900 font-bold">${currentPrice}</div>
-                <div class="text-base mt-0.5">${priceChangeHtml}</div>
+                <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
+                <div class="text-xs mt-0.5">${priceChangeHtml}</div>
               </div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
@@ -589,9 +599,28 @@
       }
     }
 
+    // 💡 優化 4：處理三大法人子頁籤的視覺與 DOM 切換切換
+    function switchChipSubTab(subKey) {
+      currentChipSubTab = subKey;
+      const tabs = { f: 'subTabF', it: 'subTabIT', ds: 'subTabDS' };
+      
+      Object.keys(tabs).forEach(k => {
+        const btn = document.getElementById(tabs[k]);
+        if (k === subKey) {
+          btn.className = "px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all";
+        } else {
+          btn.className = "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all";
+        }
+      });
+      // 重新繪製目前選擇法人的能量直方圖
+      renderChipTrendChart();
+    }
+
     async function openCombinedModal(stockId, stockName) {
+      currentActiveStockId = stockId; // 綁定當前啟用的個股
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 即時綜合數據庫`;
       switchModalTab('trend');
+      switchChipSubTab('f'); // 預設打開外資
       document.getElementById("newsModal").classList.remove("hidden");
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
@@ -619,10 +648,10 @@
           chronDates.forEach((d, idx) => {
             const price = pricePoints[idx];
             const displayP = price !== null ? price : '--';
-            const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 55) + 10 : 40;
+            const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 50) + 10 : 40;
             const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
-            // 💡 優化 1 & 2：文字全數放大至 text-xs (12px)，並利用 flex-1 讓所有節點自適應拉伸，不用滑動
+            // 💡 文字尺寸放大至 text-xs (12px)，全靈活彈性寬度撐滿
             priceHtml += `
               <div class="flex flex-col items-center flex-1 h-full justify-end relative group min-w-0">
                 <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
@@ -630,7 +659,7 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            dateHtml += `<span class="flex-1 text-center font-bold text-[11px] truncate px-0.5">${datePart}</span>`;
+            dateHtml += `<span class="flex-1 text-center font-bold text-xs truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
           priceDatesEl.innerHTML = dateHtml;
@@ -639,54 +668,8 @@
           priceDatesEl.innerHTML = "";
         }
 
-        // --- B. 渲染法人籌碼能量圖 (滿版自適應優化版) ---
-        const chipChartEl = document.getElementById("trendChipChart");
-        let chipHtml = "";
-
-        const chipTypes = [
-          { label: '外資買賣超', bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' },
-          { label: '投信買賣超', bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' },
-          { label: '自營自行買賣', bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' }
-        ];
-
-        chipTypes.forEach(type => {
-          let nets = chronDates.map(d => {
-            const row = myChipsRaw.find(c => String(c.date) === d);
-            if (!row) return 0;
-            return Math.round((row[type.bKey]||0)/1000) - Math.round((row[type.sKey]||0)/1000);
-          });
-
-          let absMax = Math.max(...nets.map(Math.abs), 1);
-
-          // 💡 優化 1 & 2：籌碼直方圖移除左右滾動，改用 flex 撐滿滿版，買超往上、賣超往下，數值文字放大至 text-xs 且留空避免擠壓
-          chipHtml += `
-            <div class="border border-slate-100 p-2.5 rounded-lg bg-slate-50/50 w-full">
-              <span class="text-xs font-black text-slate-700 block mb-2">📊 ${type.label}</span>
-              <div class="flex items-center justify-between h-20 bg-white rounded border border-slate-200 px-1 relative w-full">
-                <div class="absolute left-0 right-0 h-[1.5px] bg-slate-300 top-1/2"></div>
-                ${nets.map((netValue, i) => {
-                  const isPositive = netValue >= 0;
-                  // 高度限制在 85% 以內，留下上下 15% 空間給放大的數值文字
-                  const heightPct = Math.min(Math.round((Math.abs(netValue) / absMax) * 85), 85);
-                  const barStyle = isPositive 
-                    ? `height: ${heightPct / 2}%; margin-bottom: auto; transform: translateY(100%);` 
-                    : `height: ${heightPct / 2}%; margin-top: auto; transform: translateY(100%);`;
-                  const colorClass = isPositive ? type.color : type.negColor;
-                  const signStr = isPositive && netValue > 0 ? `+${netValue}` : netValue;
-                  const valColor = netValue > 0 ? 'text-rose-600' : (netValue < 0 ? 'text-emerald-600' : 'text-slate-400');
-
-                  return `
-                    <div class="flex flex-col items-center flex-1 h-full justify-center relative group min-w-0">
-                      <div class="w-full max-w-[20px] min-w-[3px] ${colorClass} rounded-xs transition-all group-hover:opacity-80 shadow-2xs" style="${barStyle}"></div>
-                      <span class="text-xs font-black ${valColor} absolute ${isPositive ? 'bottom-[54%]' : 'top-[54%]'} z-10 tracking-tighter bg-white/90 px-0.5 rounded shadow-3xs scale-90 whitespace-nowrap">${signStr}</span>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          `;
-        });
-        chipChartEl.innerHTML = chipHtml;
+        // 觸發籌碼走勢圖繪製
+        renderChipTrendChart();
       } else {
         priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
         document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
@@ -747,6 +730,80 @@
         console.error("即時抓取新聞發生異常:", err);
         listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
       }
+    }
+
+    // 💡 優化 1 & 2：重構後的法人柱狀圖繪製邏輯，建立正統「上下各 50% 的雙向對稱鏡像容器」
+    // 買超完全由中線向上生長，賣超由中線向下垂落，數值字體完全放大為 text-xs，不滑動全滿版！
+    function renderChipTrendChart() {
+      const chipChartEl = document.getElementById("trendChipChart");
+      if (!chipChartEl || !currentActiveStockId) return;
+
+      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
+      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
+      const chronDates = [...availableTrendDates].reverse();
+
+      const subTabConfigs = {
+        f: { label: '外資大戶買賣超 (張)', bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' },
+        it: { label: '投信基金買賣超 (張)', bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' },
+        ds: { label: '自營商(自行+避險)總買賣超 (張)', bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' }
+      };
+
+      const cfg = subTabConfigs[currentChipSubTab];
+      
+      // 計算差額張數
+      let nets = chronDates.map(d => {
+        const row = myChipsRaw.find(c => String(c.date) === d);
+        if (!row) return 0;
+        // 如果是自營商，同時合併 ds 與 dh
+        if (currentChipSubTab === "ds") {
+          const buySum = (row.ds_buy || 0) + (row.dh_buy || 0);
+          const sellSum = (row.ds_sell || 0) + (row.dh_sell || 0);
+          return Math.round(buySum / 1000) - Math.round(sellSum / 1000);
+        }
+        return Math.round((row[cfg.bKey]||0)/1000) - Math.round((row[cfg.sKey]||0)/1000);
+      });
+
+      let absMax = Math.max(...nets.map(Math.abs), 1);
+
+      let barsHtml = chronDates.map((d, i) => {
+        const val = nets[i];
+        const isPositive = val >= 0;
+        // 計算佔單邊對稱空間的比例高度（最高可滿 80%，保留 20% 給數值文字）
+        const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80);
+        const signStr = isPositive && val > 0 ? `+${val}` : val;
+        const valColor = val > 0 ? 'text-rose-600' : (val < 0 ? 'text-emerald-600' : 'text-slate-400');
+
+        return `
+          <div class="flex flex-col flex-1 h-full min-w-0 relative items-center">
+            
+            <div class="w-full h-1/2 flex flex-col justify-end items-center relative">
+              ${isPositive && val > 0 ? `
+                <span class="text-xs font-black ${valColor} mb-1 tracking-tighter whitespace-nowrap">${signStr}</span>
+                <div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>
+              ` : ''}
+              ${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}
+            </div>
+            
+            <div class="w-full h-1/2 flex flex-col justify-start items-center relative">
+              ${!isPositive ? `
+                <div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div>
+                <span class="text-xs font-black ${valColor} mt-1 tracking-tighter whitespace-nowrap">${signStr}</span>
+              ` : ''}
+            </div>
+            
+          </div>
+        `;
+      }).join('');
+
+      chipChartEl.innerHTML = `
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 w-full">
+          <span class="text-xs font-black text-slate-600 block mb-3">📈 當前分頁：${cfg.label}</span>
+          <div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center">
+            <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>
+            ${barsHtml}
+          </div>
+        </div>
+      `;
     }
 
     function showNewsDetail(index) {
