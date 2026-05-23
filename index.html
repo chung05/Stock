@@ -43,12 +43,12 @@
       <div class="p-4 overflow-y-auto grow bg-slate-50/30">
         
         <div id="trendZone" class="block space-y-4">
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <h4 class="text-xs font-black text-slate-500 mb-3 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日，手機版可左右滑動)</h4>
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢(20天)</h4>
             
-            <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[640px] px-1">
-                <div id="trendPriceChart" class="flex items-end justify-between h-28 pt-6 border-b border-slate-200 relative w-full">
+                <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
                 </div>
                 <div id="trendPriceDates" class="flex justify-between text-xs text-slate-400 font-bold mt-1.5 w-full"></div>
               </div>
@@ -56,9 +56,9 @@
             
           </div>
 
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 法人三大籌碼買賣超能量 (張)</h4>
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
               <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                 <button id="subTabF" onclick="switchChipSubTab('f')" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
                 <button id="subTabIT" onclick="switchChipSubTab('it')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
@@ -66,7 +66,7 @@
               </div>
             </div>
             
-            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[640px]">
               </div>
             </div>
@@ -320,7 +320,7 @@
       let datesHtml = `
         <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[94px] min-w-[94px] max-w-[94px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
-            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的(代號/名稱)</span>
+            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的</span>
             <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
               <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
               <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超</option>
@@ -481,7 +481,6 @@
 
       renderMatrixTableFromCache(filteredStocks);
       
-      // 💡 需求 3：切換控制選單或搜尋完成時，自動滾動讓主網頁表格 Scrollbar 回到最上方置頂
       const tableWrapper = document.getElementById("mainTableWrapper");
       if (tableWrapper) {
         tableWrapper.scrollTop = 0;
@@ -585,7 +584,7 @@
             ${getSumCell(sumDS, true)}${dsRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
             ${getSumCell(sumDH, false)}${dhRow}
           </tr>
         `;
@@ -605,7 +604,6 @@
         btnNews.className = "py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
         zoneTrend.classList.replace("hidden", "block");
         zoneNews.classList.replace("block", "hidden");
-        // 💡 需求 2：開啟/切換至走勢圖分頁時，自動將手機滑動條位置推向最新日期（最右側）
         scrollToLatestTrend();
       } else {
         btnNews.className = "py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
@@ -630,7 +628,6 @@
       renderChipTrendChart();
     }
 
-    // 💡 需求 2：定義自動尋找並拉動滑動條至最右側最新資訊的非同步函數
     function scrollToLatestTrend() {
       setTimeout(() => {
         const pWrapper = document.getElementById("priceScrollWrapper");
@@ -692,7 +689,6 @@
         }
 
         renderChipTrendChart();
-        // 💡 需求 2：開啟視窗且數據載入後，立即將滾動條推向最右邊（最新交易日）
         scrollToLatestTrend();
       } else {
         priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
@@ -790,7 +786,6 @@
         const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80);
         const signStr = isPositive && val > 0 ? `+${val}` : val;
         const valColor = val > 0 ? 'text-rose-600' : (val < 0 ? 'text-emerald-600' : 'text-slate-400');
-        // 💡 需求 1：擷取格式化日期 (MM/DD) 以標註在籌碼零軸中央
         const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
         return `
@@ -807,16 +802,15 @@
                 <div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div>
                 <span class="text-xs font-black ${valColor} mt-1 tracking-tighter whitespace-nowrap">${signStr}</span>
               ` : ''}
-              
               <span class="absolute top-[2px] text-[10px] text-slate-400 font-extrabold tracking-tighter pointer-events-none">${datePart}</span>
             </div>
           </div>
         `;
       }).join('');
 
+      // 💡 優化 1：移除 "📈 分頁：..." 資訊文字區塊，並將外殼內襯改為緊湊的 p-1.5 釋放高度
       chipChartEl.innerHTML = `
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 w-full">
-          <span class="text-xs font-black text-slate-600 block mb-3">📈 分頁：${cfg.label}</span>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full">
           <div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center">
             <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>
             ${barsHtml}
