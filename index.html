@@ -25,26 +25,54 @@
   </div>
 
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col border border-slate-100">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col border border-slate-100">
       <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
-        <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股新聞</h3>
+        <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
         <button onclick="closeNewsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
       </div>
+
+      <div class="flex border-b border-slate-200 bg-slate-50/50 px-4">
+        <button id="tabBtnTrend" onclick="switchModalTab('trend')" class="py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">
+          📈 近期走勢圖
+        </button>
+        <button id="tabBtnNews" onclick="switchModalTab('news')" class="py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">
+          📰 財經新聞
+        </button>
+      </div>
       
-      <div class="p-4 overflow-y-auto grow" id="newsModalBody">
-        <div id="newsListZone" class="space-y-3"></div>
+      <div class="p-4 overflow-y-auto grow bg-slate-50/30">
         
-        <div id="newsContentZone" class="hidden">
-          <button onclick="backToNewsList()" class="text-xs font-bold text-blue-600 hover:text-blue-800 mb-3 flex items-center gap-1 cursor-pointer">
-            ⬅ 返回新聞列表
-          </button>
-          <h4 id="innerNewsTitle" class="text-base font-black text-slate-950 mb-2 leading-snug text-left"></h4>
-          <div class="text-[11px] text-slate-400 font-medium mb-4 flex gap-3">
-            <span id="innerNewsDate"></span>
-            <span id="innerNewsSource"></span>
+        <div id="trendZone" class="block space-y-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <h4 class="text-xs font-black text-slate-500 mb-3 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日)</h4>
+            <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 px-2 border-b border-slate-200 relative overflow-x-auto scrollbar-none">
+              </div>
+            <div id="trendPriceDates" class="flex justify-between text-[10px] text-slate-400 font-bold mt-1.5 px-1"></div>
           </div>
-          <div id="innerNewsContent" class="text-sm text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-200/60"></div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <h4 class="text-xs font-black text-slate-500 mb-3 flex items-center gap-1">🔹 法人三大籌碼買賣超能量 (張)</h4>
+            <div id="trendChipChart" class="space-y-4">
+              </div>
+          </div>
         </div>
+
+        <div id="newsZone" class="hidden">
+          <div id="newsListZone" class="space-y-3"></div>
+          
+          <div id="newsContentZone" class="hidden">
+            <button onclick="backToNewsList()" class="text-xs font-bold text-blue-600 hover:text-blue-800 mb-3 flex items-center gap-1 cursor-pointer">
+              ⬅ 返回新聞列表
+            </button>
+            <h4 id="innerNewsTitle" class="text-base font-black text-slate-950 mb-2 leading-snug text-left"></h4>
+            <div class="text-[11px] text-slate-400 font-medium mb-4 flex gap-3">
+              <span id="innerNewsDate"></span>
+              <span id="innerNewsSource"></span>
+            </div>
+            <div id="innerNewsContent" class="text-sm text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-200/60"></div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -127,28 +155,31 @@
     let dbStockData = [];          
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
-    let recentDates = []; 
+    let recentDates = []; // 💡 前端畫面欄位維繫 5 天
+    let extendedTrendDates = []; // 💡 用於走勢圖的 20 天陣列
     let currentSortMode = 'stock_id'; 
     let searchKeyword = ""; 
     let activeNewsData = []; 
 
     document.addEventListener("DOMContentLoaded", async () => {
-      calculateRecentFiveTradeDays(); 
+      calculateTradeDaysLists(); 
       renderTableHeader(); 
       await forceSyncFlow(); 
     });
 
-    function calculateRecentFiveTradeDays() {
-      let dates = [];
+    // 💡 智慧優化：同時計算畫面的 5 日陣列與走勢圖所需的 20 日擴充陣列
+    function calculateTradeDaysLists() {
+      let dates20 = [];
       let d = new Date();
-      while(dates.length < 5) {
+      while(dates20.length < 20) {
         let day = d.getDay();
         if (day !== 0 && day !== 6) { 
-          dates.push(formatDateToString(d));
+          dates20.push(formatDateToString(d));
         }
         d.setDate(d.getDate() - 1);
       }
-      recentDates = dates; 
+      extendedTrendDates = dates20; // 擴充 20 日走勢
+      recentDates = dates20.slice(0, 5); // 畫面表格保持最精華 5 日
       updateDisplayDates(recentDates[0]);
     }
 
@@ -187,10 +218,10 @@
         
         updateTabSelectOptions(Array.from(targetSheetsSet));
 
-        detailText.innerText = "2. 正在精準定位最新 5 日盤後寬數據...";
-        calculateRecentFiveTradeDays();
+        detailText.innerText = "2. 正在精準定位盤後寬數據日期區間...";
+        calculateTradeDaysLists();
 
-        detailText.innerText = "3. 分批讀取雲端大量籌碼快取庫...";
+        detailText.innerText = "3. 分批讀取雲端大量籌碼與股價快取庫...";
         await fetchAllChipsFromSupabase();
 
         detailText.innerText = "4. 正在佈局視覺矩陣...";
@@ -204,8 +235,9 @@
       }
     }
 
+    // 💡 智慧優化：向 Supabase 撈取時，直接一口氣向下拉取 extendedTrendDates (20天份)
     async function fetchAllChipsFromSupabase() {
-      if (recentDates.length === 0 || dbStockData.length === 0) return;
+      if (extendedTrendDates.length === 0 || dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
       const stockIdsInList = dbStockData.map(s => String(s.stock_id).trim());
       
@@ -216,13 +248,13 @@
 
       while (keepFetching) {
         let endRange = startRange + batchSize - 1;
-        detailText.innerText = `3. 分批載入雲端寬數據中 (${startRange} ~ ${endRange} 筆)...`;
+        detailText.innerText = `3. 分批載入雲端 20 日寬數據中 (${startRange} ~ ${endRange} 筆)...`;
 
         const { data, error } = await supabaseClient
           .from('stock_chips_daily')
           .select('*')
           .in('stock_id', stockIdsInList)
-          .in('date', recentDates)
+          .in('date', extendedTrendDates) // 下拉 20 天份快取
           .range(startRange, endRange);
 
         if (error) {
@@ -272,7 +304,7 @@
       let datesHtml = `
         <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[94px] min-w-[94px] max-w-[94px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
-            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的</span>
+            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的(代號/名稱)</span>
             <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
               <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
               <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超</option>
@@ -462,7 +494,6 @@
           }
         }
 
-        // 建立台股經典漲跌視覺樣式標籤
         let priceChangeHtml = `<span class="text-slate-500 font-medium">0.0</span>`;
         if (changeValue > 0) {
           priceChangeHtml = `<span class="text-rose-600 font-bold">▲${changeValue}</span>`;
@@ -506,20 +537,14 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        // 💡 調整重點：
-        // 1. 強化底線提示：更換為與字體顏色一致的深藍色顯性底線 `underline decoration-2 underline-offset-2 decoration-blue-700`
-        // 2. 漲跌幅垂直換行：利用獨立的 <div> 區塊，將股價與漲跌幅拆開為上下兩排呈現
-htmlString += `
+        htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openNewsModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
+            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              
-              <div class="text-base font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
-              
+              <div class="text-sm font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
               <div class="mt-2 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
-                <div class="text-base text-slate-900 font-bold">${currentPrice}</div>
-                
-                <div class="text-base mt-0.5">${priceChangeHtml}</div>
+                <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
+                <div class="text-xs mt-0.5">${priceChangeHtml}</div>
               </div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
@@ -547,15 +572,138 @@ htmlString += `
       tbody.innerHTML = htmlString;
     }
 
-    async function openNewsModal(stockId, stockName) {
-      document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 即時新聞資訊`;
+    function switchModalTab(tabMode) {
+      const btnTrend = document.getElementById("tabBtnTrend");
+      const btnNews = document.getElementById("tabBtnNews");
+      const zoneTrend = document.getElementById("trendZone");
+      const zoneNews = document.getElementById("newsZone");
+
+      if (tabMode === 'trend') {
+        btnTrend.className = "py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
+        btnNews.className = "py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
+        zoneTrend.classList.replace("hidden", "block");
+        zoneNews.classList.replace("block", "hidden");
+      } else {
+        btnNews.className = "py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
+        btnTrend.className = "py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
+        zoneTrend.classList.replace("block", "hidden");
+        zoneNews.classList.replace("hidden", "block");
+      }
+    }
+
+    async function openCombinedModal(stockId, stockName) {
+      document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 即時綜合數據庫`;
+      switchModalTab('trend');
+      document.getElementById("newsModal").classList.remove("hidden");
+
+      // 💡 智慧適應過濾：篩選出該個股在全域快取裡「實際存在」的所有天數資料
+      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
+      
+      // 💡 核心機制：比對 20 日目標日期，找出目前資料庫真正有資料的交集日子
+      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
+      
+      // 將時間軸順序反轉（由舊到新排列）以利走勢波形繪製
+      const chronDates = [...availableTrendDates].reverse();
+
+      const priceChartEl = document.getElementById("trendPriceChart");
+      const priceDatesEl = document.getElementById("trendPriceDates");
+      
+      if (chronDates.length > 0) {
+        let pricePoints = chronDates.map(d => {
+          const day = myChipsRaw.find(c => String(c.date) === d);
+          return (day && day.price) ? day.price : null;
+        });
+
+        let validPrices = pricePoints.filter(p => p !== null);
+        if (validPrices.length > 0) {
+          let maxP = Math.max(...validPrices);
+          let minP = Math.min(...validPrices);
+          let rangeP = maxP - minP === 0 ? 1 : maxP - minP;
+
+          let priceHtml = "";
+          let dateHtml = "";
+
+          chronDates.forEach((d, idx) => {
+            const price = pricePoints[idx];
+            const displayP = price !== null ? price : '--';
+            const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 60) + 15 : 40;
+            const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+
+            // 💡 動態調整節點間距：若現有資料多（接近20天），則自動收緊節點寬度，完美適應不破版
+            priceHtml += `
+              <div class="flex flex-col items-center flex-1 min-w-[32px] max-w-[50px] h-full justify-end relative group">
+                <div class="absolute w-2 h-2 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
+                <div class="absolute w-[1px] bg-slate-200/70 bottom-0 top-0 left-1/2 -translate-x-1/2 border-dashed"></div>
+                <span class="text-[9px] font-black text-slate-800 absolute bg-slate-100 px-0.5 rounded border border-slate-200/50 scale-90 whitespace-nowrap" style="bottom: calc(${heightPercent}% + 10px);">${displayP}</span>
+              </div>
+            `;
+            dateHtml += `<span class="flex-1 text-center font-bold text-[9px] min-w-[32px] max-w-[50px]">${datePart}</span>`;
+          });
+          priceChartEl.innerHTML = priceHtml;
+          priceDatesEl.innerHTML = dateHtml;
+        } else {
+          priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`;
+          priceDatesEl.innerHTML = "";
+        }
+
+        // --- B. 渲染法人籌碼能量圖 (同步適應現有天數長度) ---
+        const chipChartEl = document.getElementById("trendChipChart");
+        let chipHtml = "";
+
+        const chipTypes = [
+          { label: '外資買賣超', bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' },
+          { label: '投信買賣超', bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' },
+          { label: '自營自行買賣', bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' }
+        ];
+
+        chipTypes.forEach(type => {
+          let nets = chronDates.map(d => {
+            const row = myChipsRaw.find(c => String(c.date) === d);
+            if (!row) return 0;
+            return Math.round((row[type.bKey]||0)/1000) - Math.round((row[type.sKey]||0)/1000);
+          });
+
+          let absMax = Math.max(...nets.map(Math.abs), 1);
+
+          chipHtml += `
+            <div class="border border-slate-100 p-2.5 rounded-lg bg-slate-50/50">
+              <span class="text-[11px] font-black text-slate-700 block mb-2">📊 ${type.label}</span>
+              <div class="flex items-center justify-between h-14 bg-white rounded border border-slate-200 px-2 relative overflow-x-auto scrollbar-none">
+                <div class="absolute left-0 right-0 h-[1px] bg-slate-300 top-1/2"></div>
+                ${nets.map((netValue, i) => {
+                  const isPositive = netValue >= 0;
+                  const heightPct = Math.min(Math.round((Math.abs(netValue) / absMax) * 100), 100);
+                  const barStyle = isPositive 
+                    ? `height: ${heightPct / 2}%; margin-bottom: auto; transform: translateY(100%);` 
+                    : `height: ${heightPct / 2}%; margin-top: auto; transform: translateY(100%);`;
+                  const colorClass = isPositive ? type.color : type.negColor;
+                  const signStr = isPositive && netValue > 0 ? `+${netValue}` : netValue;
+                  const valColor = netValue > 0 ? 'text-rose-600' : (netValue < 0 ? 'text-emerald-600' : 'text-slate-400');
+
+                  return `
+                    <div class="flex flex-col items-center flex-1 min-w-[32px] max-w-[50px] h-full justify-center relative group">
+                      <div class="w-4 ${colorClass} rounded-xs transition-all group-hover:opacity-80 shadow-2xs" style="${barStyle}"></div>
+                      <span class="text-[8px] font-black ${valColor} absolute ${isPositive ? 'bottom-[55%]' : 'top-[55%]'} z-10 tracking-tighter bg-white/90 px-0.5 rounded shadow-3xs scale-90 whitespace-nowrap">${signStr}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        });
+        chipChartEl.innerHTML = chipHtml;
+      } else {
+        priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
+        document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
+        priceDatesEl.innerHTML = "";
+      }
+
+      // --- C. 同步向外抓取新聞數據 ---
       const listZone = document.getElementById("newsListZone");
       const contentZone = document.getElementById("newsContentZone");
-      
       listZone.classList.remove("hidden");
       contentZone.classList.add("hidden");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
-      document.getElementById("newsModal").classList.remove("hidden");
 
       try {
         const targetQuery = `${stockId} ${stockName}`;
