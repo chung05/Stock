@@ -45,13 +45,13 @@
         
         <div id="trendZone" class="block space-y-4 min-h-[420px] md:min-h-0">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-            <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價收盤走勢</h4>
+            <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日，手機版可左右滑動)</h4>
             
             <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[640px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
                 </div>
-                <div id="trendPriceDates" class="flex justify-between text-xs text-slate-900 font-black mt-1.5 w-full w-full"></div>
+                <div id="trendPriceDates" class="flex justify-between text-xs text-slate-900 font-black mt-1.5 w-full"></div>
               </div>
             </div>
             
@@ -59,7 +59,7 @@
 
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 法人三大籌碼買賣超能量 (張)</h4>
               <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                 <button id="subTabF" onclick="switchChipSubTab('f')" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
                 <button id="subTabIT" onclick="switchChipSubTab('it')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
@@ -76,18 +76,6 @@
 
         <div id="newsZone" class="hidden min-h-[420px] md:min-h-0">
           <div id="newsListZone" class="space-y-3"></div>
-          
-          <div id="newsContentZone" class="hidden">
-            <button onclick="backToNewsList()" class="text-xs font-bold text-blue-600 hover:text-blue-800 mb-3 flex items-center gap-1 cursor-pointer">
-              ⬅ 返回新聞列表
-            </button>
-            <h4 id="innerNewsTitle" class="text-base font-black text-slate-950 mb-2 leading-snug text-left"></h4>
-            <div class="text-[11px] text-slate-400 font-medium mb-4 flex gap-3">
-              <span id="innerNewsDate"></span>
-              <span id="innerNewsSource"></span>
-            </div>
-            <div id="innerNewsContent" class="text-sm text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-200/60"></div>
-          </div>
         </div>
 
       </div>
@@ -201,6 +189,7 @@
       updateDisplayDates(recentDates[0]);
     }
 
+    // 更新顯示日期
     function updateDisplayDates(startDateStr) {
       const el = document.getElementById("chipUpdateTime");
       const elMob = document.getElementById("chipUpdateTimeMob");
@@ -680,7 +669,6 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            // 💡 需求 4：將走勢圖日期的文字樣式改為 text-slate-900 font-black 純黑體顯性標示
             dateHtml += `<span class="flex-1 text-center font-black text-xs text-slate-900 truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
@@ -699,9 +687,6 @@
       }
 
       const listZone = document.getElementById("newsListZone");
-      const contentZone = document.getElementById("newsContentZone");
-      listZone.classList.remove("hidden");
-      contentZone.classList.add("hidden");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
       try {
@@ -725,7 +710,6 @@
             timestamp: pubDate.getTime(),
             source: item.author || "財經媒體",
             title: item.title,
-            content: item.description ? item.description.replace(/<[^>]*>/g, '') : "點選下方按鈕直接閱讀原文詳細內文報導。",
             link: item.link 
           };
         });
@@ -734,15 +718,16 @@
         activeNewsData = mappedNews;
 
         let listHtml = "";
-        activeNewsData.forEach((news, idx) => {
+        activeNewsData.forEach((news) => {
+          // 💡 優化 1：直接在列表標題的 <a> 標籤中加入 href 與 target="_blank"，讓使用者一鍵直接在新視窗開啟第三方報導頁面，移除二層摘要
           listHtml += `
-            <div onclick="showNewsDetail(${idx})" class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+            <a href="${news.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
               <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
                 <span>📅 ${news.date}</span>
                 <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
               </div>
-              <h4 class="text-sm font-extrabold text-slate-900 leading-snug group-hover/item:text-blue-600 group-hover/item:underline">${news.title}</h4>
-            </div>
+              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
+            </a>
           `;
         });
         listZone.innerHTML = listHtml;
@@ -804,7 +789,6 @@
                 <div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div>
                 <span class="text-xs font-black ${valColor} mt-1 tracking-tighter whitespace-nowrap">${signStr}</span>
               ` : ''}
-              
               <span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter pointer-events-none">${datePart}</span>
             </div>
           </div>
@@ -819,33 +803,6 @@
           </div>
         </div>
       `;
-    }
-
-    function showNewsDetail(index) {
-      const news = activeNewsData[index];
-      if (!news) return;
-
-      document.getElementById("newsListZone").classList.add("hidden");
-      const contentZone = document.getElementById("newsContentZone");
-      contentZone.classList.remove("hidden");
-
-      document.getElementById("innerNewsTitle").innerText = news.title;
-      document.getElementById("innerNewsDate").innerText = `發布日期：${news.date}`;
-      document.getElementById("innerNewsSource").innerText = `新聞來源：${news.source}`;
-      
-      document.getElementById("innerNewsContent").innerHTML = `
-        <div class="font-normal text-slate-700 text-left leading-relaxed">${news.content}</div>
-        <div class="mt-6 pt-4 border-t border-slate-200 text-center">
-          <a href="${news.link}" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs cursor-pointer">
-            🌐 前往原媒體網站閱讀完整報導
-          </a>
-        </div>
-      `;
-    }
-
-    function backToNewsList() {
-      document.getElementById("newsContentZone").classList.add("hidden");
-      document.getElementById("newsListZone").classList.remove("hidden");
     }
 
     function closeNewsModal() {
