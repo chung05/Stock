@@ -452,11 +452,22 @@
         const myChips = globalChipCache.filter(c => String(c.stock_id).trim() === currentIdStr);
 
         let currentPrice = "--";
+        let changeValue = 0; // 💡 漲跌值
+        
         if (recentDates.length > 0) {
           const latestDayData = myChips.find(c => String(c.date) === recentDates[0]);
           if (latestDayData && latestDayData.price !== undefined && latestDayData.price !== null) {
             currentPrice = latestDayData.price;
+            changeValue = latestDayData.change_value || 0;
           }
+        }
+
+        // 💡 建立台股經典漲跌視覺樣式標籤
+        let priceChangeHtml = `<span class="text-slate-500 font-medium"> 0.0</span>`;
+        if (changeValue > 0) {
+          priceChangeHtml = `<span class="text-rose-600 font-bold">▲${changeValue}</span>`;
+        } else if (changeValue < 0) {
+          priceChangeHtml = `<span class="text-emerald-600 font-bold">▼${Math.abs(changeValue)}</span>`;
         }
 
         let sumF = 0, sumFD = 0, sumIT = 0, sumDS = 0, sumDH = 0;
@@ -495,14 +506,15 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        // 💡 調整 1：在第一個 TD 加上 `group` 類別，並在其內的股票代號與名稱區塊加上 `group-hover:text-blue-600 hover:underline` 樣式
-        // 當滑鼠移入時，文字會自動變成深藍色並帶有下底線，提供明顯的可點選網頁視覺回饋。
+        // 💡 調整 1：將代號、名稱改為正統藍色超連結顏色樣式（text-blue-600 / hover:underline），並在下方加入股價與漲跌 HTML 區塊。
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openNewsModal('${item.stock_id}', '${item.stock_name || ''}')" class="group px-1 py-4 border-r border-slate-300 font-mono text-slate-900 bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50/60 transition-colors">
-              <div class="text-sm font-black tracking-tighter text-slate-950 group-hover:text-blue-600 hover:underline">${item.stock_id}</div>
-              <div class="text-[11px] text-slate-600 font-sans mt-0.5 font-extrabold truncate tracking-tighter group-hover:text-blue-600 hover:underline">${item.stock_name || ''}</div>
-              <div class="text-[11px] text-blue-600 font-bold mt-0.5 tracking-tighter">${currentPrice}</div>
+            <td rowspan="5" onclick="openNewsModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
+              <div class="text-sm font-black tracking-tighter text-blue-600 hover:text-blue-800 underline decoration-blue-400/40">${item.stock_id}</div>
+              <div class="text-[11px] font-extrabold mt-0.5 truncate tracking-tighter text-blue-600 hover:text-blue-800 underline decoration-blue-400/40">${item.stock_name || ''}</div>
+              <div class="text-[11px] text-slate-900 font-bold mt-1 tracking-tighter flex items-center justify-center gap-0.5 whitespace-nowrap">
+                <span>${currentPrice}</span> ${priceChangeHtml}
+              </div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
             ${getSumCell(sumF, false)}${fRow}
@@ -529,7 +541,6 @@
       tbody.innerHTML = htmlString;
     }
 
-    // 處理新聞 Popup 的免資料庫即時呼叫邏輯
     async function openNewsModal(stockId, stockName) {
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 即時新聞資訊`;
       const listZone = document.getElementById("newsListZone");
@@ -553,14 +564,12 @@
           return;
         }
 
-        // 💡 調整 2：在 map 處理完新聞資料後，加入時間序的排序邏輯。
-        // 將原始發布日期字串轉為毫秒級時間戳記做比對（b.timestamp - a.timestamp），確保最新發布的新聞被精準排列在最上方。
         let mappedNews = json.items.map(item => {
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
           return {
             date: dateStr,
-            timestamp: pubDate.getTime(), // 紀錄時間戳記供排序使用
+            timestamp: pubDate.getTime(),
             source: item.author || "財經媒體",
             title: item.title,
             content: item.description ? item.description.replace(/<[^>]*>/g, '') : "點選下方按鈕直接閱讀原文詳細內文報導。",
@@ -568,7 +577,6 @@
           };
         });
 
-        // 執行降冪排序 (最新日期放在陣列最前面)
         mappedNews.sort((a, b) => b.timestamp - a.timestamp);
         activeNewsData = mappedNews;
 
