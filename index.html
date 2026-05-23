@@ -25,32 +25,33 @@
   </div>
 
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col border border-slate-100">
-      <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100">
+      
+      <div class="py-2 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
         <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
         <button onclick="closeNewsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
       </div>
 
       <div class="flex border-b border-slate-200 bg-slate-50/50 px-4">
-        <button id="tabBtnTrend" onclick="switchModalTab('trend')" class="py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">
+        <button id="tabBtnTrend" onclick="switchModalTab('trend')" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">
           📈 近期走勢圖
         </button>
-        <button id="tabBtnNews" onclick="switchModalTab('news')" class="py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">
+        <button id="tabBtnNews" onclick="switchModalTab('news')" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">
           📰 財經新聞
         </button>
       </div>
       
       <div class="p-4 overflow-y-auto grow bg-slate-50/30">
         
-        <div id="trendZone" class="block space-y-4">
+        <div id="trendZone" class="block space-y-4 min-h-[420px] md:min-h-0">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-            <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢(20天)</h4>
+            <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日，手機版可左右滑動)</h4>
             
             <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[640px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
                 </div>
-                <div id="trendPriceDates" class="flex justify-between text-xs text-slate-400 font-bold mt-1.5 w-full"></div>
+                <div id="trendPriceDates" class="flex justify-between text-xs text-slate-900 font-black mt-1.5 w-full w-full"></div>
               </div>
             </div>
             
@@ -58,7 +59,7 @@
 
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 法人三大籌碼買賣超能量 (張)</h4>
               <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                 <button id="subTabF" onclick="switchChipSubTab('f')" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
                 <button id="subTabIT" onclick="switchChipSubTab('it')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
@@ -73,7 +74,7 @@
           </div>
         </div>
 
-        <div id="newsZone" class="hidden">
+        <div id="newsZone" class="hidden min-h-[420px] md:min-h-0">
           <div id="newsListZone" class="space-y-3"></div>
           
           <div id="newsContentZone" class="hidden">
@@ -214,7 +215,7 @@
 
       try {
         detailText.innerText = "1. 載入雲端股票名單與成分分類...";
-        const { data: dbData, error: targetError } = await supabaseClient
+        const { data: dbData, error: targetError = null } = await supabaseClient
           .from('stock_targets')
           .select('stock_id, stock_name, sheet_tags')
           .order('stock_id', { ascending: true });
@@ -266,7 +267,7 @@
         let endRange = startRange + batchSize - 1;
         detailText.innerText = `3. 分批載入雲端 20 日寬數據中 (${startRange} ~ ${endRange} 筆)...`;
 
-        const { data, error } = await supabaseClient
+        const { data, error = null } = await supabaseClient
           .from('stock_chips_daily')
           .select('*')
           .in('stock_id', stockIdsInList)
@@ -584,7 +585,7 @@
             ${getSumCell(sumDS, true)}${dsRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
             ${getSumCell(sumDH, false)}${dhRow}
           </tr>
         `;
@@ -600,14 +601,14 @@
       const zoneNews = document.getElementById("newsZone");
 
       if (tabMode === 'trend') {
-        btnTrend.className = "py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
-        btnNews.className = "py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
+        btnTrend.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
+        btnNews.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
         zoneTrend.classList.replace("hidden", "block");
         zoneNews.classList.replace("block", "hidden");
         scrollToLatestTrend();
       } else {
-        btnNews.className = "py-2.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
-        btnTrend.className = "py-2.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
+        btnNews.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
+        btnTrend.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
         zoneTrend.classList.replace("block", "hidden");
         zoneNews.classList.replace("hidden", "block");
       }
@@ -679,7 +680,8 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            dateHtml += `<span class="flex-1 text-center font-bold text-xs truncate px-0.5">${datePart}</span>`;
+            // 💡 需求 4：將走勢圖日期的文字樣式改為 text-slate-900 font-black 純黑體顯性標示
+            dateHtml += `<span class="flex-1 text-center font-black text-xs text-slate-900 truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
           priceDatesEl.innerHTML = dateHtml;
@@ -802,13 +804,13 @@
                 <div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div>
                 <span class="text-xs font-black ${valColor} mt-1 tracking-tighter whitespace-nowrap">${signStr}</span>
               ` : ''}
-              <span class="absolute top-[2px] text-[10px] text-slate-400 font-extrabold tracking-tighter pointer-events-none">${datePart}</span>
+              
+              <span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter pointer-events-none">${datePart}</span>
             </div>
           </div>
         `;
       }).join('');
 
-      // 💡 優化 1：移除 "📈 分頁：..." 資訊文字區塊，並將外殼內襯改為緊湊的 p-1.5 釋放高度
       chipChartEl.innerHTML = `
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full">
           <div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center">
