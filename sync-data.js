@@ -81,9 +81,12 @@ async function run() {
 
     if (err3) throw err3;
 
-    const nativeRecent5Days = getRecentFiveTradeDays();
-    let startDateStr = nativeRecent5Days[nativeRecent5Days.length - 1]; 
-    let endDateStr = nativeRecent5Days[0]; 
+//    const nativeRecent5Days = getRecentFiveTradeDays();
+//    let startDateStr = nativeRecent5Days[nativeRecent5Days.length - 1]; 
+//    let endDateStr = nativeRecent5Days[0]; 
+    // 💡 暫時強制定義區間，確保程式會去抓這段時間的資料
+let startDateStr = '2026-05-04'; 
+let endDateStr = '2026-05-24'; // 抓到目前已有的起點前一天
 
     if (latestDbRow && latestDbRow.length > 0) {
       const lastAvailableDateStr = latestDbRow[0].date;
