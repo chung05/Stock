@@ -15,16 +15,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-function formatDateToString(dateObj) {
-  const yyyy = dateObj.getFullYear();
-  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const dd = String(dateObj.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧增量 + 開高低量】同步流程...");
+    console.log("🚀 開始執行【分批智慧補資料】流程...");
 
     // 1. 載入標的清單
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
@@ -39,53 +32,34 @@ async function run() {
         }
       });
     });
+
     const dbStockData = Array.from(stockMap.values());
+    console.log(`✅ 已載入 ${dbStockData.length} 檔標的。`);
 
-    // 2. 💡 自動化比對機制：檢查資料庫最新日期
-    const { data: latestDbRow } = await supabase
-      .from('stock_chips_daily')
-      .select('date')
-      .order('date', { ascending: false })
-      .limit(1);
-
-    // 設定起點與終點
-    let startDate = new Date('2026-04-01'); // 預設安全起點
-    if (latestDbRow && latestDbRow.length > 0) {
-      let lastDate = new Date(latestDbRow[0].date);
-      lastDate.setDate(lastDate.getDate() + 1); // 從最後日期 + 1 天開始抓
-      startDate = lastDate;
-      console.log(`📊 偵測到資料庫最新日期：${latestDbRow[0].date}，開始補抓：${formatDateToString(startDate)}`);
-    }
-
-    const endDate = new Date(); // 今天
-    const startDateStr = formatDateToString(startDate);
-    const endDateStr = formatDateToString(endDate);
-
-    if (startDate > endDate) {
-      console.log("✅ 資料庫已是最新，無須更新。");
-      return;
-    }
-
-    console.log(`📅 同步區間：${startDateStr} 至 ${endDateStr}`);
+    // 2. 💡 強制設定補資料區間 (5/4 ~ 5/24)
+    const startDateStr = '2026-04-01';
+    const endDateStr = '2026-05-24';
+    console.log(`📅 目標日期區間：${startDateStr} 至 ${endDateStr}`);
 
     const commonHeaders = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
 
-    // 3. 分批執行同步
+    // 3. 開始迴圈與節流處理
     for (let i = 0; i < dbStockData.length; i++) {
       const stock = dbStockData[i];
       
-      // 節流設定：每 15 檔休息 10 秒
+      // 💡 關鍵節流：每處理 15 檔股票，強制休息 10 秒，保護 API 額度
       if (i > 0 && i % 15 === 0) {
-        console.log(`⏳ 已處理 ${i} 檔，為保護 API 額度，暫停 10 秒...`);
+        console.log(`⏳ 已處理 ${i} 檔，為保護 API 額度，強制休息 10 秒...`);
         await sleep(10000);
       }
 
       console.log(`[同步進度] (${i + 1}/${dbStockData.length}) ${stock.stock_id}`);
 
       try {
-        // 法人籌碼
         const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const res = await axios.get(apiUrl, { headers: commonHeaders });
+        
+        if (res.status === 429) { await sleep(5000); i--; continue; }
         
         const dateMap = {};
         if (res.data.status === 200 && Array.isArray(res.data.data)) {
@@ -106,7 +80,6 @@ async function run() {
           });
         }
 
-        // 價格與開高低量
         const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const priceRes = await axios.get(priceApiUrl, { headers: commonHeaders });
         
@@ -117,14 +90,19 @@ async function run() {
             const pRow = priceRes.data.data[pIdx];
             const d = pRow.date;
             
-            if (!dateMap[d]) dateMap[d] = { stock_id: stock.stock_id, date: d };
-            
-            dateMap[d].price = pRow.close;
-            dateMap[d].open = pRow.open;
-            dateMap[d].max = pRow.max;
-            dateMap[d].min = pRow.min;
-            dateMap[d].trading_volume = pRow.Trading_Volume;
-            dateMap[d].change_value = pRow.spread || 0;
+            if (dateMap[d]) {
+              dateMap[d].price = pRow.close;
+              dateMap[d].open = pRow.open;
+              dateMap[d].max = pRow.max;
+              dateMap[d].min = pRow.min;
+              dateMap[d].trading_volume = pRow.Trading_Volume;
+              
+              if (pIdx > 0) {
+                dateMap[d].change_value = Number((pRow.close - priceRes.data.data[pIdx - 1].close).toFixed(2));
+              } else {
+                dateMap[d].change_value = pRow.spread || 0;
+              }
+            }
           }
         }
 
@@ -132,12 +110,13 @@ async function run() {
         if (rowsToUpsert.length > 0) {
           await supabase.from('stock_chips_daily').upsert(rowsToUpsert);
         }
+
       } catch (err) {
         console.error(`❌ 同步 ${stock.stock_id} 錯誤: ${err.message}`);
       }
       await sleep(200); 
     }
-    console.log("🎉 智慧增量同步完成！");
+    console.log("🎉 補資料同步完成！");
   } catch (error) {
     console.error("❌ 流程中斷:", error);
   }
