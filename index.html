@@ -71,7 +71,7 @@
               </div>
             </div>
             
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[640px]">
               </div>
             </div>
@@ -103,7 +103,7 @@
       
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
-        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛 analysis 站</h1>
       </div>
       
       <div class="flex items-center gap-4 shrink-0 min-w-0">
@@ -746,6 +746,44 @@
       }
     }
 
+    // 💡 控制新聞列表隱藏，並在同一個視窗內展開閱讀詳細摘要的函數
+    function showNewsDetail(index) {
+      const news = activeNewsData[index];
+      if (!news) return;
+
+      document.getElementById("newsListZone").classList.add("hidden");
+      const contentZone = document.getElementById("newsContentZone");
+      contentZone.classList.remove("hidden");
+
+      document.getElementById("innerNewsTitle").innerText = news.title;
+      document.getElementById("innerNewsDate").innerText = `發布日期：${news.date}`;
+      document.getElementById("innerNewsSource").innerText = `新聞來源：${news.source}`;
+      
+      document.getElementById("innerNewsContent").innerHTML = `
+        <div class="font-normal text-slate-700 text-left leading-relaxed text-sm">${news.content}</div>
+        <div class="mt-6 pt-3 border-t border-slate-200 text-center">
+          <a href="${news.link}" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs cursor-pointer">
+            🌐 前往原媒體網站閱讀完整報導
+          </a>
+        </div>
+      `;
+    }
+
+    // 💡 點擊返回按鈕時，收合詳細頁並重新亮出新聞列表
+    function backToNewsList() {
+      document.getElementById("newsContentZone").classList.add("hidden");
+      document.getElementById("newsListZone").classList.remove("hidden");
+    }
+
+    // 💡 關閉 Modal 時，順便將新聞詳細頁狀態重設，確保下次點開時一定是從列表頁開始
+    function closeNewsModal() {
+      document.getElementById("newsModal").classList.add("hidden");
+      setTimeout(() => {
+        document.getElementById("newsContentZone").classList.add("hidden");
+        document.getElementById("newsListZone").classList.remove("hidden");
+      }, 200);
+    }
+
     function renderChipTrendChart() {
       const chipChartEl = document.getElementById("trendChipChart");
       if (!chipChartEl || !currentActiveStockId) return;
@@ -811,44 +849,6 @@
           </div>
         </div>
       `;
-    }
-
-    // 💡 控制新聞列表隱藏，並在同一個視窗內展開閱讀詳細摘要的函數
-    function showNewsDetail(index) {
-      const news = activeNewsData[index];
-      if (!news) return;
-
-      document.getElementById("newsListZone").classList.add("hidden");
-      const contentZone = document.getElementById("newsContentZone");
-      contentZone.classList.remove("hidden");
-
-      document.getElementById("innerNewsTitle").innerText = news.title;
-      document.getElementById("innerNewsDate").innerText = `發布日期：${news.date}`;
-      document.getElementById("innerNewsSource").innerText = `新聞來源：${news.source}`;
-      
-      document.getElementById("innerNewsContent").innerHTML = `
-        <div class="font-normal text-slate-700 text-left leading-relaxed">${news.content}</div>
-        <div class="mt-6 pt-4 border-t border-slate-200 text-center">
-          <a href="${news.link}" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs cursor-pointer">
-            🌐 前往原媒體網站閱讀完整報導
-          </a>
-        </div>
-      `;
-    }
-
-    // 💡 點擊返回按鈕時，收合詳細頁並重新亮出新聞列表
-    function backToNewsList() {
-      document.getElementById("newsContentZone").classList.add("hidden");
-      document.getElementById("newsListZone").classList.remove("hidden");
-    }
-
-    // 💡 關閉 Modal 時，順便將新聞詳細頁狀態重設，確保下次點開時一定是從列表頁開始
-    function closeNewsModal() {
-      document.getElementById("newsModal").classList.add("hidden");
-      setTimeout(() => {
-        document.getElementById("newsContentZone").classList.add("hidden");
-        document.getElementById("newsListZone").classList.remove("hidden");
-      }, 200);
     }
   </script>
 </body>
