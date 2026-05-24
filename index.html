@@ -3,10 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  
   <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -51,7 +47,7 @@
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日，手機版可左右滑動)</h4>
             
-            <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[640px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
                 </div>
@@ -71,7 +67,7 @@
               </div>
             </div>
             
-            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[640px]">
               </div>
             </div>
@@ -193,6 +189,7 @@
       updateDisplayDates(recentDates[0]);
     }
 
+    // 更新顯示日期
     function updateDisplayDates(startDateStr) {
       const el = document.getElementById("chipUpdateTime");
       const elMob = document.getElementById("chipUpdateTimeMob");
@@ -693,7 +690,7 @@
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
       try {
-        const targetQuery = `"${stockId}" OR "${stockName}"`;
+        const targetQuery = `${stockId} ${stockName}`;
         const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
         const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
@@ -709,7 +706,7 @@
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
           return {
-            date: dateStr, // 💡 關鍵修復點：上一版漏掉了這個欄位映射，導致 forEach 渲染崩潰
+            date: dateStr,
             timestamp: pubDate.getTime(),
             source: item.author || "財經媒體",
             title: item.title,
@@ -722,8 +719,9 @@
 
         let listHtml = "";
         activeNewsData.forEach((news) => {
-          listHtml += `
-            <div onclick="window.open('${news.link}', 'news_popup', 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no')" 
+          // 💡 優化 1：直接在列表標題的 <a> 標籤中加入 href 與 target="_blank"，讓使用者一鍵直接在新視窗開啟第三方報導頁面，移除二層摘要
+listHtml += `
+            <div onclick="window.open('${news.link}', 'news_popup', 'width=800,height=700,scrollbars=yes,resizable=yes')" 
                  class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
               <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
                 <span>📅 ${news.date}</span>
