@@ -610,13 +610,13 @@
       renderChipTrendChart();
     }
 
-    function scrollToLatestTrend() {
+function scrollToLatestTrend() {
       setTimeout(() => {
         const pWrapper = document.getElementById("priceScrollWrapper");
         const cWrapper = document.getElementById("chipScrollWrapper");
         if (pWrapper) pWrapper.scrollLeft = pWrapper.scrollWidth;
         if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
-      }, 60);
+      }, 200);
     }
 
     async function openCombinedModal(stockId, stockName) {
@@ -670,8 +670,10 @@
           priceDatesEl.innerHTML = "";
         }
 
-        renderChipTrendChart();
+renderChipTrendChart();
+        // 💡 修正後：多加一組保險觸發，確保在複合資料完全載入後的不同生命週期，都能強迫滑動條 Focus 在最新日期
         scrollToLatestTrend();
+        setTimeout(scrollToLatestTrend, 350);
       } else {
         priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
         document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
