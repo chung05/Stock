@@ -103,7 +103,7 @@
       
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
-        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛 analysis 站</h1>
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
       </div>
       
       <div class="flex items-center gap-4 shrink-0 min-w-0">
@@ -620,6 +620,7 @@
       renderChipTrendChart();
     }
 
+    // 💡 修正後：新到舊模式下最新日期在最左側，scrollLeft 歸 0 即可立即看見最新資訊
     function scrollToLatestTrend() {
       setTimeout(() => {
         const pWrapper = document.getElementById("priceScrollWrapper");
@@ -707,7 +708,7 @@
           return;
         }
 
-        // 💡 智慧修正：精準對應、整理新聞，並確實提取 description 的摘要文字
+        // 💡 整理新聞，並確實提取 description 的摘要文字
         let mappedNews = json.items.map(item => {
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
@@ -726,7 +727,7 @@
 
         let listHtml = "";
         activeNewsData.forEach((news, idx) => {
-          // 💡 點選標題時呼叫 showNewsDetail(idx)，於同個視窗無縫換頁，不跳出新網頁
+          // 💡 點選標題時呼叫 showNewsDetail(idx)，於同個視窗無縫換頁，不外跳新網頁
           listHtml += `
             <div onclick="showNewsDetail(${idx})" 
                  class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
