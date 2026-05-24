@@ -1,13 +1,12 @@
-
 name: Daily Stock Data Sync
 
 on:
-schedule:
-    # 第一段：例如 16:00 執行
+  schedule:
+    # 第一段：16:00 執行
     - cron: '0 16 * * *' 
-    # 第二段：間隔 1.5 小時，例如 17:30 執行
+    # 第二段：17:30 執行
     - cron: '30 17 * * *'
-  workflow_dispatch: # 允許您在 GitHub 網頁上手動點擊按鈕進行測試
+  workflow_dispatch: # 必須與 schedule 同級，且前面要有正確的縮排
 
 jobs:
   build-and-sync:
@@ -35,4 +34,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
