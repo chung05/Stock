@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
   <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -47,7 +51,7 @@
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價收盤趨勢走勢 (最多呈現20日，手機版可左右滑動)</h4>
             
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[640px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
                 </div>
@@ -189,7 +193,6 @@
       updateDisplayDates(recentDates[0]);
     }
 
-    // 更新顯示日期
     function updateDisplayDates(startDateStr) {
       const el = document.getElementById("chipUpdateTime");
       const elMob = document.getElementById("chipUpdateTimeMob");
@@ -242,42 +245,31 @@
       }
     }
 
+    // 💡 智慧修復：將股票清單分組（每組50檔）進行大批次平行查詢，完美解決 Supabase 的大範圍分頁 Bug！
     async function fetchAllChipsFromSupabase() {
       if (extendedTrendDates.length === 0 || dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
-      const stockIdsInList = dbStockData.map(s => String(s.stock_id).trim());
       
       let allChipsFetched = [];
-      let startRange = 0;
-      const batchSize = 3000;
-      let keepFetching = true;
+      const stockIds = dbStockData.map(s => String(s.stock_id).trim());
+      
+      // 每 50 檔股票切成一組，避免單次 .in() 的參數長度與效能限制
+      const chunkSize = 50; 
+      for (let i = 0; i < stockIds.length; i += chunkSize) {
+        const chunkIds = stockIds.slice(i, i + chunkSize);
+        detailText.innerText = `3. 正在同步雲端核心籌碼數據 (${Math.min(i + chunkSize, stockIds.length)} / ${stockIds.length} 檔)...`;
 
-      while (keepFetching) {
-        let endRange = startRange + batchSize - 1;
-        detailText.innerText = `3. 分批載入雲端 20 日寬數據中 (${startRange} ~ ${endRange} 筆)...`;
-
-        const { data, error = null } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('stock_chips_daily')
           .select('*')
-          .in('stock_id', stockIdsInList)
-          .in('date', extendedTrendDates) 
-          .range(startRange, endRange);
+          .in('stock_id', chunkIds)
+          .in('date', extendedTrendDates);
 
         if (error) {
-          console.error("分批讀取寬表雲端快取異常:", error);
+          console.error("讀取雲端快取晶片數據異常:", error);
           break;
         }
-
-        if (data && data.length > 0) {
-          allChipsFetched = allChipsFetched.concat(data);
-          if (data.length < batchSize) {
-            keepFetching = false;
-          } else {
-            startRange += batchSize;
-          }
-        } else {
-          keepFetching = false;
-        }
+        if (data) allChipsFetched = allChipsFetched.concat(data);
       }
 
       globalChipCache = allChipsFetched;
@@ -690,7 +682,7 @@
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
       try {
-        const targetQuery = `${stockId} ${stockName}`;
+        const targetQuery = `"${stockId}" OR "${stockName}"`;
         const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
         const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
@@ -706,7 +698,7 @@
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
           return {
-            date: dateStr,
+            date: dateStr, 
             timestamp: pubDate.getTime(),
             source: item.author || "財經媒體",
             title: item.title,
@@ -719,9 +711,8 @@
 
         let listHtml = "";
         activeNewsData.forEach((news) => {
-          // 💡 優化 1：直接在列表標題的 <a> 標籤中加入 href 與 target="_blank"，讓使用者一鍵直接在新視窗開啟第三方報導頁面，移除二層摘要
-listHtml += `
-            <div onclick="window.open('${news.link}', 'news_popup', 'width=800,height=700,scrollbars=yes,resizable=yes')" 
+          listHtml += `
+            <div onclick="window.open('${news.link}', 'news_popup', 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no')" 
                  class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
               <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
                 <span>📅 ${news.date}</span>
