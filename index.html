@@ -686,11 +686,13 @@
         priceDatesEl.innerHTML = "";
       }
 
+// --- 修正與優化後的新聞抓取與渲染區塊 ---
       const listZone = document.getElementById("newsListZone");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
       try {
-        const targetQuery = `${stockId} ${stockName}`;
+        // 1. 【優化問題 1】: 將查詢語法改為 OR 聯集，大幅增加個股新聞被成功檢索的機率
+        const targetQuery = `"${stockId}" OR "${stockName}"`;
         const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
         const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
@@ -713,6 +715,31 @@
             link: item.link 
           };
         });
+
+        mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+        activeNewsData = mappedNews;
+
+        let listHtml = "";
+        activeNewsData.forEach((news) => {
+          // 2. 【優化問題 2】: 移除 <a> 標籤，改用 onclick 觸發 window.open 小懸浮窗 (寬 800, 高 700)
+          // status=no, location=no 可使視窗更為精簡純淨，完美達成 Popup 的流暢連貫體驗
+          listHtml += `
+            <div onclick="window.open('${news.link}', 'news_popup', 'width=800,height=700,scrollbars=yes,resizable=yes,status=no,location=no')" 
+                 class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+              <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+                <span>📅 ${news.date}</span>
+                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
+              </div>
+              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
+            </div>
+          `;
+        });
+        listZone.innerHTML = listHtml;
+
+      } catch (err) {
+        console.error("即時抓取新聞發生異常:", err);
+        listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
+      }
 
         mappedNews.sort((a, b) => b.timestamp - a.timestamp);
         activeNewsData = mappedNews;
