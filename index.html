@@ -45,9 +45,9 @@
         </button>
       </div>
       
-<div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30">
+      <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative">
         
-        <div id="trendZone" class="block space-y-4 min-h-[460px] md:min-h-0">
+        <div id="trendZone" class="block space-y-4">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
             
@@ -71,26 +71,31 @@
               </div>
             </div>
             
-            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[640px]">
               </div>
             </div>
           </div>
         </div>
 
-        <div id="newsZone" class="hidden min-h-[460px] md:min-h-0">
-          <div id="newsListZone" class="space-y-3"></div>
+        <div id="newsZone" class="hidden relative h-full w-full">
+          <div id="newsListZone" class="space-y-3 block w-full"></div>
           
-          <div id="newsContentZone" class="hidden">
-            <button onclick="backToNewsList()" class="text-xs font-bold text-blue-600 hover:text-blue-800 mb-3 flex items-center gap-1 cursor-pointer">
-              ⬅ 返回新聞列表
-            </button>
-            <h4 id="innerNewsTitle" class="text-base font-black text-slate-950 mb-2 leading-snug text-left"></h4>
-            <div class="text-[11px] text-slate-400 font-medium mb-4 flex gap-3">
-              <span id="innerNewsDate"></span>
-              <span id="innerNewsSource"></span>
+          <div id="newsContentZone" class="hidden absolute inset-0 bg-slate-50 z-30 flex flex-col w-full h-full animate-fade-in">
+            <div class="mb-3 shrink-0">
+              <button onclick="backToNewsList()" class="text-xs font-black text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-3xs transition-all">
+                ⬅ 返回新聞列表
+              </button>
             </div>
-            <div id="innerNewsContent" class="text-sm text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-200/60"></div>
+            
+            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-y-auto grow flex flex-col text-left">
+              <h4 id="innerNewsTitle" class="text-base md:text-lg font-black text-slate-950 mb-2 leading-snug"></h4>
+              <div class="text-xs text-slate-400 font-bold mb-4 flex gap-4 border-b border-slate-100 pb-2 shrink-0">
+                <span id="innerNewsDate"></span>
+                <span id="innerNewsSource" class="px-1.5 bg-slate-100 text-slate-600 rounded"></span>
+              </div>
+              <div id="innerNewsContent" class="text-sm md:text-base text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50 p-3.5 rounded-xl border border-slate-200/60 grow overflow-y-auto"></div>
+            </div>
           </div>
         </div>
 
@@ -620,7 +625,6 @@
       renderChipTrendChart();
     }
 
-    // 💡 修正後：新到舊模式下最新日期在最左側，scrollLeft 歸 0 即可立即看見最新資訊
     function scrollToLatestTrend() {
       setTimeout(() => {
         const pWrapper = document.getElementById("priceScrollWrapper");
@@ -639,7 +643,6 @@
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
-      // 💡 確保時間軸保持由新到舊（最新日期排在最左側）
       const chronDates = [...availableTrendDates];
 
       const priceChartEl = document.getElementById("trendPriceChart");
@@ -673,7 +676,6 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            // 💡 將走勢圖日期的文字樣式改為 text-slate-900 font-black 純黑體顯性標示
             dateHtml += `<span class="flex-1 text-center font-black text-xs text-slate-900 truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
@@ -708,7 +710,6 @@
           return;
         }
 
-        // 💡 整理新聞，並確實提取 description 的摘要文字
         let mappedNews = json.items.map(item => {
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
@@ -727,7 +728,6 @@
 
         let listHtml = "";
         activeNewsData.forEach((news, idx) => {
-          // 💡 點選標題時呼叫 showNewsDetail(idx)，於同個視窗無縫換頁，不外跳新網頁
           listHtml += `
             <div onclick="showNewsDetail(${idx})" 
                  class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
@@ -747,7 +747,7 @@
       }
     }
 
-    // 💡 控制新聞列表隱藏，並在同一個視窗內展開閱讀詳細摘要的函數
+    // 💡 修正與功能重構：將外部報導摘要在視窗就地切換展現
     function showNewsDetail(index) {
       const news = activeNewsData[index];
       if (!news) return;
@@ -770,13 +770,11 @@
       `;
     }
 
-    // 💡 點擊返回按鈕時，收合詳細頁並重新亮出新聞列表
     function backToNewsList() {
       document.getElementById("newsContentZone").classList.add("hidden");
       document.getElementById("newsListZone").classList.remove("hidden");
     }
 
-    // 💡 關閉 Modal 時，順便將新聞詳細頁狀態重設，確保下次點開時一定是從列表頁開始
     function closeNewsModal() {
       document.getElementById("newsModal").classList.add("hidden");
       setTimeout(() => {
