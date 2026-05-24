@@ -2,10 +2,11 @@
 name: Daily Stock Data Sync
 
 on:
-  schedule:
-    # 台灣時間每天下午 16:30 (收盤後籌碼皆已公布) 
-    # 轉換成 UTC 時間為 08:30
-    - cron: '30 8 * * *'
+schedule:
+    # 第一段：例如 16:00 執行
+    - cron: '0 16 * * *' 
+    # 第二段：間隔 1.5 小時，例如 17:30 執行
+    - cron: '30 17 * * *'
   workflow_dispatch: # 允許您在 GitHub 網頁上手動點擊按鈕進行測試
 
 jobs:
