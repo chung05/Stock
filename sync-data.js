@@ -15,114 +15,57 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-function formatDateToString(dateObj) {
-  const yyyy = dateObj.getFullYear();
-  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const dd = String(dateObj.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function getRecentFiveTradeDays() {
-  let dates = [];
-  let d = new Date();
-  while(dates.length < 5) {
-    let day = d.getDay();
-    if (day !== 0 && day !== 6) { 
-      dates.push(formatDateToString(d));
-    }
-    d.setDate(d.getDate() - 1);
-  }
-  return dates;
-}
-
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧型動態增量 + 股價開高低量】同步總流程...");
+    console.log("🚀 開始執行【分批智慧補資料】流程...");
 
-    console.log("1. 正在下載並解析 Excel 標的名單...");
+    // 1. 載入標的清單
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
     const workbook = XLSX.read(response.data, { type: 'buffer' });
     const stockMap = new Map();
-
     workbook.SheetNames.forEach(sheetName => {
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      jsonData.forEach(row => {
+      XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]).forEach(row => {
         const stockId = String(row['股票代號'] || row['代號'] || '').trim();
         const stockName = String(row['股票名稱'] || row['名稱'] || '').trim();
         if (stockId && stockName) {
-          if (stockMap.has(stockId)) {
-            const item = stockMap.get(stockId);
-            if (!item.sheet_tags.includes(sheetName)) item.sheet_tags.push(sheetName);
-          } else {
-            stockMap.set(stockId, { stock_id: stockId, stock_name: stockName, sheet_tags: [sheetName], updated_at: new Date().toISOString() });
-          }
+          stockMap.set(stockId, { stock_id: stockId, stock_name: stockName, sheet_tags: [sheetName], updated_at: new Date().toISOString() });
         }
       });
     });
 
-    const rowsToUpload = Array.from(stockMap.values());
-    if (rowsToUpload.length > 0) {
-      const { error: err1 } = await supabase.from('stock_targets').upsert(rowsToUpload, { onConflict: 'stock_id' });
-      if (err1) throw err1;
-    }
+    const dbStockData = Array.from(stockMap.values());
+    console.log(`✅ 已載入 ${dbStockData.length} 檔標的。`);
 
-    const { data: dbStockData, error: err2 } = await supabase.from('stock_targets').select('stock_id, stock_name').order('stock_id', { ascending: true });
-    if (err2) throw err2;
-
-    if (!dbStockData || dbStockData.length === 0) return;
-
-    console.log("2. 正在向資料庫比對目前的最新數據日期...");
-    const { data: latestDbRow, error: err3 } = await supabase
-      .from('stock_chips_daily')
-      .select('date')
-      .order('date', { ascending: false })
-      .limit(1);
-
-    if (err3) throw err3;
-
-//    const nativeRecent5Days = getRecentFiveTradeDays();
-//    let startDateStr = nativeRecent5Days[nativeRecent5Days.length - 1]; 
-//    let endDateStr = nativeRecent5Days[0]; 
-    // 💡 暫時強制定義區間，確保程式會去抓這段時間的資料
-let startDateStr = '2026-05-04'; 
-let endDateStr = '2026-05-24'; // 抓到目前已有的起點前一天
-
-    if (latestDbRow && latestDbRow.length > 0) {
-      const lastAvailableDateStr = latestDbRow[0].date;
-      if (lastAvailableDateStr === endDateStr) {
-        startDateStr = endDateStr; 
-      } else {
-        let nextDay = new Date(lastAvailableDateStr);
-        nextDay.setDate(nextDay.getDate() + 1);
-        startDateStr = formatDateToString(nextDay);
-      }
-    }
-
-    let priceStartDateObj = new Date(startDateStr);
-    priceStartDateObj.setDate(priceStartDateObj.getDate() - 4);
-    let priceStartDateStr = formatDateToString(priceStartDateObj);
-
-    console.log(`🚀 執行 FinMind 同步區間：${startDateStr} 至 ${endDateStr}`);
+    // 2. 💡 強制設定補資料區間 (5/4 ~ 5/24)
+    const startDateStr = '2026-05-04';
+    const endDateStr = '2026-05-24';
+    console.log(`📅 目標日期區間：${startDateStr} 至 ${endDateStr}`);
 
     const commonHeaders = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
 
+    // 3. 開始迴圈與節流處理
     for (let i = 0; i < dbStockData.length; i++) {
       const stock = dbStockData[i];
-      console.log(`[增量同步] (${i + 1}/${dbStockData.length}) ${stock.stock_id}`);
+      
+      // 💡 關鍵節流：每處理 15 檔股票，強制休息 10 秒，保護 API 額度
+      if (i > 0 && i % 15 === 0) {
+        console.log(`⏳ 已處理 ${i} 檔，為保護 API 額度，強制休息 10 秒...`);
+        await sleep(10000);
+      }
+
+      console.log(`[同步進度] (${i + 1}/${dbStockData.length}) ${stock.stock_id}`);
 
       try {
         const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const res = await axios.get(apiUrl, { headers: commonHeaders });
         
-        if (res.status === 429) { await sleep(4000); i--; continue; } 
+        if (res.status === 429) { await sleep(5000); i--; continue; }
         
         const dateMap = {};
         if (res.data.status === 200 && Array.isArray(res.data.data)) {
           res.data.data.forEach(row => {
             const d = row.date;
             if (!dateMap[d]) {
-              // 💡 修正後：初始化結構已包含新增的四個欄位
               dateMap[d] = { 
                 stock_id: stock.stock_id, date: d, price: null, change_value: 0, 
                 f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0,
@@ -137,7 +80,7 @@ let endDateStr = '2026-05-24'; // 抓到目前已有的起點前一天
           });
         }
 
-        const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${priceStartDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
+        const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const priceRes = await axios.get(priceApiUrl, { headers: commonHeaders });
         
         if (priceRes.data.status === 200 && Array.isArray(priceRes.data.data)) {
@@ -149,7 +92,6 @@ let endDateStr = '2026-05-24'; // 抓到目前已有的起點前一天
             
             if (dateMap[d]) {
               dateMap[d].price = pRow.close;
-              // 💡 新增：正確填入開高低量
               dateMap[d].open = pRow.open;
               dateMap[d].max = pRow.max;
               dateMap[d].min = pRow.min;
@@ -170,14 +112,13 @@ let endDateStr = '2026-05-24'; // 抓到目前已有的起點前一天
         }
 
       } catch (err) {
-        console.error(`❌ 同步 ${stock.stock_id} 錯誤:`, err.message);
+        console.error(`❌ 同步 ${stock.stock_id} 錯誤: ${err.message}`);
       }
       await sleep(200); 
     }
-    console.log("🎉 同步完成！");
+    console.log("🎉 補資料同步完成！");
   } catch (error) {
     console.error("❌ 流程中斷:", error);
-    process.exit(1);
   }
 }
 
