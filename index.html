@@ -78,21 +78,8 @@
           </div>
         </div>
 
-        <div id="newsZone" class="hidden h-full w-full relative grow flex flex-col">
-          <div id="newsListZone" class="space-y-3 block w-full h-full overflow-y-auto"></div>
-          
-          <div id="newsContentZone" class="hidden absolute inset-0 bg-slate-50 z-30 flex flex-col w-full h-full">
-            <div class="mb-2 shrink-0 flex items-center justify-between">
-              <button onclick="backToNewsList()" class="text-xs font-black text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-3xs transition-all">
-                ⬅ 返回新聞列表
-              </button>
-              <span class="text-[11px] text-slate-400 font-bold bg-slate-200/60 px-2 py-0.5 rounded">內文無縫整合看板</span>
-            </div>
-            
-            <div class="bg-white border border-slate-200 rounded-xl shadow-xs grow overflow-hidden flex flex-col">
-              <iframe id="newsIframeContainer" src="" class="w-full h-full border-0 grow"></iframe>
-            </div>
-          </div>
+        <div id="newsZone" class="hidden h-full w-full overflow-y-auto grow">
+          <div id="newsListZone" class="space-y-3 block w-full"></div>
         </div>
 
       </div>
@@ -695,7 +682,6 @@
 
       try {
         const targetQuery = `"${stockId}" OR "${stockName}"`;
-        // 💡 體驗大改造：將搜尋源直接改為 Google Mobile 最佳化代理架構，避開各家媒體在桌面端的封鎖保護
         const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
         const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
@@ -711,18 +697,12 @@
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
 
-          // 將 Google RSS 提供的閱讀跳轉點洗滌為最純淨的直通通道
-          let finalLink = item.link;
-          if (finalLink.includes("news.google.com")) {
-            finalLink = item.link.replace("news.google.com/rss/articles/", "news.google.com/articles/");
-          }
-
           return {
             date: dateStr, 
             timestamp: pubDate.getTime(),
             source: item.author || "財經媒體",
             title: item.title,
-            link: finalLink 
+            link: item.link 
           };
         });
 
@@ -730,16 +710,19 @@
         activeNewsData = mappedNews;
 
         let listHtml = "";
-        activeNewsData.forEach((news, idx) => {
+        activeNewsData.forEach((news) => {
+          // 💡 終極優化點：改回最純粹的超連結結構，點擊新聞標題時，直接開啟新網頁完整觀看。
+          // 由於主網頁加入了禁止快取機制，不論手機版還是電腦版，看完新聞隨手按一下原生瀏覽器的「返回鍵」
+          // 主畫面就會毫無縫隙地秒速跳回剛剛的列表狀態，不需要操作兩次、也絕對不會被伺服器阻擋！
           listHtml += `
-            <div onclick="showNewsDetail(${idx})" 
-                 class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+            <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
+               class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
               <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
                 <span>📅 ${news.date}</span>
                 <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
               </div>
               <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
-            </div>
+            </a>
           `;
         });
         listZone.innerHTML = listHtml;
@@ -750,38 +733,8 @@
       }
     }
 
-    // 💡 終極優化邏輯：點選時就地展開 100% 滿版看板，直接加載外部網頁排版，徹底拿掉干擾動線的摘要與藍色按鈕！
-    function showNewsDetail(index) {
-      const news = activeNewsData[index];
-      if (!news) return;
-
-      document.getElementById("newsListZone").classList.add("hidden");
-      const contentZone = document.getElementById("newsContentZone");
-      contentZone.classList.remove("hidden");
-
-      // 將 Google 原生行動版直通網址注入 iframe
-      const iframe = document.getElementById("newsIframeContainer");
-      if (iframe) {
-        iframe.src = news.link;
-      }
-    }
-
-    function backToNewsList() {
-      const iframe = document.getElementById("newsIframeContainer");
-      if (iframe) iframe.src = ""; // 清空網址釋放記憶體
-      
-      document.getElementById("newsContentZone").classList.add("hidden");
-      document.getElementById("newsListZone").classList.remove("hidden");
-    }
-
     function closeNewsModal() {
       document.getElementById("newsModal").classList.add("hidden");
-      setTimeout(() => {
-        const iframe = document.getElementById("newsIframeContainer");
-        if (iframe) iframe.src = "";
-        document.getElementById("newsContentZone").classList.add("hidden");
-        document.getElementById("newsListZone").classList.remove("hidden");
-      }, 200);
     }
 
     function renderChipTrendChart() {
