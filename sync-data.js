@@ -37,7 +37,7 @@ function getRecentFiveTradeDays() {
 
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧型動態增量 + 股價漲跌】同步總流程...");
+    console.log("🚀 開始執行【智慧型動態增量 + 股價開高低量】同步總流程...");
 
     console.log("1. 正在下載並解析 Excel 標的名單...");
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
@@ -70,10 +70,7 @@ async function run() {
     const { data: dbStockData, error: err2 } = await supabase.from('stock_targets').select('stock_id, stock_name').order('stock_id', { ascending: true });
     if (err2) throw err2;
 
-    if (!dbStockData || dbStockData.length === 0) {
-      console.log("⚠️ 找不到任何標的股票，流程結束。");
-      return;
-    }
+    if (!dbStockData || dbStockData.length === 0) return;
 
     console.log("2. 正在向資料庫比對目前的最新數據日期...");
     const { data: latestDbRow, error: err3 } = await supabase
@@ -90,57 +87,44 @@ async function run() {
 
     if (latestDbRow && latestDbRow.length > 0) {
       const lastAvailableDateStr = latestDbRow[0].date;
-      console.log(`📊 資料庫目前最新資料停留在：${lastAvailableDateStr}`);
-
       if (lastAvailableDateStr === endDateStr) {
-        console.log("✨ 檢測到今日籌碼已是最新，啟動【無破洞安全覆蓋】機制（僅向 FinMind 覆蓋檢查今天一日）。");
         startDateStr = endDateStr; 
       } else {
         let nextDay = new Date(lastAvailableDateStr);
         nextDay.setDate(nextDay.getDate() + 1);
-        const calculatedStartDate = formatDateToString(nextDay);
-        
-        if (new Date(calculatedStartDate) < new Date(startDateStr)) {
-          console.log(`⚠️ 資料庫缺失天數過多，為確保效能，本次將保底補抓最近 5 天。`);
-        } else {
-          startDateStr = calculatedStartDate;
-          console.log(`🔥 智慧增量判定：本次僅需精準補抓【${startDateStr} ~ ${endDateStr}】這段缺失的區間！`);
-        }
+        startDateStr = formatDateToString(nextDay);
       }
-    } else {
-      console.log("🆕 資料庫為全新空白狀態，將直接啟動完整 5 日初始化抓取。");
     }
 
-    // 💡 為了計算精準漲跌，我們讓股價 API 往前多調用一天作為參照
     let priceStartDateObj = new Date(startDateStr);
-    priceStartDateObj.setDate(priceStartDateObj.getDate() - 4); // 往前推4天以安全越過週末連假
+    priceStartDateObj.setDate(priceStartDateObj.getDate() - 4);
     let priceStartDateStr = formatDateToString(priceStartDateObj);
 
-    console.log(`🚀 執行 FinMind 請求區間：${startDateStr} 至 ${endDateStr}`);
+    console.log(`🚀 執行 FinMind 同步區間：${startDateStr} 至 ${endDateStr}`);
 
-    const commonHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'application/json'
-    };
+    const commonHeaders = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
 
     for (let i = 0; i < dbStockData.length; i++) {
       const stock = dbStockData[i];
-      console.log(`[增量同步] (${i + 1}/${dbStockData.length}) ${stock.stock_id} ${stock.stock_name}`);
+      console.log(`[增量同步] (${i + 1}/${dbStockData.length}) ${stock.stock_id}`);
 
       try {
-        // 1. 拉取法人籌碼
         const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const res = await axios.get(apiUrl, { headers: commonHeaders });
         
         if (res.status === 429) { await sleep(4000); i--; continue; } 
         
         const dateMap = {};
-        const resJson = res.data;
-        if (resJson.status === 200 && Array.isArray(resJson.data) && resJson.data.length > 0) {
-          resJson.data.forEach(row => {
+        if (res.data.status === 200 && Array.isArray(res.data.data)) {
+          res.data.data.forEach(row => {
             const d = row.date;
             if (!dateMap[d]) {
-              dateMap[d] = { stock_id: stock.stock_id, date: d, price: null, change_value: 0, f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
+              // 💡 修正後：初始化結構已包含新增的四個欄位
+              dateMap[d] = { 
+                stock_id: stock.stock_id, date: d, price: null, change_value: 0, 
+                f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0,
+                open: 0, max: 0, min: 0, trading_volume: 0 
+              };
             }
             if (row.name === 'Foreign_Investor') { dateMap[d].f_buy = row.buy; dateMap[d].f_sell = row.sell; }
             else if (row.name === 'Foreign_Dealer_Self') { dateMap[d].fd_buy = row.buy; dateMap[d].fd_sell = row.sell; }
@@ -150,28 +134,26 @@ async function run() {
           });
         }
 
-        // 2. 💡 同步拉取個股價格與計算漲跌數值
         const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${priceStartDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const priceRes = await axios.get(priceApiUrl, { headers: commonHeaders });
         
-        if (priceRes.status === 429) { await sleep(4000); i--; continue; }
-
-        const priceJson = priceRes.data;
-        if (priceJson.status === 200 && Array.isArray(priceJson.data) && priceJson.data.length > 0) {
-          // 依據時間軸從小到大排序，方便用前一天的價格扣除
-          priceJson.data.sort((a, b) => new Date(a.date) - new Date(b.date));
+        if (priceRes.data.status === 200 && Array.isArray(priceRes.data.data)) {
+          priceRes.data.data.sort((a, b) => new Date(a.date) - new Date(b.date));
           
-          for (let pIdx = 0; pIdx < priceJson.data.length; pIdx++) {
-            const pRow = priceJson.data[pIdx];
+          for (let pIdx = 0; pIdx < priceRes.data.data.length; pIdx++) {
+            const pRow = priceRes.data.data[pIdx];
             const d = pRow.date;
             
-            // 只有屬於增量更新區間的日子才寫入對應的 map
             if (dateMap[d]) {
               dateMap[d].price = pRow.close;
-              // 💡 智慧計算：若有前一天數據則相減計算漲跌絕對值，否則直接讀取 FinMind 內建的 spread 欄位
+              // 💡 新增：正確填入開高低量
+              dateMap[d].open = pRow.open;
+              dateMap[d].max = pRow.max;
+              dateMap[d].min = pRow.min;
+              dateMap[d].trading_volume = pRow.Trading_Volume;
+              
               if (pIdx > 0) {
-                const prevClose = priceJson.data[pIdx - 1].close;
-                dateMap[d].change_value = Number((pRow.close - prevClose).toFixed(2));
+                dateMap[d].change_value = Number((pRow.close - priceRes.data.data[pIdx - 1].close).toFixed(2));
               } else {
                 dateMap[d].change_value = pRow.spread || 0;
               }
@@ -185,15 +167,13 @@ async function run() {
         }
 
       } catch (err) {
-        console.error(`❌ 同步 ${stock.stock_id} 發生錯誤:`, err.message);
+        console.error(`❌ 同步 ${stock.stock_id} 錯誤:`, err.message);
       }
       await sleep(200); 
     }
-
-    console.log("🎉 恭喜！動態增量排程與漲跌數據全數同步安全執行完畢！");
-
+    console.log("🎉 同步完成！");
   } catch (error) {
-    console.error("❌ 核心流程中斷，發生未預期錯誤:", error);
+    console.error("❌ 流程中斷:", error);
     process.exit(1);
   }
 }
