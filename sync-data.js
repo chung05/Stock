@@ -37,7 +37,7 @@ async function run() {
     console.log(`✅ 已載入 ${dbStockData.length} 檔標的。`);
 
     // 2. 💡 強制設定補資料區間 (5/4 ~ 5/24)
-    const startDateStr = '2026-04-01';
+    const startDateStr = '2026-01-01';
     const endDateStr = '2026-05-24';
     console.log(`📅 目標日期區間：${startDateStr} 至 ${endDateStr}`);
 
