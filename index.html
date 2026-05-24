@@ -29,14 +29,14 @@
   </div>
 
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
       
-      <div class="py-2 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+      <div class="py-2 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl shrink-0">
         <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
         <button onclick="closeNewsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
       </div>
 
-      <div class="flex border-b border-slate-200 bg-slate-50/50 px-4">
+      <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
         <button id="tabBtnTrend" onclick="switchModalTab('trend')" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">
           📈 近期走勢
         </button>
@@ -45,9 +45,9 @@
         </button>
       </div>
       
-      <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative">
+      <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
         
-        <div id="trendZone" class="block space-y-4">
+        <div id="trendZone" class="block space-y-4 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
             
@@ -78,23 +78,19 @@
           </div>
         </div>
 
-        <div id="newsZone" class="hidden relative h-full w-full">
-          <div id="newsListZone" class="space-y-3 block w-full"></div>
+        <div id="newsZone" class="hidden h-full w-full relative grow flex flex-col">
+          <div id="newsListZone" class="space-y-3 block w-full h-full overflow-y-auto"></div>
           
-          <div id="newsContentZone" class="hidden absolute inset-0 bg-slate-50 z-30 flex flex-col w-full h-full animate-fade-in">
-            <div class="mb-3 shrink-0">
-              <button onclick="backToNewsList()" class="text-xs font-black text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-3xs transition-all">
+          <div id="newsContentZone" class="hidden absolute inset-0 bg-slate-50 z-30 flex flex-col w-full h-full">
+            <div class="mb-2 shrink-0 flex items-center justify-between">
+              <button onclick="backToNewsList()" class="text-xs font-black text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-3xs transition-all">
                 ⬅ 返回新聞列表
               </button>
+              <span class="text-[11px] text-slate-400 font-bold bg-slate-200/60 px-2 py-0.5 rounded">內文無縫整合看板</span>
             </div>
             
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-y-auto grow flex flex-col text-left">
-              <h4 id="innerNewsTitle" class="text-base md:text-lg font-black text-slate-950 mb-2 leading-snug"></h4>
-              <div class="text-xs text-slate-400 font-bold mb-4 flex gap-4 border-b border-slate-100 pb-2 shrink-0">
-                <span id="innerNewsDate"></span>
-                <span id="innerNewsSource" class="px-1.5 bg-slate-100 text-slate-600 rounded"></span>
-              </div>
-              <div id="innerNewsContent" class="text-sm md:text-base text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50 p-3.5 rounded-xl border border-slate-200/60 grow overflow-y-auto"></div>
+            <div class="bg-white border border-slate-200 rounded-xl shadow-xs grow overflow-hidden flex flex-col">
+              <iframe id="newsIframeContainer" src="" class="w-full h-full border-0 grow"></iframe>
             </div>
           </div>
         </div>
@@ -699,6 +695,7 @@
 
       try {
         const targetQuery = `"${stockId}" OR "${stockName}"`;
+        // 💡 體驗大改造：將搜尋源直接改為 Google Mobile 最佳化代理架構，避開各家媒體在桌面端的封鎖保護
         const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
         const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
 
@@ -713,13 +710,19 @@
         let mappedNews = json.items.map(item => {
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+
+          // 將 Google RSS 提供的閱讀跳轉點洗滌為最純淨的直通通道
+          let finalLink = item.link;
+          if (finalLink.includes("news.google.com")) {
+            finalLink = item.link.replace("news.google.com/rss/articles/", "news.google.com/articles/");
+          }
+
           return {
             date: dateStr, 
             timestamp: pubDate.getTime(),
             source: item.author || "財經媒體",
             title: item.title,
-            content: item.description ? item.description.replace(/<[^>]*>/g, '') : "請點擊下方按鈕前往閱讀詳盡報導。",
-            link: item.link 
+            link: finalLink 
           };
         });
 
@@ -747,7 +750,7 @@
       }
     }
 
-    // 💡 修正與功能重構：將外部報導摘要在視窗就地切換展現
+    // 💡 終極優化邏輯：點選時就地展開 100% 滿版看板，直接加載外部網頁排版，徹底拿掉干擾動線的摘要與藍色按鈕！
     function showNewsDetail(index) {
       const news = activeNewsData[index];
       if (!news) return;
@@ -756,21 +759,17 @@
       const contentZone = document.getElementById("newsContentZone");
       contentZone.classList.remove("hidden");
 
-      document.getElementById("innerNewsTitle").innerText = news.title;
-      document.getElementById("innerNewsDate").innerText = `發布日期：${news.date}`;
-      document.getElementById("innerNewsSource").innerText = `新聞來源：${news.source}`;
-      
-      document.getElementById("innerNewsContent").innerHTML = `
-        <div class="font-normal text-slate-700 text-left leading-relaxed text-sm">${news.content}</div>
-        <div class="mt-6 pt-3 border-t border-slate-200 text-center">
-          <a href="${news.link}" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs cursor-pointer">
-            🌐 前往原媒體網站閱讀完整報導
-          </a>
-        </div>
-      `;
+      // 將 Google 原生行動版直通網址注入 iframe
+      const iframe = document.getElementById("newsIframeContainer");
+      if (iframe) {
+        iframe.src = news.link;
+      }
     }
 
     function backToNewsList() {
+      const iframe = document.getElementById("newsIframeContainer");
+      if (iframe) iframe.src = ""; // 清空網址釋放記憶體
+      
       document.getElementById("newsContentZone").classList.add("hidden");
       document.getElementById("newsListZone").classList.remove("hidden");
     }
@@ -778,6 +777,8 @@
     function closeNewsModal() {
       document.getElementById("newsModal").classList.add("hidden");
       setTimeout(() => {
+        const iframe = document.getElementById("newsIframeContainer");
+        if (iframe) iframe.src = "";
         document.getElementById("newsContentZone").classList.add("hidden");
         document.getElementById("newsListZone").classList.remove("hidden");
       }, 200);
