@@ -611,13 +611,13 @@
     }
 
 function scrollToLatestTrend() {
-      setTimeout(() => {
-        const pWrapper = document.getElementById("priceScrollWrapper");
-        const cWrapper = document.getElementById("chipScrollWrapper");
-        if (pWrapper) pWrapper.scrollLeft = pWrapper.scrollWidth;
-        if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
-      }, 200);
-    }
+    setTimeout(() => {
+      const pWrapper = document.getElementById("priceScrollWrapper");
+      const cWrapper = document.getElementById("chipScrollWrapper");
+      if (pWrapper) pWrapper.scrollLeft = 0;
+      if (cWrapper) cWrapper.scrollLeft = 0;
+    }, 60);
+  }
 
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
@@ -626,11 +626,12 @@ function scrollToLatestTrend() {
       switchChipSubTab('f'); 
       document.getElementById("newsModal").classList.remove("hidden");
 
-      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
-      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
-      const chronDates = [...availableTrendDates].reverse();
+const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
+  const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
+  // 💡 修正後：移除 .reverse()，讓股價圖的時間軸保持由新到舊（最新日期排在最左側）
+  const chronDates = [...availableTrendDates];
 
-      const priceChartEl = document.getElementById("trendPriceChart");
+  const priceChartEl = document.getElementById("trendPriceChart");
       const priceDatesEl = document.getElementById("trendPriceDates");
       
       if (chronDates.length > 0) {
@@ -736,9 +737,10 @@ renderChipTrendChart();
       const chipChartEl = document.getElementById("trendChipChart");
       if (!chipChartEl || !currentActiveStockId) return;
 
-      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
-      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
-      const chronDates = [...availableTrendDates].reverse();
+const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
+  const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
+  // 💡 修正後：移除 .reverse()，讓法人籌碼直方圖也同步保持由新到舊（最新日期排在最左側）
+  const chronDates = [...availableTrendDates];
 
       const subTabConfigs = {
         f: { label: '外資 (張)', bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' },
