@@ -1,0 +1,44 @@
+name: AI Analysis Export
+
+on:
+  schedule:
+    # 每天 17:30 (UTC+8) 執行，對應 UTC 時間為 09:30
+    - cron: '30 9 * * *' 
+  workflow_dispatch: # 允許您在 GitHub 網頁上手動觸發
+
+jobs:
+  fetch-and-export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 檢查程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安裝套件
+        run: npm install @supabase/supabase-js
+
+      - name: 執行資料抓取 (Fetch)
+        run: node fetch-data.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: 執行資料匯出 (Export)
+        run: node export-for-ai.js
+
+      - name: 推送檔案至 GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 檢查是否有檔案變動
+          if [ -n "$(git status --porcelain)" ]; then
+            git add data/raw_data.json data/ai_analysis.jsonl
+            git commit -m "Auto-export: AI-ready data updated"
+            git push
+          else
+            echo "無資料變動，無需推送。"
+          fi
