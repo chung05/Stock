@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>台股籌碼 AI 分析面板 - 終極穩定版</title>
+    <title>台股籌碼 AI 分析面板</title>
     <style>
         body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; line-height: 1.6; }
         button { background: #00cbb9; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -12,10 +12,10 @@
 </head>
 <body>
 
-    <h2>📈 台股法人籌碼 AI 分析系統（終極穩定版）</h2>
-    <p>此版本已將 Prompt 與 模擬數據 直接內嵌至網頁中，避開瀏覽器檔案讀取限制，可直接流暢測試。</p>
+    <h2>📈 台股法人籌碼 AI 分析系統</h2>
+    <p>點擊下方按鈕，系統會自動讀取同專案下的 `data/ai_analysis.jsonl`，並結合內建的專業籌碼 Prompt 送往後端分析。</p>
 
-    <button id="btn" onclick="startAIAnalysis()">上傳資料並讓 AI 分析</button>
+    <button id="btn" onclick="fetchAndAnalyze()">上傳資料並讓 AI 分析</button>
 
     <h3>📊 專業交易員盤後報告：</h3>
     <div id="output">等待指令中...</div>
@@ -24,42 +24,37 @@
         // 1. 你的 Supabase 後端網址
         const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/rapid-service';
 
-        // 2. ✨ 絕招一：直接把很長的台股 Prompt 當作 JavaScript 變數
-        const TAIGU_PROMPT = `你是一位專業台股法人籌碼分析師、波段交易員與市場資金流研究員。
-請根據我提供的台股資料，分析目前市場中：
-1. 有潛力的強勢股
-2. 高風險個股
-3. 主力可能正在布局的股票
-4. 疑似主力出貨的股票
+        // 2. 數據檔案路徑
+        const DATA_URL = './data/ai_analysis.jsonl';
 
---------------------------------------------------
-【請輸出以下結果】
-■ 第一部分：TOP 10 潛力股（代號、名稱、理由、趨勢判斷、強度評分★☆☆☆☆ ~ ★★★★★）
-■ 第二部分：TOP 10 高風險股（代號、名稱、風險原因、風險等級）
+        // 3. ✨ 專業台股 Prompt 變數（已過濾所有換行與語法衝突）
+        const TAIGU_PROMPT = "你是一位專業台股法人籌碼分析師、波段交易員與市場資金流研究員。\n\n請根據我提供的台股資料，分析目前市場中：\n1. 有潛力的強勢股\n2. 高風險個股\n3. 主力可能正在布局的股票\n4. 疑似主力出貨的股票\n5. 有機會進入主升段的股票\n6. 技術面與籌碼面開始轉強的股票\n\n請不要只是描述數據，而是要以「專業交易員」角度，解讀市場資金行為、法人意圖與趨勢變化。\n\n--------------------------------------------------\n【資料內容】\n每檔股票包含基本資料、三大法人資料、股價資料、技術指標（MA20, MA60, RSI, MACD），資料期間為最近 60 個交易日。\n\n--------------------------------------------------\n【請重點分析以下事項】\n■ 法人籌碼：外資是否連續買超、是否開始加速買超、投信是否同步進場、是否有主力吸籌現象、是否有高檔出貨現象。\n■ 強勢股特徵：外資連續買超、投信同步買超、成交量明顯增加、股價突破 MA20 或 MA60、MACD 黃金交叉、RSI 位於合理強勢區間（50~70）。\n■ 高風險股特徵：外資連續賣超、投信開始撤退、爆量但股價不漲、高檔長上影線、股價跌破 MA20 或 MA60、MACD 死亡交叉。\n\n--------------------------------------------------\n【請特別分析】\n1. 哪些股票的籌碼與技術面同步轉強\n2. 哪些股票只有技術面強，但法人沒進場\n3. 哪些股票法人持續布局，但股價尚未發動\n\n--------------------------------------------------\n【請輸出以下結果】\n■ 第一部分：TOP 10 潛力股（代號、名稱、判斷理由、趨勢判斷、強度評分★☆☆☆☆ ~ ★★★★★）\n■ 第二部分：TOP 10 高風險股（代號、名稱、風險原因、風險等級）\n■ 第三部分：市場觀察（總結市場偏多或偏空、外資主要方向、是否有過過熱現象）\n\n請以「專業交易員」角度分析，盡可能具體、直接、明確。";
 
-請以「專業交易員」角度分析，盡可能具體、直接、明確。`;
-
-        // 3. ✨ 絕招二：直接把你的 JSONL 數據當作文字貼在這裡（以下為模擬測試數據）
-        // ⚠️ 未來你可以直接把 ai_analysis.jsonl 裡面的內容複製，貼到這兩個反單引號中間
-        const MOCK_JSONL_DATA = `{"date": "2026-05-25", "symbol": "2330", "name": "台積電", "foreign_buy": 15000, "foreign_sell": 2000, "close": 1030, "volume": 45000, "ma20": 1010, "macd": "gold_cross", "rsi": 65}
-{"date": "2026-05-26", "symbol": "2330", "name": "台積電", "foreign_buy": 18000, "foreign_sell": 1000, "close": 1045, "volume": 52000, "ma20": 1015, "macd": "expanding", "rsi": 68}
-{"date": "2026-05-26", "symbol": "2454", "name": "聯發科", "foreign_buy": 100, "foreign_sell": 5000, "close": 1120, "volume": 12000, "ma20": 1150, "macd": "dead_cross", "rsi": 38}`;
-
-        async function startAIAnalysis() {
+        // 4. 核心執行函式
+        async function fetchAndAnalyze() {
             const btn = document.getElementById('btn');
             const output = document.getElementById('output');
             
             btn.disabled = true;
-            output.innerText = "資料整備完畢！正在直接傳送至 Supabase 後端，請稍候 5~10 秒讓 Gemini 進行深度籌碼診斷...";
+            output.innerText = "正在讀取同專案下的籌碼數據 (ai_analysis.jsonl)...";
 
             try {
-                // 🚀 完全不進行 fetch 讀檔，直接打包發送變數！
+                // 讀取數據檔案
+                const dataRes = await fetch(DATA_URL);
+                if (!dataRes.ok) {
+                    throw new Error("無法讀取數據檔案，請確認 data 資料夾內是否有 ai_analysis.jsonl 檔案。");
+                }
+                const rawDataText = await dataRes.text();       
+
+                output.innerText = "成功讀取數據！正在上傳至 Supabase 後端讓 Gemini 進行深度分析...";
+
+                // 打包傳給後端
                 const response = await fetch(BACKEND_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        uploadData: MOCK_JSONL_DATA,       // 直接帶入數據字串
-                        customPrompt: TAIGU_PROMPT         // 直接帶入 Prompt 字串
+                        uploadData: rawDataText,       // 傳送 jsonl 數據字串
+                        customPrompt: TAIGU_PROMPT     // 傳送上面宣告好的專業 Prompt 字串
                     })
                 });
 
@@ -68,11 +63,11 @@
                 if (resultData.report) {
                     output.innerText = resultData.report; // 渲染 AI 報告
                 } else {
-                    output.innerText = "後端出錯了：" + (resultData.error || "未知錯誤");
+                    output.innerText = "後端回傳錯誤：" + (resultData.error || "未知錯誤");
                 }
 
             } catch (err) {
-                output.innerText = "網路連線失敗：" + err.message;
+                output.innerText = "執行失敗：" + err.message + "\n\n【重要提示】如果出現 Failed to fetch 或是無法讀取檔案，代表你不能直接雙擊打開網頁，請在 VS Code 中對這個檔案點右鍵，選擇 'Open with Live Server' 啟動網站環境測試！";
             } finally {
                 btn.disabled = false;
             }
