@@ -1,65 +1,54 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>AI 數據分析測試（網頁版後端）</title>
-    <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; }
-        button { background: #00cbb9; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        button:disabled { background: #cccccc; }
-        #output { background: #f4f4f4; padding: 15px; border-left: 5px solid #00cbb9; margin-top: 20px; white-space: pre-wrap; }
-    </style>
-</head>
-<body>
+// 1. ⚠️ 這行還是要保留，因為這是你 Supabase 後端的絕對路徑
+const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/rapid-service';
 
-    <h2>🚀 純網頁端架構：AI 數據分析測試</h2>
-    <p>點擊下方按鈕，會將這筆「咖啡廳數據」上傳到你剛剛在 Supabase 網頁上建好的後端，並由 Gemini 進行分析。</p>
+// 2. ✨ 既然在同一個專案下，直接寫檔案路徑就可以了！不用管帳號和專案名
+const DATA_URL = './data/ai_analysis.jsonl';
+const PROMPT_URL = './data/prompt.json';
 
-    <button id="btn" onclick="uploadAndAnalyze()">上傳資料並讓 AI 分析</button>
+async function fetchAndAnalyze() {
+    const btn = document.getElementById('btn');
+    const output = document.getElementById('output');
+    
+    btn.disabled = true;
+    output.innerText = "正在讀取同專案下的 ai_analysis.jsonl 與 prompt.json...";
 
-    <h3>📊 AI 分析報告結果：</h3>
-    <div id="output">等待上傳資料中...</div>
+    try {
+        // 瀏覽器會自動依據 index.html 的位置，去旁邊的 data 資料夾抓檔案
+        const [dataRes, promptRes] = await Promise.all([
+            fetch(DATA_URL),
+            fetch(PROMPT_URL)
+        ]);
 
-    <script>
-        // ⚠️ 請把這裡換成你剛剛在 Supabase 網頁上複製的那個 Function 網址！
-        const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/rapid-service';
-
-        // 這是我們要上傳給 AI 的模擬資料
-        const mockData = {
-            store_name: "亞瑟咖啡廳",
-            period: "本週銷售數據",
-            revenue_twd: 68000,
-            unsold_items: { "熱美式": 5, "起司蛋糕": 42 }, 
-            customer_reviews: "蛋糕有點太甜了，但咖啡很好喝！"
-        };
-
-        async function uploadAndAnalyze() {
-            const btn = document.getElementById('btn');
-            const output = document.getElementById('output');
-            
-            btn.disabled = true;
-            output.innerText = "正在將資料送往 Supabase 後端，Gemini 分析中...";
-
-            try {
-                const response = await fetch(BACKEND_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uploadData: mockData })
-                });
-
-                const data = await response.json();
-                
-                if (data.report) {
-                    output.innerText = data.report; 
-                } else {
-                    output.innerText = "出錯了：" + (data.error || "未知錯誤");
-                }
-            } catch (err) {
-                output.innerText = "連線後端失敗：" + err.message;
-            } finally {
-                btn.disabled = false;
-            }
+        if (!dataRes.ok || !promptRes.ok) {
+            throw new Error("無法讀取檔案，請確認 data 資料夾內是否有這兩個檔案。");
         }
-    </script>
-</body>
-</html>
+
+        const rawDataText = await dataRes.text();       
+        const promptJson = await promptRes.json();      
+
+        output.innerText = "成功讀取檔案！正在上傳至 Supabase 後端並等待 Gemini 分析...";
+
+        // 打包傳給後端（這段保持不變）
+        const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                uploadData: rawDataText,           
+                customPrompt: promptJson.prompt    
+            })
+        });
+
+        const resultData = await response.json();
+        
+        if (resultData.report) {
+            output.innerText = resultData.report; 
+        } else {
+            output.innerText = "出錯了：" + (resultData.error || "未知錯誤");
+        }
+
+    } catch (err) {
+        output.innerText = "執行失敗：" + err.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
