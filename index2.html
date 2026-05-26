@@ -1,49 +1,103 @@
-const DATA_URL = './data/ai_analysis.jsonl';
-// 🌟 1. 改成讀取 .txt 檔案
-const PROMPT_URL = './data/prompt.txt'; 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>台股籌碼 AI 分析面板</title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        button { background: #00cbb9; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        button:disabled { background: #cccccc; }
+        #output { background: #f4f4f4; padding: 15px; border-left: 5px solid #00cbb9; margin-top: 20px; white-space: pre-wrap; font-size: 14px; }
+    </style>
+</head>
+<body>
 
-async function fetchAndAnalyze() {
-    const btn = document.getElementById('btn');
-    const output = document.getElementById('output');
-    
-    btn.disabled = true;
-    output.innerText = "正在讀取同專案下的籌碼數據與專業 Prompt...";
+    <h2>📈 台股法人籌碼 AI 分析系統</h2>
+    <p>點擊下方按鈕，系統會直接將本機的數據與專業操盤 Prompt 一併打包，送往 Supabase 後端讓 Gemini 分析。</p>
 
-    try {
-        const [dataRes, promptRes] = await Promise.all([
-            fetch(DATA_URL),
-            fetch(PROMPT_URL) // 瀏覽器會去抓 prompt.txt
-        ]);
+    <button id="btn" onclick="startAIAnalysis()">上傳資料並讓 AI 分析</button>
 
-        if (!dataRes.ok || !promptRes.ok) {
-            throw new Error("無法讀取檔案，請確認 data 資料夾內是否有這兩個檔案。");
+    <h3>📊 專業交易員盤後報告：</h3>
+    <div id="output">等待指令中...</div>
+
+    <script>
+        // 1. 你的 Supabase 後端網址
+        const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/rapid-service';
+
+        // 2. 本機數據路徑
+        const DATA_URL = './data/ai_analysis.jsonl';
+
+        // 3. ✨ 絕招：直接把很長的台股 Prompt 當作 JavaScript 變數
+        // 使用反單引號 ( ` )，裡面可以自由換行、留白、加符號，完全不會報錯！
+        const TAIGU_PROMPT = `你位一位專業台股法人籌碼分析師、波段交易員與市場資金流研究員。
+
+請根據我提供的台股資料，
+分析目前市場中：
+1. 有潛力的強勢股
+2. 高風險個股
+3. 主力可能正在布局的股票
+4. 疑似主力出貨的股票
+5. 有機會進入主升段的股票
+6. 技術面與籌碼面開始轉強的股票
+
+請不要只是描述數據，而是要以「專業交易員」角度，解讀市場資金行為、法人意圖與趨勢變化。
+
+--------------------------------------------------
+【請重點分析以下事項】
+■ 法人籌碼：外資是否連續買超、是否開始加速買超、投信是否同步進場、是否有主力吸籌現象。
+■ 強勢股特徵：外資連續買超、投信同步買超、成交量明顯增加、股價突破 MA20 或 MA60、MACD 黃金交叉、RSI 位於 50~70。
+■ 高風險股特徵：爆量不漲、高檔長上影線、跌破 MA20、MACD 死亡交叉。
+
+--------------------------------------------------
+【請輸出以下結果】
+■ 第一部分：TOP 10 潛力股（代號、名稱、理由、趨勢判斷、強度評分★☆☆☆☆ ~ ★★★★★）
+■ 第二部分：TOP 10 高風險股（代號、名稱、風險原因、風險等級）
+■ 第三部分：市場觀察總結（偏多或偏空、市場是否有過熱現象）
+
+請以「專業交易員」角度分析，盡可能具體、直接、明確。`;
+
+        async function startAIAnalysis() {
+            const btn = document.getElementById('btn');
+            const output = document.getElementById('output');
+            
+            btn.disabled = true;
+            output.innerText = "正在讀取台股數據檔案 (ai_analysis.jsonl)...";
+
+            try {
+                // 讀取數據檔案
+                const dataRes = await fetch(DATA_URL);
+                if (!dataRes.ok) {
+                    throw new Error("無法讀取數據檔案，請確認 data 資料夾內是否有 ai_analysis.jsonl");
+                }
+                const rawDataText = await dataRes.text();       
+
+                output.innerText = "數據讀取成功！正在傳送至 Supabase 後端，請稍候 5~10 秒讓 Gemini 進行深度籌碼診斷...";
+
+                // 打包直接傳給後端
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        uploadData: rawDataText,           // jsonl 數據
+                        customPrompt: TAIGU_PROMPT         // 剛剛宣告好的長 Prompt 變數
+                    })
+                });
+
+                const resultData = await response.json();
+                
+                if (resultData.report) {
+                    output.innerText = resultData.report; // 渲染 AI 的大作
+                } else {
+                    output.innerText = "出錯了：" + (resultData.error || "未知錯誤");
+                }
+
+            } catch (err) {
+                // 💡 如果還是 Failed to fetch，請注意看底下的提示
+                output.innerText = "執行失敗：" + err.message + "\n\n【提示】如果是 Failed to fetch，代表你必須在 VS Code 裡對 index.html 點右鍵選 'Open with Live Server' 開啟網頁，否則瀏覽器會基於安全封鎖讀檔。";
+            } finally {
+                btn.disabled = false;
+            }
         }
-
-        const rawDataText = await dataRes.text();       
-        // 🌟 2. 修改：因為是純文字檔，這裡改用 .text() 而不是 .json()
-        const myLongPrompt = await promptRes.text();    
-
-        output.innerText = "成功讀取法人分析模型！正在上傳至 Supabase 後端讓 Gemini 分析...";
-
-        // 打包傳給後端（後端完全不需要修改，因為它本來就是接收字串）
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                uploadData: rawDataText,           
-                customPrompt: myLongPrompt // 🌟 這裡直接把整大串文字傳過去
-            })
-        });
-
-        const resultData = await response.json();
-        if (resultData.report) {
-            output.innerText = resultData.report; 
-        } else {
-            output.innerText = "出錯了：" + (resultData.error || "未知錯誤");
-        }
-    } catch (err) {
-        output.innerText = "執行失敗：" + err.message;
-    } finally {
-        btn.disabled = false;
-    }
-}
+    </script>
+</body>
+</html>
