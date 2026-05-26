@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>台股籌碼 AI 分析面板</title>
+    <title>台股籌碼 AI 分析面板 - 正式讀檔版</title>
     <style>
         body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; line-height: 1.6; }
         button { background: #00cbb9; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -12,8 +12,8 @@
 </head>
 <body>
 
-    <h2>📈 台股法人籌碼 AI 分析系統</h2>
-    <p>點擊下方按鈕，系統會自動讀取同專案下的 `data/ai_analysis.jsonl`，並結合內建的專業籌碼 Prompt 送往後端分析。</p>
+    <h2>📈 台股法人籌碼 AI 分析系統（真實數據版）</h2>
+    <p>點擊下方按鈕，系統將自動撈取同專案 `data/ai_analysis.jsonl` 內的完整數據，交由 Gemini 進行法人級別的籌碼與技術面診斷。</p>
 
     <button id="btn" onclick="fetchAndAnalyze()">上傳資料並讓 AI 分析</button>
 
@@ -24,50 +24,50 @@
         // 1. 你的 Supabase 後端網址
         const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/rapid-service';
 
-        // 2. 數據檔案路徑
+        // 2. 正確讀取同專案下的真實數據檔案路徑
         const DATA_URL = './data/ai_analysis.jsonl';
 
-        // 3. ✨ 專業台股 Prompt 變數（已過濾所有換行與語法衝突）
+        // 3. 專業台股 Prompt 變數（保持安全封裝格式）
         const TAIGU_PROMPT = "你是一位專業台股法人籌碼分析師、波段交易員與市場資金流研究員。\n\n請根據我提供的台股資料，分析目前市場中：\n1. 有潛力的強勢股\n2. 高風險個股\n3. 主力可能正在布局的股票\n4. 疑似主力出貨的股票\n5. 有機會進入主升段的股票\n6. 技術面與籌碼面開始轉強的股票\n\n請不要只是描述數據，而是要以「專業交易員」角度，解讀市場資金行為、法人意圖與趨勢變化。\n\n--------------------------------------------------\n【資料內容】\n每檔股票包含基本資料、三大法人資料、股價資料、技術指標（MA20, MA60, RSI, MACD），資料期間為最近 60 個交易日。\n\n--------------------------------------------------\n【請重點分析以下事項】\n■ 法人籌碼：外資是否連續買超、是否開始加速買超、投信是否同步進場、是否有主力吸籌現象、是否有高檔出貨現象。\n■ 強勢股特徵：外資連續買超、投信同步買超、成交量明顯增加、股價突破 MA20 或 MA60、MACD 黃金交叉、RSI 位於合理強勢區間（50~70）。\n■ 高風險股特徵：外資連續賣超、投信開始撤退、爆量但股價不漲、高檔長上影線、股價跌破 MA20 或 MA60、MACD 死亡交叉。\n\n--------------------------------------------------\n【請特別分析】\n1. 哪些股票的籌碼與技術面同步轉強\n2. 哪些股票只有技術面強，但法人沒進場\n3. 哪些股票法人持續布局，但股價尚未發動\n\n--------------------------------------------------\n【請輸出以下結果】\n■ 第一部分：TOP 10 潛力股（代號、名稱、判斷理由、趨勢判斷、強度評分★☆☆☆☆ ~ ★★★★★）\n■ 第二部分：TOP 10 高風險股（代號、名稱、風險原因、風險等級）\n■ 第三部分：市場觀察（總結市場偏多或偏空、外資主要方向、是否有過過熱現象）\n\n請以「專業交易員」角度分析，盡可能具體、直接、明確。";
 
-        // 4. 核心執行函式
+        // 4. 核心執行函式：主動去抓本機檔案
         async function fetchAndAnalyze() {
             const btn = document.getElementById('btn');
             const output = document.getElementById('output');
             
             btn.disabled = true;
-            output.innerText = "正在讀取同專案下的籌碼數據 (ai_analysis.jsonl)...";
+            output.innerText = "正在讀取真實籌碼數據 (data/ai_analysis.jsonl)...";
 
             try {
-                // 讀取數據檔案
+                // 🚀 正式發動 fetch，去抓取你的本機 .jsonl 檔案
                 const dataRes = await fetch(DATA_URL);
                 if (!dataRes.ok) {
-                    throw new Error("無法讀取數據檔案，請確認 data 資料夾內是否有 ai_analysis.jsonl 檔案。");
+                    throw new Error("無法讀取數據檔案！請確認專案資料夾中，是否存在 data/ai_analysis.jsonl 檔案，且裡面已填入大批真實數據。");
                 }
-                const rawDataText = await dataRes.text();       
+                const realDataText = await dataRes.text(); // 將你的 60 天數據轉為文字串
 
-                output.innerText = "成功讀取數據！正在上傳至 Supabase 後端讓 Gemini 進行深度分析...";
+                output.innerText = "數據讀取成功！正在上傳至 Supabase 後端讓 Gemini 進行深度分析（資料量較大時，請耐心等候 10~15 秒）...";
 
-                // 打包傳給後端
+                // 打包真實檔案數據，發送給 Supabase
                 const response = await fetch(BACKEND_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        uploadData: rawDataText,       // 傳送 jsonl 數據字串
-                        customPrompt: TAIGU_PROMPT     // 傳送上面宣告好的專業 Prompt 字串
+                        uploadData: realDataText,      // 🌟 這邊已經換成你的真實大數據了！
+                        customPrompt: TAIGU_PROMPT     
                     })
                 });
 
                 const resultData = await response.json();
                 
                 if (resultData.report) {
-                    output.innerText = resultData.report; // 渲染 AI 報告
+                    output.innerText = resultData.report; // 渲染 AI 的終極分析報告
                 } else {
                     output.innerText = "後端回傳錯誤：" + (resultData.error || "未知錯誤");
                 }
 
             } catch (err) {
-                output.innerText = "執行失敗：" + err.message + "\n\n【重要提示】如果出現 Failed to fetch 或是無法讀取檔案，代表你不能直接雙擊打開網頁，請在 VS Code 中對這個檔案點右鍵，選擇 'Open with Live Server' 啟動網站環境測試！";
+                output.innerText = "執行失敗：" + err.message + "\n\n【💡 交易員提醒】請務必在 VS Code 中對 index2.html 點擊右鍵，選擇 'Open with Live Server' 來啟動測試！如果直接點擊檔案兩下開啟，瀏覽器會因為安全機制禁止讀取本機的 .jsonl 檔案喔！";
             } finally {
                 btn.disabled = false;
             }
