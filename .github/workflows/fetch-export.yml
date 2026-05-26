@@ -1,51 +1,21 @@
-name: AI Analysis Export
-
-on:
-  schedule:
-    # 每天 17:30 (台灣時間) 執行
-    - cron: '30 9 * * *' 
-  workflow_dispatch: # 允許手動點擊按鈕執行
-
-jobs:
-  fetch-and-export:
-    runs-on: ubuntu-latest
-    
-    # 關鍵：設定 GitHub Action 對儲存庫的寫入權限
-    permissions:
-      contents: write
-
-    steps:
-      - name: 檢查專案程式碼
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 設定 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: 安裝相依套件
-        run: npm install axios xlsx @supabase/supabase-js dotenv
-
-      - name: 執行資料抓取 (Fetch)
-        run: node fetch-data.js
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-      - name: 執行資料匯出 (Export)
-        run: node export-for-ai.js
-
-      - name: 推送檔案至 GitHub
+- name: 推送檔案至 GitHub
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # 檢查是否有新增或修改過的檔案
-          if [ -n "$(git status --porcelain)" ]; then
+          
+          # 1. 確保 data 資料夾存在 (如果程式執行失敗沒產生 data，這裡會跳過)
+          if [ -d "data" ]; then
+            # 2. 只針對目標檔案進行 add
             git add data/raw_data.json data/ai_analysis.jsonl
-            git commit -m "Auto-export: Update AI-ready analysis data"
-            git push
+            
+            # 3. 檢查這些檔案是否有實際變更 (忽略 node_modules 等雜訊)
+            if git diff --cached --quiet; then
+              echo "無資料變動，無需推送。"
+            else
+              git commit -m "Auto-export: Update AI-ready analysis data"
+              git push
+            fi
           else
-            echo "無資料變動，無需推送。"
+            echo "警告：data 資料夾未產生，請檢查之前的執行步驟是否報錯。"
+            exit 1
           fi
