@@ -22,8 +22,9 @@ jobs:
         with:
           node-version: '22'
 
-      - name: 安裝套件
-        run: npm install @supabase/supabase-js
+      - name: 安裝所有必要套件
+        # 修正：補回所有需要的套件，特別是 dotenv
+        run: npm install @supabase/supabase-js dotenv axios xlsx
 
       - name: 執行資料抓取與匯出
         run: |
@@ -33,19 +34,12 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      - name: 推送檔案至 GitHub (含偵錯機制)
+      - name: 推送檔案至 GitHub
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # --- 偵錯區：顯示目前目錄結構與檔案狀態 ---
-          echo "--- 檢測資料夾內容 ---"
-          ls -F data/
-          echo "--- 檢測 Git 狀態 (若有 node_modules 為正常現象) ---"
-          git status
-          # ----------------------------------------
-          
-          # 強制加入目標檔案 (忽略 .gitignore 的規則)
+          # 強制加入目標檔案
           git add -f data/raw_data.json data/ai_analysis.jsonl
           
           # 檢查是否有變動
