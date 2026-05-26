@@ -33,18 +33,26 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      - name: 處理資料變更
+      - name: 推送檔案至 GitHub (含偵錯機制)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 將產出的檔案強制加入 Git (即使被 ignore 也強制 add)
+          # --- 偵錯區：顯示目前目錄結構與檔案狀態 ---
+          echo "--- 檢測資料夾內容 ---"
+          ls -F data/
+          echo "--- 檢測 Git 狀態 (若有 node_modules 為正常現象) ---"
+          git status
+          # ----------------------------------------
+          
+          # 強制加入目標檔案 (忽略 .gitignore 的規則)
           git add -f data/raw_data.json data/ai_analysis.jsonl
           
-          # 如果有變更才進行 commit
+          # 檢查是否有變動
           if ! git diff --cached --quiet; then
-            git commit -m "Auto-export: Update AI data"
+            git commit -m "Auto-export: Update AI-ready analysis data"
             git push
+            echo "成功：檔案已推送。"
           else
-            echo "無資料變動，跳過推送。"
+            echo "狀態：無檔案變動，本次自動執行未推送。"
           fi
