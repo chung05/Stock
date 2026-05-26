@@ -5,43 +5,67 @@ require('dotenv').config();
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function fetchData() {
-  console.log("📥 [步驟 1] 正在分析資料庫中的交易日記錄...");
+  console.log("📥 [步驟 1] 正在精準分析資料庫中的不重複交易日歷史...");
 
-  // 1. 動態動態獲取所有不重複的日期，用來推算第 60 個交易日是哪一天
-  // 這樣能完美應對未來股票檔數增加的狀況
-  const { data: dateRows, error: dateError } = await supabase
-    .from('stock_chips_daily')
-    .select('date')
-    .order('date', { ascending: false });
+  let uniqueDates = [];
+  let datePage = 0;
+  const DATE_PAGE_SIZE = 1000;
+  let hasMoreDates = true;
 
-  if (dateError) {
-    console.error("❌ 無法取得日期清單:", dateError);
-    return;
+  // 1. 為了防止撈日期也被 1000 筆卡死，我們用迴圈把所有日期痕跡都撈出來，或者直到收集滿 60 個獨立日期為止
+  while (hasMoreDates) {
+    const from = datePage * DATE_PAGE_SIZE;
+    const to = from + DATE_PAGE_SIZE - 1;
+
+    // 為了節省流量，只 select('date') 欄位即可
+    const { data: dateRows, error: dateError } = await supabase
+      .from('stock_chips_daily')
+      .select('date')
+      .order('date', { ascending: false })
+      .range(from, to);
+
+    if (dateError) {
+      console.error("❌ 無法取得日期清單:", dateError);
+      return;
+    }
+
+    // 將新拿到的日期加入 Set 進行去重
+    const currentBatchDates = dateRows.map(item => item.date);
+    uniqueDates = [...new Set([...uniqueDates, ...currentBatchDates])];
+
+    // 終止條件：1. 資料庫沒資料了 2. 我們已經成功收集到至少 60 個不重複的交易日
+    if (dateRows.length < DATE_PAGE_SIZE || uniqueDates.length >= 60) {
+      hasMoreDates = false;
+    } else {
+      datePage++;
+    }
   }
 
-  // 利用 Set 算出不重複的日期陣列
-  const uniqueDates = [...new Set(dateRows.map(item => item.date))];
-  
+  // 將收集到的不重複日期重新排序（降序：最新到最舊）
+  uniqueDates.sort((a, b) => new Date(b) - new Date(a));
+
   if (uniqueDates.length === 0) {
     console.log("⚠️ 資料庫中沒有任何交易日資料。");
     return;
   }
 
-  // 取出最新一天與第 60 個交易日的日期（若總天數不滿 60 天則取最後一天）
+  // 確實取出第 60 個交易日
   const targetDays = Math.min(60, uniqueDates.length);
   const cutoffDate = uniqueDates[targetDays - 1]; 
   const latestDate = uniqueDates[0];
 
-  console.log(`📅 偵測到最新交易日: ${latestDate} ～ 目標第 60 個交易日限制線: ${cutoffDate}`);
-  console.log(`📥 [步驟 2] 開始分段擷取資料（每次 1000 筆）...`);
+  console.log(`📅 成功穿透限制！`);
+  console.log(`   最新交易日: ${latestDate}`);
+  console.log(`   目標第 ${targetDays} 個交易日限制線（基準日）: ${cutoffDate} (從此日期開始往後抓)`);
+  console.log(`📥 [步驟 2] 開始分段擷取完整股票籌碼資料（每次 1000 筆）...`);
 
-  // 2. 開始分段（分頁）撈取大於等於該日期的所有股票資料
+  // 2. 開始分段（分頁）撈取大於等於該基準日期的所有股票資料
   let allData = [];
   let page = 0;
-  const PAGE_SIZE = 1000; // 每次擷取 1000 筆
-  let hasMore = true;
+  const PAGE_SIZE = 1000; 
+  let hasMoreData = true;
 
-  while (hasMore) {
+  while (hasMoreData) {
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -50,9 +74,9 @@ async function fetchData() {
     const { data, error } = await supabase
       .from('stock_chips_daily')
       .select('*')
-      .gte('date', cutoffDate) // 🛡️ 核心：只撈取這 60 天內的所有資料
+      .gte('date', cutoffDate) // 🛡️ 核心：過濾出大於等於 60 天前那個日期的所有資料
       .order('date', { ascending: false })
-      .range(from, to); // 📌 使用分頁區間
+      .range(from, to); 
 
     if (error) {
       console.error("❌ 擷取資料失敗:", error);
@@ -61,31 +85,28 @@ async function fetchData() {
 
     allData = allData.concat(data);
 
-    // 判斷是否還有下一頁：如果回傳的資料小於 1000 筆，代表後面沒資料了
     if (data.length < PAGE_SIZE) {
-      hasMore = false;
+      hasMoreData = false;
     } else {
       page++;
     }
   }
 
-  // 3. 統計與健康檢查（防呆與驗證未來股票增加的狀況）
+  // 3. 統計與健康檢查
   const totalFetchedRows = allData.length;
   const distinctDatesFetched = [...new Set(allData.map(item => item.date))].length;
-  
-  // 檢查總共包含多少檔獨立股票 (自動偵測 stock_id 或 code 欄位，請依你資料庫實際名稱調整)
   const distinctStocks = [...new Set(allData.map(item => item.stock_id || item.code || 'unknown'))];
 
   console.log(`\n📊 === 擷取報告 ===`);
   console.log(`✅ 總共分段擷取了 ${page + 1} 次`);
   console.log(`✅ 累計總筆數: ${totalFetchedRows} 筆`);
-  console.log(`✅ 實際涵蓋交易日: ${distinctDatesFetched} 天 (目標 60 天)`);
-  console.log(`✅ 偵測到股票總檔數: ${distinctStocks.length} 檔 (未來增加也會自動適應)`);
+  console.log(`✅ 實際涵蓋交易日: ${distinctDatesFetched} 天`);
+  console.log(`✅ 偵測到股票總檔數: ${distinctStocks.length} 檔`);
 
   // 4. 寫入檔案
   if (!fs.existsSync('./data')) fs.mkdirSync('./data');
   fs.writeFileSync('./data/raw_data.json', JSON.stringify(allData, null, 2));
-  console.log(`💾 檔案已成功儲存至 ./data/raw_data.json\n`);
+  console.log(`💾 檔案已成功更新至 ./data/raw_data.json\n`);
 }
 
 fetchData();
