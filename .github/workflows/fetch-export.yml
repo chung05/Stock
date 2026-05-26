@@ -1,21 +1,50 @@
-- name: 推送檔案至 GitHub
+name: AI Analysis Export
+
+on:
+  schedule:
+    - cron: '30 9 * * *' 
+  workflow_dispatch: 
+
+jobs:
+  fetch-and-export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 檢查程式碼
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 設定 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安裝套件
+        run: npm install @supabase/supabase-js
+
+      - name: 執行資料抓取與匯出
+        run: |
+          node fetch-data.js
+          node export-for-ai.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: 處理資料變更
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 1. 確保 data 資料夾存在 (如果程式執行失敗沒產生 data，這裡會跳過)
-          if [ -d "data" ]; then
-            # 2. 只針對目標檔案進行 add
-            git add data/raw_data.json data/ai_analysis.jsonl
-            
-            # 3. 檢查這些檔案是否有實際變更 (忽略 node_modules 等雜訊)
-            if git diff --cached --quiet; then
-              echo "無資料變動，無需推送。"
-            else
-              git commit -m "Auto-export: Update AI-ready analysis data"
-              git push
-            fi
+          # 將產出的檔案強制加入 Git (即使被 ignore 也強制 add)
+          git add -f data/raw_data.json data/ai_analysis.jsonl
+          
+          # 如果有變更才進行 commit
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-export: Update AI data"
+            git push
           else
-            echo "警告：data 資料夾未產生，請檢查之前的執行步驟是否報錯。"
-            exit 1
+            echo "無資料變動，跳過推送。"
           fi
