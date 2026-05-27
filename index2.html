@@ -1,69 +1,51 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>台股籌碼 AI 分析面板 - 雲端極速版</title>
-    <style>
-        body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; line-height: 1.6; }
-        button { background: #00cbb9; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        button:disabled { background: #cccccc; }
-        #output { background: #f4f4f4; padding: 15px; border-left: 5px solid #00cbb9; margin-top: 20px; white-space: pre-wrap; font-size: 14px; }
-    </style>
-</head>
-<body>
+<script>
+    // 1. 指向全新的 fetch_data_2AI 專案網址
+    const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetch_data_2AI';
 
-    <h2>📈 台股法人籌碼 AI 分析系統（雲端極速版）</h2>
-    <p>數據與 AI 提示詞已完全後端化。點擊下方按鈕，Supabase 將直接由雲端儲存桶撈取籌碼檔案並啟動 AI 分析，大幅減少網頁等待時間。</p>
+    async function fetchAndAnalyze() {
+        const btn = document.getElementById('btn');
+        const output = document.getElementById('output');
+        
+        btn.disabled = true;
+        output.innerText = "已發送分析指令，Supabase 正在雲端進行數據讀取與 AI 診斷...";
 
-    <button id="btn" onclick="fetchAndAnalyze()">啟動雲端 AI 籌碼分析</button>
+        // 🌟 2. 請填入你的 Supabase anon 公開金鑰（在專案 Settings -> API 頁面取得）
+        const SUPABASE_ANON_KEY = "填入你的_SUPABASE_ANON_KEY"; 
 
-    <h3>📊 專業交易員盤後報告：</h3>
-    <div id="output">等待指令中...</div>
+        try {
+            const response = await fetch(BACKEND_URL, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    // 🌟 帶上通行證，確保在最外層絕對不被網關阻擋
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ 
+                    action: "analyze_latest_chips" 
+                })
+            });
 
-    <script>
-        // 1. 更新為你全新建立的 Edge Function 網址 (請確認名稱是否為 fetch_data_2AI)
-        const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetch_data_2AI';
-
-        // 2. 核心執行函式：輕量化通知
-        async function fetchAndAnalyze() {
-            const btn = document.getElementById('btn');
-            const output = document.getElementById('output');
-            
-            btn.disabled = true;
-            output.innerText = "已發送分析指令，Supabase 正在雲端就地讀取數據與提示詞...";
-
-            try {
-                // 🚀 網頁前端不傳送大檔案與 Prompt，只發出一個空的 POST 請求觸發後端
-                const response = await fetch(BACKEND_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        action: "analyze_latest_chips" // 僅帶有語意性的基本指令
-                    })
-                });
-
-                // 如果後端拋出 500 或其他錯誤狀態碼，主動抓取錯誤
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `後端伺服器回應錯誤 (狀態碼: ${response.status})`);
-                }
-
-                const resultData = await response.json();
-                
-                // 🚀 渲染 AI 回傳的終極分析報告
-                if (resultData.report) {
-                    output.innerText = resultData.report; 
-                } else {
-                    output.innerText = "後端回傳格式異常，未包含報告內容。";
-                }
-
-            } catch (err) {
-                // 錯誤訊息呈現
-                output.innerText = "❌ 執行失敗：\n" + err.message + "\n\n【💡 除錯提醒】請確認您的 Edge Function 已經成功 Deploy，且 Supabase 後台的 GEMINI_API_KEY 已設定完成。";
-            } finally {
-                btn.disabled = false;
+            if (!response.ok) {
+                throw new Error(`無法連線至後端閘道器（狀態碼: ${response.status}），請確認後端 Function 是否成功 Deploy。`);
             }
+
+            const resultData = await response.json();
+            
+            // 🌟 3. 判斷後端是否有傳回捕捉到的詳細紅字錯誤
+            if (resultData.error) {
+                output.innerHTML = `<span style="color: #ff3b30; font-weight: bold; white-space: pre-wrap;">${resultData.error}</span>`;
+            } else if (resultData.report) {
+                // 渲染正常的 AI 分析報告
+                output.innerText = resultData.report; 
+            } else {
+                output.innerText = "❌ 後端回傳格式異常，未包含報告與錯誤內容。";
+            }
+
+        } catch (err) {
+            output.innerText = "❌ 網頁前端發送請求失敗：\n" + err.message;
+        } finally {
+            btn.disabled = false;
         }
-    </script>
-</body>
-</html>
+    }
+</script>
