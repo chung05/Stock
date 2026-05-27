@@ -1,51 +1,147 @@
-<script>
-    // 1. 指向全新的 fetch_data_2AI 專案網址
-    const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetch_data_2AI';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台股籌碼 AI 分析面板 - 雲端大數據版</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 40px auto; 
+            padding: 20px; 
+            line-height: 1.6; 
+            color: #333333;
+        }
+        h2 {
+            color: #1a1a1a;
+            border-bottom: 2px solid #00cbb9;
+            padding-bottom: 8px;
+        }
+        .intro-box {
+            background-color: #e6f9f8;
+            border-left: 4px solid #00cbb9;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        button { 
+            background: #00cbb9; 
+            color: white; 
+            border: none; 
+            padding: 14px 28px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-weight: bold;
+            transition: background 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background: #00b3a3;
+        }
+        button:disabled { 
+            background: #cccccc; 
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        h3 {
+            margin-top: 32px;
+            color: #444444;
+        }
+        #output { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border: 1px solid #e9ecef;
+            border-left: 5px solid #00cbb9; 
+            margin-top: 16px; 
+            white-space: pre-wrap; 
+            font-size: 14px; 
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        .error-text {
+            color: #ff3b30;
+            font-weight: bold;
+            background-color: #fff2f2;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #ffccd0;
+        }
+    </style>
+</head>
+<body>
 
-    async function fetchAndAnalyze() {
-        const btn = document.getElementById('btn');
-        const output = document.getElementById('output');
-        
-        btn.disabled = true;
-        output.innerText = "已發送分析指令，Supabase 正在雲端進行數據讀取與 AI 診斷...";
+    <h2>📈 台股法人籌碼 AI 分析系統（雲端極速優化版）</h2>
+    
+    <div class="intro-box">
+        <strong>💡 系統運作說明：</strong><br>
+        此版本已將數據檔案（<code>ai_analysis.jsonl</code>）與 AI 提示詞完全託管於 Supabase 雲端。<br>
+        網頁前端僅負責發送安全觸發指令，後端 <strong>fetch_data_2AI</strong> 會在雲端機房就地組裝數據並對接 Gemini 運算，大幅節省手機與電腦的網路流量。
+    </div>
 
-        // 🌟 2. 請填入你的 Supabase anon 公開金鑰（在專案 Settings -> API 頁面取得）
+    <button id="btn" onclick="fetchAndAnalyze()">啟動雲端 AI 籌碼分析</button>
+
+    <h3>📊 專業交易員 AI 盤後報告：</h3>
+    <div id="output">等待指令中...</div>
+
+    <script>
+        // 🌟 1. 確保指向你今天新建立的 fetch_data_2AI 專案網址（請萬分確認大小寫與底線）
+        const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetch_data_2AI';
+
+        // 🌟 2. 請在此處填入你的 Supabase 專案公開匿名金鑰 (anon key)
+        // 取得路徑：Supabase 控制台 -> 左下角 Settings (齒輪) -> API -> Project API keys 中的 anon public
         const SUPABASE_ANON_KEY = "填入你的_SUPABASE_ANON_KEY"; 
 
-        try {
-            const response = await fetch(BACKEND_URL, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    // 🌟 帶上通行證，確保在最外層絕對不被網關阻擋
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                },
-                body: JSON.stringify({ 
-                    action: "analyze_latest_chips" 
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`無法連線至後端閘道器（狀態碼: ${response.status}），請確認後端 Function 是否成功 Deploy。`);
-            }
-
-            const resultData = await response.json();
+        async function fetchAndAnalyze() {
+            const btn = document.getElementById('btn');
+            const output = document.getElementById('output');
             
-            // 🌟 3. 判斷後端是否有傳回捕捉到的詳細紅字錯誤
-            if (resultData.error) {
-                output.innerHTML = `<span style="color: #ff3b30; font-weight: bold; white-space: pre-wrap;">${resultData.error}</span>`;
-            } else if (resultData.report) {
-                // 渲染正常的 AI 分析報告
-                output.innerText = resultData.report; 
-            } else {
-                output.innerText = "❌ 後端回傳格式異常，未包含報告與錯誤內容。";
-            }
+            // 按鈕狀態控制，避免使用者重複點擊
+            btn.disabled = true;
+            output.innerText = "已發送分析指令，Supabase 正在雲端進行數據讀取與 AI 診斷...\n（資料庫撈取與 AI 生成約需 5~10 秒，請稍候）";
 
-        } catch (err) {
-            output.innerText = "❌ 網頁前端發送請求失敗：\n" + err.message;
-        } finally {
-            btn.disabled = false;
+            try {
+                // 🚀 正式發動 API 請求，並在 Header 中補上通行金鑰，100% 穿透 Supabase 閘道器防護層
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({ 
+                        action: "analyze_latest_chips" 
+                    })
+                });
+
+                // 如果網路連線層面不對（例如網址拼錯導致 404）
+                if (!response.ok) {
+                    throw new Error(`無法連線至後端 API 網關（狀態碼: ${response.status}），請檢查 BACKEND_URL 是否打錯，或確認 fetch_data_2AI 專案是否成功 Deploy。`);
+                }
+
+                // 解析後端傳回的 JSON 訊息
+                const resultData = await response.json();
+                
+                // 🚀 關鍵判斷：如果後端順利回應，但裡面包裹著「雲端除錯機制」捕捉到的實體錯誤
+                if (resultData.error) {
+                    output.innerHTML = `<div class="error-text">${resultData.error.replace(/\n/g, '<br>')}</div>`;
+                } else if (resultData.report) {
+                    // 🎉 完全成功，渲染 Gemini 生成的終極分析報告
+                    output.innerText = resultData.report; 
+                } else {
+                    output.innerText = "❌ 系統異常：後端回傳格式未知，未包含報告內容或錯誤訊息。";
+                }
+
+            } catch (err) {
+                // 捕捉完全連不上網、或者是本地端直接斷網等嚴重網路錯誤
+                output.innerHTML = `<div class="error-text">❌ 網頁前端請求傳送失敗：<br>${err.message}</div>`;
+            } finally {
+                // 無論成功或失敗，最後都把按鈕還原為可點擊狀態
+                btn.disabled = false;
+            }
         }
-    }
-</script>
+    </script>
+</body>
+</html>
