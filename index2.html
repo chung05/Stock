@@ -5,70 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>台股籌碼 AI 分析面板 - 雲端大數據版</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            max-width: 800px; 
-            margin: 40px auto; 
-            padding: 20px; 
-            line-height: 1.6; 
-            color: #333333;
-        }
-        h2 {
-            color: #1a1a1a;
-            border-bottom: 2px solid #00cbb9;
-            padding-bottom: 8px;
-        }
-        .intro-box {
-            background-color: #e6f9f8;
-            border-left: 4px solid #00cbb9;
-            padding: 12px 16px;
-            margin-bottom: 24px;
-            border-radius: 0 4px 4px 0;
-            font-size: 14px;
-        }
-        button { 
-            background: #00cbb9; 
-            color: white; 
-            border: none; 
-            padding: 14px 28px; 
-            font-size: 16px; 
-            cursor: pointer; 
-            border-radius: 4px; 
-            font-weight: bold;
-            transition: background 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        button:hover {
-            background: #00b3a3;
-        }
-        button:disabled { 
-            background: #cccccc; 
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        h3 {
-            margin-top: 32px;
-            color: #444444;
-        }
-        #output { 
-            background: #f8f9fa; 
-            padding: 20px; 
-            border: 1px solid #e9ecef;
-            border-left: 5px solid #00cbb9; 
-            margin-top: 16px; 
-            white-space: pre-wrap; 
-            font-size: 14px; 
-            border-radius: 4px;
-            min-height: 100px;
-        }
-        .error-text {
-            color: #ff3b30;
-            font-weight: bold;
-            background-color: #fff2f2;
-            padding: 12px;
-            border-radius: 4px;
-            border: 1px solid #ffccd0;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #333; }
+        h2 { color: #1a1a1a; border-bottom: 2px solid #00cbb9; padding-bottom: 8px; }
+        .intro-box { background-color: #e6f9f8; border-left: 4px solid #00cbb9; padding: 12px 16px; margin-bottom: 24px; border-radius: 0 4px 4px 0; font-size: 14px; }
+        button { background: #00cbb9; color: white; border: none; padding: 14px 28px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button:disabled { background: #cccccc; cursor: not-allowed; box-shadow: none; }
+        #output { background: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-left: 5px solid #00cbb9; margin-top: 16px; white-space: pre-wrap; font-size: 14px; border-radius: 4px; min-height: 100px; }
+        .error-text { color: #ff3b30; font-weight: bold; background-color: #fff2f2; padding: 12px; border-radius: 4px; border: 1px solid #ffccd0; }
     </style>
 </head>
 <body>
@@ -77,8 +20,8 @@
     
     <div class="intro-box">
         <strong>💡 系統運作說明：</strong><br>
-        此版本已將數據檔案（<code>ai_analysis.jsonl</code>）與 AI 提示詞完全託管於 Supabase 雲端。<br>
-        網頁前端僅負責發送安全觸發指令，後端 <strong>fetch_data_2AI</strong> 會在雲端機房就地組裝數據並對接 Gemini 運算，大幅節省手機與電腦的網絡流量。
+        資料檔案（JSON）與 AI 提示詞皆已安全託管於 Supabase 雲端。<br>
+        前端發送指令後，後端 <code>fetchdata</code> 將在雲端就地完成大數據組裝與 Gemini 運算，大幅節省使用者裝置的流量與效能。
     </div>
 
     <button id="btn" onclick="fetchAndAnalyze()">啟動雲端 AI 籌碼分析</button>
@@ -86,52 +29,53 @@
     <h3>📊 專業交易員 AI 盤後報告：</h3>
     <div id="output">等待指令中...</div>
 
-<script>
-    // 1. 確保網址正確
-    const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetchdata';
+    <script>
+        // 🌟 已對齊你重新整理的最新正確 URL 與金鑰
+        const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetchdata';
+        const CONFIRMED_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc';
 
-    async function fetchAndAnalyze() {
-        const btn = document.getElementById('btn');
-        const output = document.getElementById('output');
-        
-        btn.disabled = true;
-        output.innerText = "已發送分析指令，Supabase 正在雲端進行數據讀取與 AI 診斷...\n（資料庫撈取與 AI 生成約需 5~10 秒，請稍候）";
-
-        try {
-            // 🌟 核心修正：直接把金鑰字串貼在 headers 裡面，不透過任何變數轉手！
-            // 請將下方兩處的 "請直接把你的anon_key長字串貼在這裡" 替換成真實金鑰。
-            const response = await fetch(BACKEND_URL, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'apikey': '請直接把你的anon_key長字串貼在這裡',
-                    'Authorization': 'Bearer 請直接把你的anon_key長字串貼在這裡'
-                },
-                body: JSON.stringify({ 
-                    action: "analyze_latest_chips" 
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`無法連線至後端 API 網關（狀態碼: ${response.status}），請確認後端 Function 是否成功 Deploy。`);
-            }
-
-            const resultData = await response.json();
+        async function fetchAndAnalyze() {
+            const btn = document.getElementById('btn');
+            const output = document.getElementById('output');
             
-            if (resultData.error) {
-                output.innerHTML = `<div class="error-text">${resultData.error.replace(/\n/g, '<br>')}</div>`;
-            } else if (resultData.report) {
-                output.innerText = resultData.report; 
-            } else {
-                output.innerText = "❌ 系統異常：後端回傳格式未知，未包含報告內容或錯誤訊息。";
-            }
+            btn.disabled = true;
+            output.innerText = "已發送分析指令，Supabase 正在雲端進行資源組裝與 AI 診斷...\n（約需 5~10 秒，請稍候）";
 
-        } catch (err) {
-            output.innerHTML = `<div class="error-text">❌ 網頁前端請求傳送失敗：<br>${err.message}</div>`;
-        } finally {
-            btn.disabled = false;
+            try {
+                // 自動清理變數中可能存在的任何隱形全形空白，確保編碼 100% 合法
+                const cleanKey = CONFIRMED_ANON_KEY.replace(/[^a-zA-Z0-9._-]/g, '');
+
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'apikey': cleanKey,
+                        'Authorization': 'Bearer ' + cleanKey
+                    },
+                    body: JSON.stringify({ action: "analyze_latest_chips" })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`無法連線至 API 網關（狀態碼: ${response.status}），請檢查後端是否成功 Deploy。`);
+                }
+
+                const resultData = await response.json();
+                
+                // 檢查後端是否有傳回防禦機制捕獲的中文詳細錯誤
+                if (resultData.error) {
+                    output.innerHTML = `<div class="error-text">${resultData.error.replace(/\n/g, '<br>')}</div>`;
+                } else if (resultData.report) {
+                    output.innerText = resultData.report; // 成功，渲染報告
+                } else {
+                    output.innerText = "❌ 系統異常：後端回傳格式未知，未包含報告內容或錯誤訊息。";
+                }
+
+            } catch (err) {
+                output.innerHTML = `<div class="error-text">❌ 網頁前端請求發送失敗：<br>${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
         }
-    }
-</script>
+    </script>
 </body>
 </html>
