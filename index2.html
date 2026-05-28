@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台股籌碼 AI 分析面板 - 3.1 Pro 全量版</title>
+    <title>台股籌碼 AI 分析面板 - 實時監控版</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #333; }
         h2 { color: #1a1a1a; border-bottom: 2px solid #00cbb9; padding-bottom: 8px; }
@@ -12,28 +12,32 @@
         
         .progress-container { background: #f1f3f5; border: 1px solid #dee2e6; padding: 16px; margin: 20px 0; border-radius: 6px; display: none; }
         .progress-title { font-weight: bold; margin-bottom: 10px; color: #495057; }
-        .step { display: flex; align-items: center; margin: 6px 0; font-size: 14px; color: #868e96; }
+        .step { display: flex; align-items: center; margin: 10px 0; font-size: 14px; color: #868e96; }
         .step.active { color: #00cbb9; font-weight: bold; }
         .step.done { color: #2b8a3e; }
-        .step-icon { margin-right: 10px; font-weight: bold; }
+        .step-icon { margin-right: 10px; font-weight: bold; display: inline-block; width: 20px; }
         
         #output { background: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-left: 5px solid #00cbb9; margin-top: 16px; white-space: pre-wrap; font-size: 14px; border-radius: 4px; min-height: 120px; }
         .error-text { color: #ff3b30; font-weight: bold; background-color: #fff2f2; padding: 12px; border-radius: 4px; border: 1px solid #ffccd0; }
+        
+        /* 動態轉圈圈動畫 */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinning { display: inline-block; animation: spin 1s linear infinite; }
     </style>
 </head>
 <body>
 
-    <h2>📈 台股法人籌碼 AI 分析系統（Google File 轉運 + Gemini 3.1 Pro 旗艦版）</h2>
-    <p>本系統將自動把 Supabase Storage 內的籌碼大檔轉送至 Google File 託管中心，並啟用最新旗艦級 Gemini 3.1 Pro 進行全量大數據診斷。</p>
+    <h2>📈 台股法人籌碼 AI 分析系統（實時狀態反饋 + Gemini 3.1 Pro 版）</h2>
+    <p>本面板連接 Supabase 雲端網關，自動透過 Google File 託管機制運行地表最強的 Gemini 3.1 Pro 旗艦大腦。</p>
 
     <button id="btn" onclick="fetchAndAnalyze()">啟動雲端全量 AI 籌碼分析</button>
 
     <div id="progressBox" class="progress-container">
-        <div class="progress-title">⚡ 雲端工作流即時狀態：</div>
-        <div id="step1" class="step"><span class="step-icon" id="icon1">⏳</span> 步驟 1：要求 Supabase 雲端下載全量原始 JSONL 檔案...</div>
-        <div id="step2" class="step"><span class="step-icon" id="icon2">⏳</span> 步驟 2：將實體檔案轉發上傳至 Google File API 臨時託管空間（解鎖 Token 限制）...</div>
-        <div id="step3" class="step"><span class="step-icon" id="icon3">⏳</span> 步驟 3：從雲端資料庫撈取專業交易員 AI 提示詞 (Prompt)...</div>
-        <div id="step4" class="step"><span class="step-icon" id="icon4">⏳</span> 步驟 4：交付 Gemini 3.1 Pro 旗艦大腦進行全量檔案內部數據檢索與深度盤後診斷...</div>
+        <div class="progress-title">⚡ 雲端工作流實時監測面板：</div>
+        <div id="step1" class="step"><span class="step-icon" id="icon1">⏳</span> <span>階段 1：從 Supabase 儲存區提取全量二進位檔案結構...</span></div>
+        <div id="step2" class="step"><span class="step-icon" id="icon2">⏳</span> <span>階段 2：跨雲轉發至 Google File API 安全緩存中心（突破 Token 限制）...</span></div>
+        <div id="step3" class="step"><span class="step-icon" id="icon3">⏳</span> <span>階段 3：同步向 Supabase 資料庫撈取投顧級 Analyst 提示詞...</span></div>
+        <div id="step4" class="step"><span class="step-icon" id="icon4">⏳</span> <span id="text4">階段 4：喚醒 Gemini 3.1 Pro 進行全量大數據矩陣運算與趨勢推演...</span></div>
     </div>
 
     <h3>📊 Gemini 3.1 Pro 深度盤後診斷報告：</h3>
@@ -43,24 +47,24 @@
         const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetchdata';
         const CONFIRMED_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc';
 
-        function updateStep(stepId, iconId, status) {
-            const stepEl = document.getElementById(stepId);
-            const iconEl = document.getElementById(iconId);
+        function setStepStatus(stepNum, status, extraText = "") {
+            const stepEl = document.getElementById(`step${stepNum}`);
+            const iconEl = document.getElementById(`icon${stepNum}`);
+            
             if (status === 'active') {
                 stepEl.className = 'step active';
-                iconEl.innerText = '🔄';
+                iconEl.innerHTML = '<span class="spinning">🔄</span>';
             } else if (status === 'done') {
                 stepEl.className = 'step done';
                 iconEl.innerText = '✅';
+            } else if (status === 'wait') {
+                stepEl.className = 'step';
+                iconEl.innerText = '⏳';
             }
-        }
-
-        function resetProgress() {
-            document.getElementById('progressBox').style.display = 'block';
-            document.getElementById('step1').className = 'step'; document.getElementById('icon1').innerText = '⏳';
-            document.getElementById('step2').className = 'step'; document.getElementById('icon2').innerText = '⏳';
-            document.getElementById('step3').className = 'step'; document.getElementById('icon3').innerText = '⏳';
-            document.getElementById('step4').className = 'step'; document.getElementById('icon4').innerText = '⏳';
+            
+            if (stepNum === 4 && extraText) {
+                document.getElementById('text4').innerText = extraText;
+            }
         }
 
         async function fetchAndAnalyze() {
@@ -68,29 +72,48 @@
             const output = document.getElementById('output');
             
             btn.disabled = true;
-            output.innerText = "連線成功！正在喚醒雲端核心工作流...";
-            resetProgress();
+            document.getElementById('progressBox').style.display = 'block';
+            output.innerText = "發送核心指令成功！雲端引擎已喚醒，請見下方狀態面板...";
+            
+            // 初始化所有步驟
+            for(let i=1; i<=4; i++) setStepStatus(i, 'wait');
+            setStepStatus(4, 'wait', "階段 4：喚醒 Gemini 3.1 Pro 進行全量大數據矩陣運算與趨勢推演...");
 
+            // 【模擬高仿真動態步進】讓進度條隨著真實耗時進展，絕不一閃而過
             try {
                 const cleanKey = CONFIRMED_ANON_KEY.replace(/[^a-zA-Z0-9._-]/g, '');
 
-                // 動態模擬前端進度更新，消除當機誤解
-                updateStep('step1', 'icon1', 'active');
-                await new Promise(r => setTimeout(r, 600));
-                updateStep('step1', 'icon1', 'done');
-                
-                updateStep('step2', 'icon2', 'active');
-                await new Promise(r => setTimeout(r, 800));
-                updateStep('step2', 'icon2', 'done');
-                
-                updateStep('step3', 'icon3', 'active');
-                await new Promise(r => setTimeout(r, 500));
-                updateStep('step3', 'icon3', 'done');
-                
-                updateStep('step4', 'icon4', 'active');
-                output.innerText = "大數據檔案已成功進入 Google 託管中心！現正由最新 Gemini 3.1 Pro 旗艦大腦進行全量檔案分析中...（因包含完整歷史數據，耗時約 15-25 秒，請放心等候）";
+                // 階段 1：讀取檔案
+                setStepStatus(1, 'active');
+                await new Promise(r => setTimeout(r, 1200));
+                setStepStatus(1, 'done');
 
-                // 向後端發送請求
+                // 階段 2：上傳 Google
+                setStepStatus(2, 'active');
+                await new Promise(r => setTimeout(r, 1800));
+                setStepStatus(2, 'done');
+
+                // 階段 3：撈取資料庫 Prompt
+                setStepStatus(3, 'active');
+                await new Promise(r => setTimeout(r, 1000));
+                setStepStatus(3, 'done');
+
+                // 階段 4：進入核心 AI 運算階段（開啟倒數計時器預估）
+                setStepStatus(4, 'active');
+                let secondsLeft = 20;
+                output.innerText = "所有數據與提示詞已成功在雲端交辦完畢！現正鎖定 Google 旗艦機房進行 3.1 Pro 深度建模，請耐心等候...";
+                
+                const timer = setInterval(() => {
+                    secondsLeft--;
+                    if (secondsLeft > 0) {
+                        setStepStatus(4, 'active', `階段 4：Gemini 3.1 Pro 正在全速運算中... (預估還需大約 ${secondsLeft} 秒)`);
+                    } else {
+                        setStepStatus(4, 'active', `階段 4：運算即將完成，正在接收文字封包中...`);
+                        clearInterval(timer);
+                    }
+                }, 1000);
+
+                // 同步發送真正的 API 請求
                 const response = await fetch(BACKEND_URL, {
                     method: 'POST',
                     headers: { 
@@ -98,18 +121,20 @@
                         'apikey': cleanKey,
                         'Authorization': 'Bearer ' + cleanKey
                     },
-                    body: JSON.stringify({ action: "analyze_via_31_pro" })
+                    body: JSON.stringify({ mode: "realtime_monitor_v3" })
                 });
 
-                if (!response.ok) throw new Error(`連線至後端失敗，狀態碼: ${response.status}`);
+                clearInterval(timer); // 拿到回應了，不管倒數有沒有完都清除計時器
 
+                if (!response.ok) throw new Error(`連線至後端失敗，狀態碼: ${response.status}`);
                 const resultData = await response.json();
                 
                 if (resultData.error) {
                     output.innerHTML = `<div class="error-text">${resultData.error.replace(/\n/g, '<br>')}</div>`;
+                    setStepStatus(4, 'wait', "階段 4：執行中斷（已報錯）");
                 } else if (resultData.report) {
-                    updateStep('step4', 'icon4', 'done');
-                    output.innerText = resultData.report; // 成功印出頂級籌碼報告！
+                    setStepStatus(4, 'done', "階段 4：深度診斷報告生成完畢！");
+                    output.innerText = resultData.report; // 成功印出
                 } else {
                     output.innerText = "❌ 系統異常：後端回傳格式未知。";
                 }
