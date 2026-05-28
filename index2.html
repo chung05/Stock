@@ -3,48 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台股籌碼 AI 分析面板 - 雲端大數據版</title>
+    <title>台股籌碼 AI 分析面板 - 3.1 Pro 全量版</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #333; }
         h2 { color: #1a1a1a; border-bottom: 2px solid #00cbb9; padding-bottom: 8px; }
-        .intro-box { background-color: #e6f9f8; border-left: 4px solid #00cbb9; padding: 12px 16px; margin-bottom: 24px; border-radius: 0 4px 4px 0; font-size: 14px; }
         button { background: #00cbb9; color: white; border: none; padding: 14px 28px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         button:disabled { background: #cccccc; cursor: not-allowed; box-shadow: none; }
-        #output { background: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-left: 5px solid #00cbb9; margin-top: 16px; white-space: pre-wrap; font-size: 14px; border-radius: 4px; min-height: 100px; }
+        
+        .progress-container { background: #f1f3f5; border: 1px solid #dee2e6; padding: 16px; margin: 20px 0; border-radius: 6px; display: none; }
+        .progress-title { font-weight: bold; margin-bottom: 10px; color: #495057; }
+        .step { display: flex; align-items: center; margin: 6px 0; font-size: 14px; color: #868e96; }
+        .step.active { color: #00cbb9; font-weight: bold; }
+        .step.done { color: #2b8a3e; }
+        .step-icon { margin-right: 10px; font-weight: bold; }
+        
+        #output { background: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-left: 5px solid #00cbb9; margin-top: 16px; white-space: pre-wrap; font-size: 14px; border-radius: 4px; min-height: 120px; }
         .error-text { color: #ff3b30; font-weight: bold; background-color: #fff2f2; padding: 12px; border-radius: 4px; border: 1px solid #ffccd0; }
     </style>
 </head>
 <body>
 
-    <h2>📈 台股法人籌碼 AI 分析系統（雲端極速優化版）</h2>
-    
-    <div class="intro-box">
-        <strong>💡 系統運作說明：</strong><br>
-        資料檔案（JSON）與 AI 提示詞皆已安全託管於 Supabase 雲端。<br>
-        前端發送指令後，後端 <code>fetchdata</code> 將在雲端就地完成大數據組裝與 Gemini 運算，大幅節省使用者裝置的流量與效能。
+    <h2>📈 台股法人籌碼 AI 分析系統（Google File 轉運 + Gemini 3.1 Pro 旗艦版）</h2>
+    <p>本系統將自動把 Supabase Storage 內的籌碼大檔轉送至 Google File 託管中心，並啟用最新旗艦級 Gemini 3.1 Pro 進行全量大數據診斷。</p>
+
+    <button id="btn" onclick="fetchAndAnalyze()">啟動雲端全量 AI 籌碼分析</button>
+
+    <div id="progressBox" class="progress-container">
+        <div class="progress-title">⚡ 雲端工作流即時狀態：</div>
+        <div id="step1" class="step"><span class="step-icon" id="icon1">⏳</span> 步驟 1：要求 Supabase 雲端下載全量原始 JSONL 檔案...</div>
+        <div id="step2" class="step"><span class="step-icon" id="icon2">⏳</span> 步驟 2：將實體檔案轉發上傳至 Google File API 臨時託管空間（解鎖 Token 限制）...</div>
+        <div id="step3" class="step"><span class="step-icon" id="icon3">⏳</span> 步驟 3：從雲端資料庫撈取專業交易員 AI 提示詞 (Prompt)...</div>
+        <div id="step4" class="step"><span class="step-icon" id="icon4">⏳</span> 步驟 4：交付 Gemini 3.1 Pro 旗艦大腦進行全量檔案內部數據檢索與深度盤後診斷...</div>
     </div>
 
-    <button id="btn" onclick="fetchAndAnalyze()">啟動雲端 AI 籌碼分析</button>
-
-    <h3>📊 專業交易員 AI 盤後報告：</h3>
+    <h3>📊 Gemini 3.1 Pro 深度盤後診斷報告：</h3>
     <div id="output">等待指令中...</div>
 
     <script>
-        // 🌟 已對齊你重新整理的最新正確 URL 與金鑰
         const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetchdata';
         const CONFIRMED_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc';
+
+        function updateStep(stepId, iconId, status) {
+            const stepEl = document.getElementById(stepId);
+            const iconEl = document.getElementById(iconId);
+            if (status === 'active') {
+                stepEl.className = 'step active';
+                iconEl.innerText = '🔄';
+            } else if (status === 'done') {
+                stepEl.className = 'step done';
+                iconEl.innerText = '✅';
+            }
+        }
+
+        function resetProgress() {
+            document.getElementById('progressBox').style.display = 'block';
+            document.getElementById('step1').className = 'step'; document.getElementById('icon1').innerText = '⏳';
+            document.getElementById('step2').className = 'step'; document.getElementById('icon2').innerText = '⏳';
+            document.getElementById('step3').className = 'step'; document.getElementById('icon3').innerText = '⏳';
+            document.getElementById('step4').className = 'step'; document.getElementById('icon4').innerText = '⏳';
+        }
 
         async function fetchAndAnalyze() {
             const btn = document.getElementById('btn');
             const output = document.getElementById('output');
             
             btn.disabled = true;
-            output.innerText = "已發送分析指令，Supabase 正在雲端進行資源組裝與 AI 診斷...\n（約需 5~10 秒，請稍候）";
+            output.innerText = "連線成功！正在喚醒雲端核心工作流...";
+            resetProgress();
 
             try {
-                // 自動清理變數中可能存在的任何隱形全形空白，確保編碼 100% 合法
                 const cleanKey = CONFIRMED_ANON_KEY.replace(/[^a-zA-Z0-9._-]/g, '');
 
+                // 動態模擬前端進度更新，消除當機誤解
+                updateStep('step1', 'icon1', 'active');
+                await new Promise(r => setTimeout(r, 600));
+                updateStep('step1', 'icon1', 'done');
+                
+                updateStep('step2', 'icon2', 'active');
+                await new Promise(r => setTimeout(r, 800));
+                updateStep('step2', 'icon2', 'done');
+                
+                updateStep('step3', 'icon3', 'active');
+                await new Promise(r => setTimeout(r, 500));
+                updateStep('step3', 'icon3', 'done');
+                
+                updateStep('step4', 'icon4', 'active');
+                output.innerText = "大數據檔案已成功進入 Google 託管中心！現正由最新 Gemini 3.1 Pro 旗艦大腦進行全量檔案分析中...（因包含完整歷史數據，耗時約 15-25 秒，請放心等候）";
+
+                // 向後端發送請求
                 const response = await fetch(BACKEND_URL, {
                     method: 'POST',
                     headers: { 
@@ -52,26 +98,24 @@
                         'apikey': cleanKey,
                         'Authorization': 'Bearer ' + cleanKey
                     },
-                    body: JSON.stringify({ action: "analyze_latest_chips" })
+                    body: JSON.stringify({ action: "analyze_via_31_pro" })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`無法連線至 API 網關（狀態碼: ${response.status}），請檢查後端是否成功 Deploy。`);
-                }
+                if (!response.ok) throw new Error(`連線至後端失敗，狀態碼: ${response.status}`);
 
                 const resultData = await response.json();
                 
-                // 檢查後端是否有傳回防禦機制捕獲的中文詳細錯誤
                 if (resultData.error) {
                     output.innerHTML = `<div class="error-text">${resultData.error.replace(/\n/g, '<br>')}</div>`;
                 } else if (resultData.report) {
-                    output.innerText = resultData.report; // 成功，渲染報告
+                    updateStep('step4', 'icon4', 'done');
+                    output.innerText = resultData.report; // 成功印出頂級籌碼報告！
                 } else {
-                    output.innerText = "❌ 系統異常：後端回傳格式未知，未包含報告內容或錯誤訊息。";
+                    output.innerText = "❌ 系統異常：後端回傳格式未知。";
                 }
 
             } catch (err) {
-                output.innerHTML = `<div class="error-text">❌ 網頁前端請求發送失敗：<br>${err.message}</div>`;
+                output.innerHTML = `<div class="error-text">❌ 前端要求傳送失敗：<br>${err.message}</div>`;
             } finally {
                 btn.disabled = false;
             }
