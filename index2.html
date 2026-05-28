@@ -86,56 +86,52 @@
     <h3>📊 專業交易員 AI 盤後報告：</h3>
     <div id="output">等待指令中...</div>
 
-    <script>
-        // 🌟 1. 指向你今天建立的 fetch_data_2AI 專案網址
-        const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetchdata';
+<script>
+    // 1. 確保網址正確
+    const BACKEND_URL = 'https://fekesirsqjbkrgaibrjf.supabase.co/functions/v1/fetchdata';
 
-        // 🌟 2. 請在此處填入你的 Supabase 專案公開匿名金鑰 (anon key)
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc"; 
+    async function fetchAndAnalyze() {
+        const btn = document.getElementById('btn');
+        const output = document.getElementById('output');
+        
+        btn.disabled = true;
+        output.innerText = "已發送分析指令，Supabase 正在雲端進行數據讀取與 AI 診斷...\n（資料庫撈取與 AI 生成約需 5~10 秒，請稍候）";
 
-        async function fetchAndAnalyze() {
-            const btn = document.getElementById('btn');
-            const output = document.getElementById('output');
-            
-            btn.disabled = true;
-            output.innerText = "已發送分析指令，Supabase 正在雲端進行數據讀取與 AI 診斷...\n（資料庫撈取與 AI 生成約需 5~10 秒，請稍候）";
+        try {
+            // 🌟 核心修正：直接把金鑰字串貼在 headers 裡面，不透過任何變數轉手！
+            // 請將下方兩處的 "請直接把你的anon_key長字串貼在這裡" 替換成真實金鑰。
+            const response = await fetch(BACKEND_URL, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'apikey': '請直接把你的anon_key長字串貼在這裡',
+                    'Authorization': 'Bearer 請直接把你的anon_key長字串貼在這裡'
+                },
+                body: JSON.stringify({ 
+                    action: "analyze_latest_chips" 
+                })
+            });
 
-            try {
-                // 發動 API 請求，帶上金鑰，確保在最外層絕對不被網關阻擋
-                const response = await fetch(BACKEND_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                    },
-                    body: JSON.stringify({ 
-                        action: "analyze_latest_chips" 
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`無法連線至後端 API 網關（狀態碼: ${response.status}），請確認後端 Function 是否成功 Deploy。`);
-                }
-
-                const resultData = await response.json();
-                
-                // 判斷後端是否有傳回我們在 fetch_data_2AI 中寫好的詳細錯誤
-                if (resultData.error) {
-                    output.innerHTML = `<div class="error-text">${resultData.error.replace(/\n/g, '<br>')}</div>`;
-                } else if (resultData.report) {
-                    // 渲染正常的 AI 分析報告
-                    output.innerText = resultData.report; 
-                } else {
-                    output.innerText = "❌ 系統異常：後端回傳格式未知，未包含報告內容或錯誤訊息。";
-                }
-
-            } catch (err) {
-                output.innerHTML = `<div class="error-text">❌ 網頁前端請求傳送失敗：<br>${err.message}</div>`;
-            } finally {
-                btn.disabled = false;
+            if (!response.ok) {
+                throw new Error(`無法連線至後端 API 網關（狀態碼: ${response.status}），請確認後端 Function 是否成功 Deploy。`);
             }
+
+            const resultData = await response.json();
+            
+            if (resultData.error) {
+                output.innerHTML = `<div class="error-text">${resultData.error.replace(/\n/g, '<br>')}</div>`;
+            } else if (resultData.report) {
+                output.innerText = resultData.report; 
+            } else {
+                output.innerText = "❌ 系統異常：後端回傳格式未知，未包含報告內容或錯誤訊息。";
+            }
+
+        } catch (err) {
+            output.innerHTML = `<div class="error-text">❌ 網頁前端請求傳送失敗：<br>${err.message}</div>`;
+        } finally {
+            btn.disabled = false;
         }
-    </script>
+    }
+</script>
 </body>
 </html>
