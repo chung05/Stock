@@ -33,9 +33,15 @@ async function fetchData() {
   uniqueDates.sort((a, b) => new Date(b) - new Date(a));
   if (uniqueDates.length === 0) return console.log("⚠️ 資料庫中沒有任何交易日資料。");
 
+  // 取出最新 1 日、3 日、5 日的日期邊界（用來做籌碼排行篩選）
+  const latest1Days = uniqueDates.slice(0, 1);
+  const latest3Days = uniqueDates.slice(0, 3);
+  const latest5Days = uniqueDates.slice(0, 5);
+  
+  // 為了計算指標，我們依然需要完整的緩衝天數（例如前 70 天）
   const cutoffDate = uniqueDates[Math.min(70, uniqueDates.length) - 1];
 
-  console.log(`📥 [步驟 2] 分批撈取完整原始資料（每次 1000 筆）...`);
+  console.log(`📥 [步驟 2] 分批撈取完整原始資料以利全局排行計算...`);
   let allRawData = [];
   let page = 0;
   let hasMoreData = true;
@@ -54,9 +60,56 @@ async function fetchData() {
     else page++;
   }
 
+  // ==========================================
+  // 🔥 核心優化：進行多天期籌碼篩選（1D, 3D, 5D 前30名去重）
+  // ==========================================
+  console.log(`💡 [步驟 3] 進行多天期（1日/3日/5日）法人買賣超前30名篩選與聯集去重...`);
+  
+  const stockStats = {};
+  allRawData.forEach(row => {
+    const id = row.stock_id || row.code || 'unknown';
+    const fNet = row.f_net !== undefined ? row.f_net : ((row.f_buy || 0) - (row.f_sell || 0));
+    const itNet = row.it_net !== undefined ? row.it_net : ((row.it_buy || 0) - (row.it_sell || 0));
+    const totalNet = fNet + itNet;
+
+    if (!stockStats[id]) {
+      stockStats[id] = { id, sum1d: 0, sum3d: 0, sum5d: 0 };
+    }
+
+    if (latest1Days.includes(row.date)) stockStats[id].sum1d += totalNet;
+    if (latest3Days.includes(row.date)) stockStats[id].sum3d += totalNet;
+    if (latest5Days.includes(row.date)) stockStats[id].sum5d += totalNet;
+  });
+
+  const stockList = Object.values(stockStats);
+  const top1d = new Set(stockList.sort((a, b) => b.sum1d - a.sum1d).slice(0, 30).map(s => s.id));
+  const top3d = new Set(stockList.sort((a, b) => b.sum3d - a.sum3d).slice(0, 30).map(s => s.id));
+  const top5d = new Set(stockList.sort((a, b) => b.sum5d - a.sum5d).slice(0, 30).map(s => s.id));
+
+  // 取聯集（自動去重）
+  const eliteStockIds = new Set([...top1d, ...top3d, ...top5d]);
+  console.log(`🎯 篩選完成！全市場經去重後共有 ${eliteStockIds.size} 檔籌碼菁英股進入最終名單。`);
+
+  // 將篩選出來的菁英清單，連同他們的標籤資訊一併保留
+  const eliteStocksWithTags = {};
+  eliteStockIds.forEach(id => {
+    const tags = [];
+    if (top1d.has(id)) tags.push("1D強勢");
+    if (top3d.has(id)) tags.push("3D連續佈局");
+    if (top5d.has(id)) tags.push("5D波段主力");
+    eliteStocksWithTags[id] = tags;
+  });
+
+  // 只保留這批菁英股票的原始資料下載
+  const filteredRawData = allRawData.filter(row => eliteStockIds.has(row.stock_id || row.code));
+
   if (!fs.existsSync('./data')) fs.mkdirSync('./data');
-  fs.writeFileSync('./data/raw_data.json', JSON.stringify(allRawData, null, 2));
-  console.log(`💾 成功下載 ${allRawData.length} 筆原始資料至 ./data/raw_data.json。請執行 node export-for-ai.js 進行轉換。`);
+  
+  // 把篩選後的資料與標籤對照表一併存檔
+  fs.writeFileSync('./data/raw_data.json', JSON.stringify(filteredRawData, null, 2));
+  fs.writeFileSync('./data/elite_tags.json', JSON.stringify(eliteStocksWithTags, null, 2));
+  
+  console.log(`💾 成功下載並精簡資料至 ./data/raw_data.json。請執行 node export-for-ai.js 進行轉換。`);
 }
 
 fetchData();
