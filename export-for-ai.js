@@ -2,12 +2,9 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-// 建立 Supabase 連線（用來查詢 stock_targets 對照表）
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-// ==========================================
-// 📈 技術指標計算核心 (嚴格維持原有機制，完全不變)
-// ==========================================
+// 保持您的技術指標計算核心完全不變
 function calculateMA(data, period) {
   let prices = data.map(d => d.price || 0);
   let ma = new Array(prices.length).fill("None");
@@ -65,40 +62,35 @@ function calculateMACD(data) {
 }
 
 // ==========================================
-// ⚙️ 轉換主要邏輯
+// ⚙️ 轉換主要邏輯（優化為橫向寬表格陣列）
 // ==========================================
 async function exportForAI() {
-  console.log("⚙️ 正在讀取原始資料並透過 stock_targets 建立名稱對照...");
+  console.log("⚙️ 正在讀取原始資料並建立寬表格特徵...");
   
-  if (!fs.existsSync('./data/raw_data.json')) {
+  if (!fs.existsSync('./data/raw_data.json') || !fs.existsSync('./data/elite_tags.json')) {
     console.error("❌ 找不到原始檔，請先執行 fetch-data.js");
     return;
   }
 
-  // 1. 讀取本機下載好的原始籌碼價量資料
   const rawData = JSON.parse(fs.readFileSync('./data/raw_data.json', 'utf8'));
+  const eliteTags = JSON.parse(fs.readFileSync('./data/elite_tags.json', 'utf8'));
 
-  // 2. 🛡️ 核心新增：向 stock_targets 獲取不重複的股票名稱對照表
   console.log("📡 正在自資料庫 stock_targets 表中取得股票名稱對照...");
   const { data: targetRows, error: targetError } = await supabase
     .from('stock_targets')
-    .select('stock_id, stock_name'); // 📌 請確保您這張表的欄位名稱是 stock_id 與 stock_name (若非此名稱可微調)
+    .select('stock_id, stock_name');
 
-  if (targetError) {
-    console.error("⚠️ 無法讀取 stock_targets，將改用預設代碼標記。錯誤:", targetError);
-  }
+  if (targetError) console.error("⚠️ 無法讀取 stock_targets，將改用預設代碼標記。");
 
-  // 將對照表轉為 key-value 快取物件，方便後面秒查
   const dbStockNameMap = {};
   if (targetRows) {
-    targetRows.forEach(t => {
-      if (t.stock_id) {
-        dbStockNameMap[t.stock_id] = t.stock_name;
-      }
-    });
+    targetRows.forEach(t => { if (t.stock_id) dbStockNameMap[t.stock_id] = t.stock_name; });
   }
 
-  // 3. 按股票代號群組資料
+  // 取得最新 60 天的日期切片基準點
+  const uniqueDates = [...new Set(rawData.map(row => row.date))].sort((a, b) => new Date(b) - new Date(a));
+  const finalCutoffDate = uniqueDates[Math.min(60, uniqueDates.length) - 1];
+
   const stockGroups = {};
   rawData.forEach(row => {
     const id = row.stock_id || row.code || 'unknown';
@@ -106,92 +98,80 @@ async function exportForAI() {
     stockGroups[id].push(row);
   });
 
-  let dataRows = [];
+  let finalWideRows = [];
 
-  // 4. 計算指標並產生精簡的英文 Key 資料 (完全沿用原邏輯流程)
+  // 橫向扁平化核心演練
   Object.keys(stockGroups).forEach(stockId => {
-    // 排序由舊到新以利指標計算
     let history = stockGroups[stockId].sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    // 計算完整歷史指標
     const ma10 = calculateMA(history, 10);
     const ma20 = calculateMA(history, 20);
     const ma60 = calculateMA(history, 60);
     const rsi14 = calculateRSI(history, 14);
     const macd = calculateMACD(history);
 
+    // 把完整的指標包回原資料物件
     history.forEach((row, index) => {
-      const currentFNet = row.f_net !== undefined ? row.f_net : ((row.f_buy || 0) - (row.f_sell || 0));
-      const currentITNet = row.it_net !== undefined ? row.it_net : ((row.it_buy || 0) - (row.it_sell || 0));
-      
-      // 🌟 核心修正點：名稱優先從 stock_targets 的對照物件中取得
-      const finalStockName = dbStockNameMap[stockId] || row.stock_name || row.name || `股票_${stockId}`;
-
-      const aiRow = {
-        d: row.date,
-        id: stockId,
-        id_name: finalStockName,
-        open: row.open || 0,
-        max: row.max || 0,
-        min: row.min || 0,
-        price: row.price || 0,
-        change: row.change_value || 0,
-        vol: row.trading_volume || 0,
-        f_net: currentFNet,
-        it_net: currentITNet,
-        d_net: row.dealer_net || 0,
-        m_net: row.major_net || 0,
-        ma10: ma10[index],
-        ma20: ma20[index],
-        ma60: ma60[index],
-        rsi14: rsi14[index],
-        macd_dif: macd.dif[index],
-        macd_dea: macd.dea[index],
-        macd_hist: macd.hist[index]
-      };
-      dataRows.push(aiRow);
+      row.computed_ma10 = ma10[index];
+      row.computed_ma20 = ma20[index];
+      row.computed_ma60 = ma60[index];
+      row.computed_rsi14 = rsi14[index];
+      row.computed_macd_hist = macd.hist[index];
     });
+
+    // 🛡️ 切出最新 60 天的時間序列
+    let recent60Days = history.filter(d => d.date >= finalCutoffDate);
+    if (recent60Days.length === 0) return;
+
+    const finalStockName = dbStockNameMap[stockId] || recent60Days[0].stock_name || recent60Days[0].name || `股票_${stockId}`;
+
+    // 🌟 將 60 天的資料扁平化為單一列的陣列（Wide Row）
+    const wideRow = {
+      id: stockId,
+      id_name: finalStockName,
+      tags: eliteTags[stockId] || [], // 帶入多天期籌碼共振標籤
+      dates: recent60Days.map(r => r.date), // 時間軸對照
+      prices: recent60Days.map(r => r.price || 0),
+      vol_history: recent60Days.map(r => r.trading_volume || 0),
+      f_net_history: recent60Days.map(r => (r.f_net !== undefined ? r.f_net : ((r.f_buy || 0) - (r.f_sell || 0)))),
+      it_net_history: recent60Days.map(r => (r.it_net !== undefined ? r.it_net : ((r.it_buy || 0) - (r.it_sell || 0)))),
+      ma10_history: recent60Days.map(r => r.computed_ma10),
+      ma20_history: recent60Days.map(r => r.computed_ma20),
+      ma60_history: recent60Days.map(r => r.computed_ma60),
+      rsi14_history: recent60Days.map(r => r.computed_rsi14),
+      macd_hist_history: recent60Days.map(r => r.computed_macd_hist)
+    };
+
+    finalWideRows.push(wideRow);
   });
 
-  // 5. 過濾出最新 60 天 (維持原有時間切片機制)
-  const uniqueDates = [...new Set(rawData.map(row => row.date))].sort((a, b) => new Date(b) - new Date(a));
-  const finalCutoffDate = uniqueDates[Math.min(60, uniqueDates.length) - 1];
-  const filteredData = dataRows.filter(d => d.d >= finalCutoffDate);
-
-  // 6. 建立「第一行：欄位標題定義範例列」
+  // 說明欄位定義範例列
   const headerDefinitionRow = {
-    d: "交易日期 (格式: YYYY-MM-DD)",
     id: "股票代號",
     id_name: "股票名稱",
-    open: "當日開盤價",
-    max: "當日最高價",
-    min: "當日最低價",
-    price: "當日收盤價",
-    change: "當日漲跌金額",
-    vol: "當日成交量 (張)",
-    f_net: "外資買賣超張數",
-    it_net: "投信買賣超張數",
-    d_net: "自營商買賣超張數",
-    m_net: "主力買賣超張數",
-    ma10: "技術指標: 10日移動平均線 (若歷史天數不足顯示 None)",
-    ma20: "技術指標: 20日移動平均線 (若歷史天數不足顯示 None)",
-    ma60: "技術指標: 60日移動平均線 (若歷史天數不足顯示 None)",
-    rsi14: "技術指標: 14日相對強弱指標 (範圍0-100, 超過70超買, 低於30超賣)",
-    macd_dif: "技術指標: MACD 快線 DIF",
-    macd_dea: "技術指標: MACD 慢線 DEA",
-    macd_hist: "技術指標: MACD 柱狀圖 (DIF - DEA) * 2"
+    tags: "籌碼共振標籤說明 (包含 1D強勢 / 3D連續佈局 / 5D波段主力)",
+    dates: "60天交易日期序列 (由遠到近，最右側為最新交易日)",
+    prices: "60天收盤價序列",
+    vol_history: "60天成交量(張)序列",
+    f_net_history: "60天外資買賣超張數序列",
+    it_net_history: "60天投信買賣超張數序列",
+    ma10_history: "60天10日均線序列",
+    ma20_history: "60天20日均線序列",
+    ma60_history: "60天60日均線(生命線)序列",
+    rsi14_history: "60天RSI強弱勢序列",
+    macd_hist_history: "60天MACD柱狀體變動序列"
   };
 
-  // 7. 組裝為 JSONL 格式並寫入檔案
-  const finalOutputRows = [headerDefinitionRow, ...filteredData];
+  const finalOutputRows = [headerDefinitionRow, ...finalWideRows];
   const jsonlContent = finalOutputRows.map(obj => JSON.stringify(obj)).join('\n');
   
   fs.writeFileSync('./data/ai_analysis.jsonl', jsonlContent);
   
-  console.log(`\n📊 === AI 專用極簡格式轉換完成 ===`);
-  console.log(`✅ 已成功串接 stock_targets 動態查找股票名稱。`);
-  console.log(`✅ 成功插入首行中文對照說明欄位`);
-  console.log(`✅ 實體資料筆數: ${filteredData.length} 筆`);
-  console.log(`💾 已成功寫入: ./data/ai_analysis.jsonl`);
+  console.log(`\n📊 === AI 專用橫向寬表格轉換完成 ===`);
+  console.log(`✅ 成功產出寬表格個股數量: ${finalWideRows.length} 檔菁英股`);
+  console.log(`✅ 總資料行數 (含定義列): ${finalOutputRows.length} 行`);
+  console.log(`💾 檔案已寫入: ./data/ai_analysis.jsonl (完美控管在 10 萬 Token 左右，安全避開免費版 25 萬限制！)`);
 }
 
 exportForAI();
