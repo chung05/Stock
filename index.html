@@ -78,7 +78,7 @@
               <div class="min-w-[640px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
                 </div>
-                <div id="trendPriceDates" class="flex justify-between text-xs text-slate-900 font-black mt-1.5 w-full"></div>
+                <div id="trendPriceDates" class="flex justify-between text-[10px] text-slate-900 font-black mt-1.5 w-full"></div>
               </div>
             </div>
             
@@ -94,7 +94,7 @@
               </div>
             </div>
             
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[640px]">
               </div>
             </div>
@@ -189,7 +189,7 @@
     let targetSheetsSet = new Set();
     let recentDates = []; 
     let extendedTrendDates = []; 
-    let currentSortMode = 'stock_id'; 
+    let currentSortMode = 'investment_buy'; 
     let searchKeyword = ""; 
     let activeNewsData = []; 
     let currentActiveStockId = ""; 
@@ -320,7 +320,6 @@
       const headerSub = document.getElementById("tableHeaderSub");
       if (!headerDates || !headerSub) return;
 
-      // 拓寬到 112px，提供字型變大、間距拉近後的精美技術指標空間
       let datesHtml = `
         <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
@@ -561,311 +560,4 @@
           fRow += getCell(dayData.f_buy, dayData.f_sell);
           fdRow += getCell(dayData.fd_buy, dayData.fd_sell);
           iRow += getCell(dayData.it_buy, dayData.it_sell);
-          dsRow += getCell(dayData.ds_buy, dayData.ds_sell);
-          dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
-        });
-
-        const getSumCell = (val, isDarkRow) => {
-          const bgClass = isDarkRow ? 'bg-slate-100' : 'bg-white';
-          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
-          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-300 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
-        };
-
-        // 核心修改點：優化主頁技術指標面板。調整字型至 text-[11px] 並將名稱與數值之間的間距拉近
-        htmlString += `
-          <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
-              <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
-              <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
-                <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
-                <div class="text-xs mt-0.5">${priceChangeHtml}</div>
-              </div>
-              
-              <div class="mt-2 mx-0.5 p-1 bg-slate-200/80 rounded border border-slate-300/60 flex flex-col gap-0.5 text-[14px] font-black text-left tracking-tighter leading-none">
-                <div class="flex items-center"><span class="text-blue-600 shrink-0 font-bold">M10:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA10}</span></div>
-                <div class="flex items-center"><span class="text-orange-600 shrink-0 font-bold">M20:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA20}</span></div>
-                <div class="flex items-center"><span class="text-purple-600 shrink-0 font-bold">RSI:</span><span class="text-slate-950 ml-1 grow text-right">${mainRSI14}</span></div>
-              </div>
-            </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
-            ${getSumCell(sumF, false)}${fRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>
-            ${getSumCell(sumFD, true)}${fdRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">投信</td>
-            ${getSumCell(sumIT, false)}${iRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(自行)</td>
-            ${getSumCell(sumDS, true)}${dsRow}
-          </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(避險)</td>
-            ${getSumCell(sumDH, false)}${dhRow}
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = htmlString;
-    }
-
-    function switchModalTab(tabMode) {
-      const btnTrend = document.getElementById("tabBtnTrend");
-      const btnNews = document.getElementById("tabBtnNews");
-      const zoneTrend = document.getElementById("trendZone");
-      const zoneNews = document.getElementById("newsZone");
-
-      if (tabMode === 'trend') {
-        btnTrend.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
-        btnNews.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
-        zoneTrend.classList.replace("hidden", "block");
-        zoneNews.classList.replace("block", "hidden");
-        scrollToLatestTrend();
-      } else {
-        btnNews.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
-        btnTrend.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
-        zoneTrend.classList.replace("block", "hidden");
-        zoneNews.classList.replace("hidden", "block");
-      }
-    }
-
-    function switchChipSubTab(subKey) {
-      currentChipSubTab = subKey;
-      const tabs = { f: 'subTabF', it: 'subTabIT', ds: 'subTabDS' };
-      
-      Object.keys(tabs).forEach(k => {
-        const btn = document.getElementById(tabs[k]);
-        if (k === subKey) {
-          btn.className = "px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all";
-        } else {
-          btn.className = "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all";
-        }
-      });
-      renderChipTrendChart();
-    }
-
-    function scrollToLatestTrend() {
-      setTimeout(() => {
-        const pWrapper = document.getElementById("priceScrollWrapper");
-        const cWrapper = document.getElementById("chipScrollWrapper");
-        if (pWrapper) pWrapper.scrollLeft = 0;
-        if (cWrapper) cWrapper.scrollLeft = 0;
-      }, 60);
-    }
-
-    async function openCombinedModal(stockId, stockName) {
-      currentActiveStockId = stockId; 
-      document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
-      switchModalTab('trend');
-      switchChipSubTab('f'); 
-      document.getElementById("newsModal").classList.remove("hidden");
-
-      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
-      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
-      const chronDates = [...availableTrendDates];
-
-      if (recentDates.length > 0) {
-        const latestDayData = myChipsRaw.find(c => String(c.date) === recentDates[0]);
-        if (latestDayData) {
-          document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
-          const cv = latestDayData.change_value || 0;
-          if (cv > 0) {
-            document.getElementById("modalInfoChange").innerHTML = `<span class="text-rose-600">▲${cv}</span>`;
-          } else if (cv < 0) {
-            document.getElementById("modalInfoChange").innerHTML = `<span class="text-emerald-600">▼${Math.abs(cv)}</span>`;
-          } else {
-            document.getElementById("modalInfoChange").innerText = '0.0';
-          }
-
-          document.getElementById("modalInfoMA10").innerText = (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) ? latestDayData.ma10 : '--';
-          document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
-          document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
-        } else {
-          document.getElementById("modalInfoPrice").innerText = '--';
-          document.getElementById("modalInfoChange").innerText = '--';
-          document.getElementById("modalInfoMA10").innerText = '--';
-          document.getElementById("modalInfoMA20").innerText = '--';
-          document.getElementById("modalInfoRSI14").innerText = '--';
-        }
-      }
-
-      const priceChartEl = document.getElementById("trendPriceChart");
-      const priceDatesEl = document.getElementById("trendPriceDates");
-      
-      if (chronDates.length > 0) {
-        let pricePoints = chronDates.map(d => {
-          const day = myChipsRaw.find(c => String(c.date) === d);
-          return (day && day.price) ? day.price : null;
-        });
-
-        let validPrices = pricePoints.filter(p => p !== null);
-        if (validPrices.length > 0) {
-          let maxP = Math.max(...validPrices);
-          let minP = Math.min(...validPrices);
-          let rangeP = maxP - minP === 0 ? 1 : maxP - minP;
-
-          let priceHtml = "";
-          let dateHtml = "";
-
-          chronDates.forEach((d, idx) => {
-            const price = pricePoints[idx];
-            const displayP = price !== null ? price : '--';
-            const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 50) + 10 : 40;
-            const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-
-            priceHtml += `
-              <div class="flex flex-col items-center flex-1 h-full justify-end relative group min-w-0">
-                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
-                <div class="absolute w-[1px] bg-slate-200 bottom-0 top-0 left-1/2 -translate-x-1/2 border-dashed"></div>
-                <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
-              </div>
-            `;
-            dateHtml += `<span class="flex-1 text-center font-black text-xs text-slate-900 truncate px-0.5">${datePart}</span>`;
-          });
-          priceChartEl.innerHTML = priceHtml;
-          priceDatesEl.innerHTML = dateHtml;
-        } else {
-          priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`;
-          priceDatesEl.innerHTML = "";
-        }
-
-        renderChipTrendChart();
-        scrollToLatestTrend();
-        setTimeout(scrollToLatestTrend, 350);
-      } else {
-        priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
-        document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
-        priceDatesEl.innerHTML = "";
-      }
-
-      const listZone = document.getElementById("newsListZone");
-      listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
-
-      try {
-        const targetQuery = `"${stockId}" OR "${stockName}"`;
-        const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-
-        const res = await fetch(apiUrl);
-        const json = await res.json();
-
-        if (json.status !== 'ok' || !json.items || json.items.length === 0) {
-          listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
-          return;
-        }
-
-        let mappedNews = json.items.map(item => {
-          const pubDate = new Date(item.pubDate);
-          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-
-          return {
-            date: dateStr, 
-            timestamp: pubDate.getTime(),
-            source: item.author || "財經媒體",
-            title: item.title,
-            link: item.link 
-          };
-        });
-
-        mappedNews.sort((a, b) => b.timestamp - a.timestamp);
-        activeNewsData = mappedNews;
-
-        let listHtml = "";
-        activeNewsData.forEach((news) => {
-          listHtml += `
-            <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
-               class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
-              <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-                <span>📅 ${news.date}</span>
-                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
-              </div>
-              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
-            </a>
-          `;
-        });
-        listZone.innerHTML = listHtml;
-
-      } catch (err) {
-        console.error("即時抓取新聞發生異常:", err);
-        listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
-      }
-    }
-
-    function closeNewsModal() {
-      document.getElementById("newsModal").classList.add("hidden");
-    }
-
-    function renderChipTrendChart() {
-      const chipChartEl = document.getElementById("trendChipChart");
-      if (!chipChartEl || !currentActiveStockId) return;
-
-      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
-      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
-      const chronDates = [...availableTrendDates];
-
-      const subTabConfigs = {
-        f: { label: '外資 (張)', bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' },
-        it: { label: '投信 (張)', bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' },
-        ds: { label: '自營商(自行+避險) (張)', bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' }
-      };
-
-      const cfg = subTabConfigs[currentChipSubTab];
-      
-      let nets = chronDates.map(d => {
-        const row = myChipsRaw.find(c => String(c.date) === d);
-        if (!row) return 0;
-        if (currentChipSubTab === "ds") {
-          const buySum = (row.ds_buy || 0) + (row.dh_buy || 0);
-          const sellSum = (row.ds_sell || 0) + (row.dh_sell || 0);
-          return Math.round(buySum / 1000) - Math.round(sellSum / 1000);
-        }
-        return Math.round((row[cfg.bKey]||0)/1000) - Math.round((row[cfg.sKey]||0)/1000);
-      });
-
-      let absMax = Math.max(...nets.map(Math.abs), 1);
-
-      let barsHtml = chronDates.map((d, i) => {
-        const val = nets[i];
-        const isPositive = val >= 0;
-        const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80);
-        const signStr = isPositive && val > 0 ? `+${val}` : val;
-        const valColor = val > 0 ? 'text-rose-600' : (val < 0 ? 'text-emerald-600' : 'text-slate-400');
-        const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-
-        return `
-          <div class="flex flex-col flex-1 h-full min-w-0 relative items-center">
-            <div class="w-full h-1/2 flex flex-col justify-end items-center relative">
-              ${isPositive && val > 0 ? `
-                <span class="text-xs font-black ${valColor} mb-1 tracking-tighter whitespace-nowrap">${signStr}</span>
-                <div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>
-              ` : ''}
-              ${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}
-            </div>
-            <div class="w-full h-1/2 flex flex-col justify-start items-center relative">
-              ${!isPositive ? `
-                <div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div>
-                <span class="text-xs font-black ${valColor} mt-1 tracking-tighter whitespace-nowrap">${signStr}</span>
-              ` : ''}
-              <span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter pointer-events-none">${datePart}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      chipChartEl.innerHTML = `
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full">
-          <div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center">
-            <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>
-            ${barsHtml}
-          </div>
-        </div>
-      `;
-    }
-  </script>
-</body>
-</html>
+          dsRow += getCell(
