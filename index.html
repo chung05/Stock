@@ -320,28 +320,28 @@
       const headerSub = document.getElementById("tableHeaderSub");
       if (!headerDates || !headerSub) return;
 
-      // 稍微將標的欄位的基準寬度拓寬到 105px，以利在主頁美觀容納 MA10, MA20, RSI14
+      // 拓寬到 112px，提供字型變大、間距拉近後的精美技術指標空間
       let datesHtml = `
-        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[105px] min-w-[105px] max-w-[105px] align-middle text-center border-r border-slate-300">
+        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
             <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的</span>
             <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
               <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
               <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超</option>
-              <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外自營買</option>
+              <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外陸資自營商買</option>
               <option value="investment_buy" ${currentSortMode==='investment_buy'?'selected':''}>🔺 投信買超</option>
-              <option value="dealer_self_buy" ${currentSortMode==='dealer_self_buy'?'selected':''}>🔺 自營自行</option>
-              <option value="dealer_hedging_buy" ${currentSortMode==='dealer_hedging_buy'?'selected':''}>🔺 自營避險</option>
+              <option value="dealer_self_buy" ${currentSortMode==='dealer_self_buy'?'selected':''}>🔺 自營商(自行)買</option>
+              <option value="dealer_hedging_buy" ${currentSortMode==='dealer_hedging_buy'?'selected':''}>🔺 自營商(避險)買</option>
               <option value="foreign_sell" ${currentSortMode==='foreign_sell'?'selected':''}>🔻 外資賣超</option>
-              <option value="foreign_dealer_sell" ${currentSortMode==='foreign_dealer_sell'?'selected':''}>🔻 外自營賣</option>
+              <option value="foreign_dealer_sell" ${currentSortMode==='foreign_dealer_sell'?'selected':''}>🔻 外陸資自營商賣</option>
               <option value="investment_sell" ${currentSortMode==='investment_sell'?'selected':''}>🔻 投信賣超</option>
-              <option value="dealer_self_sell" ${currentSortMode==='dealer_self_sell'?'selected':''}>🔻 自營自行賣</option>
-              <option value="dealer_hedging_sell" ${currentSortMode==='dealer_hedging_sell'?'selected':''}>🔻 自營避險賣</option>
+              <option value="dealer_self_sell" ${currentSortMode==='dealer_self_sell'?'selected':''}>🔻 自營商(自行)賣</option>
+              <option value="dealer_hedging_sell" ${currentSortMode==='dealer_hedging_sell'?'selected':''}>🔻 自營商(避險)賣</option>
             </select>
           </div>
         </th>
-        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[105px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
-        <th rowspan="2" class="px-1 py-2 bg-rose-50 font-black text-xs text-rose-600 sticky left-[157px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
+        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[112px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
+        <th rowspan="2" class="px-1 py-2 bg-rose-50 font-black text-xs text-rose-600 sticky left-[164px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
       `;
       let subHtml = "";
 
@@ -511,7 +511,6 @@
         let currentPrice = "--";
         let changeValue = 0; 
         
-        // 主頁新增：從最新交易日中取出動態技術指標
         let mainMA10 = "--";
         let mainMA20 = "--";
         let mainRSI14 = "--";
@@ -522,7 +521,6 @@
             if (latestDayData.price !== undefined && latestDayData.price !== null) currentPrice = latestDayData.price;
             changeValue = latestDayData.change_value || 0;
             
-            // 指標值擷取
             if (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) mainMA10 = latestDayData.ma10;
             if (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) mainMA20 = latestDayData.ma20;
             if (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) mainRSI14 = latestDayData.rsi14;
@@ -569,44 +567,45 @@
 
         const getSumCell = (val, isDarkRow) => {
           const bgClass = isDarkRow ? 'bg-slate-100' : 'bg-white';
-          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[157px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm sticky left-[157px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
-          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-300 text-sm sticky left-[157px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
+          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-300 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        // 核心修改點：在第一個 td (標的資訊欄) 的漲跌資訊下方，加入 MA10, MA20, RSI14 快顯區
+        // 核心修改點：優化主頁技術指標面板。調整字型至 text-[11px] 並將名稱與數值之間的間距拉近
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[105px] max-w-[105px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
+            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
               <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
               <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
                 <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
                 <div class="text-xs mt-0.5">${priceChangeHtml}</div>
               </div>
-              <div class="mt-2 mx-0.5 p-1 bg-slate-200/70 rounded border border-slate-300/60 flex flex-col gap-0.5 text-[9px] font-black text-left tracking-tighter leading-none">
-                <div class="flex justify-between"><span class="text-blue-600 font-bold">M10:</span><span class="text-slate-800">${mainMA10}</span></div>
-                <div class="flex justify-between"><span class="text-orange-600 font-bold">M20:</span><span class="text-slate-800">${mainMA20}</span></div>
-                <div class="flex justify-between"><span class="text-purple-600 font-bold">RSI:</span><span class="text-slate-800">${mainRSI14}</span></div>
+              
+              <div class="mt-2 mx-0.5 p-1 bg-slate-200/80 rounded border border-slate-300/60 flex flex-col gap-0.5 text-[11px] font-black text-left tracking-tighter leading-none">
+                <div class="flex items-center"><span class="text-blue-600 shrink-0 font-bold">M10:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA10}</span></div>
+                <div class="flex items-center"><span class="text-orange-600 shrink-0 font-bold">M20:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA20}</span></div>
+                <div class="flex items-center"><span class="text-purple-600 shrink-0 font-bold">RSI:</span><span class="text-slate-950 ml-1 grow text-right">${mainRSI14}</span></div>
               </div>
             </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">外資</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
             ${getSumCell(sumF, false)}${fRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">外資自營</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>
             ${getSumCell(sumFD, true)}${fdRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">投信</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">投信</td>
             ${getSumCell(sumIT, false)}${iRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">自營(自)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(自行)</td>
             ${getSumCell(sumDS, true)}${dsRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">自營(避)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(避險)</td>
             ${getSumCell(sumDH, false)}${dhRow}
           </tr>
         `;
