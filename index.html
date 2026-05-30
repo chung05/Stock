@@ -36,6 +36,29 @@
         <button onclick="closeNewsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
       </div>
 
+      <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">目前股價</div>
+          <div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">今日漲跌</div>
+          <div id="modalInfoChange" class="text-xs font-black text-slate-800">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">10日均線 (MA10)</div>
+          <div id="modalInfoMA10" class="text-xs font-black text-blue-600">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">20日均線 (MA20)</div>
+          <div id="modalInfoMA20" class="text-xs font-black text-orange-600">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">14日強弱指標 (RSI14)</div>
+          <div id="modalInfoRSI14" class="text-xs font-black text-purple-600">--</div>
+        </div>
+      </div>
+
       <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
         <button id="tabBtnTrend" onclick="switchModalTab('trend')" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">
           📈 近期走勢
@@ -207,9 +230,10 @@
 
       try {
         detailText.innerText = "1. 載入雲端股票名單與成分分類...";
+        // 💡 調整資料庫查詢，一併抓取新增的 ma10, ma20, rsi14 資料
         const { data: dbData, error: targetError = null } = await supabaseClient
           .from('stock_targets')
-          .select('stock_id, stock_name, sheet_tags')
+          .select('stock_id, stock_name, sheet_tags, ma10, ma20, rsi14')
           .order('stock_id', { ascending: true });
           
         if (targetError) throw targetError;
@@ -317,7 +341,7 @@
           </div>
         </th>
         <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[94px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
-        <th rowspan="2" class="px-1 py-2 bg-amber-100 font-black text-xs text-amber-950 sticky left-[146px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
+        <th rowspan="2" class="px-1 py-2 bg-rose-100 font-black text-xs text-rose-950 sticky left-[146px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
       `;
       let subHtml = "";
 
@@ -328,10 +352,11 @@
         datesHtml += `<th colspan="3" class="px-2 py-2 ${borderClass} text-sm bg-slate-100 text-slate-900 font-bold whitespace-nowrap">${formattedDate}</th>`;
         
         const subBorderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300 bg-slate-50";
+        // 💡 需求 1：子欄位文字改色（買->藍 text-blue-600, 賣->綠 text-emerald-600, 結->紅 text-rose-600）
         subHtml += `
-          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">買</th>
-          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-slate-600">賣</th>
-          <th class="py-1.5 ${subBorderClass} w-[65px] min-w-[65px] text-sm font-extrabold text-slate-800">結</th>
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-blue-600">買</th>
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-emerald-600">賣</th>
+          <th class="py-1.5 ${subBorderClass} w-[65px] min-w-[65px] text-sm font-extrabold text-rose-600">結</th>
         `;
       });
       headerDates.innerHTML = datesHtml;
@@ -505,14 +530,15 @@
         let sumF = 0, sumFD = 0, sumIT = 0, sumDS = 0, sumDH = 0;
         let fRow = "", fdRow = "", iRow = "", dsRow = "", dhRow = "";
 
+        // 💡 需求 1：修改資料列渲染顏色（買->藍 text-blue-600, 賣->綠 text-emerald-600, 結->全面紅字體系 text-rose-600）
         const getCell = (b, s) => {
           const buy = Math.round((b || 0) / 1000);
           const sell = Math.round((s || 0) / 1000);
           const net = buy - sell;
-          let netHtml = `<td class="py-2.5 border-r border-slate-300 text-slate-400 font-bold text-sm">0</td>`;
-          if (net > 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-red-50 text-red-600 text-sm">+${net}</td>`;
-          if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-green-50 text-green-600 text-sm">${net}</td>`;
-          return `<td class="py-2.5 border-r border-slate-200 text-emerald-600 font-bold text-xs">${buy}</td><td class="py-2.5 border-r border-slate-200 text-rose-600 font-bold text-xs">${sell}</td>${netHtml}`;
+          let netHtml = `<td class="py-2.5 border-r border-slate-300 text-rose-400 font-medium text-sm bg-rose-50/20">0</td>`;
+          if (net > 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-rose-50 text-rose-600 text-sm">+${net}</td>`;
+          if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black bg-rose-50/70 text-rose-500 text-sm">${net}</td>`;
+          return `<td class="py-2.5 border-r border-slate-200 text-blue-600 font-bold text-xs">${buy}</td><td class="py-2.5 border-r border-slate-200 text-emerald-600 font-bold text-xs">${sell}</td>${netHtml}`;
         };
 
         recentDates.forEach(d => {
@@ -531,11 +557,12 @@
           dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
         });
 
+        // 💡 需求 1：修改「五日結」按鈕及數值顯色（全面改為紅色體系渲染）
         const getSumCell = (val, isDarkRow) => {
-          const bgClass = isDarkRow ? 'bg-amber-50/70' : 'bg-amber-50';
+          const bgClass = isDarkRow ? 'bg-rose-50' : 'bg-rose-50/50';
           if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-700 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
-          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-500 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-400 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
         htmlString += `
@@ -619,14 +646,42 @@
 
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
-      document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 即時綜合數據庫`;
+      document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
       switchModalTab('trend');
       switchChipSubTab('f'); 
       document.getElementById("newsModal").classList.remove("hidden");
 
+      // 💡 需求 2：對應當前選定個股，抓取並渲染 MA10, MA20, RSI14 指標
+      const matchedTarget = dbStockData.find(s => String(s.stock_id).trim() === String(stockId).trim());
+      if (matchedTarget) {
+        document.getElementById("modalInfoMA10").innerText = matchedTarget.ma10 !== undefined && matchedTarget.ma10 !== null ? matchedTarget.ma10 : '--';
+        document.getElementById("modalInfoMA20").innerText = matchedTarget.ma20 !== undefined && matchedTarget.ma20 !== null ? matchedTarget.ma20 : '--';
+        document.getElementById("modalInfoRSI14").innerText = matchedTarget.rsi14 !== undefined && matchedTarget.rsi14 !== null ? matchedTarget.rsi14 : '--';
+      } else {
+        document.getElementById("modalInfoMA10").innerText = '--';
+        document.getElementById("modalInfoMA20").innerText = '--';
+        document.getElementById("modalInfoRSI14").innerText = '--';
+      }
+
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
       const chronDates = [...availableTrendDates];
+
+      // 填寫基本股價與漲跌資訊
+      if (recentDates.length > 0) {
+        const latestDayData = myChipsRaw.find(c => String(c.date) === recentDates[0]);
+        if (latestDayData) {
+          document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
+          const cv = latestDayData.change_value || 0;
+          if (cv > 0) {
+            document.getElementById("modalInfoChange").innerHTML = `<span class="text-rose-600">▲${cv}</span>`;
+          } else if (cv < 0) {
+            document.getElementById("modalInfoChange").innerHTML = `<span class="text-emerald-600">▼${Math.abs(cv)}</span>`;
+          } else {
+            document.getElementById("modalInfoChange").innerText = '0.0';
+          }
+        }
+      }
 
       const priceChartEl = document.getElementById("trendPriceChart");
       const priceDatesEl = document.getElementById("trendPriceDates");
@@ -711,9 +766,6 @@
 
         let listHtml = "";
         activeNewsData.forEach((news) => {
-          // 💡 終極優化點：改回最純粹的超連結結構，點擊新聞標題時，直接開啟新網頁完整觀看。
-          // 由於主網頁加入了禁止快取機制，不論手機版還是電腦版，看完新聞隨手按一下原生瀏覽器的「返回鍵」
-          // 主畫面就會毫無縫隙地秒速跳回剛剛的列表狀態，不需要操作兩次、也絕對不會被伺服器阻擋！
           listHtml += `
             <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
                class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
