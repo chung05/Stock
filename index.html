@@ -191,11 +191,8 @@
     let recentDates = [];           // 主表格專用的最新5天日期 (全域)
     let extendedTrendDates = [];    // 趨勢圖預設20天日期 (全域備用)
     
-    // 預設排序為「投信買超」
     let currentSortMode = 'investment_buy'; 
-    // 預設結算計算天數為 5 天
     let currentSumDaysMode = 5; 
-    
     let searchKeyword = ""; 
     let activeNewsData = []; 
     let currentActiveStockId = ""; 
@@ -207,7 +204,6 @@
       await forceSyncFlow(); 
     });
 
-    // 基礎交易日推算 (作為無資料時的預設 Fallback)
     function calculateTradeDaysLists() {
       let dates20 = [];
       let d = new Date();
@@ -230,7 +226,6 @@
       if (elMob) elMob.innerText = startDateStr || "--";
     }
 
-    // 資料同步核心流
     async function forceSyncFlow() {
       const modal = document.getElementById("loadingModal");
       const detailText = document.getElementById("loadingDetail");
@@ -258,6 +253,9 @@
         });
         
         updateTabSelectOptions(Array.from(targetSheetsSet));
+        
+        // 【關鍵修復】：確保再次生成最新的日期區間，供下方撈取使用
+        calculateTradeDaysLists();
 
         detailText.innerText = "2. 正在讀取雲端籌碼與股價數據...";
         await fetchAllChipsFromSupabase();
@@ -273,9 +271,8 @@
       }
     }
 
-    // 從 Supabase 取得歷史晶片籌碼 (已修正重試機制)
     async function fetchAllChipsFromSupabase() {
-      if (dbStockData.length === 0) return;
+      if (extendedTrendDates.length === 0 || dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
       
       let allChipsFetched = [];
@@ -286,24 +283,23 @@
         const chunkIds = stockIds.slice(i, i + chunkSize);
         detailText.innerText = `2. 同步核心籌碼數據中 (${Math.min(i + chunkSize, stockIds.length)} / ${stockIds.length} 檔)...`;
 
-        // 加入單批次重試機制
         let retries = 3;
         let success = false;
 
         while (retries > 0 && !success) {
+          // 【關鍵修復】：補回 .in('date', extendedTrendDates)，限制資料庫只回傳最近20天，避開 1000 筆上限！
           const { data, error } = await supabaseClient
             .from('stock_chips_daily')
             .select('*')
-            .in('stock_id', chunkIds);
+            .in('stock_id', chunkIds)
+            .in('date', extendedTrendDates); 
 
           if (error) {
             console.warn(`批次 ${i} 讀取失敗，剩餘重試次數: ${retries - 1}`, error);
             retries--;
-            
             if (retries === 0) {
-              console.error(`❌ 批次 ${i} 徹底失敗，將跳過此批次繼續執行。`);
+              console.error(`❌ 批次 ${i} 徹底失敗。`);
             } else {
-              // 稍微等待再重試，避免撞擊 API 限制
               await new Promise(resolve => setTimeout(resolve, 500));
             }
           } else {
@@ -317,7 +313,7 @@
 
       globalChipCache = allChipsFetched;
 
-      // 【動態日期自適應】：直接撈取資料庫最真實存在的日期排序
+      // 【動態日期自適應】：從撈回來的精準資料中，反推真實存在的交易日
       if (globalChipCache.length > 0) {
         const dbDates = Array.from(new Set(globalChipCache.map(c => String(c.date))))
                              .sort((a, b) => b.localeCompare(a)); // 由新到舊
@@ -326,11 +322,8 @@
           extendedTrendDates = dbDates.slice(0, 20); 
           recentDates = dbDates.slice(0, 5); // 鎖定主頁顯示最新5天
           updateDisplayDates(recentDates[0]);
-          return; 
         }
       }
-      
-      calculateTradeDaysLists();
     }
 
     function formatDateToString(dateObj) {
@@ -340,13 +333,11 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 變更統計天數 (下拉選單觸發)
     function changeSumDaysMode(val) {
       currentSumDaysMode = parseInt(val, 10);
       applyFilters();
     }
 
-    // 渲染表格表頭 (依據 recentDates)
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -403,7 +394,6 @@
       applyFilters();
     }
 
-    // 取得當前設定下的有效計算日期清單
     function getActiveSumDates() {
       return recentDates.slice(0, currentSumDaysMode);
     }
@@ -526,7 +516,6 @@
       if (tableWrapper) tableWrapper.scrollTop = 0;
     }
 
-    // 渲染主網頁表格內容
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
@@ -579,7 +568,6 @@
           
           let netHtml = `<td class="py-2.5 border-r border-slate-300 text-slate-400 font-medium text-sm">0</td>`;
           if (net > 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm">+${net}</td>`;
-          // 【負數修正】：每日結算負數改用綠色表示
           if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-600 text-sm">${net}</td>`;
           
           return `<td class="py-2.5 border-r border-slate-200 text-blue-600 font-bold text-xs">${buy}</td><td class="py-2.5 border-r border-slate-200 text-emerald-600 font-bold text-xs">${sell}</td>${netHtml}`;
@@ -606,7 +594,6 @@
         const getSumCell = (val, isDarkRow) => {
           const bgClass = isDarkRow ? 'bg-slate-100' : 'bg-white';
           if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          // 【負數修正】：總結算負數改用綠色表示
           if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
@@ -686,7 +673,6 @@
       renderChipTrendChart();
     }
 
-    // 聚焦在最新日期的滾動處理 (左邊最新，所以置左滾動 scrollLeft = 0)
     function scrollToLatestTrend() {
       setTimeout(() => {
         const pWrapper = document.getElementById("priceScrollWrapper");
@@ -696,7 +682,6 @@
       }, 60);
     }
 
-    // 開啟綜合資訊彈窗 (左邊是最新的日期)
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
@@ -706,7 +691,6 @@
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       
-      // 【時間方向修正】：由新到舊排列 (左邊最新，右邊最舊)
       const localTrendDates = [...extendedTrendDates]
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
         .sort((a, b) => b.localeCompare(a)); 
@@ -777,7 +761,6 @@
         priceDatesEl.innerHTML = "";
       }
 
-      // 即時 Google 新聞 RSS 連線流程
       const listZone = document.getElementById("newsListZone");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
@@ -834,14 +817,12 @@
       document.getElementById("newsModal").classList.add("hidden");
     }
 
-    // 渲染彈窗籌碼柱狀圖 (時間軸同步修正為：左邊最新，右邊最舊)
     function renderChipTrendChart() {
       const chipChartEl = document.getElementById("trendChipChart");
       if (!chipChartEl || !currentActiveStockId) return;
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
       
-      // 【時間方向修正】：由新到舊排列 (左邊最新，右邊最舊)
       const localTrendDates = [...extendedTrendDates]
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
         .sort((a, b) => b.localeCompare(a));
@@ -872,7 +853,6 @@
         const isPositive = val >= 0;
         const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80);
         const signStr = isPositive && val > 0 ? `+${val}` : val;
-        // 【負數修正】：彈窗柱狀圖數值若是負數也同步採用更明顯的 emerald 綠色
         const valColor = val > 0 ? 'text-rose-600' : (val < 0 ? 'text-emerald-600' : 'text-slate-400');
         const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
