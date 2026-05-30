@@ -193,6 +193,8 @@
     
     // 預設排序為「投信買超」
     let currentSortMode = 'investment_buy'; 
+    // 預設結算計算天數為 5 天
+    let currentSumDaysMode = 5; 
     
     let searchKeyword = ""; 
     let activeNewsData = []; 
@@ -321,6 +323,12 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
+    // 變更統計天數 (下拉選單觸發)
+    function changeSumDaysMode(val) {
+      currentSumDaysMode = parseInt(val, 10);
+      applyFilters();
+    }
+
     // 渲染表格表頭 (依據 recentDates)
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
@@ -347,7 +355,12 @@
           </div>
         </th>
         <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[112px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
-        <th rowspan="2" class="px-1 py-2 bg-rose-50 font-black text-xs text-rose-600 sticky left-[164px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
+        <th rowspan="2" class="px-1 py-1 bg-rose-50 sticky left-[164px] z-40 w-[74px] min-w-[74px] max-w-[74px] align-middle border-r border-slate-300 text-center sticky-col-shadow">
+          <select onchange="changeSumDaysMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-black cursor-pointer focus:outline-none w-full text-rose-600 tracking-tighter text-center">
+            <option value="5" ${currentSumDaysMode===5?'selected':''}>5日結</option>
+            <option value="3" ${currentSumDaysMode===3?'selected':''}>3日結</option>
+          </select>
+        </th>
       `;
       let subHtml = "";
 
@@ -371,6 +384,11 @@
     function changeSortMode(val) {
       currentSortMode = val;
       applyFilters();
+    }
+
+    // 取得當前設定下的有效計算日期清單
+    function getActiveSumDates() {
+      return recentDates.slice(0, currentSumDaysMode);
     }
 
     function updateTabSelectOptions(sheets) {
@@ -440,8 +458,9 @@
 
         const getSumForStock = (stockId, buyField, sellField) => {
           const chips = globalChipCache.filter(c => String(c.stock_id).trim() === stockId);
+          const sumDates = getActiveSumDates();
           return chips.reduce((acc, row) => {
-            if (!recentDates.includes(String(row.date))) return acc; 
+            if (!sumDates.includes(String(row.date))) return acc; 
             const buy = Math.round((row[buyField] || 0) / 1000);
             const sell = Math.round((row[sellField] || 0) / 1000);
             return acc + (buy - sell);
@@ -502,6 +521,7 @@
       }
 
       let htmlString = "";
+      const sumDates = getActiveSumDates();
 
       stocks.forEach(item => {
         if (!item) return;
@@ -540,9 +560,10 @@
           const sell = Math.round((s || 0) / 1000);
           const net = buy - sell;
           
-          let netHtml = `<td class="py-2.5 border-r border-slate-300 text-rose-400 font-medium text-sm">0</td>`;
+          let netHtml = `<td class="py-2.5 border-r border-slate-300 text-slate-400 font-medium text-sm">0</td>`;
           if (net > 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm">+${net}</td>`;
-          if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm">${net}</td>`;
+          // 【負數修正】：每日結算負數改用綠色表示
+          if (net < 0) netHtml = `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-600 text-sm">${net}</td>`;
           
           return `<td class="py-2.5 border-r border-slate-200 text-blue-600 font-bold text-xs">${buy}</td><td class="py-2.5 border-r border-slate-200 text-emerald-600 font-bold text-xs">${sell}</td>${netHtml}`;
         };
@@ -550,11 +571,13 @@
         recentDates.forEach(d => {
           const dayData = myChips.find(c => String(c.date) === d) || { f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
           
-          sumF += (Math.round((dayData.f_buy||0)/1000) - Math.round((dayData.f_sell||0)/1000));
-          sumFD += (Math.round((dayData.fd_buy||0)/1000) - Math.round((dayData.fd_sell||0)/1000));
-          sumIT += (Math.round((dayData.it_buy||0)/1000) - Math.round((dayData.it_sell||0)/1000));
-          sumDS += (Math.round((dayData.ds_buy||0)/1000) - Math.round((dayData.ds_sell||0)/1000));
-          sumDH += (Math.round((dayData.dh_buy||0)/1000) - Math.round((dayData.dh_sell||0)/1000));
+          if (sumDates.includes(d)) {
+            sumF += (Math.round((dayData.f_buy||0)/1000) - Math.round((dayData.f_sell||0)/1000));
+            sumFD += (Math.round((dayData.fd_buy||0)/1000) - Math.round((dayData.fd_sell||0)/1000));
+            sumIT += (Math.round((dayData.it_buy||0)/1000) - Math.round((dayData.it_sell||0)/1000));
+            sumDS += (Math.round((dayData.ds_buy||0)/1000) - Math.round((dayData.ds_sell||0)/1000));
+            sumDH += (Math.round((dayData.dh_buy||0)/1000) - Math.round((dayData.dh_sell||0)/1000));
+          }
 
           fRow += getCell(dayData.f_buy, dayData.f_sell);
           fdRow += getCell(dayData.fd_buy, dayData.fd_sell);
@@ -566,8 +589,9 @@
         const getSumCell = (val, isDarkRow) => {
           const bgClass = isDarkRow ? 'bg-slate-100' : 'bg-white';
           if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
-          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-300 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
+          // 【負數修正】：總結算負數改用綠色表示
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
         htmlString += `
@@ -831,6 +855,7 @@
         const isPositive = val >= 0;
         const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80);
         const signStr = isPositive && val > 0 ? `+${val}` : val;
+        // 【負數修正】：彈窗柱狀圖數值若是負數也同步採用更明顯的 emerald 綠色
         const valColor = val > 0 ? 'text-rose-600' : (val < 0 ? 'text-emerald-600' : 'text-slate-400');
         const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
