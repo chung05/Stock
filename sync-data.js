@@ -24,9 +24,9 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧增量同步 + 技術指標獨立安全計算】流程...");
+    console.log("🚀 開始執行【智慧增量同步 + 技術指標獨立精準計算】流程...");
 
-    // 1. 載入標的清單 (完全保留您原本的架構)
+    // 1. 載入標的清單 (完全保留原架構)
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
     const workbook = XLSX.read(response.data, { type: 'buffer' });
     const stockMap = new Map();
@@ -51,7 +51,7 @@ async function run() {
 
     if (dbStockData.length === 0) return;
 
-    // 2. 自動判定起訖日期 (智慧增量 - 完全保留您原本的邏輯)
+    // 2. 自動判定起訖日期 (智慧增量 - 完全保留原邏輯)
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
@@ -77,7 +77,7 @@ async function run() {
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    // 3. 步驟一：專心跑 FinMind 籌碼與價格下載 (保留您最原始核心，欄位全小寫 stock_id 絕不動)
+    // 3. 步驟一：專心跑 FinMind 籌碼與價格下載 (保留原始核心，欄位全小寫 stock_id 絕不動)
     if (startDate <= today) {
       for (let i = 0; i < dbStockData.length; i++) {
         const stock = dbStockData[i];
@@ -147,8 +147,8 @@ async function run() {
       console.log("✨ 雲端籌碼資料已是最新，跳過下載步驟。");
     }
 
-    // 4. 💡 步驟二：執行獨立計算指標 Function (全小寫 stock_id 修正版)
-    console.log("💡 開始跑獨立指標計算 function 進行全欄位安全覆蓋更新...");
+    // 4. 步驟二：執行精準獨立計算指標 Function
+    console.log("💡 開始跑獨立指標計算 function 進行全時間軸精準更新...");
     await calculateAndWriteBackIndicators(dbStockData);
 
     console.log("🎉 所有增量同步與技術指標計算流程全數完成！");
@@ -158,38 +158,36 @@ async function run() {
   }
 }
 
-// 🛠️ 專職計算技術指標並安全寫回 Supabase 的獨立 Function
+// 🛠️ 專職從 1/2 開始由舊到新「正序」精準計算技術指標的獨立 Function
 async function calculateAndWriteBackIndicators(stockList) {
   for (let i = 0; i < stockList.length; i++) {
     const stock = stockList[i];
 
     try {
-      // 💡 關鍵修正一：使用 select('*') 撈取整行完整資料，包含三大法人與開高低量，避免 upsert 時遺失原數據
-      const { data: oRows, error: fetchErr } = await supabase
+      // 💡 關鍵優化：不再從最新倒著撈，而是直接「由舊到新 (ascending: true)」撈取該股票有史以來的所有資料
+      // 這樣可以確保 pricePool[0] 永遠是這檔股票在資料庫裡的最起點（如 1/2），時間軸不再發生截斷錯位
+      const { data: pricePool, error: fetchErr } = await supabase
         .from('stock_chips_daily')
         .select('*')
         .eq('stock_id', stock.stock_id)
-        .order('date', { ascending: false })
-        .limit(90); // 撈取足夠的天數計算 MA60 與 RSI14
+        .order('date', { ascending: true }); // 👈 改為由舊到新正序排列
 
       if (fetchErr) {
         console.error(`❌ 無法獲取 ${stock.stock_id} 的歷史價格:`, fetchErr.message);
         continue;
       }
 
-      if (!oRows || oRows.length < 10) {
-        console.log(`⚠️ ${stock.stock_id} 歷史價格筆數太少 (${oRows ? oRows.length : 0} 筆)，無法計算均線。`);
+      if (!pricePool || pricePool.length === 0) {
         continue;
       }
 
-      // 💡 關鍵修正二：使用展開運算子安全拷貝並反轉陣列，防止 JavaScript 記憶體指針混亂導致 price 變成 undefined
-      const pricePool = [...oRows].reverse();
       const totalLen = pricePool.length;
       const rowUpdates = [];
 
+      // 依正序逐日掃描，建立完美遞增的完整歷史池
       for (let j = 0; j < totalLen; j++) {
         const targetDay = pricePool[j];
-        const subPool = pricePool.slice(0, j + 1); 
+        const subPool = pricePool.slice(0, j + 1); // 包含從第一天(1/2)到當天為止的所有資料
         const subLen = subPool.length;
 
         let calculatedMA10 = null;
@@ -197,25 +195,25 @@ async function calculateAndWriteBackIndicators(stockList) {
         let calculatedMA60 = null;
         let calculatedRSI14 = null;
 
-        // 1️⃣ 計算 MA10
+        // 1️⃣ 精準計算 MA10：當 subLen 達到 10，代表這正好是歷史第 10 天，前面恰好留空 9 個 null
         if (subLen >= 10) {
           const sum10 = subPool.slice(-10).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA10 = parseFloat((sum10 / 10).toFixed(2));
         }
 
-        // 2️⃣ 計算 MA20
+        // 2️⃣ 精準計算 MA20：當 subLen 達到 20，代表歷史第 20 天，前面恰好留空 19 個 null
         if (subLen >= 20) {
           const sum20 = subPool.slice(-20).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA20 = parseFloat((sum20 / 20).toFixed(2));
         }
 
-        // 3️⃣ 計算 MA60
+        // 3️⃣ 精準計算 MA60：當 subLen 達到 60，代表歷史第 60 天，前面恰好留空 59 個 null
         if (subLen >= 60) {
           const sum60 = subPool.slice(-60).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA60 = parseFloat((sum60 / 60).toFixed(2));
         }
 
-        // 4️⃣ 計算 RSI14 (標準威爾德平滑滾動法)
+        // 4️⃣ 精準計算 RSI14：第 15 筆資料時（j=14, subLen=15），前面恰好留向 14 個 null
         if (subLen >= 15) {
           let avgUp = 0;
           let avgDown = 0;
@@ -234,7 +232,7 @@ async function calculateAndWriteBackIndicators(stockList) {
             if (!rsiInitialized) {
               avgUp += currentUp;
               avgDown += currentDown;
-              if (k === 14 || (k === subLen - 1 && subLen <= 15)) {
+              if (k === 14) {
                 avgUp = avgUp / 14;
                 avgDown = avgDown / 14;
                 rsiInitialized = true;
@@ -255,10 +253,10 @@ async function calculateAndWriteBackIndicators(stockList) {
           }
         }
 
-        // 💡 關鍵修正三：複製整行既有籌碼欄位，只覆蓋更新這四個指標，確保 upsert 安全且不漏掉任何欄位
+        // 只更新「指標有發生改變」或「新抓到」的行，為了保險並一次性校正，我們把所有算好的資料一併打包
         rowUpdates.push({
-          ...targetDay,           // 繼承完整的舊資料行 (包含外資買賣超、成交量、開高低等)
-          stock_id: targetDay.stock_id, // 確保全小寫主鍵一致
+          ...targetDay, 
+          stock_id: targetDay.stock_id,
           date: targetDay.date,
           ma10: calculatedMA10,
           ma20: calculatedMA20,
@@ -276,7 +274,7 @@ async function calculateAndWriteBackIndicators(stockList) {
         if (writeErr) {
           console.error(`❌ 寫回 ${stock.stock_id} 指標失敗:`, writeErr.message);
         } else {
-          console.log(`[成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 指標全量覆蓋更新成功！(共處理 ${rowUpdates.length} 天)`);
+          console.log(`[精準更新成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 歷史指標校正完畢！`);
         }
       }
 
@@ -284,7 +282,7 @@ async function calculateAndWriteBackIndicators(stockList) {
       console.error(`❌ 處理 ${stock.stock_id} 技術指標時發生錯誤:`, singleErr.message);
     }
 
-    await sleep(80); // 保護資料庫防範瞬間流量限制
+    await sleep(80); 
   }
 }
 
