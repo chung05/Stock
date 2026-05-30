@@ -273,7 +273,7 @@
       }
     }
 
-    // 從 Supabase 取得歷史晶片籌碼
+    // 從 Supabase 取得歷史晶片籌碼 (已修正重試機制)
     async function fetchAllChipsFromSupabase() {
       if (dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
@@ -286,16 +286,33 @@
         const chunkIds = stockIds.slice(i, i + chunkSize);
         detailText.innerText = `2. 同步核心籌碼數據中 (${Math.min(i + chunkSize, stockIds.length)} / ${stockIds.length} 檔)...`;
 
-        const { data, error } = await supabaseClient
-          .from('stock_chips_daily')
-          .select('*')
-          .in('stock_id', chunkIds);
+        // 加入單批次重試機制
+        let retries = 3;
+        let success = false;
 
-        if (error) {
-          console.error("讀取雲端快取晶片數據異常:", error);
-          break;
+        while (retries > 0 && !success) {
+          const { data, error } = await supabaseClient
+            .from('stock_chips_daily')
+            .select('*')
+            .in('stock_id', chunkIds);
+
+          if (error) {
+            console.warn(`批次 ${i} 讀取失敗，剩餘重試次數: ${retries - 1}`, error);
+            retries--;
+            
+            if (retries === 0) {
+              console.error(`❌ 批次 ${i} 徹底失敗，將跳過此批次繼續執行。`);
+            } else {
+              // 稍微等待再重試，避免撞擊 API 限制
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          } else {
+            if (data) {
+              allChipsFetched = allChipsFetched.concat(data);
+            }
+            success = true;
+          }
         }
-        if (data) allChipsFetched = allChipsFetched.concat(data);
       }
 
       globalChipCache = allChipsFetched;
