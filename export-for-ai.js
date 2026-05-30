@@ -5,7 +5,7 @@ require('dotenv').config();
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 // ==========================================
-// 📈 技術指標計算核心（確保均線、RSI精準度）
+// 📈 技術指標計算核心（精準計算歷史指標）
 // ==========================================
 function calculateMA(data, period) {
   let prices = data.map(d => d.price || d.close_price || 0);
@@ -39,10 +39,10 @@ function calculateRSI(data, period = 14) {
 }
 
 // ==========================================
-// ⚙️ 主要轉換邏輯：全新直觀明瞭寬表格模式
+// ⚙️ 主要轉換邏輯：精細化三大法人多屬性寬表格
 // ==========================================
-async function exportNewWideFormat() {
-  console.log("⚙️ 開始進行全新完整版寬表格資料轉換...");
+async function exportRichChipsFormat() {
+  console.log("⚙️ 開始將 60 天籌碼資料轉換為『超詳細三大法人中文寬表格』...");
   
   if (!fs.existsSync('./data/raw_data.json')) {
     console.error("❌ 找不到原始檔，請先執行 fetch-data.js");
@@ -51,7 +51,7 @@ async function exportNewWideFormat() {
 
   const rawData = JSON.parse(fs.readFileSync('./data/raw_data.json', 'utf8'));
 
-  console.log("📡 正在自 stock_targets 表中取得股票名稱對照...");
+  console.log("📡 正在自 stock_targets 表中取得股票中文名稱對照...");
   const { data: targetRows, error: targetError } = await supabase
     .from('stock_targets')
     .select('stock_id, stock_name');
@@ -61,7 +61,7 @@ async function exportNewWideFormat() {
     targetRows.forEach(t => { if (t.stock_id) dbStockNameMap[t.stock_id] = t.stock_name; });
   }
 
-  // 1. 先依股票代號分組，以便按時間順序計算 MA、RSI 與漲跌
+  // 1. 按股票代號進行分組，確保個別股票的時間序列正確
   const stockGroups = {};
   rawData.forEach(row => {
     const id = row.stock_id || row.code || 'unknown';
@@ -71,9 +71,9 @@ async function exportNewWideFormat() {
 
   let allFlattenedRows = [];
 
-  // 2. 逐檔股票處理指標
+  // 2. 逐一計算每檔股票的技術指標與拆解法人欄位
   Object.keys(stockGroups).forEach(stockId => {
-    // 確保由舊到新排列，指標才算得準
+    // 時間由舊到新排序以利計算指標
     let history = stockGroups[stockId].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const ma10 = calculateMA(history, 10);
@@ -81,63 +81,112 @@ async function exportNewWideFormat() {
     const ma60 = calculateMA(history, 60);
     const rsi14 = calculateRSI(history, 14);
 
-    // 3. 把計算好的指標與完整欄位，整合成人類、AI 都能輕鬆看懂的「全新寬版格式」
     history.forEach((row, index) => {
       const stockName = dbStockNameMap[stockId] || row.stock_name || row.name || `股票_${stockId}`;
       const currentPrice = row.price || row.close_price || 0;
       
-      // 自動計算法人淨買賣超（若無直接欄位則用買減賣）
-      const f_net = row.f_net !== undefined ? row.f_net : ((row.f_buy || 0) - (row.f_sell || 0));
-      const it_net = row.it_net !== undefined ? row.it_net : ((row.it_buy || 0) - (row.it_sell || 0));
-      // 擴充：自營商淨買賣超
-      const d_net = row.d_net !== undefined ? row.d_net : ((row.d_buy || 0) - (row.d_sell || 0)); 
-      
-      // 自動計算每日漲跌（當天收盤價 - 前一天收盤價）
+      // 🛡️ 每日漲跌自動推算（若資料庫中無此欄位，則用今日收盤減昨日收盤）
       let dailyChange = 0;
       if (index > 0) {
         const prevPrice = history[index - 1].price || history[index - 1].close_price || 0;
         dailyChange = Math.round((currentPrice - prevPrice) * 100) / 100;
       } else {
-        dailyChange = row.change || 0; // 若沒前一天資料，嘗試取用資料庫內建的變動值
+        dailyChange = row.change || 0;
       }
 
+      // ──【三大法人原始細緻欄位對照與防呆保護】──
+      // 1. 外資與外資自營
+      const f_buy = row.f_buy || 0;
+      const f_sell = row.f_sell || 0;
+      const f_net = row.f_net !== undefined ? row.f_net : (f_buy - f_sell);
+      
+      const f_deal_buy = row.f_deal_buy || 0; // 外資自營商買進
+      const f_deal_sell = row.f_deal_sell || 0; // 外資自營商賣出
+      const f_deal_net = row.f_deal_net !== undefined ? row.f_deal_net : (f_deal_buy - f_deal_sell);
+
+      // 2. 投信
+      const it_buy = row.it_buy || 0;
+      const it_sell = row.it_sell || 0;
+      const it_net = row.it_net !== undefined ? row.it_net : (it_buy - it_sell);
+
+      // 3. 自營商（自行買賣）
+      const d_prop_buy = row.d_prop_buy || row.d_own_buy || 0; // 自行買賣買進
+      const d_prop_sell = row.d_prop_sell || row.d_own_sell || 0; // 自行買賣賣出
+      const d_prop_net = row.d_prop_net !== undefined ? row.d_prop_net : (d_prop_buy - d_prop_sell);
+
+      // 4. 自營商（避險）
+      const d_hedge_buy = row.d_hedge_buy || 0; // 避險買進
+      const d_hedge_sell = row.d_hedge_sell || 0; // 避險賣出
+      const d_hedge_net = row.d_hedge_net !== undefined ? row.d_hedge_net : (d_hedge_buy - d_hedge_sell);
+
+      // 5. 自營商總合 (自行買賣 + 避險)
+      const d_buy = d_prop_buy + d_hedge_buy;
+      const d_sell = d_prop_sell + d_hedge_sell;
+      const d_net = row.d_net !== undefined ? row.d_net : (d_buy - d_sell);
+
+      // 6. 三大法人合計總買賣超
+      const total_net = f_net + it_net + d_net;
+
+      // 建立全新寬表格資料行物件
       const wideRow = {
-        日期: row.date,
-        股票代號: stockId,
-        股票名稱: stockName,
-        開盤價: row.open_price || row.open || 0,
-        最高價: row.high_price || row.high || 0,
-        最低價: row.low_price || row.low || 0,
-        收盤價: currentPrice,
-        漲跌: dailyChange,
-        成交量: row.trading_volume || row.volume || 0,
-        外資買賣超: f_net,
-        投信買賣超: it_net,
-        自營商買賣超: d_net,
-        三大法人總買賣超: f_net + it_net + d_net,
-        MA10均線: ma10[index],
-        MA20均線: ma20[index],
-        MA60均線: ma60[index],
-        RSI14指標: rsi14[index]
+        "日期": row.date,
+        "股票代號": stockId,
+        "股票名稱": stockName,
+        "開盤價": row.open_price || row.open || 0,
+        "最高價": row.high_price || row.high || 0,
+        "最低價": row.low_price || row.low || 0,
+        "收盤價": currentPrice,
+        "漲跌": dailyChange,
+        "成交量": row.trading_volume || row.volume || 0,
+        
+        // ── 外資細項 ──
+        "外資買進張數": f_buy,
+        "外資賣出張數": f_sell,
+        "外資買賣超": f_net,
+        "外資自營商買進": f_deal_buy,
+        "外資自營商賣出": f_deal_sell,
+        "外資自營商買賣超": f_deal_net,
+        
+        // ── 投信細項 ──
+        "投信買進張數": it_buy,
+        "投信賣出張數": it_sell,
+        "投信買賣超": it_net,
+        
+        // ── 自營商細項 ──
+        "自營商自行買進": d_prop_buy,
+        "自營商自行賣出": d_prop_sell,
+        "自營商自行買賣超": d_prop_net,
+        "自營商避險買進": d_hedge_buy,
+        "自營商避險賣出": d_hedge_sell,
+        "自營商避險買賣超": d_hedge_net,
+        "自營商總買買超": d_net,
+        
+        // ── 法人加總 ──
+        "三大法人總買賣超": total_net,
+        
+        // ── 技術指標 ──
+        "MA10均線": ma10[index],
+        "MA20均線": ma20[index],
+        "MA60均線": ma60[index],
+        "RSI14指標": rsi14[index]
       };
 
       allFlattenedRows.push(wideRow);
     });
   });
 
-  // 4. 依日期降序排序（最新交易日排在最前面，方便觀察）
+  // 3. 按日期最新到最舊排序，方便一目了然最新市況
   allFlattenedRows.sort((a, b) => new Date(b.日期) - new Date(a.日期));
 
-  // 轉為 JSON Lines 輸出
+  // 4. 寫入為 JSON Lines 格式
   const jsonlContent = allFlattenedRows.map(obj => JSON.stringify(obj)).join('\n');
   fs.writeFileSync('./data/ai_analysis.jsonl', jsonlContent);
   
-  console.log(`\n📊 === 全新直觀寬表格轉換完成 ===`);
-  console.log(`✅ 已成功還原完整中文欄位名稱（拒絕不直觀的英文縮寫）`);
-  console.log(`✅ 成功整合價量資訊：開盤/最高/最低/收盤/漲跌/成交量`);
-  console.log(`✅ 成功補齊籌碼特徵：完整三大法人（外資、投信、自營商及總和）`);
-  console.log(`✅ 成功載入技術指標：MA10, MA20, MA60, RSI14`);
+  console.log(`\n📊 === 頂級精細化中文寬表格轉換完成 ===`);
+  console.log(`✅ 成功產出包含開/高/低/收/漲跌/成交量的完整格式`);
+  console.log(`✅ 完美解構三大法人細項（含外資自營、自營商自行買賣、避險買賣之買進與賣出）`);
+  console.log(`✅ 已補全技術指標：MA10, MA20, MA60, RSI14`);
   console.log(`💾 檔案已寫入: ./data/ai_analysis.jsonl`);
 }
 
-exportNewWideFormat();
+exportRichChipsFormat();
