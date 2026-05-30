@@ -75,10 +75,10 @@
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
             
             <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
-              <div class="min-w-[640px] px-1">
+              <div class="min-w-[960px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
                   </div>
-                <div id="trendPriceDates" class="flex justify-between text-xs text-slate-900 font-black mt-1.5 w-full"></div>
+                <div id="trendPriceDates" class="flex justify-between font-black mt-1.5 w-full"></div>
               </div>
             </div>
             
@@ -95,7 +95,7 @@
             </div>
             
             <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
-              <div id="trendChipChart" class="w-full min-w-[640px]">
+              <div id="trendChipChart" class="w-full min-w-[960px]">
                 </div>
             </div>
           </div>
@@ -190,7 +190,10 @@
     let targetSheetsSet = new Set();
     let recentDates = [];           // 主表格專用的最新5天日期 (全域)
     let extendedTrendDates = [];    // 趨勢圖預設20天日期 (全域備用)
-    let currentSortMode = 'stock_id'; 
+    
+    // 【需求2變更點】：將預設排序由 'stock_id' 改為 'investment_buy'（投信買超）
+    let currentSortMode = 'investment_buy'; 
+    
     let searchKeyword = ""; 
     let activeNewsData = []; 
     let currentActiveStockId = ""; 
@@ -649,7 +652,7 @@
       }, 60);
     }
 
-    // 開啟綜合資訊彈窗 (修正核心：使用獨立區域變數，不污染全域日期)
+    // 開啟綜合資訊彈窗 (使用獨立區域變數，不污染全域日期)
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
@@ -659,7 +662,6 @@
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       
-      // 【安全隔離修正點】：使用區域變數作走勢圖日期篩選，絕對不污染全域陣列
       const localTrendDates = [...extendedTrendDates]
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
         .sort((a, b) => a.localeCompare(b)); // 由舊到新繪製走勢
@@ -713,7 +715,8 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            dateHtml += `<span class="flex-1 text-center font-black text-xs text-slate-900 truncate px-0.5">${datePart}</span>`;
+            // 【需求1變更點】：將日期字體由 text-xs 降級至 text-[10px] 避免重疊
+            dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-900 truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
           priceDatesEl.innerHTML = dateHtml;
@@ -794,7 +797,6 @@
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
       
-      // 【安全隔離修正點】：使用獨立區域變數 localTrendDates
       const localTrendDates = [...extendedTrendDates]
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
         .sort((a, b) => a.localeCompare(b));
