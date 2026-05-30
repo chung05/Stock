@@ -94,7 +94,7 @@
               </div>
             </div>
             
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[960px]">
                 </div>
             </div>
@@ -191,7 +191,7 @@
     let recentDates = [];           // 主表格專用的最新5天日期 (全域)
     let extendedTrendDates = [];    // 趨勢圖預設20天日期 (全域備用)
     
-    // 【需求2變更點】：將預設排序由 'stock_id' 改為 'investment_buy'（投信買超）
+    // 預設排序為「投信買超」
     let currentSortMode = 'investment_buy'; 
     
     let searchKeyword = ""; 
@@ -645,14 +645,17 @@
       renderChipTrendChart();
     }
 
+    // 聚焦在最新日期的滾動處理 (左邊最新，所以置左滾動 scrollLeft = 0)
     function scrollToLatestTrend() {
       setTimeout(() => {
         const pWrapper = document.getElementById("priceScrollWrapper");
+        const cWrapper = document.getElementById("chipScrollWrapper");
         if (pWrapper) pWrapper.scrollLeft = 0;
+        if (cWrapper) cWrapper.scrollLeft = 0;
       }, 60);
     }
 
-    // 開啟綜合資訊彈窗 (使用獨立區域變數，不污染全域日期)
+    // 開啟綜合資訊彈窗 (左邊是最新的日期)
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
@@ -662,9 +665,10 @@
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       
+      // 【時間方向修正】：由新到舊排列 (左邊最新，右邊最舊)
       const localTrendDates = [...extendedTrendDates]
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
-        .sort((a, b) => a.localeCompare(b)); // 由舊到新繪製走勢
+        .sort((a, b) => b.localeCompare(a)); 
 
       if (recentDates.length > 0) {
         const latestDayData = myChipsRaw.find(c => String(c.date) === recentDates[0]);
@@ -715,7 +719,6 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            // 【需求1變更點】：將日期字體由 text-xs 降級至 text-[10px] 避免重疊
             dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-900 truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
@@ -790,16 +793,17 @@
       document.getElementById("newsModal").classList.add("hidden");
     }
 
-    // 渲染彈窗籌碼柱狀圖 (同樣落實局部變數安全隔離)
+    // 渲染彈窗籌碼柱狀圖 (時間軸同步修正為：左邊最新，右邊最舊)
     function renderChipTrendChart() {
       const chipChartEl = document.getElementById("trendChipChart");
       if (!chipChartEl || !currentActiveStockId) return;
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
       
+      // 【時間方向修正】：由新到舊排列 (左邊最新，右邊最舊)
       const localTrendDates = [...extendedTrendDates]
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
-        .sort((a, b) => a.localeCompare(b));
+        .sort((a, b) => b.localeCompare(a));
 
       const subTabConfigs = {
         f: { label: '外資 (張)', bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' },
