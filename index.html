@@ -77,8 +77,8 @@
             <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[640px] px-1">
                 <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
-                </div>
-                <div id="trendPriceDates" class="flex justify-between text-[10px] text-slate-900 font-black mt-1.5 w-full"></div>
+                  </div>
+                <div id="trendPriceDates" class="flex justify-between text-xs text-slate-900 font-black mt-1.5 w-full"></div>
               </div>
             </div>
             
@@ -94,9 +94,9 @@
               </div>
             </div>
             
-            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div id="trendChipChart" class="w-full min-w-[640px]">
-              </div>
+                </div>
             </div>
           </div>
         </div>
@@ -183,13 +183,14 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // 全域變數
     let currentSourceTab = '全部';
     let dbStockData = [];          
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
-    let recentDates = []; 
-    let extendedTrendDates = []; 
-    let currentSortMode = 'investment_buy'; 
+    let recentDates = [];           // 主表格專用的最新5天日期 (全域)
+    let extendedTrendDates = [];    // 趨勢圖預設20天日期 (全域備用)
+    let currentSortMode = 'stock_id'; 
     let searchKeyword = ""; 
     let activeNewsData = []; 
     let currentActiveStockId = ""; 
@@ -201,6 +202,7 @@
       await forceSyncFlow(); 
     });
 
+    // 基礎交易日推算 (作為無資料時的預設 Fallback)
     function calculateTradeDaysLists() {
       let dates20 = [];
       let d = new Date();
@@ -219,10 +221,11 @@
     function updateDisplayDates(startDateStr) {
       const el = document.getElementById("chipUpdateTime");
       const elMob = document.getElementById("chipUpdateTimeMob");
-      if (el) el.innerText = startDateStr;
-      if (elMob) elMob.innerText = startDateStr;
+      if (el) el.innerText = startDateStr || "--";
+      if (elMob) elMob.innerText = startDateStr || "--";
     }
 
+    // 資料同步核心流
     async function forceSyncFlow() {
       const modal = document.getElementById("loadingModal");
       const detailText = document.getElementById("loadingDetail");
@@ -251,13 +254,10 @@
         
         updateTabSelectOptions(Array.from(targetSheetsSet));
 
-        detailText.innerText = "2. 正在精準定位盤後寬數據日期區間...";
-        calculateTradeDaysLists();
-
-        detailText.innerText = "3. 分批讀取雲端大量籌碼與股價快取庫...";
+        detailText.innerText = "2. 正在讀取雲端籌碼與股價數據...";
         await fetchAllChipsFromSupabase();
 
-        detailText.innerText = "4. 正在佈局視覺矩陣...";
+        detailText.innerText = "3. 正在建立網頁表格視覺矩陣...";
         renderTableHeader();
         applyFilters();
 
@@ -268,8 +268,9 @@
       }
     }
 
+    // 從 Supabase 取得歷史晶片籌碼
     async function fetchAllChipsFromSupabase() {
-      if (extendedTrendDates.length === 0 || dbStockData.length === 0) return;
+      if (dbStockData.length === 0) return;
       const detailText = document.getElementById("loadingDetail");
       
       let allChipsFetched = [];
@@ -278,13 +279,12 @@
       const chunkSize = 50; 
       for (let i = 0; i < stockIds.length; i += chunkSize) {
         const chunkIds = stockIds.slice(i, i + chunkSize);
-        detailText.innerText = `3. 正在同步雲端核心籌碼數據 (${Math.min(i + chunkSize, stockIds.length)} / ${stockIds.length} 檔)...`;
+        detailText.innerText = `2. 同步核心籌碼數據中 (${Math.min(i + chunkSize, stockIds.length)} / ${stockIds.length} 檔)...`;
 
         const { data, error } = await supabaseClient
           .from('stock_chips_daily')
           .select('*')
-          .in('stock_id', chunkIds)
-          .in('date', extendedTrendDates);
+          .in('stock_id', chunkIds);
 
         if (error) {
           console.error("讀取雲端快取晶片數據異常:", error);
@@ -295,17 +295,20 @@
 
       globalChipCache = allChipsFetched;
 
-      if (recentDates.length > 0) {
-        const latestDate = recentDates[0];
-        const hasData = globalChipCache.some(c => String(c.date) === latestDate);
+      // 【動態日期自適應】：直接撈取資料庫最真實存在的日期排序
+      if (globalChipCache.length > 0) {
+        const dbDates = Array.from(new Set(globalChipCache.map(c => String(c.date))))
+                             .sort((a, b) => b.localeCompare(a)); // 由新到舊
         
-        if (!hasData) {
-          recentDates = recentDates.filter(d => d !== latestDate);
-          if (recentDates.length > 0) {
-            updateDisplayDates(recentDates[0]);
-          }
+        if (dbDates.length > 0) {
+          extendedTrendDates = dbDates.slice(0, 20); 
+          recentDates = dbDates.slice(0, 5); // 鎖定主頁顯示最新5天
+          updateDisplayDates(recentDates[0]);
+          return; 
         }
       }
+      
+      calculateTradeDaysLists();
     }
 
     function formatDateToString(dateObj) {
@@ -315,6 +318,7 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
+    // 渲染表格表頭 (依據 recentDates)
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -369,7 +373,6 @@
     function updateTabSelectOptions(sheets) {
       const select = document.getElementById("tabSelect");
       if (!select) return;
-      
       select.innerHTML = `<option value="全部">🌐 全部成分股</option>`;
       sheets.forEach(sheet => {
         if (!sheet) return;
@@ -386,16 +389,12 @@
     function handleSearchKeyup(e) {
       const input = document.getElementById("keywordInput");
       const clearBtn = document.getElementById("clearSearchBtn");
-      
       if (input.value.trim() !== "") {
         clearBtn.classList.remove("hidden");
       } else {
         clearBtn.classList.add("hidden");
       }
-
-      if (e.key === "Enter") {
-        executeStockSearch();
-      }
+      if (e.key === "Enter") executeStockSearch();
     }
 
     function executeStockSearch() {
@@ -439,6 +438,7 @@
         const getSumForStock = (stockId, buyField, sellField) => {
           const chips = globalChipCache.filter(c => String(c.stock_id).trim() === stockId);
           return chips.reduce((acc, row) => {
+            if (!recentDates.includes(String(row.date))) return acc; 
             const buy = Math.round((row[buyField] || 0) / 1000);
             const sell = Math.round((row[sellField] || 0) / 1000);
             return acc + (buy - sell);
@@ -483,13 +483,11 @@
       });
 
       renderMatrixTableFromCache(filteredStocks);
-      
       const tableWrapper = document.getElementById("mainTableWrapper");
-      if (tableWrapper) {
-        tableWrapper.scrollTop = 0;
-      }
+      if (tableWrapper) tableWrapper.scrollTop = 0;
     }
 
+    // 渲染主網頁表格內容
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
       const tbody = document.getElementById("stockTableBody");
@@ -509,7 +507,6 @@
 
         let currentPrice = "--";
         let changeValue = 0; 
-        
         let mainMA10 = "--";
         let mainMA20 = "--";
         let mainRSI14 = "--";
@@ -519,7 +516,6 @@
           if (latestDayData) {
             if (latestDayData.price !== undefined && latestDayData.price !== null) currentPrice = latestDayData.price;
             changeValue = latestDayData.change_value || 0;
-            
             if (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) mainMA10 = latestDayData.ma10;
             if (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) mainMA20 = latestDayData.ma20;
             if (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) mainRSI14 = latestDayData.rsi14;
@@ -560,4 +556,307 @@
           fRow += getCell(dayData.f_buy, dayData.f_sell);
           fdRow += getCell(dayData.fd_buy, dayData.fd_sell);
           iRow += getCell(dayData.it_buy, dayData.it_sell);
-          dsRow += getCell(
+          dsRow += getCell(dayData.ds_buy, dayData.ds_sell);
+          dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
+        });
+
+        const getSumCell = (val, isDarkRow) => {
+          const bgClass = isDarkRow ? 'bg-slate-100' : 'bg-white';
+          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-300 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
+        };
+
+        htmlString += `
+          <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
+            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
+              <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
+              <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
+              <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
+                <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
+                <div class="text-xs mt-0.5">${priceChangeHtml}</div>
+              </div>
+              <div class="mt-2 mx-0.5 p-1 bg-slate-200/80 rounded border border-slate-300/60 flex flex-col gap-0.5 text-[14px] font-black text-left tracking-tighter leading-none">
+                <div class="flex items-center"><span class="text-blue-600 shrink-0 font-bold">M10:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA10}</span></div>
+                <div class="flex items-center"><span class="text-orange-600 shrink-0 font-bold">M20:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA20}</span></div>
+                <div class="flex items-center"><span class="text-purple-600 shrink-0 font-bold">RSI:</span><span class="text-slate-950 ml-1 grow text-right">${mainRSI14}</span></div>
+              </div>
+            </td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+            ${getSumCell(sumF, false)}${fRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>
+            ${getSumCell(sumFD, true)}${fdRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">投信</td>
+            ${getSumCell(sumIT, false)}${iRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(自行)</td>
+            ${getSumCell(sumDS, true)}${dsRow}
+          </tr>
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(避險)</td>
+            ${getSumCell(sumDH, false)}${dhRow}
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = htmlString;
+    }
+
+    function switchModalTab(tabMode) {
+      const btnTrend = document.getElementById("tabBtnTrend");
+      const btnNews = document.getElementById("tabBtnNews");
+      const zoneTrend = document.getElementById("trendZone");
+      const zoneNews = document.getElementById("newsZone");
+
+      if (tabMode === 'trend') {
+        btnTrend.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
+        btnNews.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
+        zoneTrend.classList.replace("hidden", "block");
+        zoneNews.classList.replace("block", "hidden");
+        scrollToLatestTrend();
+      } else {
+        btnNews.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
+        btnTrend.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
+        zoneTrend.classList.replace("block", "hidden");
+        zoneNews.classList.replace("hidden", "block");
+      }
+    }
+
+    function switchChipSubTab(subKey) {
+      currentChipSubTab = subKey;
+      const tabs = { f: 'subTabF', it: 'subTabIT', ds: 'subTabDS' };
+      
+      Object.keys(tabs).forEach(k => {
+        const btn = document.getElementById(tabs[k]);
+        if (k === subKey) {
+          btn.className = "px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all";
+        } else {
+          btn.className = "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all";
+        }
+      });
+      renderChipTrendChart();
+    }
+
+    function scrollToLatestTrend() {
+      setTimeout(() => {
+        const pWrapper = document.getElementById("priceScrollWrapper");
+        if (pWrapper) pWrapper.scrollLeft = 0;
+      }, 60);
+    }
+
+    // 開啟綜合資訊彈窗 (修正核心：使用獨立區域變數，不污染全域日期)
+    async function openCombinedModal(stockId, stockName) {
+      currentActiveStockId = stockId; 
+      document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
+      switchModalTab('trend');
+      switchChipSubTab('f'); 
+      document.getElementById("newsModal").classList.remove("hidden");
+
+      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
+      
+      // 【安全隔離修正點】：使用區域變數作走勢圖日期篩選，絕對不污染全域陣列
+      const localTrendDates = [...extendedTrendDates]
+        .filter(d => myChipsRaw.some(c => String(c.date) === d))
+        .sort((a, b) => a.localeCompare(b)); // 由舊到新繪製走勢
+
+      if (recentDates.length > 0) {
+        const latestDayData = myChipsRaw.find(c => String(c.date) === recentDates[0]);
+        if (latestDayData) {
+          document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
+          const cv = latestDayData.change_value || 0;
+          if (cv > 0) {
+            document.getElementById("modalInfoChange").innerHTML = `<span class="text-rose-600">▲${cv}</span>`;
+          } else if (cv < 0) {
+            document.getElementById("modalInfoChange").innerHTML = `<span class="text-emerald-600">▼${Math.abs(cv)}</span>`;
+          } else {
+            document.getElementById("modalInfoChange").innerText = '0.0';
+          }
+          document.getElementById("modalInfoMA10").innerText = (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) ? latestDayData.ma10 : '--';
+          document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
+          document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
+        }
+      }
+
+      const priceChartEl = document.getElementById("trendPriceChart");
+      const priceDatesEl = document.getElementById("trendPriceDates");
+      
+      if (localTrendDates.length > 0) {
+        let pricePoints = localTrendDates.map(d => {
+          const day = myChipsRaw.find(c => String(c.date) === d);
+          return (day && day.price) ? day.price : null;
+        });
+
+        let validPrices = pricePoints.filter(p => p !== null);
+        if (validPrices.length > 0) {
+          let maxP = Math.max(...validPrices);
+          let minP = Math.min(...validPrices);
+          let rangeP = maxP - minP === 0 ? 1 : maxP - minP;
+
+          let priceHtml = "";
+          let dateHtml = "";
+
+          localTrendDates.forEach((d, idx) => {
+            const price = pricePoints[idx];
+            const displayP = price !== null ? price : '--';
+            const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 50) + 10 : 40;
+            const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+
+            priceHtml += `
+              <div class="flex flex-col items-center flex-1 h-full justify-end relative group min-w-0">
+                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
+                <div class="absolute w-[1px] bg-slate-200 bottom-0 top-0 left-1/2 -translate-x-1/2 border-dashed"></div>
+                <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
+              </div>
+            `;
+            dateHtml += `<span class="flex-1 text-center font-black text-xs text-slate-900 truncate px-0.5">${datePart}</span>`;
+          });
+          priceChartEl.innerHTML = priceHtml;
+          priceDatesEl.innerHTML = dateHtml;
+        } else {
+          priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`;
+          priceDatesEl.innerHTML = "";
+        }
+
+        renderChipTrendChart();
+        scrollToLatestTrend();
+      } else {
+        priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
+        document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
+        priceDatesEl.innerHTML = "";
+      }
+
+      // 即時 Google 新聞 RSS 連線流程
+      const listZone = document.getElementById("newsListZone");
+      listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
+
+      try {
+        const targetQuery = `"${stockId}" OR "${stockName}"`;
+        const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+        const res = await fetch(apiUrl);
+        const json = await res.json();
+
+        if (json.status !== 'ok' || !json.items || json.items.length === 0) {
+          listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
+          return;
+        }
+
+        let mappedNews = json.items.map(item => {
+          const pubDate = new Date(item.pubDate);
+          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+          return {
+            date: dateStr, 
+            timestamp: pubDate.getTime(),
+            source: item.author || "財經媒體",
+            title: item.title,
+            link: item.link 
+          };
+        });
+
+        mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+        activeNewsData = mappedNews;
+
+        let listHtml = "";
+        activeNewsData.forEach((news) => {
+          listHtml += `
+            <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
+               class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+              <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+                <span>📅 ${news.date}</span>
+                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
+              </div>
+              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
+            </a>
+          `;
+        });
+        listZone.innerHTML = listHtml;
+
+      } catch (err) {
+        console.error("即時抓取新聞發生異常:", err);
+        listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
+      }
+    }
+
+    function closeNewsModal() {
+      document.getElementById("newsModal").classList.add("hidden");
+    }
+
+    // 渲染彈窗籌碼柱狀圖 (同樣落實局部變數安全隔離)
+    function renderChipTrendChart() {
+      const chipChartEl = document.getElementById("trendChipChart");
+      if (!chipChartEl || !currentActiveStockId) return;
+
+      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
+      
+      // 【安全隔離修正點】：使用獨立區域變數 localTrendDates
+      const localTrendDates = [...extendedTrendDates]
+        .filter(d => myChipsRaw.some(c => String(c.date) === d))
+        .sort((a, b) => a.localeCompare(b));
+
+      const subTabConfigs = {
+        f: { label: '外資 (張)', bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' },
+        it: { label: '投信 (張)', bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' },
+        ds: { label: '自營商(自行+避險) (張)', bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' }
+      };
+
+      const cfg = subTabConfigs[currentChipSubTab];
+      
+      let nets = localTrendDates.map(d => {
+        const row = myChipsRaw.find(c => String(c.date) === d);
+        if (!row) return 0;
+        if (currentChipSubTab === "ds") {
+          const buySum = (row.ds_buy || 0) + (row.dh_buy || 0);
+          const sellSum = (row.ds_sell || 0) + (row.dh_sell || 0);
+          return Math.round(buySum / 1000) - Math.round(sellSum / 1000);
+        }
+        return Math.round((row[cfg.bKey]||0)/1000) - Math.round((row[cfg.sKey]||0)/1000);
+      });
+
+      let absMax = Math.max(...nets.map(Math.abs), 1);
+
+      let barsHtml = localTrendDates.map((d, i) => {
+        const val = nets[i];
+        const isPositive = val >= 0;
+        const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80);
+        const signStr = isPositive && val > 0 ? `+${val}` : val;
+        const valColor = val > 0 ? 'text-rose-600' : (val < 0 ? 'text-emerald-600' : 'text-slate-400');
+        const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+
+        return `
+          <div class="flex flex-col flex-1 h-full min-w-0 relative items-center">
+            <div class="w-full h-1/2 flex flex-col justify-end items-center relative">
+              ${isPositive && val > 0 ? `
+                <span class="text-xs font-black ${valColor} mb-1 tracking-tighter whitespace-nowrap">${signStr}</span>
+                <div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>
+              ` : ''}
+              ${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}
+            </div>
+            <div class="w-full h-1/2 flex flex-col justify-start items-center relative">
+              ${!isPositive ? `
+                <div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div>
+                <span class="text-xs font-black ${valColor} mt-1 tracking-tighter whitespace-nowrap">${signStr}</span>
+              ` : ''}
+              <span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter pointer-events-none">${datePart}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      chipChartEl.innerHTML = `
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full">
+          <div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center">
+            <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>
+            ${barsHtml}
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
