@@ -24,9 +24,9 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧增量同步 + 技術指標獨立計算】流程...");
+    console.log("🚀 開始執行【智慧增量同步 + 技術指標獨立安全計算】流程...");
 
-    // 1. 載入標的清單 (完全保留原架構)
+    // 1. 載入標的清單 (完全保留您原本的架構)
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
     const workbook = XLSX.read(response.data, { type: 'buffer' });
     const stockMap = new Map();
@@ -51,7 +51,7 @@ async function run() {
 
     if (dbStockData.length === 0) return;
 
-    // 2. 自動判定起訖日期 (智慧增量 - 完全保留原邏輯)
+    // 2. 自動判定起訖日期 (智慧增量 - 完全保留您原本的邏輯)
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
@@ -77,7 +77,7 @@ async function run() {
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    // 3. 步驟一：專心跑 FinMind 籌碼與價格下載 (保留原始核心，不做任何多餘計算)
+    // 3. 步驟一：專心跑 FinMind 籌碼與價格下載 (保留您最原始核心，欄位全小寫 stock_id 絕不動)
     if (startDate <= today) {
       for (let i = 0; i < dbStockData.length; i++) {
         const stock = dbStockData[i];
@@ -147,8 +147,8 @@ async function run() {
       console.log("✨ 雲端籌碼資料已是最新，跳過下載步驟。");
     }
 
-    // 4. 💡 步驟二：執行您提議的獨立計算指標 Function
-    console.log("💡 開始跑另一個計算 ma10, ma20, ma60, rsi14 的 function 進行回寫...");
+    // 4. 💡 步驟二：執行獨立計算指標 Function (全小寫 stock_id 修正版)
+    console.log("💡 開始跑獨立指標計算 function 進行全欄位安全覆蓋更新...");
     await calculateAndWriteBackIndicators(dbStockData);
 
     console.log("🎉 所有增量同步與技術指標計算流程全數完成！");
@@ -158,42 +158,38 @@ async function run() {
   }
 }
 
-// 🛠️ 專職計算技術指標並寫回 Supabase 的獨立 Function
+// 🛠️ 專職計算技術指標並安全寫回 Supabase 的獨立 Function
 async function calculateAndWriteBackIndicators(stockList) {
   for (let i = 0; i < stockList.length; i++) {
     const stock = stockList[i];
-    console.log(`[第二步：計算指標] (${i + 1}/${stockList.length}) 正在處理 ${stock.stock_id} ...`);
 
     try {
-      // 從資料庫精準抓取「最新（最靠近今天）的前 85 筆」歷史資料（絕對不會遇到 Supabase 分頁或效能限制）
+      // 💡 關鍵修正一：使用 select('*') 撈取整行完整資料，包含三大法人與開高低量，避免 upsert 時遺失原數據
       const { data: oRows, error: fetchErr } = await supabase
         .from('stock_chips_daily')
-        .select('stock_id, date, price')
+        .select('*')
         .eq('stock_id', stock.stock_id)
         .order('date', { ascending: false })
-        .limit(85);
+        .limit(90); // 撈取足夠的天數計算 MA60 與 RSI14
 
       if (fetchErr) {
-        console.error(`無法獲取 ${stock.stock_id} 的歷史價格:`, fetchErr.message);
+        console.error(`❌ 無法獲取 ${stock.stock_id} 的歷史價格:`, fetchErr.message);
         continue;
       }
 
       if (!oRows || oRows.length < 10) {
-        console.log(`⚠️ ${stock.stock_id} 歷史價格筆數太少 (${oRows ? oRows.length : 0} 筆)，跳過計算。`);
+        console.log(`⚠️ ${stock.stock_id} 歷史價格筆數太少 (${oRows ? oRows.length : 0} 筆)，無法計算均線。`);
         continue;
       }
 
-      // 將資料反轉，變成「由舊到新」排列的純淨陣列以利技術指標計算
-      const pricePool = oRows.reverse();
+      // 💡 關鍵修正二：使用展開運算子安全拷貝並反轉陣列，防止 JavaScript 記憶體指針混亂導致 price 變成 undefined
+      const pricePool = [...oRows].reverse();
       const totalLen = pricePool.length;
-
-      // 我們只需要為「這池子中最老的幾天」保留歷史數據做緩衝，並計算「最近幾天」的最新指標
-      // 為了保險起見，我們直接幫這 85 天內所有能算出來的日期通通計算並更新回去！
-      const updates = [];
+      const rowUpdates = [];
 
       for (let j = 0; j < totalLen; j++) {
         const targetDay = pricePool[j];
-        const subPool = pricePool.slice(0, j + 1); // 截至當天為止的歷史子池
+        const subPool = pricePool.slice(0, j + 1); 
         const subLen = subPool.length;
 
         let calculatedMA10 = null;
@@ -203,19 +199,19 @@ async function calculateAndWriteBackIndicators(stockList) {
 
         // 1️⃣ 計算 MA10
         if (subLen >= 10) {
-          const sum10 = subPool.slice(-10).reduce((acc, curr) => acc + curr.price, 0);
+          const sum10 = subPool.slice(-10).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA10 = parseFloat((sum10 / 10).toFixed(2));
         }
 
         // 2️⃣ 計算 MA20
         if (subLen >= 20) {
-          const sum20 = subPool.slice(-20).reduce((acc, curr) => acc + curr.price, 0);
+          const sum20 = subPool.slice(-20).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA20 = parseFloat((sum20 / 20).toFixed(2));
         }
 
         // 3️⃣ 計算 MA60
         if (subLen >= 60) {
-          const sum60 = subPool.slice(-60).reduce((acc, curr) => acc + curr.price, 0);
+          const sum60 = subPool.slice(-60).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA60 = parseFloat((sum60 / 60).toFixed(2));
         }
 
@@ -226,14 +222,19 @@ async function calculateAndWriteBackIndicators(stockList) {
           let rsiInitialized = false;
 
           for (let k = 1; k < subLen; k++) {
-            const diff = subPool[k].price - subPool[k - 1].price;
+            const prevPrice = subPool[k - 1].price;
+            const currPrice = subPool[k].price;
+            
+            if (prevPrice === null || currPrice === null) continue;
+
+            const diff = currPrice - prevPrice;
             const currentUp = diff > 0 ? diff : 0;
             const currentDown = diff < 0 ? Math.abs(diff) : 0;
 
             if (!rsiInitialized) {
               avgUp += currentUp;
               avgDown += currentDown;
-              if (k === 14) {
+              if (k === 14 || (k === subLen - 1 && subLen <= 15)) {
                 avgUp = avgUp / 14;
                 avgDown = avgDown / 14;
                 rsiInitialized = true;
@@ -254,9 +255,10 @@ async function calculateAndWriteBackIndicators(stockList) {
           }
         }
 
-        // 只將算出來的四個新技術指標，根據 主鍵(stock_id + date) 包裝成更新物件
-        updates.push({
-          stock_id: targetDay.stock_id,
+        // 💡 關鍵修正三：複製整行既有籌碼欄位，只覆蓋更新這四個指標，確保 upsert 安全且不漏掉任何欄位
+        rowUpdates.push({
+          ...targetDay,           // 繼承完整的舊資料行 (包含外資買賣超、成交量、開高低等)
+          stock_id: targetDay.stock_id, // 確保全小寫主鍵一致
           date: targetDay.date,
           ma10: calculatedMA10,
           ma20: calculatedMA20,
@@ -265,22 +267,24 @@ async function calculateAndWriteBackIndicators(stockList) {
         });
       }
 
-      // 將算好技術指標的資料 Upsert 回 stock_chips_daily
-      // Supabase 的 upsert 在主鍵（stock_id+date）衝突時會自動執行「局部更新（Update）」，僅補齊這四個欄位，而絕不會去動到您原有的三大法人籌碼數據！
-      if (updates.length > 0) {
+      // 安全寫回資料庫
+      if (rowUpdates.length > 0) {
         const { error: writeErr } = await supabase
           .from('stock_chips_daily')
-          .upsert(updates);
+          .upsert(rowUpdates);
 
-        if (writeErr) console.error(`❌ 寫回 ${stock.stock_id} 指標失敗:`, writeErr.message);
+        if (writeErr) {
+          console.error(`❌ 寫回 ${stock.stock_id} 指標失敗:`, writeErr.message);
+        } else {
+          console.log(`[成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 指標全量覆蓋更新成功！(共處理 ${rowUpdates.length} 天)`);
+        }
       }
 
     } catch (singleErr) {
       console.error(`❌ 處理 ${stock.stock_id} 技術指標時發生錯誤:`, singleErr.message);
     }
 
-    // 稍微休息一下，防止對 Supabase 造成瞬間過大壓力
-    await sleep(50);
+    await sleep(80); // 保護資料庫防範瞬間流量限制
   }
 }
 
