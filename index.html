@@ -230,7 +230,6 @@
 
       try {
         detailText.innerText = "1. 載入雲端股票名單與成分分類...";
-        // 抓取 stock_targets 標的名單
         const { data: dbData, error: targetError = null } = await supabaseClient
           .from('stock_targets')
           .select('*')
@@ -281,7 +280,6 @@
         const chunkIds = stockIds.slice(i, i + chunkSize);
         detailText.innerText = `3. 正在同步雲端核心籌碼數據 (${Math.min(i + chunkSize, stockIds.length)} / ${stockIds.length} 檔)...`;
 
-        // 確保精準撈取 stock_chips_daily 內所有每日資料（包含 ma10, ma20, rsi14）
         const { data, error } = await supabaseClient
           .from('stock_chips_daily')
           .select('*')
@@ -322,8 +320,9 @@
       const headerSub = document.getElementById("tableHeaderSub");
       if (!headerDates || !headerSub) return;
 
+      // 稍微將標的欄位的基準寬度拓寬到 105px，以利在主頁美觀容納 MA10, MA20, RSI14
       let datesHtml = `
-        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[94px] min-w-[94px] max-w-[94px] align-middle text-center border-r border-slate-300">
+        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[105px] min-w-[105px] max-w-[105px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
             <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的</span>
             <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
@@ -341,8 +340,8 @@
             </select>
           </div>
         </th>
-        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[94px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
-        <th rowspan="2" class="px-1 py-2 bg-rose-50 font-black text-xs text-rose-600 sticky left-[146px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
+        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[105px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
+        <th rowspan="2" class="px-1 py-2 bg-rose-50 font-black text-xs text-rose-600 sticky left-[157px] z-40 w-[68px] min-w-[68px] max-w-[68px] align-middle whitespace-nowrap border-r border-slate-300 text-center sticky-col-shadow">5日結</th>
       `;
       let subHtml = "";
 
@@ -512,11 +511,21 @@
         let currentPrice = "--";
         let changeValue = 0; 
         
+        // 主頁新增：從最新交易日中取出動態技術指標
+        let mainMA10 = "--";
+        let mainMA20 = "--";
+        let mainRSI14 = "--";
+        
         if (recentDates.length > 0) {
           const latestDayData = myChips.find(c => String(c.date) === recentDates[0]);
-          if (latestDayData && latestDayData.price !== undefined && latestDayData.price !== null) {
-            currentPrice = latestDayData.price;
+          if (latestDayData) {
+            if (latestDayData.price !== undefined && latestDayData.price !== null) currentPrice = latestDayData.price;
             changeValue = latestDayData.change_value || 0;
+            
+            // 指標值擷取
+            if (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) mainMA10 = latestDayData.ma10;
+            if (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) mainMA20 = latestDayData.ma20;
+            if (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) mainRSI14 = latestDayData.rsi14;
           }
         }
 
@@ -560,38 +569,44 @@
 
         const getSumCell = (val, isDarkRow) => {
           const bgClass = isDarkRow ? 'bg-slate-100' : 'bg-white';
-          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
-          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
-          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-300 text-sm sticky left-[146px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
+          if (val > 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[157px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>`;
+          if (val < 0) return `<td class="py-2.5 border-r border-slate-300 font-black text-rose-400 text-sm sticky left-[157px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>`;
+          return `<td class="py-2.5 border-r border-slate-300 font-bold text-rose-300 text-sm sticky left-[157px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
+        // 核心修改點：在第一個 td (標的資訊欄) 的漲跌資訊下方，加入 MA10, MA20, RSI14 快顯區
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-4 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[94px] max-w-[94px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
+            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[105px] max-w-[105px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              <div class="text-sm font-extrabold mt-1 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
-              <div class="mt-2 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
+              <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
+              <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
                 <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
                 <div class="text-xs mt-0.5">${priceChangeHtml}</div>
               </div>
+              <div class="mt-2 mx-0.5 p-1 bg-slate-200/70 rounded border border-slate-300/60 flex flex-col gap-0.5 text-[9px] font-black text-left tracking-tighter leading-none">
+                <div class="flex justify-between"><span class="text-blue-600 font-bold">M10:</span><span class="text-slate-800">${mainMA10}</span></div>
+                <div class="flex justify-between"><span class="text-orange-600 font-bold">M20:</span><span class="text-slate-800">${mainMA20}</span></div>
+                <div class="flex justify-between"><span class="text-purple-600 font-bold">RSI:</span><span class="text-slate-800">${mainRSI14}</span></div>
+              </div>
             </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">外資</td>
             ${getSumCell(sumF, false)}${fRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">外資自營</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">外資自營</td>
             ${getSumCell(sumFD, true)}${fdRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">投信</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">投信</td>
             ${getSumCell(sumIT, false)}${iRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(自)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">自營(自)</td>
             ${getSumCell(sumDS, true)}${dsRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[94px] z-20 text-center w-[52px]">自營(避)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[105px] z-20 text-center w-[52px]">自營(避)</td>
             ${getSumCell(sumDH, false)}${dhRow}
           </tr>
         `;
@@ -655,11 +670,9 @@
       const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
       const chronDates = [...availableTrendDates];
 
-      // 修正後的關鍵核心：改從每日籌碼與快取中，找到最新交易日(recentDates[0])的資料，讀取對應的動態指標
       if (recentDates.length > 0) {
         const latestDayData = myChipsRaw.find(c => String(c.date) === recentDates[0]);
         if (latestDayData) {
-          // 填寫基本股價與漲跌資訊
           document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
           const cv = latestDayData.change_value || 0;
           if (cv > 0) {
@@ -670,7 +683,6 @@
             document.getElementById("modalInfoChange").innerText = '0.0';
           }
 
-          // 填寫隨日期變動的指標數據（MA10, MA20, RSI14）
           document.getElementById("modalInfoMA10").innerText = (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) ? latestDayData.ma10 : '--';
           document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
           document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
