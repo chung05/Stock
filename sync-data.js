@@ -24,9 +24,9 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧增量 + 技術指標全量回溯計算】同步流程...");
+    console.log("🚀 開始執行【智慧增量同步 + 技術指標獨立計算】流程...");
 
-    // 1. 載入標的清單 (保留原架構)
+    // 1. 載入標的清單 (完全保留原架構)
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
     const workbook = XLSX.read(response.data, { type: 'buffer' });
     const stockMap = new Map();
@@ -51,7 +51,7 @@ async function run() {
 
     if (dbStockData.length === 0) return;
 
-    // 2. 自動判定起訖日期 (智慧增量 - 保留原邏輯)
+    // 2. 自動判定起訖日期 (智慧增量 - 完全保留原邏輯)
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
@@ -77,22 +77,22 @@ async function run() {
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    // 3. 分批處理執行迴圈
-    for (let i = 0; i < dbStockData.length; i++) {
-      const stock = dbStockData[i];
-      
-      if (i > 0 && i % 15 === 0) {
-        console.log(`⏳ 已同步處理 ${i} 檔，為保護 API 額度，強制休息 10 秒...`);
-        await sleep(10000);
-      }
+    // 3. 步驟一：專心跑 FinMind 籌碼與價格下載 (保留原始核心，不做任何多餘計算)
+    if (startDate <= today) {
+      for (let i = 0; i < dbStockData.length; i++) {
+        const stock = dbStockData[i];
+        
+        if (i > 0 && i % 15 === 0) {
+          console.log(`⏳ 已抓取 ${i} 檔，為保護 API 額度，強制休息 10 秒...`);
+          await sleep(10000);
+        }
 
-      console.log(`[同步與指標計算] (${i + 1}/${dbStockData.length}) ${stock.stock_id}`);
+        console.log(`[第一步：下載籌碼] (${i + 1}/${dbStockData.length}) ${stock.stock_id}`);
 
-      try {
-        const dateMap = {};
+        try {
+          const dateMap = {};
 
-        // --- A. 抓取法人籌碼 (僅當有需要增量更新時抓取) ---
-        if (startDate <= today) {
+          // --- 法人籌碼 ---
           const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
           const res = await axios.get(apiUrl, { headers: commonHeaders });
           
@@ -103,8 +103,7 @@ async function run() {
                 dateMap[d] = { 
                   stock_id: stock.stock_id, date: d, price: null, change_value: 0, 
                   f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0,
-                  open: 0, max: 0, min: 0, trading_volume: 0,
-                  ma10: null, ma20: null, ma60: null, rsi14: null
+                  open: 0, max: 0, min: 0, trading_volume: 0
                 };
               }
               if (row.name === 'Foreign_Investor') { dateMap[d].f_buy = row.buy; dateMap[d].f_sell = row.sell; }
@@ -115,14 +114,14 @@ async function run() {
             });
           }
 
-          // --- B. 抓取價格與開高低量 ---
+          // --- 價格與開高低量 ---
           const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
           const priceRes = await axios.get(priceApiUrl, { headers: commonHeaders });
           
           if (priceRes.data.status === 200 && Array.isArray(priceRes.data.data)) {
             priceRes.data.data.forEach(pRow => {
               const d = pRow.date;
-              if (!dateMap[d]) dateMap[d] = { stock_id: stock.stock_id, date: d, ma10: null, ma20: null, ma60: null, rsi14: null };
+              if (!dateMap[d]) dateMap[d] = { stock_id: stock.stock_id, date: d };
               
               dateMap[d].price = pRow.close;
               dateMap[d].open = pRow.open;
@@ -132,126 +131,156 @@ async function run() {
               dateMap[d].change_value = pRow.spread || 0;
             });
           }
+
+          const rowsToUpsert = Object.values(dateMap);
+          if (rowsToUpsert.length > 0) {
+            const { error: upsertErr } = await supabase.from('stock_chips_daily').upsert(rowsToUpsert);
+            if (upsertErr) throw upsertErr;
+          }
+
+        } catch (err) {
+          console.error(`❌ 下載 ${stock.stock_id} 錯誤: ${err.message}`);
         }
-
-        // --- C. 💡 修正關鍵：從 Supabase 讀取自 1/2 以來的所有歷史舊資料（包含既有欄位） ---
-        // 這樣做可以確保 1/2 以來 ma 欄位是 null 的資料通通被撈出來重新計算並更新！
-        const { data: dbHistory, error: histErr } = await supabase
-          .from('stock_chips_daily')
-          .select('*') // 撈出所有原始欄位，避免覆蓋掉舊有的三大法人籌碼數據
-          .eq('stock_id', stock.stock_id)
-          .order('date', { ascending: true }); // 由舊到新正序排列
-
-        if (histErr) console.error(`[警告] 讀取 ${stock.stock_id} 歷史資料失敗:`, histErr.message);
-
-        // 將 Supabase 中的歷史舊資料，轉入一個以日期為 key 的對照表
-        const mergedDateMap = {};
-        if (dbHistory && dbHistory.length > 0) {
-          dbHistory.forEach(row => {
-            mergedDateMap[row.date] = { ...row };
-          });
-        }
-
-        // 把本次 FinMind 抓到的新資料也倒進去合併 (若日期重複則新資料覆蓋或保留)
-        Object.keys(dateMap).forEach(d => {
-          mergedDateMap[d] = { ...mergedDateMap[d], ...dateMap[d] };
-        });
-
-        // 取得大合併後（舊資料 + 新資料）的所有日期，並由舊到新排序
-        let allSortedDates = Object.keys(mergedDateMap).sort();
-        let priceSequencePool = [];
-
-        // 依時間正序逐日處理，從最老的那一天（1/2）開始往後累積計算指標
-        allSortedDates.forEach(dStr => {
-          const currentPrice = mergedDateMap[dStr].price;
-          if (currentPrice !== null && currentPrice !== undefined) {
-            priceSequencePool.push({ date: dStr, price: currentPrice });
-          }
-
-          const poolLen = priceSequencePool.length;
-
-          // 1️⃣ 增量/回溯計算 MA10
-          if (poolLen >= 10) {
-            const sum10 = priceSequencePool.slice(-10).reduce((acc, c) => acc + c.price, 0);
-            mergedDateMap[dStr].ma10 = parseFloat((sum10 / 10).toFixed(2));
-          } else {
-            mergedDateMap[dStr].ma10 = null;
-          }
-
-          // 2️⃣ 增量/回溯計算 MA20
-          if (poolLen >= 20) {
-            const sum20 = priceSequencePool.slice(-20).reduce((acc, c) => acc + c.price, 0);
-            mergedDateMap[dStr].ma20 = parseFloat((sum20 / 20).toFixed(2));
-          } else {
-            mergedDateMap[dStr].ma20 = null;
-          }
-
-          // 3️⃣ 增量/回溯計算 MA60
-          if (poolLen >= 60) {
-            const sum60 = priceSequencePool.slice(-60).reduce((acc, c) => acc + c.price, 0);
-            mergedDateMap[dStr].ma60 = parseFloat((sum60 / 60).toFixed(2));
-          } else {
-            mergedDateMap[dStr].ma60 = null;
-          }
-
-          // 4️⃣ 增量/回溯計算 RSI14 (標準威爾德平滑滾動法)
-          if (poolLen >= 15) {
-            let avgUp = 0;
-            let avgDown = 0;
-            let rsiInitialized = false;
-
-            for (let j = 1; j < poolLen; j++) {
-              const diff = priceSequencePool[j].price - priceSequencePool[j - 1].price;
-              const currentUp = diff > 0 ? diff : 0;
-              const currentDown = diff < 0 ? Math.abs(diff) : 0;
-
-              if (!rsiInitialized) {
-                avgUp += currentUp;
-                avgDown += currentDown;
-                if (j === 14) {
-                  avgUp = avgUp / 14;
-                  avgDown = avgDown / 14;
-                  rsiInitialized = true;
-                }
-              } else {
-                avgUp = (avgUp * 13 + currentUp) / 14;
-                avgDown = (avgDown * 13 + currentDown) / 14;
-              }
-            }
-
-            if (rsiInitialized) {
-              if (avgDown === 0) {
-                mergedDateMap[dStr].rsi14 = avgUp === 0 ? 50.00 : 100.00;
-              } else {
-                const rs = avgUp / avgDown;
-                mergedDateMap[dStr].rsi14 = parseFloat((100 - (100 / (1 + rs))).toFixed(2));
-              }
-            } else {
-              mergedDateMap[dStr].rsi14 = null;
-            }
-          } else {
-            mergedDateMap[dStr].rsi14 = null;
-          }
-        });
-
-        // --- D. 執行 Upsert 寫入資料庫 ---
-        // 這裡會把所有舊資料（填上指標後）與新資料一起洗回 Supabase
-        const rowsToUpsert = Object.values(mergedDateMap);
-        if (rowsToUpsert.length > 0) {
-          const { error: upsertErr } = await supabase.from('stock_chips_daily').upsert(rowsToUpsert);
-          if (upsertErr) throw upsertErr;
-        }
-
-      } catch (err) {
-        console.error(`❌ 同步與指標計算 ${stock.stock_id} 錯誤: ${err.message}`);
+        await sleep(200);
       }
-      await sleep(200); 
+    } else {
+      console.log("✨ 雲端籌碼資料已是最新，跳過下載步驟。");
     }
 
-    console.log("🎉 智慧增量與技術指標計算同步流程全數完成！");
+    // 4. 💡 步驟二：執行您提議的獨立計算指標 Function
+    console.log("💡 開始跑另一個計算 ma10, ma20, ma60, rsi14 的 function 進行回寫...");
+    await calculateAndWriteBackIndicators(dbStockData);
+
+    console.log("🎉 所有增量同步與技術指標計算流程全數完成！");
   } catch (error) {
     console.error("💥 全局同步流程發生嚴重致命錯誤:", error.message);
     process.exit(1);
+  }
+}
+
+// 🛠️ 專職計算技術指標並寫回 Supabase 的獨立 Function
+async function calculateAndWriteBackIndicators(stockList) {
+  for (let i = 0; i < stockList.length; i++) {
+    const stock = stockList[i];
+    console.log(`[第二步：計算指標] (${i + 1}/${stockList.length}) 正在處理 ${stock.stock_id} ...`);
+
+    try {
+      // 從資料庫精準抓取「最新（最靠近今天）的前 85 筆」歷史資料（絕對不會遇到 Supabase 分頁或效能限制）
+      const { data: oRows, error: fetchErr } = await supabase
+        .from('stock_chips_daily')
+        .select('stock_id, date, price')
+        .eq('stock_id', stock.stock_id)
+        .order('date', { ascending: false })
+        .limit(85);
+
+      if (fetchErr) {
+        console.error(`無法獲取 ${stock.stock_id} 的歷史價格:`, fetchErr.message);
+        continue;
+      }
+
+      if (!oRows || oRows.length < 10) {
+        console.log(`⚠️ ${stock.stock_id} 歷史價格筆數太少 (${oRows ? oRows.length : 0} 筆)，跳過計算。`);
+        continue;
+      }
+
+      // 將資料反轉，變成「由舊到新」排列的純淨陣列以利技術指標計算
+      const pricePool = oRows.reverse();
+      const totalLen = pricePool.length;
+
+      // 我們只需要為「這池子中最老的幾天」保留歷史數據做緩衝，並計算「最近幾天」的最新指標
+      // 為了保險起見，我們直接幫這 85 天內所有能算出來的日期通通計算並更新回去！
+      const updates = [];
+
+      for (let j = 0; j < totalLen; j++) {
+        const targetDay = pricePool[j];
+        const subPool = pricePool.slice(0, j + 1); // 截至當天為止的歷史子池
+        const subLen = subPool.length;
+
+        let calculatedMA10 = null;
+        let calculatedMA20 = null;
+        let calculatedMA60 = null;
+        let calculatedRSI14 = null;
+
+        // 1️⃣ 計算 MA10
+        if (subLen >= 10) {
+          const sum10 = subPool.slice(-10).reduce((acc, curr) => acc + curr.price, 0);
+          calculatedMA10 = parseFloat((sum10 / 10).toFixed(2));
+        }
+
+        // 2️⃣ 計算 MA20
+        if (subLen >= 20) {
+          const sum20 = subPool.slice(-20).reduce((acc, curr) => acc + curr.price, 0);
+          calculatedMA20 = parseFloat((sum20 / 20).toFixed(2));
+        }
+
+        // 3️⃣ 計算 MA60
+        if (subLen >= 60) {
+          const sum60 = subPool.slice(-60).reduce((acc, curr) => acc + curr.price, 0);
+          calculatedMA60 = parseFloat((sum60 / 60).toFixed(2));
+        }
+
+        // 4️⃣ 計算 RSI14 (標準威爾德平滑滾動法)
+        if (subLen >= 15) {
+          let avgUp = 0;
+          let avgDown = 0;
+          let rsiInitialized = false;
+
+          for (let k = 1; k < subLen; k++) {
+            const diff = subPool[k].price - subPool[k - 1].price;
+            const currentUp = diff > 0 ? diff : 0;
+            const currentDown = diff < 0 ? Math.abs(diff) : 0;
+
+            if (!rsiInitialized) {
+              avgUp += currentUp;
+              avgDown += currentDown;
+              if (k === 14) {
+                avgUp = avgUp / 14;
+                avgDown = avgDown / 14;
+                rsiInitialized = true;
+              }
+            } else {
+              avgUp = (avgUp * 13 + currentUp) / 14;
+              avgDown = (avgDown * 13 + currentDown) / 14;
+            }
+          }
+
+          if (rsiInitialized) {
+            if (avgDown === 0) {
+              calculatedRSI14 = avgUp === 0 ? 50.00 : 100.00;
+            } else {
+              const rs = avgUp / avgDown;
+              calculatedRSI14 = parseFloat((100 - (100 / (1 + rs))).toFixed(2));
+            }
+          }
+        }
+
+        // 只將算出來的四個新技術指標，根據 主鍵(stock_id + date) 包裝成更新物件
+        updates.push({
+          stock_id: targetDay.stock_id,
+          date: targetDay.date,
+          ma10: calculatedMA10,
+          ma20: calculatedMA20,
+          ma60: calculatedMA60,
+          rsi14: calculatedRSI14
+        });
+      }
+
+      // 將算好技術指標的資料 Upsert 回 stock_chips_daily
+      // Supabase 的 upsert 在主鍵（stock_id+date）衝突時會自動執行「局部更新（Update）」，僅補齊這四個欄位，而絕不會去動到您原有的三大法人籌碼數據！
+      if (updates.length > 0) {
+        const { error: writeErr } = await supabase
+          .from('stock_chips_daily')
+          .upsert(updates);
+
+        if (writeErr) console.error(`❌ 寫回 ${stock.stock_id} 指標失敗:`, writeErr.message);
+      }
+
+    } catch (singleErr) {
+      console.error(`❌ 處理 ${stock.stock_id} 技術指標時發生錯誤:`, singleErr.message);
+    }
+
+    // 稍微休息一下，防止對 Supabase 造成瞬間過大壓力
+    await sleep(50);
   }
 }
 
