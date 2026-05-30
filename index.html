@@ -230,6 +230,7 @@
 
       try {
         detailText.innerText = "1. 載入雲端股票名單與成分分類...";
+        // 抓取 stock_targets 標的名單
         const { data: dbData, error: targetError = null } = await supabaseClient
           .from('stock_targets')
           .select('*')
@@ -280,6 +281,7 @@
         const chunkIds = stockIds.slice(i, i + chunkSize);
         detailText.innerText = `3. 正在同步雲端核心籌碼數據 (${Math.min(i + chunkSize, stockIds.length)} / ${stockIds.length} 檔)...`;
 
+        // 確保精準撈取 stock_chips_daily 內所有每日資料（包含 ma10, ma20, rsi14）
         const { data, error } = await supabaseClient
           .from('stock_chips_daily')
           .select('*')
@@ -649,18 +651,14 @@
       switchChipSubTab('f'); 
       document.getElementById("newsModal").classList.remove("hidden");
 
-      // 💡 取得該股在 stock_chips_daily 的所有歷史籌碼與數據快取
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
+      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
+      const chronDates = [...availableTrendDates];
 
-      // 💡 核心修正：改為直接從最新一天的數據 (recentDates[0]) 內提取 ma10, ma20, rsi14
+      // 修正後的關鍵核心：改從每日籌碼與快取中，找到最新交易日(recentDates[0])的資料，讀取對應的動態指標
       if (recentDates.length > 0) {
         const latestDayData = myChipsRaw.find(c => String(c.date) === recentDates[0]);
-        
         if (latestDayData) {
-          document.getElementById("modalInfoMA10").innerText = (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) ? latestDayData.ma10 : '--';
-          document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
-          document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
-          
           // 填寫基本股價與漲跌資訊
           document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
           const cv = latestDayData.change_value || 0;
@@ -671,21 +669,19 @@
           } else {
             document.getElementById("modalInfoChange").innerText = '0.0';
           }
+
+          // 填寫隨日期變動的指標數據（MA10, MA20, RSI14）
+          document.getElementById("modalInfoMA10").innerText = (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) ? latestDayData.ma10 : '--';
+          document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
+          document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
         } else {
+          document.getElementById("modalInfoPrice").innerText = '--';
+          document.getElementById("modalInfoChange").innerText = '--';
           document.getElementById("modalInfoMA10").innerText = '--';
           document.getElementById("modalInfoMA20").innerText = '--';
           document.getElementById("modalInfoRSI14").innerText = '--';
-          document.getElementById("modalInfoPrice").innerText = '--';
-          document.getElementById("modalInfoChange").innerText = '--';
         }
-      } else {
-        document.getElementById("modalInfoMA10").innerText = '--';
-        document.getElementById("modalInfoMA20").innerText = '--';
-        document.getElementById("modalInfoRSI14").innerText = '--';
       }
-
-      const availableTrendDates = extendedTrendDates.filter(d => myChipsRaw.some(c => String(c.date) === d));
-      const chronDates = [...availableTrendDates];
 
       const priceChartEl = document.getElementById("trendPriceChart");
       const priceDatesEl = document.getElementById("trendPriceDates");
