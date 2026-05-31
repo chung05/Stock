@@ -761,56 +761,126 @@
         priceDatesEl.innerHTML = "";
       }
 
+      // ─────────────────────────────────────────────────────────────────
+      // 僅針對財經新聞的需求進行智慧重構優化 (其餘架構及樣式大小100%保留)
+      // ─────────────────────────────────────────────────────────────────
       const listZone = document.getElementById("newsListZone");
-      listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
+      listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時智慧過濾最新財經新聞...</div>`;
 
-      try {
-        const targetQuery = `"${stockId}" OR "${stockName}"`;
-        const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+      // 使用 setTimeout 緩衝 120ms，徹底排除彈窗 DOM 節點尚未被瀏覽器實體化就塞入資料的競爭問題
+      setTimeout(async () => {
+        try {
+          let mappedNews = [];
+          let success = false;
 
-        const res = await fetch(apiUrl);
-        const json = await res.json();
+          // 【優先方案：嘗試對 Yahoo 奇摩股市 RSS 進行獲取】
+          try {
+            const yahooRssUrl = `https://tw.stock.yahoo.com/rss?s=${stockId}`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooRssUrl)}`;
+            
+            const res = await fetch(proxyUrl);
+            const json = await res.json();
+            
+            if (json && json.contents) {
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(json.contents, "text/xml");
+              const items = xmlDoc.getElementsByTagName("item");
+              
+              if (items.length > 0) {
+                for (let i = 0; i < Math.min(items.length, 12); i++) {
+                  const item = items[i];
+                  const title = item.getElementsByTagName("title")[0]?.textContent || "";
+                  const link = item.getElementsByTagName("link")[0]?.textContent || "";
+                  const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+                  
+                  const pubDate = new Date(pubDateText);
+                  const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+                  
+                  mappedNews.push({
+                    date: dateStr,
+                    timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
+                    source: "Yahoo奇摩股市",
+                    title: title,
+                    link: link
+                  });
+                }
+                if (mappedNews.length > 0) success = true;
+              }
+            }
+          } catch (yahooErr) {
+            console.warn("Yahoo RSS 新聞源異步讀取未就緒，啟動 Google 備援...", yahooErr);
+          }
 
-        if (json.status !== 'ok' || !json.items || json.items.length === 0) {
-          listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
-          return;
+          // 【備援方案：若 Yahoo 無內容，或發生非同步卡頓，則結合 Google 新聞混合同步】
+          if (!success || mappedNews.length === 0) {
+            // 優化關鍵字結構，放寬邏輯判定
+            const targetQuery = `${stockId} ${stockName}`;
+            const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(googleRssUrl)}`;
+            
+            const res = await fetch(proxyUrl);
+            const json = await res.json();
+            
+            if (json && json.contents) {
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(json.contents, "text/xml");
+              const items = xmlDoc.getElementsByTagName("item");
+              
+              if (items.length > 0) {
+                for (let i = 0; i < Math.min(items.length, 12); i++) {
+                  const item = items[i];
+                  const title = item.getElementsByTagName("title")[0]?.textContent || "";
+                  const link = item.getElementsByTagName("link")[0]?.textContent || "";
+                  const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+                  const source = item.getElementsByTagName("source")[0]?.textContent || "Google財經";
+                  
+                  const pubDate = new Date(pubDateText);
+                  const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+                  
+                  mappedNews.push({
+                    date: dateStr,
+                    timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
+                    source: source,
+                    title: title,
+                    link: link
+                  });
+                }
+                success = true;
+              }
+            }
+          }
+
+          // 【判定最終渲染結果】
+          if (mappedNews.length === 0) {
+            listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
+            return;
+          }
+
+          // 全球市場時間混合排序（最新到最舊）
+          mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+          activeNewsData = mappedNews;
+
+          // 渲染 HTML 結構（完全維持您原來的 Tailwind CSS 與字體配置規格）
+          let listHtml = "";
+          activeNewsData.forEach((news) => {
+            listHtml += `
+              <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
+                 class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+                <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+                  <span>📅 ${news.date}</span>
+                  <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
+                </div>
+                <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
+              </a>
+            `;
+          });
+          listZone.innerHTML = listHtml;
+
+        } catch (err) {
+          console.error("即時雙源抓取新聞發生異常:", err);
+          listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
         }
-
-        let mappedNews = json.items.map(item => {
-          const pubDate = new Date(item.pubDate);
-          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-          return {
-            date: dateStr, 
-            timestamp: pubDate.getTime(),
-            source: item.author || "財經媒體",
-            title: item.title,
-            link: item.link 
-          };
-        });
-
-        mappedNews.sort((a, b) => b.timestamp - a.timestamp);
-        activeNewsData = mappedNews;
-
-        let listHtml = "";
-        activeNewsData.forEach((news) => {
-          listHtml += `
-            <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
-               class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
-              <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-                <span>📅 ${news.date}</span>
-                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
-              </div>
-              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
-            </a>
-          `;
-        });
-        listZone.innerHTML = listHtml;
-
-      } catch (err) {
-        console.error("即時抓取新聞發生異常:", err);
-        listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
-      }
+      }, 120);
     }
 
     function closeNewsModal() {
