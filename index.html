@@ -679,7 +679,7 @@
       }, 60);
     }
 
-async function openCombinedModal(stockId, stockName) {
+    async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
       
@@ -759,11 +759,11 @@ async function openCombinedModal(stockId, stockName) {
         priceDatesEl.innerHTML = "";
       }
 
-      // 🔄 呼叫核心新聞加載引擎
+      // 🔄 呼叫核心高容錯新聞加載引擎
       await fetchStockNewsEngine(stockId, stockName);
     }
 
-    // 🌟 新增：獨立出的高韌性新聞交叉擷取與過濾引擎（含手動重試功能）
+    // 🌟 新增：獨立出來的高容錯新聞交叉擷取與過濾引擎（含備用代理輪詢與手動重試功能）
     async function fetchStockNewsEngine(stockId, stockName) {
       const listZone = document.getElementById("newsListZone");
       if (!listZone) return;
@@ -779,7 +779,7 @@ async function openCombinedModal(stockId, stockName) {
         </div>
       `;
 
-      // 建立備用代理網址陣列，防止單一代理伺服器掛點
+      // 建立備用跨網域代理網址陣列，防止單一代理伺服器過載或被封鎖
       const proxyList = [
         (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
         (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
@@ -793,7 +793,6 @@ async function openCombinedModal(stockId, stockName) {
             const pUrl = proxyFn(targetUrl);
             const res = await fetch(pUrl, { signal: AbortSignal.timeout(6000) }); // 6秒超時防堵卡死
             if (!res.ok) {
-              // 針對 codetabs 或純文字返回
               if (pUrl.includes("codetabs")) {
                 const text = await res.text();
                 if (text && text.trim().startsWith("<")) return text;
@@ -824,7 +823,7 @@ async function openCombinedModal(stockId, stockName) {
       let yahooSuccess = false;
       let googleSuccess = false;
 
-      // 🔷 【第一區塊：全獨立 Yahoo 奇摩股市 RSS 獲取沙盒】
+      // 🔷 【第一沙盒：獨立 Yahoo 奇摩股市 RSS 獲取區塊】
       try {
         const yahooRssUrl = `https://tw.stock.yahoo.com/rss?s=${stockId}`;
         const xmlContent = await fetchWithBackupProxies(yahooRssUrl);
@@ -859,7 +858,7 @@ async function openCombinedModal(stockId, stockName) {
         console.warn("⚠️ Yahoo 新聞核心異常（已自動由 Google 新聞接管備援）：", yahooErr.message);
       }
 
-      // 🔶 【第二區塊：全獨立 Google 財經混合同步沙盒】
+      // 🔶 【第二沙盒：獨立 Google 財經混合同步區塊】
       try {
         const targetQuery = `${stockId} ${stockName}`;
         const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
@@ -899,9 +898,9 @@ async function openCombinedModal(stockId, stockName) {
         console.warn("⚠️ Google 新聞通道異常：", googleErr.message);
       }
 
-      // 🚨 【判定最终渲染與再試一次按鍵處理機制】
+      // 🚨 【判定最終渲染與再試一次按鍵處理機制】
       if (mappedNews.length === 0) {
-        // 當兩個管道都徹底失敗，或是完全沒有新聞時
+        // 當兩個管道都徹底失敗，代表外部代理伺服器目前極度繁忙
         if (!yahooSuccess && !googleSuccess) {
           listZone.innerHTML = `
             <div class="p-6 border border-rose-200 rounded-xl bg-rose-50 text-center m-2 flex flex-col items-center justify-center gap-3">
@@ -937,6 +936,10 @@ async function openCombinedModal(stockId, stockName) {
         `;
       });
       listZone.innerHTML = listHtml;
+    }
+
+    function closeNewsModal() {
+      document.getElementById("newsModal").classList.add("hidden");
     }
 
     function renderChipTrendChart() {
