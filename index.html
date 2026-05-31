@@ -38,7 +38,7 @@
 
       <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-5 gap-2 shrink-0 text-center">
         <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-          <div class="text-[10px] font-bold text-slate-400">目股價</div>
+          <div class="text-[10px] font-bold text-slate-400">目前股價</div>
           <div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div>
         </div>
         <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
@@ -187,7 +187,7 @@
     let activeNewsData = []; 
     let currentActiveStockId = ""; 
     let currentChipSubTab = "f";   
-    let isNewsLoadedForCurrentStock = false; // 新增：用來記錄目前股票的新聞是否已成功載入過
+    let isNewsLoadedForCurrentStock = false; 
 
     document.addEventListener("DOMContentLoaded", async () => {
       calculateTradeDaysLists(); 
@@ -195,11 +195,10 @@
       await forceSyncFlow(); 
     });
 
-    // 💡 漏洞修復：修正非交易日回推邏輯，確保無窮迴圈防護與精確計數
     function calculateTradeDaysLists() {
       let dates20 = [];
       let d = new Date();
-      let maxLoops = 60; // 防止例外狀況卡死
+      let maxLoops = 60; 
       while(dates20.length < 20 && maxLoops > 0) {
         let day = d.getDay();
         if (day !== 0 && day !== 6) { 
@@ -440,7 +439,7 @@
         filteredStocks = filteredStocks.filter(item => {
           if (!item) return false;
           const idStr = String(item.stock_id).toLowerCase();
-          const nameStr = String(item.stock_name || '').toLowerCase();
+          const nameStr = String(item.name || '').toLowerCase(); // ✅ 導回核心真正欄位 name
           return idStr.includes(searchKeyword) || nameStr.includes(searchKeyword);
         });
       }
@@ -588,11 +587,13 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
+        const currentName = item.name || ''; // ✅ 導回真正核心變數 name
+
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
+            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${currentName}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
+              <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${currentName}</div>
               <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
                 <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
                 <div class="text-xs mt-0.5">${priceChangeHtml}</div>
@@ -628,7 +629,7 @@
       tbody.innerHTML = htmlString;
     }
 
-    // 💡 修正：整合切換分頁與即時載入新聞邏輯
+    // ✅ 修正：整合切換分頁與精準配對資料庫欄位名稱（item.name）
     function switchModalTab(tabMode) {
       const btnTrend = document.getElementById("tabBtnTrend");
       const btnNews = document.getElementById("tabBtnNews");
@@ -647,10 +648,10 @@
         zoneTrend.classList.replace("block", "hidden");
         zoneNews.classList.replace("hidden", "block");
         
-        // 💡 優化：只有切換到新聞分頁，且該標的尚未成功載入過新聞時才即時抓取，省去無效流量
+        // ✅ 欄位修正：原本寫錯成 stock_name，導致查詢關鍵字出錯而集體崩潰排隊。現已修正為 name 欄位
         if (!isNewsLoadedForCurrentStock && currentActiveStockId) {
           const currentStock = dbStockData.find(s => String(s.stock_id).trim() === String(currentActiveStockId).trim());
-          const stockName = currentStock ? (currentStock.stock_name || '') : '';
+          const stockName = currentStock ? (currentStock.name || '') : ''; 
           fetchStockNewsEngine(currentActiveStockId, stockName);
         }
       }
@@ -682,7 +683,7 @@
 
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
-      isNewsLoadedForCurrentStock = false; // 重設新聞加載狀態旗標
+      isNewsLoadedForCurrentStock = false; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
       
       document.getElementById("newsModal").classList.remove("hidden");
@@ -760,11 +761,9 @@
         document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
         priceDatesEl.innerHTML = "";
       }
-
-      // 💡 優化：此處移除原本預先背景抓取新聞的程式碼，改為點擊分頁時才執行
     }
 
-    // 🌟 核心高容錯新聞交叉擷取與過濾引擎 (4通道強固防禦升級版)
+    // 🌟 核心新聞交叉擷取與過濾引擎 (高穩定修正版)
     async function fetchStockNewsEngine(stockId, stockName) {
       const listZone = document.getElementById("newsListZone");
       if (!listZone) return;
@@ -779,12 +778,11 @@
         </div>
       `;
 
-      // 💡 擴充與亂序排序 CORS 代理伺服器
+      // 建立四組互補的公開代理節點，並加入強健降級機制
       const proxyList = [
         (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
         (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-        (u) => `https://thingproxy.freeboard.io/fetch/${u}`,
-        (u) => `https://cors-anywhere.herokuapp.com/${u}`
+        (u) => `https://thingproxy.freeboard.io/fetch/${u}`
       ].sort(() => Math.random() - 0.5);
 
       async function fetchWithBackupProxies(targetUrl) {
@@ -792,41 +790,37 @@
         for (let proxyFn of proxyList) {
           const pUrl = proxyFn(targetUrl);
           try {
-            const res = await fetch(pUrl, { signal: AbortSignal.timeout(5000) }); // 5秒超時快速降級
+            const res = await fetch(pUrl, { signal: AbortSignal.timeout(6000) }); 
             if (!res.ok) continue;
             
             const jsonOrText = await res.text();
             
-            // 🛠️ 漏洞修復：精確比對並加入內層安全隔離，徹底阻斷非 JSON 回傳造成的語法解析崩潰
-            if (pUrl.startsWith("https://api.allorigins.win/")) {
+            // 精準過濾 Allorigins 的包裝格式
+            if (pUrl.includes("api.allorigins.win")) {
               try {
                 const parsed = JSON.parse(jsonOrText);
                 if (parsed && parsed.contents) return parsed.contents;
               } catch (parseErr) {
-                console.warn("Allorigins JSON 回傳解析異常，嘗試降級至下一代理通道...");
                 continue;
               }
             }
             
-            // 對於非 allorigins 通道，確保回傳的是合理的文字或 XML 內容才返回
-            if (jsonOrText && jsonOrText.trim().length > 100) {
+            if (jsonOrText && jsonOrText.trim().length > 50) {
               return jsonOrText;
             }
           } catch (e) {
             lastError = e;
-            console.warn(`節點 ${pUrl.split('/')[2]} 響應微調，切換備援代理...`);
+            console.warn(`代理通道切換中...`);
           }
         }
         throw lastError || new Error("外部跨網域伺服器忙碌中");
       }
 
-      await new Promise(resolve => setTimeout(resolve, 80));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       let mappedNews = [];
-      let yahooSuccess = false;
-      let googleSuccess = false;
 
-      // 🔷 【沙盒1：Yahoo 奇摩股市 RSS 區塊】
+      // 🔷 沙盒 1：Yahoo RSS 通道
       try {
         const yahooRssUrl = `https://tw.stock.yahoo.com/rss?s=${stockId}`;
         const xmlContent = await fetchWithBackupProxies(yahooRssUrl);
@@ -836,37 +830,33 @@
           const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
           const items = xmlDoc.getElementsByTagName("item");
           
-          if (items.length > 0) {
-            for (let i = 0; i < Math.min(items.length, 12); i++) {
-              const item = items[i];
-              let title = item.getElementsByTagName("title")[0]?.textContent || "";
-              const link = item.getElementsByTagName("link")[0]?.textContent || "";
-              const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
-              
-              // 洗滌標題贅字
-              title = title.replace(/\s*-\s*Yahoo\s*奇摩股市.*/i, "");
-              
-              const pubDate = new Date(pubDateText);
-              const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-              
-              mappedNews.push({
-                date: dateStr,
-                timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
-                source: "Yahoo奇摩股市",
-                title: title,
-                link: link
-              });
-            }
-            if (mappedNews.length > 0) yahooSuccess = true;
+          for (let i = 0; i < Math.min(items.length, 10); i++) {
+            const item = items[i];
+            let title = item.getElementsByTagName("title")[0]?.textContent || "";
+            const link = item.getElementsByTagName("link")[0]?.textContent || "";
+            const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+            
+            title = title.replace(/\s*-\s*Yahoo\s*奇摩股市.*/i, "");
+            const pubDate = new Date(pubDateText);
+            const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+            
+            mappedNews.push({
+              date: dateStr,
+              timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
+              source: "Yahoo奇摩股市",
+              title: title,
+              link: link
+            });
           }
         }
-      } catch (yahooErr) {
-        console.warn("Yahoo通道轉換：" + yahooErr.message);
+      } catch (e) {
+        console.warn("Yahoo RSS 處理失敗: ", e);
       }
 
-      // 🔶 【沙盒2：Google 財經混合同步區塊】
+      // 🔶 沙盒 2：Google 財經 RSS 通道（已修正關鍵字漏洞）
       try {
-        const targetQuery = `${stockId} ${stockName}`;
+        const cleanName = String(stockName || '').trim();
+        const targetQuery = cleanName ? `${stockId} ${cleanName}` : `${stockId}`;
         const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
         const xmlContentGeo = await fetchWithBackupProxies(googleRssUrl);
         
@@ -875,55 +865,51 @@
           const xmlDoc = parser.parseFromString(xmlContentGeo, "text/xml");
           const items = xmlDoc.getElementsByTagName("item");
           
-          if (items.length > 0) {
-            for (let i = 0; i < Math.min(items.length, 12); i++) {
-              const item = items[i];
-              let title = item.getElementsByTagName("title")[0]?.textContent || "";
-              const link = item.getElementsByTagName("link")[0]?.textContent || "";
-              const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
-              const source = item.getElementsByTagName("source")[0]?.textContent || "Google財經";
-              
-              title = title.replace(/\s*-\s*Google\s*新聞.*/i, "");
-              
-              const pubDate = new Date(pubDateText);
-              const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-              
-              if (!mappedNews.some(n => n.title.substring(0,10) === title.substring(0,10))) {
-                mappedNews.push({
-                  date: dateStr,
-                  timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
-                  source: source,
-                  title: title,
-                  link: link
-                });
-              }
+          for (let i = 0; i < Math.min(items.length, 10); i++) {
+            const item = items[i];
+            let title = item.getElementsByTagName("title")[0]?.textContent || "";
+            const link = item.getElementsByTagName("link")[0]?.textContent || "";
+            const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+            const source = item.getElementsByTagName("source")[0]?.textContent || "Google財經";
+            
+            title = title.replace(/\s*-\s*Google\s*新聞.*/i, "");
+            const pubDate = new Date(pubDateText);
+            const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+            
+            if (!mappedNews.some(n => n.title.substring(0,8) === title.substring(0,8))) {
+              mappedNews.push({
+                date: dateStr,
+                timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
+                source: source,
+                title: title,
+                link: link
+              });
             }
-            googleSuccess = true;
           }
         }
-      } catch (googleErr) {
-        console.warn("Google通道轉換：" + googleErr.message);
+      } catch (e) {
+        console.warn("Google RSS 處理失敗: ", e);
       }
 
-      // 🚨 【安全降級與重試UI機制】
+      // 🚨 如果代理伺服器集體嚴重卡頓，提供強制刷新機制
       if (mappedNews.length === 0) {
         listZone.innerHTML = `
           <div class="p-6 border border-rose-200 rounded-xl bg-rose-50 text-center m-2 flex flex-col items-center justify-center gap-3">
             <div class="text-sm text-rose-600 font-extrabold">⚠️ 財經新聞通道排隊中（代理伺服器負載飽和）</div>
-            <p class="text-xs text-slate-500 font-medium max-w-md">雲端免費代理連接超時，此情況屬正常網路波動。您可以點擊下方按鈕隨機指派新的線路重新對此個股進行即時更新。</p>
+            <p class="text-xs text-slate-500 font-medium max-w-md">外部公共代理伺服器目前響應超時。您可以點擊下方按鈕，重新分派另一組隨機線路獲取新聞。</p>
             <button onclick="fetchStockNewsEngine('${stockId}', '${stockName}')" 
                     class="mt-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs px-4 py-2 rounded-lg shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1.5">
-              🔄 指派新線路再試一次
+              🔄 重新分配新線路獲取
             </button>
           </div>
         `;
         return;
       }
 
-      // 依時間戳記由新到舊排序
+      // 時間排序
       mappedNews.sort((a, b) => b.timestamp - a.timestamp);
       activeNewsData = mappedNews;
-      isNewsLoadedForCurrentStock = true; // 成功獲取，設定旗標為 true
+      isNewsLoadedForCurrentStock = true; 
 
       let listHtml = "";
       activeNewsData.forEach((news) => {
