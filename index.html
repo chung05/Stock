@@ -73,15 +73,12 @@
         <div id="trendZone" class="block space-y-4 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
-            
             <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[960px] px-1">
-                <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
-                  </div>
+                <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full"></div>
                 <div id="trendPriceDates" class="flex justify-between font-black mt-1.5 w-full"></div>
               </div>
             </div>
-            
           </div>
 
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
@@ -93,16 +90,14 @@
                 <button id="subTabDS" onclick="switchChipSubTab('ds')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
               </div>
             </div>
-            
-            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
-              <div id="trendChipChart" class="w-full min-w-[960px]">
-                </div>
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div id="trendChipChart" class="w-full min-w-[960px]"></div>
             </div>
           </div>
         </div>
 
         <div id="newsZone" class="hidden h-full w-full overflow-y-auto grow">
-          <div id="debugLogZone" class="mb-4 p-3 bg-slate-900 text-amber-400 font-mono text-[11px] rounded-xl border border-slate-700 leading-normal hidden"></div>
+          <div id="debugLogZone" class="mb-4 p-3 bg-slate-900 text-amber-400 font-mono text-[11px] rounded-xl border border-slate-700 leading-normal hidden whitespace-pre-wrap text-left"></div>
           <div id="newsListZone" class="space-y-3 block w-full"></div>
         </div>
 
@@ -112,12 +107,10 @@
 
   <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-3 shadow-md border-b border-sky-300/30 px-4">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
-      
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
         <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
       </div>
-      
       <div class="flex items-center gap-4 shrink-0 min-w-0">
         <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
           <span class="flex items-center gap-1">
@@ -129,12 +122,10 @@
             資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span>
           </span>
         </div>
-        
         <button onclick="forceSyncFlow()" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">
           ⚡ 更新
         </button>
       </div>
-      
     </div>
   </div>
 
@@ -145,7 +136,6 @@
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      
       <div class="flex items-center gap-3 grow sm:max-w-xl">
         <div class="w-40 md:w-48 shrink-0">
           <select id="tabSelect" onchange="switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white cursor-pointer transition-colors">
@@ -184,7 +174,7 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 全域變數
+    // 全域響應式變數
     let currentSourceTab = '全部';
     let dbStockData = [];          
     let globalChipCache = [];      
@@ -335,7 +325,6 @@
       applyFilters();
     }
 
-    // 表格繪製
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -680,7 +669,7 @@
       }, 60);
     }
 
-    // 🔴 【核心修改：診斷錯誤監測模式】
+    // 🟢 【極致穩健優化版：源頭減量10筆 + 黃金3秒重試機制】
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
@@ -688,7 +677,7 @@
       switchChipSubTab('f'); 
       document.getElementById("newsModal").classList.remove("hidden");
 
-      // 初始化顯示診斷面板
+      // 初始化調試診斷面板
       const debugBox = document.getElementById("debugLogZone");
       debugBox.classList.remove("hidden");
       debugBox.innerHTML = `[系統診斷開始] 初始化 ${stockId} (${stockName}) 新聞獲取流...\n`;
@@ -748,7 +737,7 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-900 truncate px-0.5">${datePart}</span>`;
+            dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
           priceDatesEl.innerHTML = dateHtml;
@@ -767,88 +756,106 @@
       const listZone = document.getElementById("newsListZone");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
-      // 🔍 原始連線模式的錯誤追蹤與記錄
+      // 🔍 建立精準 Google News RSS 搜尋網址
       const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
       debugBox.innerHTML += `-> 目標關鍵字組: ${rawSearchKeyword}\n`;
       
       const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-      debugBox.innerHTML += `-> 發送請求網址: ${apiUrl}\n`;
+      
+      // ✨【關鍵優化一】在網址直接加入 &count=10 參數，減輕 rss2json 解析負擔，防止 500 報錯
+      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
 
-      try {
-        const startTime = Date.now();
-        const res = await fetch(apiUrl);
-        const duration = Date.now() - startTime;
-        
-        debugBox.innerHTML += `-> 回傳 HTTP 狀態碼: ${res.status} (耗時: ${duration}ms)\n`;
-        
-        if (!res.ok) {
-          debugBox.innerHTML += `❌ 錯誤：伺服器響應失敗，網路連線代碼不正確。\n`;
-          listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">網路請求異常，代碼: ${res.status}</div>`;
-          return;
+      // 🔄【關鍵優化二】背景自動重試防禦迴圈
+      let maxRetries = 3;
+      let currentRetry = 0;
+      let successFetch = false;
+      let resJson = null;
+
+      while (currentRetry < maxRetries && !successFetch) {
+        currentRetry++;
+        if (currentRetry > 1) {
+          debugBox.innerHTML += `⏳ 偵測到伺服器暫時性異常 (HTTP 500)，啟動防禦重試機制。\n👉 進入安全冷卻期，程式背景精準等待 3 秒鐘...\n`;
+          // 在畫面上即時通知使用者正在重試，消除等待焦慮
+          listZone.innerHTML = `<div class="text-xs text-amber-600 font-bold py-6 text-center animate-pulse">⚠️ 伺服器稍微塞車... 正在為您進行第 ${currentRetry} 次安全連線（冷卻等待 3 秒）...</div>`;
+          
+          // ⏱️ 實作精準等待 3000 毫秒
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
-        const json = await res.json();
-        debugBox.innerHTML += `-> rss2json 回傳狀態 (json.status): "${json.status}"\n`;
-
-        if (json.status !== 'ok') {
-          debugBox.innerHTML += `❌ 錯誤原因：rss2json 轉換器解析失敗。訊息: "${json.message || '未知原因'}"\n`;
-          debugBox.innerHTML += `👉 備註：這通常是該免費解析 API 的單日呼叫次數被耗盡 (Rate Limit EXCEEDED)。\n`;
-          listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞轉換服務異常，請參閱上方黑色診斷區</div>`;
-          return;
+        try {
+          const startTime = Date.now();
+          const res = await fetch(apiUrl);
+          const duration = Date.now() - startTime;
+          
+          debugBox.innerHTML += `-> [嘗試 ${currentRetry}] HTTP 狀態碼: ${res.status} (耗時: ${duration}ms)\n`;
+          
+          if (res.ok) {
+            const json = await res.json();
+            if (json.status === 'ok') {
+              resJson = json;
+              successFetch = true;
+              break; // 成功獲取，跳出重試
+            } else {
+              debugBox.innerHTML += `⚠️ rss2json 內部訊息錯誤: ${json.message || '未知'}\n`;
+            }
+          }
+        } catch (fetchErr) {
+          debugBox.innerHTML += `⚠️ 請求發送失敗 (網路斷線或被阻擋): ${fetchErr.message}\n`;
         }
-
-        const fetchedItems = json.items || [];
-        debugBox.innerHTML += `-> 成功解析到的原始新聞筆數: ${fetchedItems.length} 筆\n`;
-
-        if (fetchedItems.length === 0) {
-          debugBox.innerHTML += `⚠️ 診斷結論：API 運作完全正常，但 Google News 對關鍵字 [ ${rawSearchKeyword} ] 回傳空結果。\n`;
-          debugBox.innerHTML += `👉 說明：這意味著精準雙引號 "" 太過嚴格，導致搜尋引擎找不到完全相符的文字串。\n`;
-          listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
-          return;
-        }
-
-        // 資料正常時的處理與繪製
-        debugBox.innerHTML += `🟢 成功獲取資料！正在處理列表繪製...\n`;
-        
-        let mappedNews = fetchedItems.map(item => {
-          const pubDate = new Date(item.pubDate);
-          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-          return {
-            date: dateStr, 
-            timestamp: pubDate.getTime(),
-            source: item.author || "財經媒體",
-            title: item.title || "",
-            link: item.link 
-          };
-        });
-
-        mappedNews.sort((a, b) => b.timestamp - a.timestamp);
-        activeNewsData = mappedNews;
-
-        let listHtml = "";
-        activeNewsData.forEach((news) => {
-          listHtml += `
-            <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
-               class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
-              <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-                <span>📅 ${news.date}</span>
-                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
-              </div>
-              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
-            </a>
-          `;
-        });
-        listZone.innerHTML = listHtml;
-        
-        // 如果成功抓到資料，可選擇自動隱藏診斷面板
-        debugBox.innerHTML += `[診斷結束] 渲染完畢。`;
-        // debugBox.classList.add("hidden"); // 若想看完整成功的紀錄，可以把這行註解掉保持顯示
-
-      } catch (e) {
-        debugBox.innerHTML += `❌ 嚴重 JavaScript 運行時異常:\n${e.stack || e.message || e}\n`;
-        listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">程式碼執行期間發生嚴重異常，請查看黑色診斷區</div>`;
       }
+
+      // 🛑 經過 3 次努力（每次間隔 3 秒）後，若還是徹底失敗
+      if (!successFetch || !resJson) {
+        debugBox.innerHTML += `❌ 嚴重錯誤：已連續自動重試 ${maxRetries} 次（歷時約 6~10 秒），第三方新聞解析伺服器當下持續過載。\n`;
+        listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞轉換服務暫時過載，請稍後再試，或查看上方黑色診斷紀錄。</div>`;
+        return;
+      }
+
+      // 🟢 成功獲取資料後的渲染流程
+      const fetchedItems = resJson.items || [];
+      debugBox.innerHTML += `-> 成功解析到的原始新聞筆數: ${fetchedItems.length} 筆\n`;
+
+      if (fetchedItems.length === 0) {
+        debugBox.innerHTML += `⚠️ 診斷結論：API 恢復完全正常，但 Google News 對此標的回傳空結果。\n`;
+        listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
+        return;
+      }
+
+      debugBox.innerHTML += `🟢 成功獲取資料！正在處理列表繪製...\n`;
+      
+      // 前端做雙重保險切片限制最大 10 筆
+      let mappedNews = fetchedItems.slice(0, 10).map(item => {
+        const pubDate = new Date(item.pubDate);
+        const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+        return {
+          date: dateStr, 
+          timestamp: pubDate.getTime(),
+          source: item.author || "財經媒體",
+          title: item.title || "",
+          link: item.link 
+        };
+      });
+
+      mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+      activeNewsData = mappedNews;
+
+      let listHtml = "";
+      activeNewsData.forEach((news) => {
+        listHtml += `
+          <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
+             class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+            <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+              <span>📅 ${news.date}</span>
+              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
+            </div>
+            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
+          </a>
+        `;
+      });
+      listZone.innerHTML = listHtml;
+      
+      // ✨ 既然成功抓到了，就自動將診斷面板隱藏起來，保持極簡清爽的介面！
+      debugBox.classList.add("hidden");
     }
 
     function closeNewsModal() {
