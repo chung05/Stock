@@ -679,15 +679,12 @@
       }, 60);
     }
 
-    async function openCombinedModal(stockId, stockName) {
+async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
       
-      // ─────────────────────────────────────────────────────────────────
-      // 🎯 【關鍵修復核心】：在準備新聞資料前，先確保彈窗開啟，且不先隱藏 newsZone
-      // ─────────────────────────────────────────────────────────────────
       document.getElementById("newsModal").classList.remove("hidden");
-      switchModalTab('trend'); // 切換選單狀態
+      switchModalTab('trend'); 
       switchChipSubTab('f'); 
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
@@ -762,10 +759,16 @@
         priceDatesEl.innerHTML = "";
       }
 
-      // ─────────────────────────────────────────────────────────────────
-      // 📢 【問題2修復】：顯著增強「正在即時智慧過濾最新財經新聞...」的視覺表現
-      // ─────────────────────────────────────────────────────────────────
+      // 🔄 呼叫核心新聞加載引擎
+      await fetchStockNewsEngine(stockId, stockName);
+    }
+
+    // 🌟 新增：獨立出的高韌性新聞交叉擷取與過濾引擎（含手動重試功能）
+    async function fetchStockNewsEngine(stockId, stockName) {
       const listZone = document.getElementById("newsListZone");
+      if (!listZone) return;
+
+      // 1. 渲染高對比度的優雅提示字體
       listZone.innerHTML = `
         <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
           <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
@@ -776,123 +779,164 @@
         </div>
       `;
 
-      // 使用 setTimeout 緩衝 150ms 確保瀏覽器完成重排渲染，完全避免 DOM 競爭報錯
-      setTimeout(async () => {
-        try {
-          let mappedNews = [];
-          let success = false;
+      // 建立備用代理網址陣列，防止單一代理伺服器掛點
+      const proxyList = [
+        (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+      ];
 
-          // 【優先方案：嘗試對 Yahoo 奇摩股市 RSS 進行獲取】
+      // 輔助函式：嘗試多重代理下載
+      async function fetchWithBackupProxies(targetUrl) {
+        let lastError = null;
+        for (let proxyFn of proxyList) {
           try {
-            const yahooRssUrl = `https://tw.stock.yahoo.com/rss?s=${stockId}`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooRssUrl)}`;
-            
-            const res = await fetch(proxyUrl);
-            const json = await res.json();
-            
-            if (json && json.contents) {
-              const parser = new DOMParser();
-              const xmlDoc = parser.parseFromString(json.contents, "text/xml");
-              const items = xmlDoc.getElementsByTagName("item");
-              
-              if (items.length > 0) {
-                for (let i = 0; i < Math.min(items.length, 12); i++) {
-                  const item = items[i];
-                  const title = item.getElementsByTagName("title")[0]?.textContent || "";
-                  const link = item.getElementsByTagName("link")[0]?.textContent || "";
-                  const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
-                  
-                  const pubDate = new Date(pubDateText);
-                  const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-                  
-                  mappedNews.push({
-                    date: dateStr,
-                    timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
-                    source: "Yahoo奇摩股市",
-                    title: title,
-                    link: link
-                  });
-                }
-                if (mappedNews.length > 0) success = true;
+            const pUrl = proxyFn(targetUrl);
+            const res = await fetch(pUrl, { signal: AbortSignal.timeout(6000) }); // 6秒超時防堵卡死
+            if (!res.ok) {
+              // 針對 codetabs 或純文字返回
+              if (pUrl.includes("codetabs")) {
+                const text = await res.text();
+                if (text && text.trim().startsWith("<")) return text;
               }
+              continue;
             }
-          } catch (yahooErr) {
-            console.warn("Yahoo RSS 新聞源異步讀取未就緒，啟動 Google 備援...", yahooErr);
-          }
-
-          // 【備援方案：若 Yahoo 無內容，則結合 Google 新聞混合同步】
-          if (!success || mappedNews.length === 0) {
-            const targetQuery = `${stockId} ${stockName}`;
-            const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(googleRssUrl)}`;
-            
-            const res = await fetch(proxyUrl);
-            const json = await res.json();
-            
-            if (json && json.contents) {
-              const parser = new DOMParser();
-              const xmlDoc = parser.parseFromString(json.contents, "text/xml");
-              const items = xmlDoc.getElementsByTagName("item");
-              
-              if (items.length > 0) {
-                for (let i = 0; i < Math.min(items.length, 12); i++) {
-                  const item = items[i];
-                  const title = item.getElementsByTagName("title")[0]?.textContent || "";
-                  const link = item.getElementsByTagName("link")[0]?.textContent || "";
-                  const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
-                  const source = item.getElementsByTagName("source")[0]?.textContent || "Google財經";
-                  
-                  const pubDate = new Date(pubDateText);
-                  const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-                  
-                  mappedNews.push({
-                    date: dateStr,
-                    timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
-                    source: source,
-                    title: title,
-                    link: link
-                  });
-                }
-                success = true;
-              }
+            const jsonOrText = await res.text();
+            // 如果是 allorigins 回傳的 JSON 包裝
+            if (pUrl.includes("allorigins.win")) {
+              const parsed = JSON.parse(jsonOrText);
+              if (parsed && parsed.contents) return parsed.contents;
             }
+            if (jsonOrText && jsonOrText.trim().startsWith("<")) {
+              return jsonOrText;
+            }
+          } catch (e) {
+            lastError = e;
+            console.warn(`代理節點連線微調，嘗試切換備援路徑...`, e.message);
           }
-
-          // 【判定最終渲染結果】
-          if (mappedNews.length === 0) {
-            listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
-            return;
-          }
-
-          // 全球市場時間混合排序（最新到最舊）
-          mappedNews.sort((a, b) => b.timestamp - a.timestamp);
-          activeNewsData = mappedNews;
-
-          // 渲染 HTML 結構（完全維持您原來的 Tailwind CSS 與字體配置規格）
-          let listHtml = "";
-          activeNewsData.forEach((news) => {
-            listHtml += `
-              <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
-                 class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
-                <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-                  <span>📅 ${news.date}</span>
-                  <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
-                </div>
-                <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
-              </a>
-            `;
-          });
-          listZone.innerHTML = listHtml;
-
-        } catch (err) {
-          console.error("即時雙源抓取新聞發生異常:", err);
-          listZone.innerHTML = `<div class="text-sm text-rose-500 font-extrabold py-8 text-center bg-rose-50 border border-rose-200 rounded-xl m-2">⚠️ 新聞伺服器連線中斷，請再次點選個股進行同步</div>`;
         }
-      }, 150);
-    }
+        throw lastError || new Error("所有跨網域代理解析節點皆忙碌中");
+      }
 
-    function closeNewsModal() {
-      document.getElementById("newsModal").classList.add("hidden");
+      // 等待 DOM 渲染完畢
+      await new Promise(resolve => setTimeout(resolve, 80));
+
+      let mappedNews = [];
+      let yahooSuccess = false;
+      let googleSuccess = false;
+
+      // 🔷 【第一區塊：全獨立 Yahoo 奇摩股市 RSS 獲取沙盒】
+      try {
+        const yahooRssUrl = `https://tw.stock.yahoo.com/rss?s=${stockId}`;
+        const xmlContent = await fetchWithBackupProxies(yahooRssUrl);
+        
+        if (xmlContent) {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+          const items = xmlDoc.getElementsByTagName("item");
+          
+          if (items.length > 0) {
+            for (let i = 0; i < Math.min(items.length, 12); i++) {
+              const item = items[i];
+              const title = item.getElementsByTagName("title")[0]?.textContent || "";
+              const link = item.getElementsByTagName("link")[0]?.textContent || "";
+              const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+              
+              const pubDate = new Date(pubDateText);
+              const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+              
+              mappedNews.push({
+                date: dateStr,
+                timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
+                source: "Yahoo奇摩股市",
+                title: title,
+                link: link
+              });
+            }
+            if (mappedNews.length > 0) yahooSuccess = true;
+          }
+        }
+      } catch (yahooErr) {
+        console.warn("⚠️ Yahoo 新聞核心異常（已自動由 Google 新聞接管備援）：", yahooErr.message);
+      }
+
+      // 🔶 【第二區塊：全獨立 Google 財經混合同步沙盒】
+      try {
+        const targetQuery = `${stockId} ${stockName}`;
+        const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+        const xmlContentGeo = await fetchWithBackupProxies(googleRssUrl);
+        
+        if (xmlContentGeo) {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlContentGeo, "text/xml");
+          const items = xmlDoc.getElementsByTagName("item");
+          
+          if (items.length > 0) {
+            for (let i = 0; i < Math.min(items.length, 12); i++) {
+              const item = items[i];
+              const title = item.getElementsByTagName("title")[0]?.textContent || "";
+              const link = item.getElementsByTagName("link")[0]?.textContent || "";
+              const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+              const source = item.getElementsByTagName("source")[0]?.textContent || "Google財經";
+              
+              const pubDate = new Date(pubDateText);
+              const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+              
+              // 避免與 Yahoo 抓到完全重複的標題
+              if (!mappedNews.some(n => n.title === title)) {
+                mappedNews.push({
+                  date: dateStr,
+                  timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
+                  source: source,
+                  title: title,
+                  link: link
+                });
+              }
+            }
+            googleSuccess = true;
+          }
+        }
+      } catch (googleErr) {
+        console.warn("⚠️ Google 新聞通道異常：", googleErr.message);
+      }
+
+      // 🚨 【判定最终渲染與再試一次按鍵處理機制】
+      if (mappedNews.length === 0) {
+        // 當兩個管道都徹底失敗，或是完全沒有新聞時
+        if (!yahooSuccess && !googleSuccess) {
+          listZone.innerHTML = `
+            <div class="p-6 border border-rose-200 rounded-xl bg-rose-50 text-center m-2 flex flex-col items-center justify-center gap-3">
+              <div class="text-sm text-rose-600 font-extrabold">⚠️ 新聞伺服器連線中斷（外部代理伺服器忙碌中）</div>
+              <p class="text-xs text-slate-500 font-medium max-w-md">網頁即時串接 Yahoo 與 Google RSS 數據庫發生超時。您可以直接點選下方按鈕重新對此個股進行即時同步。</p>
+              <button onclick="fetchStockNewsEngine('${stockId}', '${stockName}')" 
+                      class="mt-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-4 py-2 rounded-lg shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1.5">
+                🔄 伺服器忙碌中，點此再試一次
+              </button>
+            </div>
+          `;
+        } else {
+          listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
+        }
+        return;
+      }
+
+      // 市場時間混合排序（最新到最舊）
+      mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+      activeNewsData = mappedNews;
+
+      let listHtml = "";
+      activeNewsData.forEach((news) => {
+        listHtml += `
+          <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
+             class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+            <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+              <span>📅 ${news.date}</span>
+              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
+            </div>
+            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
+          </a>
+        `;
+      });
+      listZone.innerHTML = listHtml;
     }
 
     function renderChipTrendChart() {
