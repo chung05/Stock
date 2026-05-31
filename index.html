@@ -73,12 +73,15 @@
         <div id="trendZone" class="block space-y-4 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
+            
             <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[960px] px-1">
-                <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full"></div>
+                <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full">
+                  </div>
                 <div id="trendPriceDates" class="flex justify-between font-black mt-1.5 w-full"></div>
               </div>
             </div>
+            
           </div>
 
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
@@ -90,8 +93,10 @@
                 <button id="subTabDS" onclick="switchChipSubTab('ds')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
               </div>
             </div>
+            
             <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
-              <div id="trendChipChart" class="w-full min-w-[960px]"></div>
+              <div id="trendChipChart" class="w-full min-w-[960px]">
+                </div>
             </div>
           </div>
         </div>
@@ -106,10 +111,12 @@
 
   <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-3 shadow-md border-b border-sky-300/30 px-4">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
         <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
       </div>
+      
       <div class="flex items-center gap-4 shrink-0 min-w-0">
         <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
           <span class="flex items-center gap-1">
@@ -121,10 +128,12 @@
             資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span>
           </span>
         </div>
+        
         <button onclick="forceSyncFlow()" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">
           ⚡ 更新
         </button>
       </div>
+      
     </div>
   </div>
 
@@ -135,6 +144,7 @@
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      
       <div class="flex items-center gap-3 grow sm:max-w-xl">
         <div class="w-40 md:w-48 shrink-0">
           <select id="tabSelect" onchange="switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white cursor-pointer transition-colors">
@@ -173,13 +183,13 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 全域狀態管理變數
+    // 全域變數
     let currentSourceTab = '全部';
     let dbStockData = [];          
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
-    let recentDates = [];           
-    let extendedTrendDates = [];    
+    let recentDates = [];           // 主表格專用的最新5天日期 (全域)
+    let extendedTrendDates = [];    // 趨勢圖預設20天日期 (全域備用)
     
     let currentSortMode = 'investment_buy'; 
     let currentSumDaysMode = 5; 
@@ -187,7 +197,6 @@
     let activeNewsData = []; 
     let currentActiveStockId = ""; 
     let currentChipSubTab = "f";   
-    let isNewsLoadedForCurrentStock = false; 
 
     document.addEventListener("DOMContentLoaded", async () => {
       calculateTradeDaysLists(); 
@@ -198,14 +207,12 @@
     function calculateTradeDaysLists() {
       let dates20 = [];
       let d = new Date();
-      let maxLoops = 60; 
-      while(dates20.length < 20 && maxLoops > 0) {
+      while(dates20.length < 20) {
         let day = d.getDay();
         if (day !== 0 && day !== 6) { 
           dates20.push(formatDateToString(d));
         }
         d.setDate(d.getDate() - 1);
-        maxLoops--;
       }
       extendedTrendDates = dates20; 
       recentDates = dates20.slice(0, 5); 
@@ -234,7 +241,7 @@
         if (targetError) throw targetError;
         dbStockData = dbData || [];
 
-        const todayStr = new Date().toLocaleDateString('zh-TW');
+        const todayStr = new Date().toLocaleDateString();
         if(document.getElementById("listUpdateTime")) document.getElementById("listUpdateTime").innerText = todayStr;
         if(document.getElementById("listUpdateTimeMob")) document.getElementById("listUpdateTimeMob").innerText = todayStr;
 
@@ -246,6 +253,8 @@
         });
         
         updateTabSelectOptions(Array.from(targetSheetsSet));
+        
+        // 【關鍵修復】：確保再次生成最新的日期區間，供下方撈取使用
         calculateTradeDaysLists();
 
         detailText.innerText = "2. 正在讀取雲端籌碼與股價數據...";
@@ -278,6 +287,7 @@
         let success = false;
 
         while (retries > 0 && !success) {
+          // 【關鍵修復】：補回 .in('date', extendedTrendDates)，限制資料庫只回傳最近20天，避開 1000 筆上限！
           const { data, error } = await supabaseClient
             .from('stock_chips_daily')
             .select('*')
@@ -303,13 +313,14 @@
 
       globalChipCache = allChipsFetched;
 
+      // 【動態日期自適應】：從撈回來的精準資料中，反推真實存在的交易日
       if (globalChipCache.length > 0) {
         const dbDates = Array.from(new Set(globalChipCache.map(c => String(c.date))))
-                             .sort((a, b) => b.localeCompare(a)); 
+                             .sort((a, b) => b.localeCompare(a)); // 由新到舊
         
         if (dbDates.length > 0) {
           extendedTrendDates = dbDates.slice(0, 20); 
-          recentDates = dbDates.slice(0, 5); 
+          recentDates = dbDates.slice(0, 5); // 鎖定主頁顯示最新5天
           updateDisplayDates(recentDates[0]);
         }
       }
@@ -439,7 +450,7 @@
         filteredStocks = filteredStocks.filter(item => {
           if (!item) return false;
           const idStr = String(item.stock_id).toLowerCase();
-          const nameStr = String(item.name || '').toLowerCase(); // ✅ 導回核心真正欄位 name
+          const nameStr = String(item.stock_name || '').toLowerCase();
           return idStr.includes(searchKeyword) || nameStr.includes(searchKeyword);
         });
       }
@@ -457,8 +468,8 @@
           const sumDates = getActiveSumDates();
           return chips.reduce((acc, row) => {
             if (!sumDates.includes(String(row.date))) return acc; 
-            const buy = Math.round((Number(row[buyField]) || 0) / 1000);
-            const sell = Math.round((Number(row[sellField]) || 0) / 1000);
+            const buy = Math.round((row[buyField] || 0) / 1000);
+            const sell = Math.round((row[sellField] || 0) / 1000);
             return acc + (buy - sell);
           }, 0);
         };
@@ -551,8 +562,8 @@
         let fRow = "", fdRow = "", iRow = "", dsRow = "", dhRow = "";
 
         const getCell = (b, s) => {
-          const buy = Math.round((Number(b) || 0) / 1000);
-          const sell = Math.round((Number(s) || 0) / 1000);
+          const buy = Math.round((b || 0) / 1000);
+          const sell = Math.round((s || 0) / 1000);
           const net = buy - sell;
           
           let netHtml = `<td class="py-2.5 border-r border-slate-300 text-slate-400 font-medium text-sm">0</td>`;
@@ -566,11 +577,11 @@
           const dayData = myChips.find(c => String(c.date) === d) || { f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
           
           if (sumDates.includes(d)) {
-            sumF += (Math.round((Number(dayData.f_buy)||0)/1000) - Math.round((Number(dayData.f_sell)||0)/1000));
-            sumFD += (Math.round((Number(dayData.fd_buy||0))/1000) - Math.round((Number(dayData.fd_sell||0))/1000));
-            sumIT += (Math.round((Number(dayData.it_buy)||0)/1000) - Math.round((Number(dayData.it_sell)||0)/1000));
-            sumDS += (Math.round((Number(dayData.ds_buy)||0)/1000) - Math.round((Number(dayData.ds_sell)||0)/1000));
-            sumDH += (Math.round((Number(dayData.dh_buy)||0)/1000) - Math.round((Number(dayData.dh_sell)||0)/1000));
+            sumF += (Math.round((dayData.f_buy||0)/1000) - Math.round((dayData.f_sell||0)/1000));
+            sumFD += (Math.round((dayData.fd_buy||0)/1000) - Math.round((dayData.fd_sell||0)/1000));
+            sumIT += (Math.round((dayData.it_buy||0)/1000) - Math.round((dayData.it_sell||0)/1000));
+            sumDS += (Math.round((dayData.ds_buy||0)/1000) - Math.round((dayData.ds_sell||0)/1000));
+            sumDH += (Math.round((dayData.dh_buy||0)/1000) - Math.round((dayData.dh_sell||0)/1000));
           }
 
           fRow += getCell(dayData.f_buy, dayData.f_sell);
@@ -587,13 +598,11 @@
           return `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`;
         };
 
-        const currentName = item.name || ''; // ✅ 導回真正核心變數 name
-
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${currentName}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
+            <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
               <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
-              <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${currentName}</div>
+              <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
               <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
                 <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
                 <div class="text-xs mt-0.5">${priceChangeHtml}</div>
@@ -629,7 +638,6 @@
       tbody.innerHTML = htmlString;
     }
 
-    // ✅ 修正：整合切換分頁與精準配對資料庫欄位名稱（item.name）
     function switchModalTab(tabMode) {
       const btnTrend = document.getElementById("tabBtnTrend");
       const btnNews = document.getElementById("tabBtnNews");
@@ -647,13 +655,6 @@
         btnTrend.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
         zoneTrend.classList.replace("block", "hidden");
         zoneNews.classList.replace("hidden", "block");
-        
-        // ✅ 欄位修正：原本寫錯成 stock_name，導致查詢關鍵字出錯而集體崩潰排隊。現已修正為 name 欄位
-        if (!isNewsLoadedForCurrentStock && currentActiveStockId) {
-          const currentStock = dbStockData.find(s => String(s.stock_id).trim() === String(currentActiveStockId).trim());
-          const stockName = currentStock ? (currentStock.name || '') : ''; 
-          fetchStockNewsEngine(currentActiveStockId, stockName);
-        }
       }
     }
 
@@ -683,12 +684,10 @@
 
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
-      isNewsLoadedForCurrentStock = false; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
-      
-      document.getElementById("newsModal").classList.remove("hidden");
-      switchModalTab('trend'); 
+      switchModalTab('trend');
       switchChipSubTab('f'); 
+      document.getElementById("newsModal").classList.remove("hidden");
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       
@@ -745,7 +744,7 @@
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
+            dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-900 truncate px-0.5">${datePart}</span>`;
           });
           priceChartEl.innerHTML = priceHtml;
           priceDatesEl.innerHTML = dateHtml;
@@ -761,170 +760,57 @@
         document.getElementById("trendChipChart").innerHTML = `<div class="text-xs text-slate-400 text-center py-4">暫無歷史籌碼資料</div>`;
         priceDatesEl.innerHTML = "";
       }
-    }
 
-    // 🌟 核心新聞交叉擷取與過濾引擎 (高穩定修正版)
-    async function fetchStockNewsEngine(stockId, stockName) {
       const listZone = document.getElementById("newsListZone");
-      if (!listZone) return;
+      listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
-      listZone.innerHTML = `
-        <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-          <div class="text-base font-extrabold text-blue-600 tracking-wider animate-pulse flex items-center gap-1.5 justify-center">
-            <span>📰 正在即時智慧過濾最新財經新聞...</span>
-          </div>
-          <p class="text-xs text-slate-400 font-bold mt-1">智慧交叉檢索多重數據中心入口網站</p>
-        </div>
-      `;
-
-      // 建立四組互補的公開代理節點，並加入強健降級機制
-      const proxyList = [
-        (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-        (u) => `https://thingproxy.freeboard.io/fetch/${u}`
-      ].sort(() => Math.random() - 0.5);
-
-      async function fetchWithBackupProxies(targetUrl) {
-        let lastError = null;
-        for (let proxyFn of proxyList) {
-          const pUrl = proxyFn(targetUrl);
-          try {
-            const res = await fetch(pUrl, { signal: AbortSignal.timeout(6000) }); 
-            if (!res.ok) continue;
-            
-            const jsonOrText = await res.text();
-            
-            // 精準過濾 Allorigins 的包裝格式
-            if (pUrl.includes("api.allorigins.win")) {
-              try {
-                const parsed = JSON.parse(jsonOrText);
-                if (parsed && parsed.contents) return parsed.contents;
-              } catch (parseErr) {
-                continue;
-              }
-            }
-            
-            if (jsonOrText && jsonOrText.trim().length > 50) {
-              return jsonOrText;
-            }
-          } catch (e) {
-            lastError = e;
-            console.warn(`代理通道切換中...`);
-          }
-        }
-        throw lastError || new Error("外部跨網域伺服器忙碌中");
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      let mappedNews = [];
-
-      // 🔷 沙盒 1：Yahoo RSS 通道
       try {
-        const yahooRssUrl = `https://tw.stock.yahoo.com/rss?s=${stockId}`;
-        const xmlContent = await fetchWithBackupProxies(yahooRssUrl);
-        
-        if (xmlContent) {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
-          const items = xmlDoc.getElementsByTagName("item");
-          
-          for (let i = 0; i < Math.min(items.length, 10); i++) {
-            const item = items[i];
-            let title = item.getElementsByTagName("title")[0]?.textContent || "";
-            const link = item.getElementsByTagName("link")[0]?.textContent || "";
-            const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
-            
-            title = title.replace(/\s*-\s*Yahoo\s*奇摩股市.*/i, "");
-            const pubDate = new Date(pubDateText);
-            const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-            
-            mappedNews.push({
-              date: dateStr,
-              timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
-              source: "Yahoo奇摩股市",
-              title: title,
-              link: link
-            });
-          }
+        const targetQuery = `"${stockId}" OR "${stockName}"`;
+        const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+        const res = await fetch(apiUrl);
+        const json = await res.json();
+
+        if (json.status !== 'ok' || !json.items || json.items.length === 0) {
+          listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
+          return;
         }
-      } catch (e) {
-        console.warn("Yahoo RSS 處理失敗: ", e);
+
+        let mappedNews = json.items.map(item => {
+          const pubDate = new Date(item.pubDate);
+          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+          return {
+            date: dateStr, 
+            timestamp: pubDate.getTime(),
+            source: item.author || "財經媒體",
+            title: item.title,
+            link: item.link 
+          };
+        });
+
+        mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+        activeNewsData = mappedNews;
+
+        let listHtml = "";
+        activeNewsData.forEach((news) => {
+          listHtml += `
+            <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
+               class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
+              <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+                <span>📅 ${news.date}</span>
+                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
+              </div>
+              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
+            </a>
+          `;
+        });
+        listZone.innerHTML = listHtml;
+
+      } catch (err) {
+        console.error("即時抓取新聞發生異常:", err);
+        listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
       }
-
-      // 🔶 沙盒 2：Google 財經 RSS 通道（已修正關鍵字漏洞）
-      try {
-        const cleanName = String(stockName || '').trim();
-        const targetQuery = cleanName ? `${stockId} ${cleanName}` : `${stockId}`;
-        const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-        const xmlContentGeo = await fetchWithBackupProxies(googleRssUrl);
-        
-        if (xmlContentGeo) {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(xmlContentGeo, "text/xml");
-          const items = xmlDoc.getElementsByTagName("item");
-          
-          for (let i = 0; i < Math.min(items.length, 10); i++) {
-            const item = items[i];
-            let title = item.getElementsByTagName("title")[0]?.textContent || "";
-            const link = item.getElementsByTagName("link")[0]?.textContent || "";
-            const pubDateText = item.getElementsByTagName("pubDate")[0]?.textContent || "";
-            const source = item.getElementsByTagName("source")[0]?.textContent || "Google財經";
-            
-            title = title.replace(/\s*-\s*Google\s*新聞.*/i, "");
-            const pubDate = new Date(pubDateText);
-            const dateStr = isNaN(pubDate.getTime()) ? "近期" : `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-            
-            if (!mappedNews.some(n => n.title.substring(0,8) === title.substring(0,8))) {
-              mappedNews.push({
-                date: dateStr,
-                timestamp: isNaN(pubDate.getTime()) ? 0 : pubDate.getTime(),
-                source: source,
-                title: title,
-                link: link
-              });
-            }
-          }
-        }
-      } catch (e) {
-        console.warn("Google RSS 處理失敗: ", e);
-      }
-
-      // 🚨 如果代理伺服器集體嚴重卡頓，提供強制刷新機制
-      if (mappedNews.length === 0) {
-        listZone.innerHTML = `
-          <div class="p-6 border border-rose-200 rounded-xl bg-rose-50 text-center m-2 flex flex-col items-center justify-center gap-3">
-            <div class="text-sm text-rose-600 font-extrabold">⚠️ 財經新聞通道排隊中（代理伺服器負載飽和）</div>
-            <p class="text-xs text-slate-500 font-medium max-w-md">外部公共代理伺服器目前響應超時。您可以點擊下方按鈕，重新分派另一組隨機線路獲取新聞。</p>
-            <button onclick="fetchStockNewsEngine('${stockId}', '${stockName}')" 
-                    class="mt-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs px-4 py-2 rounded-lg shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer flex items-center gap-1.5">
-              🔄 重新分配新線路獲取
-            </button>
-          </div>
-        `;
-        return;
-      }
-
-      // 時間排序
-      mappedNews.sort((a, b) => b.timestamp - a.timestamp);
-      activeNewsData = mappedNews;
-      isNewsLoadedForCurrentStock = true; 
-
-      let listHtml = "";
-      activeNewsData.forEach((news) => {
-        listHtml += `
-          <a href="${news.link}" target="_blank" rel="noopener noreferrer" 
-             class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-1.5 text-left group/item">
-            <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-              <span>📅 ${news.date}</span>
-              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${news.source}</span>
-            </div>
-            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${news.title}</h4>
-          </a>
-        `;
-      });
-      listZone.innerHTML = listHtml;
     }
 
     function closeNewsModal() {
@@ -953,11 +839,11 @@
         const row = myChipsRaw.find(c => String(c.date) === d);
         if (!row) return 0;
         if (currentChipSubTab === "ds") {
-          const buySum = (Number(row.ds_buy) || 0) + (Number(row.dh_buy) || 0);
-          const sellSum = (Number(row.ds_sell) || 0) + (Number(row.dh_sell) || 0);
+          const buySum = (row.ds_buy || 0) + (row.dh_buy || 0);
+          const sellSum = (row.ds_sell || 0) + (row.dh_sell || 0);
           return Math.round(buySum / 1000) - Math.round(sellSum / 1000);
         }
-        return Math.round((Number(row[cfg.bKey])||0)/1000) - Math.round((Number(row[cfg.sKey])||0)/1000);
+        return Math.round((row[cfg.bKey]||0)/1000) - Math.round((row[cfg.sKey]||0)/1000);
       });
 
       let absMax = Math.max(...nets.map(Math.abs), 1);
