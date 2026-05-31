@@ -102,6 +102,7 @@
         </div>
 
         <div id="newsZone" class="hidden h-full w-full overflow-y-auto grow">
+          <div id="debugLogZone" class="mb-4 p-3 bg-slate-900 text-amber-400 font-mono text-[11px] rounded-xl border border-slate-700 leading-normal hidden"></div>
           <div id="newsListZone" class="space-y-3 block w-full"></div>
         </div>
 
@@ -188,8 +189,8 @@
     let dbStockData = [];          
     let globalChipCache = [];      
     let targetSheetsSet = new Set();
-    let recentDates = [];           // 主表格專用的最新5天日期 (全域)
-    let extendedTrendDates = [];    // 趨勢圖預設20天日期 (全域備用)
+    let recentDates = [];           
+    let extendedTrendDates = [];    
     
     let currentSortMode = 'investment_buy'; 
     let currentSumDaysMode = 5; 
@@ -253,8 +254,6 @@
         });
         
         updateTabSelectOptions(Array.from(targetSheetsSet));
-        
-        // 【關鍵修復】：確保再次生成最新的日期區間，供下方撈取使用
         calculateTradeDaysLists();
 
         detailText.innerText = "2. 正在讀取雲端籌碼與股價數據...";
@@ -287,7 +286,6 @@
         let success = false;
 
         while (retries > 0 && !success) {
-          // 【關鍵修復】：補回 .in('date', extendedTrendDates)，限制資料庫只回傳最近20天，避開 1000 筆上限！
           const { data, error } = await supabaseClient
             .from('stock_chips_daily')
             .select('*')
@@ -313,14 +311,13 @@
 
       globalChipCache = allChipsFetched;
 
-      // 【動態日期自適應】：從撈回來的精準資料中，反推真實存在的交易日
       if (globalChipCache.length > 0) {
         const dbDates = Array.from(new Set(globalChipCache.map(c => String(c.date))))
-                             .sort((a, b) => b.localeCompare(a)); // 由新到舊
+                             .sort((a, b) => b.localeCompare(a)); 
         
         if (dbDates.length > 0) {
           extendedTrendDates = dbDates.slice(0, 20); 
-          recentDates = dbDates.slice(0, 5); // 鎖定主頁顯示最新5天
+          recentDates = dbDates.slice(0, 5); 
           updateDisplayDates(recentDates[0]);
         }
       }
@@ -338,6 +335,7 @@
       applyFilters();
     }
 
+    // 表格繪製
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -682,12 +680,18 @@
       }, 60);
     }
 
+    // 🔴 【核心修改：診斷錯誤監測模式】
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
       switchModalTab('trend');
       switchChipSubTab('f'); 
       document.getElementById("newsModal").classList.remove("hidden");
+
+      // 初始化顯示診斷面板
+      const debugBox = document.getElementById("debugLogZone");
+      debugBox.classList.remove("hidden");
+      debugBox.innerHTML = `[系統診斷開始] 初始化 ${stockId} (${stockName}) 新聞獲取流...\n`;
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       
@@ -752,7 +756,6 @@
           priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`;
           priceDatesEl.innerHTML = "";
         }
-
         renderChipTrendChart();
         scrollToLatestTrend();
       } else {
@@ -764,27 +767,58 @@
       const listZone = document.getElementById("newsListZone");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
+      // 🔍 原始連線模式的錯誤追蹤與記錄
+      const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
+      debugBox.innerHTML += `-> 目標關鍵字組: ${rawSearchKeyword}\n`;
+      
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+      debugBox.innerHTML += `-> 發送請求網址: ${apiUrl}\n`;
+
       try {
-        const targetQuery = `"${stockId}" OR "${stockName}"`;
-        const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-
+        const startTime = Date.now();
         const res = await fetch(apiUrl);
-        const json = await res.json();
+        const duration = Date.now() - startTime;
+        
+        debugBox.innerHTML += `-> 回傳 HTTP 狀態碼: ${res.status} (耗時: ${duration}ms)\n`;
+        
+        if (!res.ok) {
+          debugBox.innerHTML += `❌ 錯誤：伺服器響應失敗，網路連線代碼不正確。\n`;
+          listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">網路請求異常，代碼: ${res.status}</div>`;
+          return;
+        }
 
-        if (json.status !== 'ok' || !json.items || json.items.length === 0) {
+        const json = await res.json();
+        debugBox.innerHTML += `-> rss2json 回傳狀態 (json.status): "${json.status}"\n`;
+
+        if (json.status !== 'ok') {
+          debugBox.innerHTML += `❌ 錯誤原因：rss2json 轉換器解析失敗。訊息: "${json.message || '未知原因'}"\n`;
+          debugBox.innerHTML += `👉 備註：這通常是該免費解析 API 的單日呼叫次數被耗盡 (Rate Limit EXCEEDED)。\n`;
+          listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞轉換服務異常，請參閱上方黑色診斷區</div>`;
+          return;
+        }
+
+        const fetchedItems = json.items || [];
+        debugBox.innerHTML += `-> 成功解析到的原始新聞筆數: ${fetchedItems.length} 筆\n`;
+
+        if (fetchedItems.length === 0) {
+          debugBox.innerHTML += `⚠️ 診斷結論：API 運作完全正常，但 Google News 對關鍵字 [ ${rawSearchKeyword} ] 回傳空結果。\n`;
+          debugBox.innerHTML += `👉 說明：這意味著精準雙引號 "" 太過嚴格，導致搜尋引擎找不到完全相符的文字串。\n`;
           listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">目前網路上查無此個股之相關新聞</div>`;
           return;
         }
 
-        let mappedNews = json.items.map(item => {
+        // 資料正常時的處理與繪製
+        debugBox.innerHTML += `🟢 成功獲取資料！正在處理列表繪製...\n`;
+        
+        let mappedNews = fetchedItems.map(item => {
           const pubDate = new Date(item.pubDate);
           const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
           return {
             date: dateStr, 
             timestamp: pubDate.getTime(),
             source: item.author || "財經媒體",
-            title: item.title,
+            title: item.title || "",
             link: item.link 
           };
         });
@@ -806,10 +840,14 @@
           `;
         });
         listZone.innerHTML = listHtml;
+        
+        // 如果成功抓到資料，可選擇自動隱藏診斷面板
+        debugBox.innerHTML += `[診斷結束] 渲染完畢。`;
+        // debugBox.classList.add("hidden"); // 若想看完整成功的紀錄，可以把這行註解掉保持顯示
 
-      } catch (err) {
-        console.error("即時抓取新聞發生異常:", err);
-        listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
+      } catch (e) {
+        debugBox.innerHTML += `❌ 嚴重 JavaScript 運行時異常:\n${e.stack || e.message || e}\n`;
+        listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">程式碼執行期間發生嚴重異常，請查看黑色診斷區</div>`;
       }
     }
 
