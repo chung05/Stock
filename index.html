@@ -254,7 +254,6 @@
         
         updateTabSelectOptions(Array.from(targetSheetsSet));
         
-        // 【關鍵修復】：確保再次生成最新的日期區間，供下方撈取使用
         calculateTradeDaysLists();
 
         detailText.innerText = "2. 正在讀取雲端籌碼與股價數據...";
@@ -287,7 +286,6 @@
         let success = false;
 
         while (retries > 0 && !success) {
-          // 【關鍵修復】：補回 .in('date', extendedTrendDates)，限制資料庫只回傳最近20天，避開 1000 筆上限！
           const { data, error } = await supabaseClient
             .from('stock_chips_daily')
             .select('*')
@@ -313,14 +311,13 @@
 
       globalChipCache = allChipsFetched;
 
-      // 【動態日期自適應】：從撈回來的精準資料中，反推真實存在的交易日
       if (globalChipCache.length > 0) {
         const dbDates = Array.from(new Set(globalChipCache.map(c => String(c.date))))
-                             .sort((a, b) => b.localeCompare(a)); // 由新到舊
+                             .sort((a, b) => b.localeCompare(a)); 
         
         if (dbDates.length > 0) {
           extendedTrendDates = dbDates.slice(0, 20); 
-          recentDates = dbDates.slice(0, 5); // 鎖定主頁顯示最新5天
+          recentDates = dbDates.slice(0, 5); 
           updateDisplayDates(recentDates[0]);
         }
       }
@@ -685,9 +682,13 @@
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
-      switchModalTab('trend');
-      switchChipSubTab('f'); 
+      
+      // ─────────────────────────────────────────────────────────────────
+      // 🎯 【關鍵修復核心】：在準備新聞資料前，先確保彈窗開啟，且不先隱藏 newsZone
+      // ─────────────────────────────────────────────────────────────────
       document.getElementById("newsModal").classList.remove("hidden");
+      switchModalTab('trend'); // 切換選單狀態
+      switchChipSubTab('f'); 
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       
@@ -762,12 +763,20 @@
       }
 
       // ─────────────────────────────────────────────────────────────────
-      // 僅針對財經新聞的需求進行智慧重構優化 (其餘架構及樣式大小100%保留)
+      // 📢 【問題2修復】：顯著增強「正在即時智慧過濾最新財經新聞...」的視覺表現
       // ─────────────────────────────────────────────────────────────────
       const listZone = document.getElementById("newsListZone");
-      listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時智慧過濾最新財經新聞...</div>`;
+      listZone.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <div class="text-base font-extrabold text-blue-600 tracking-wider animate-pulse flex items-center gap-1.5 justify-center">
+            <span>📰 正在即時智慧過濾最新財經新聞...</span>
+          </div>
+          <p class="text-xs text-slate-400 font-bold mt-1">智慧交叉檢索 Yahoo 股市與 Google 數據中心</p>
+        </div>
+      `;
 
-      // 使用 setTimeout 緩衝 120ms，徹底排除彈窗 DOM 節點尚未被瀏覽器實體化就塞入資料的競爭問題
+      // 使用 setTimeout 緩衝 150ms 確保瀏覽器完成重排渲染，完全避免 DOM 競爭報錯
       setTimeout(async () => {
         try {
           let mappedNews = [];
@@ -811,9 +820,8 @@
             console.warn("Yahoo RSS 新聞源異步讀取未就緒，啟動 Google 備援...", yahooErr);
           }
 
-          // 【備援方案：若 Yahoo 無內容，或發生非同步卡頓，則結合 Google 新聞混合同步】
+          // 【備援方案：若 Yahoo 無內容，則結合 Google 新聞混合同步】
           if (!success || mappedNews.length === 0) {
-            // 優化關鍵字結構，放寬邏輯判定
             const targetQuery = `${stockId} ${stockName}`;
             const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(targetQuery)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(googleRssUrl)}`;
@@ -878,9 +886,9 @@
 
         } catch (err) {
           console.error("即時雙源抓取新聞發生異常:", err);
-          listZone.innerHTML = `<div class="text-xs text-rose-500 font-bold py-6 text-center">暫時無法與新聞伺服器連線，請稍後再試</div>`;
+          listZone.innerHTML = `<div class="text-sm text-rose-500 font-extrabold py-8 text-center bg-rose-50 border border-rose-200 rounded-xl m-2">⚠️ 新聞伺服器連線中斷，請再次點選個股進行同步</div>`;
         }
-      }, 120);
+      }, 150);
     }
 
     function closeNewsModal() {
