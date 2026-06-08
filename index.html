@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   
-  <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
+  <title>牛牛分析站 - 智慧過濾籌碼寬資版 (Debug 版)</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -173,6 +173,15 @@
     </section>
   </div>
 
+  <div id="visualDebugBox" class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md text-green-400 font-mono text-xs p-4 z-50 overflow-auto max-h-[40vh] hidden border-t-4 border-amber-500 shadow-2xl">
+    <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
+      <span class="font-bold text-amber-400 text-sm">📡 【API 真實封包解剖】底下是從資料庫傳來的原始資料：</span>
+      <button onclick="document.getElementById('visualDebugBox').classList.add('hidden')" class="bg-rose-600 text-white px-3 py-1 rounded font-bold hover:bg-rose-700 cursor-pointer">關閉 (X)</button>
+    </div>
+    <div class="text-slate-300 mb-2">👉 請仔細尋找 <span class="text-amber-300 font-black">macd_osc</span> 是否存在？它的數值或大小寫是什麼？</div>
+    <pre id="visualDebugContent" class="whitespace-pre-wrap break-words leading-relaxed"></pre>
+  </div>
+
   <script>
     const SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
@@ -191,6 +200,13 @@
     let activeNewsData = []; 
     let currentActiveStockId = ""; 
     let currentChipSubTab = "f";   
+
+    // 無視大小寫取得物件的值
+    function getValIgnoreCase(obj, targetKey) {
+      if (!obj) return null;
+      const actualKey = Object.keys(obj).find(k => k.toLowerCase() === targetKey.toLowerCase());
+      return actualKey ? obj[actualKey] : null;
+    }
 
     document.addEventListener("DOMContentLoaded", async () => {
       calculateTradeDaysLists(); 
@@ -279,7 +295,7 @@
         let success = false;
 
         while (retries > 0 && !success) {
-          // 強制索取 MACD 確保快取不作祟
+          // 強制點名機制
           const { data, error } = await supabaseClient
             .from('stock_chips_daily')
             .select('*, macd_dif, macd_signal, macd_osc') 
@@ -296,6 +312,12 @@
             }
           } else {
             if (data) {
+              // 🔥 視覺化 Debug 機制：將第一筆資料印在螢幕最下方 🔥
+              if (i === 0 && data.length > 0 && !window.hasShownDebugPanel) {
+                 document.getElementById('visualDebugBox').classList.remove('hidden');
+                 document.getElementById('visualDebugContent').innerText = JSON.stringify(data[0], null, 2);
+                 window.hasShownDebugPanel = true;
+              }
               allChipsFetched = allChipsFetched.concat(data);
             }
             success = true;
@@ -532,7 +554,7 @@
         let mainRSI14 = "--";
         let mainMACDOsc = "--"; 
         
-        // 🔥 核心優化：由新到舊往前掃描，尋找最近一天「真正有股價資料」的日子，才把指標印出來
+        // 往前掃描，尋找最近一天有股價資料的日子
         for (let d of recentDates) {
           const dayData = myChips.find(c => String(c.date) === d);
           if (dayData && dayData.price !== null && dayData.price !== undefined) {
@@ -542,13 +564,10 @@
             if (dayData.ma20 !== null && dayData.ma20 !== undefined) mainMA20 = dayData.ma20;
             if (dayData.rsi14 !== null && dayData.rsi14 !== undefined) mainRSI14 = dayData.rsi14;
             
-            // 讀取 MACD 數值
-            if (dayData.macd_osc !== null && dayData.macd_osc !== undefined) {
-              mainMACDOsc = dayData.macd_osc;
-            } else if (dayData.MACD_OSC !== null && dayData.MACD_OSC !== undefined) {
-              mainMACDOsc = dayData.MACD_OSC;
-            }
-            break; // 只要找到最新一筆有效資料，就停止往前找
+            // 無視大小寫的安全取值邏輯
+            const rawMacd = getValIgnoreCase(dayData, 'macd_osc');
+            if (rawMacd !== null && rawMacd !== undefined) mainMACDOsc = rawMacd; 
+            break; 
           }
         }
 
@@ -710,7 +729,6 @@
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
         .sort((a, b) => b.localeCompare(a)); 
 
-      // 🔥 彈窗的優化：一樣往回找，找到真正有股價資料的那天才印到上方看板
       let latestValidDayData = null;
       for (let d of recentDates) {
         const dayData = myChipsRaw.find(c => String(c.date) === d);
@@ -735,11 +753,8 @@
         document.getElementById("modalInfoRSI14").innerText = (latestValidDayData.rsi14 !== undefined && latestValidDayData.rsi14 !== null) ? latestValidDayData.rsi14 : '--';
         
         let macdVal = '--';
-        if (latestValidDayData.macd_osc !== null && latestValidDayData.macd_osc !== undefined) {
-          macdVal = latestValidDayData.macd_osc;
-        } else if (latestValidDayData.MACD_OSC !== null && latestValidDayData.MACD_OSC !== undefined) {
-          macdVal = latestValidDayData.MACD_OSC;
-        }
+        const rawMacd = getValIgnoreCase(latestValidDayData, 'macd_osc');
+        if (rawMacd !== null && rawMacd !== undefined) macdVal = rawMacd;
 
         if (macdVal !== '--') {
           if (macdVal > 0) {
