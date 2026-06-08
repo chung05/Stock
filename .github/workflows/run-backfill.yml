@@ -1,0 +1,25 @@
+name: 🚀 手動執行 MACD 歷史補件
+
+on:
+  workflow_dispatch: # 這個設定代表允許我們在網頁上手動點擊按鈕執行
+
+jobs:
+  run-backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 取得最新程式碼
+        uses: actions/checkout@v3
+
+      - name: ⚙️ 設定 Node.js 環境
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: 📦 安裝必要套件
+        run: npm install @supabase/supabase-js dotenv
+
+      - name: ▶️ 執行 MACD 補件腳本
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node backfill-macd.js
