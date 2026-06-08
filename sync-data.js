@@ -51,14 +51,14 @@ async function run() {
 
     if (dbStockData.length === 0) return;
 
-    // 2. 自動判定起訖日期 (智慧增量)
+    // 2. 自動判定起訖日期 (智慧增量 - 完全保留原邏輯)
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
       .order('date', { ascending: false })
       .limit(1);
       
-    if (dateErr) console.log("⚠️ 偵測最大日期異常:", dateErr.message);
+    if (dateErr) console.log("⚠️ 偵測最大日期異常(可能尚未有任何資料):", dateErr.message);
 
     let startDate = new Date('2026-01-01');
     if (lastRecord && lastRecord.length > 0 && lastRecord[0].date) {
@@ -77,7 +77,7 @@ async function run() {
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    // 3. 步驟一：專心跑 FinMind 籌碼與價格下載
+    // 3. 步驟一：專心跑 FinMind 籌碼與價格下載 (保留原始核心，欄位全小寫 stock_id 絕不動)
     if (startDate <= today) {
       for (let i = 0; i < dbStockData.length; i++) {
         const stock = dbStockData[i];
@@ -164,11 +164,13 @@ async function calculateAndWriteBackIndicators(stockList) {
     const stock = stockList[i];
 
     try {
+      // 💡 關鍵優化：不再從最新倒著撈，而是直接「由舊到新 (ascending: true)」撈取該股票有史以來的所有資料
+      // 這樣可以確保 pricePool[0] 永遠是這檔股票在資料庫裡的最起點（如 1/2），時間軸不再發生截斷錯位
       const { data: pricePool, error: fetchErr } = await supabase
         .from('stock_chips_daily')
         .select('*')
         .eq('stock_id', stock.stock_id)
-        .order('date', { ascending: true }); // 👈 由舊到新正序排列
+        .order('date', { ascending: true }); // 👈 改為由舊到新正序排列
 
       if (fetchErr) {
         console.error(`❌ 無法獲取 ${stock.stock_id} 的歷史價格:`, fetchErr.message);
@@ -182,16 +184,10 @@ async function calculateAndWriteBackIndicators(stockList) {
       const totalLen = pricePool.length;
       const rowUpdates = [];
 
-      // 💡 MACD 所需的跨迴圈連續變數
-      let prevEma12 = null;
-      let prevEma26 = null;
-      let prevMacd9 = null;
-      const difHistory = [];
-
       // 依正序逐日掃描，建立完美遞增的完整歷史池
       for (let j = 0; j < totalLen; j++) {
         const targetDay = pricePool[j];
-        const subPool = pricePool.slice(0, j + 1); 
+        const subPool = pricePool.slice(0, j + 1); // 包含從第一天(1/2)到當天為止的所有資料
         const subLen = subPool.length;
 
         let calculatedMA10 = null;
@@ -199,25 +195,25 @@ async function calculateAndWriteBackIndicators(stockList) {
         let calculatedMA60 = null;
         let calculatedRSI14 = null;
 
-        // 1️⃣ 精準計算 MA10
+        // 1️⃣ 精準計算 MA10：當 subLen 達到 10，代表這正好是歷史第 10 天，前面恰好留空 9 個 null
         if (subLen >= 10) {
           const sum10 = subPool.slice(-10).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA10 = parseFloat((sum10 / 10).toFixed(2));
         }
 
-        // 2️⃣ 精準計算 MA20
+        // 2️⃣ 精準計算 MA20：當 subLen 達到 20，代表歷史第 20 天，前面恰好留空 19 個 null
         if (subLen >= 20) {
           const sum20 = subPool.slice(-20).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA20 = parseFloat((sum20 / 20).toFixed(2));
         }
 
-        // 3️⃣ 精準計算 MA60
+        // 3️⃣ 精準計算 MA60：當 subLen 達到 60，代表歷史第 60 天，前面恰好留空 59 個 null
         if (subLen >= 60) {
           const sum60 = subPool.slice(-60).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA60 = parseFloat((sum60 / 60).toFixed(2));
         }
 
-        // 4️⃣ 精準計算 RSI14
+        // 4️⃣ 精準計算 RSI14：第 15 筆資料時（j=14, subLen=15），前面恰好留向 14 個 null
         if (subLen >= 15) {
           let avgUp = 0;
           let avgDown = 0;
@@ -257,50 +253,7 @@ async function calculateAndWriteBackIndicators(stockList) {
           }
         }
 
-        // 5️⃣ 🔥 精準計算 MACD (DIF, Signal, OSC)
-        let calculatedDif = null;
-        let calculatedMacdSignal = null;
-        let calculatedMacdOsc = null;
-        const currentPrice = targetDay.price;
-
-        if (currentPrice !== null && currentPrice !== undefined) {
-          // EMA(12)
-          if (subLen === 12) {
-            const sum12 = subPool.slice(0, 12).reduce((acc, curr) => acc + (curr.price || 0), 0);
-            prevEma12 = sum12 / 12;
-          } else if (subLen > 12) {
-            prevEma12 = (currentPrice * (2 / 13)) + (prevEma12 * (11 / 13));
-          }
-
-          // EMA(26)
-          if (subLen === 26) {
-            const sum26 = subPool.slice(0, 26).reduce((acc, curr) => acc + (curr.price || 0), 0);
-            prevEma26 = sum26 / 26;
-          } else if (subLen > 26) {
-            prevEma26 = (currentPrice * (2 / 27)) + (prevEma26 * (25 / 27));
-          }
-
-          // 計算快慢線與柱狀體
-          if (prevEma12 !== null && prevEma26 !== null) {
-            calculatedDif = parseFloat((prevEma12 - prevEma26).toFixed(4));
-            difHistory.push(calculatedDif);
-
-            if (difHistory.length === 9) {
-              const sumDif9 = difHistory.reduce((acc, val) => acc + val, 0);
-              prevMacd9 = sumDif9 / 9;
-              calculatedMacdSignal = parseFloat(prevMacd9.toFixed(4));
-            } else if (difHistory.length > 9) {
-              prevMacd9 = (calculatedDif * (2 / 10)) + (prevMacd9 * (8 / 10));
-              calculatedMacdSignal = parseFloat(prevMacd9.toFixed(4));
-            }
-
-            if (calculatedMacdSignal !== null) {
-              calculatedMacdOsc = parseFloat((calculatedDif - calculatedMacdSignal).toFixed(4));
-            }
-          }
-        }
-
-        // 將所有算好的資料一併打包 (包含最新加入的 MACD)
+        // 只更新「指標有發生改變」或「新抓到」的行，為了保險並一次性校正，我們把所有算好的資料一併打包
         rowUpdates.push({
           ...targetDay, 
           stock_id: targetDay.stock_id,
@@ -308,10 +261,7 @@ async function calculateAndWriteBackIndicators(stockList) {
           ma10: calculatedMA10,
           ma20: calculatedMA20,
           ma60: calculatedMA60,
-          rsi14: calculatedRSI14,
-          macd_dif: calculatedDif,             // 🔥 寫入資料庫
-          macd_signal: calculatedMacdSignal,   // 🔥 寫入資料庫
-          macd_osc: calculatedMacdOsc          // 🔥 寫入資料庫
+          rsi14: calculatedRSI14
         });
       }
 
@@ -324,7 +274,7 @@ async function calculateAndWriteBackIndicators(stockList) {
         if (writeErr) {
           console.error(`❌ 寫回 ${stock.stock_id} 指標失敗:`, writeErr.message);
         } else {
-          console.log(`[精準更新成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 歷史指標(含MACD)校正完畢！`);
+          console.log(`[精準更新成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 歷史指標校正完畢！`);
         }
       }
 
