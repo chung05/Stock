@@ -22,7 +22,6 @@ async function fetchData() {
     if (error) return console.error("❌ 取得日期失敗:", error);
     uniqueDates = [...new Set([...uniqueDates, ...dateRows.map(item => item.date)])];
     
-    // 多抓幾天（75天）作技術指標緩衝
     if (dateRows.length < DATE_PAGE_SIZE || uniqueDates.length >= 75) {
       hasMoreDates = false;
     } else {
@@ -33,12 +32,10 @@ async function fetchData() {
   uniqueDates.sort((a, b) => new Date(b) - new Date(a));
   if (uniqueDates.length === 0) return console.log("⚠️ 資料庫中沒有任何交易日資料。");
 
-  // 取出最新 1 日、3 日、5 日的日期邊界（用來做籌碼排行篩選）
   const latest1Days = uniqueDates.slice(0, 1);
   const latest3Days = uniqueDates.slice(0, 3);
   const latest5Days = uniqueDates.slice(0, 5);
   
-  // 為了計算指標，我們依然需要完整的緩衝天數（例如前 70 天）
   const cutoffDate = uniqueDates[Math.min(70, uniqueDates.length) - 1];
 
   console.log(`📥 [步驟 2] 分批撈取完整原始資料以利全局排行計算...`);
@@ -49,7 +46,8 @@ async function fetchData() {
   while (hasMoreData) {
     const { data, error } = await supabase
       .from('stock_chips_daily')
-      .select('*')
+      // 🔥 關鍵修正：明確要求 API 提供新增的 MACD 三個欄位
+      .select('*, macd_dif, macd_signal, macd_osc')
       .gte('date', cutoffDate)
       .order('date', { ascending: false })
       .range(page * 1000, (page + 1) * 1000 - 1);
@@ -60,9 +58,6 @@ async function fetchData() {
     else page++;
   }
 
-  // ==========================================
-  // 🔥 核心優化：進行多天期籌碼篩選（1D, 3D, 5D 前30名去重）
-  // ==========================================
   console.log(`💡 [步驟 3] 進行多天期（1日/3日/5日）法人買賣超前30名篩選與聯集去重...`);
   
   const stockStats = {};
@@ -86,11 +81,9 @@ async function fetchData() {
   const top3d = new Set(stockList.sort((a, b) => b.sum3d - a.sum3d).slice(0, 30).map(s => s.id));
   const top5d = new Set(stockList.sort((a, b) => b.sum5d - a.sum5d).slice(0, 30).map(s => s.id));
 
-  // 取聯集（自動去重）
   const eliteStockIds = new Set([...top1d, ...top3d, ...top5d]);
   console.log(`🎯 篩選完成！全市場經去重後共有 ${eliteStockIds.size} 檔籌碼菁英股進入最終名單。`);
 
-  // 將篩選出來的菁英清單，連同他們的標籤資訊一併保留
   const eliteStocksWithTags = {};
   eliteStockIds.forEach(id => {
     const tags = [];
@@ -100,12 +93,10 @@ async function fetchData() {
     eliteStocksWithTags[id] = tags;
   });
 
-  // 只保留這批菁英股票的原始資料下載
   const filteredRawData = allRawData.filter(row => eliteStockIds.has(row.stock_id || row.code));
 
   if (!fs.existsSync('./data')) fs.mkdirSync('./data');
   
-  // 把篩選後的資料與標籤對照表一併存檔
   fs.writeFileSync('./data/raw_data.json', JSON.stringify(filteredRawData, null, 2));
   fs.writeFileSync('./data/elite_tags.json', JSON.stringify(eliteStocksWithTags, null, 2));
   
