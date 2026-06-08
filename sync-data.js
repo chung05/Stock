@@ -72,4 +72,10 @@ async function calculateAndWriteBackIndicators(stockList) {
     await sleep(80);
   }
 }
-// ... (run 函式內呼叫 calculateAndWriteBackIndicators(dbStockData))
+
+async function run() {
+  // ... (此處填入您原有的下載與流程呼叫邏輯)
+  await calculateAndWriteBackIndicators(dbStockData);
+}
+
+run();
