@@ -16,14 +16,20 @@ async function fetchData() {
   let allRawData = [], page = 0, hasMoreData = true;
 
   while (hasMoreData) {
-    const { data } = await supabase.from('stock_chips_daily').select('*, macd_dif, macd_signal, macd_osc').gte('date', cutoffDate).order('date', { ascending: false }).range(page * 1000, (page + 1) * 1000 - 1);
-    allRawData = allRawData.concat(data);
-    if (data.length < 1000) hasMoreData = false;
+    const { data } = await supabase
+      .from('stock_chips_daily')
+      .select('*, macd_dif, macd_signal, macd_osc') 
+      .gte('date', cutoffDate)
+      .order('date', { ascending: false })
+      .range(page * 1000, (page + 1) * 1000 - 1);
+
+    if (data) allRawData = allRawData.concat(data);
+    if (!data || data.length < 1000) hasMoreData = false;
     else page++;
   }
   
   if (!fs.existsSync('./data')) fs.mkdirSync('./data');
   fs.writeFileSync('./data/raw_data.json', JSON.stringify(allRawData, null, 2));
-  console.log("資料已匯出至 ./data/raw_data.json");
+  console.log("資料已成功匯出至 ./data/raw_data.json");
 }
 fetchData();
