@@ -5,25 +5,25 @@ require('dotenv').config();
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function fetchData() {
-  // ... (前面的撈取日期邏輯與原版一致)
-  let allRawData = [];
-  let page = 0;
-  let hasMoreData = true;
+  let uniqueDates = [], datePage = 0, hasMoreDates = true;
+  while (hasMoreDates) {
+    const { data: dateRows } = await supabase.from('stock_chips_daily').select('date').order('date', { ascending: false }).range(datePage * 1000, (datePage + 1) * 1000 - 1);
+    uniqueDates = [...new Set([...uniqueDates, ...dateRows.map(item => item.date)])];
+    if (dateRows.length < 1000 || uniqueDates.length >= 75) hasMoreDates = false;
+    else datePage++;
+  }
+  const cutoffDate = uniqueDates[Math.min(70, uniqueDates.length) - 1];
+  let allRawData = [], page = 0, hasMoreData = true;
 
   while (hasMoreData) {
-    // 🔥 關鍵更新：強制包含 MACD 欄位
-    const { data, error } = await supabase
-      .from('stock_chips_daily')
-      .select('*, macd_dif, macd_signal, macd_osc') 
-      .gte('date', cutoffDate)
-      .order('date', { ascending: false })
-      .range(page * 1000, (page + 1) * 1000 - 1);
-
-    if (error) return console.error("❌ 撈取失敗:", error);
+    const { data } = await supabase.from('stock_chips_daily').select('*, macd_dif, macd_signal, macd_osc').gte('date', cutoffDate).order('date', { ascending: false }).range(page * 1000, (page + 1) * 1000 - 1);
     allRawData = allRawData.concat(data);
     if (data.length < 1000) hasMoreData = false;
     else page++;
   }
-  // ... (後續寫檔邏輯與原版一致)
+  
+  if (!fs.existsSync('./data')) fs.mkdirSync('./data');
+  fs.writeFileSync('./data/raw_data.json', JSON.stringify(allRawData, null, 2));
+  console.log("資料已匯出至 ./data/raw_data.json");
 }
 fetchData();
