@@ -42,7 +42,7 @@ function calculateRSI(data, period = 14) {
 // ⚙️ 主要轉換邏輯：精細化三大法人多屬性寬表格
 // ==========================================
 async function exportRichChipsFormat() {
-  console.log("⚙️ 開始將 60 天籌碼資料轉換為『超詳細三大法人中文寬表格』...");
+  console.log("⚙️ 開始將 60 天籌碼資料轉換為『超詳細三大法人中文寬表格（含MACD）』...");
   
   if (!fs.existsSync('./data/raw_data.json')) {
     console.error("❌ 找不到原始檔，請先執行 fetch-data.js");
@@ -127,6 +127,11 @@ async function exportRichChipsFormat() {
       // 6. 三大法人合計總買賣超
       const total_net = f_net + it_net + d_net;
 
+      // ──【MACD 直接對接讀取】──
+      const macd_dif = row.macd_dif !== undefined ? row.macd_dif : "None";
+      const macd_signal = row.macd_signal !== undefined ? row.macd_signal : "None";
+      const macd_osc = row.macd_osc !== undefined ? row.macd_osc : "None";
+
       // 建立全新寬表格資料行物件
       const wideRow = {
         "日期": row.date,
@@ -168,7 +173,12 @@ async function exportRichChipsFormat() {
         "MA10均線": ma10[index],
         "MA20均線": ma20[index],
         "MA60均線": ma60[index],
-        "RSI14指標": rsi14[index]
+        "RSI14指標": rsi14[index],
+        
+        // ── 🔥 新增 MACD 指標細項 ──
+        "MACD_DIF快線": macd_dif,
+        "MACD_Signal慢線": macd_signal,
+        "MACD_OSC動能柱": macd_osc
       };
 
       allFlattenedRows.push(wideRow);
@@ -186,6 +196,7 @@ async function exportRichChipsFormat() {
   console.log(`✅ 成功產出包含開/高/低/收/漲跌/成交量的完整格式`);
   console.log(`✅ 完美解構三大法人細項（含外資自營、自營商自行買賣、避險買賣之買進與賣出）`);
   console.log(`✅ 已補全技術指標：MA10, MA20, MA60, RSI14`);
+  console.log(`✅ 🔥 新增對接雲端 MACD 欄位：DIF快線、Signal慢線、OSC動能柱`);
   console.log(`💾 檔案已寫入: ./data/ai_analysis.jsonl`);
 }
 
