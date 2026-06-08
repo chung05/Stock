@@ -74,8 +74,42 @@ async function calculateAndWriteBackIndicators(stockList) {
 }
 
 async function run() {
-  // ... (此處填入您原有的下載與流程呼叫邏輯)
+  const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
+  const workbook = XLSX.read(response.data, { type: 'buffer' });
+  const stockMap = new Map();
+  workbook.SheetNames.forEach(name => {
+    const json = XLSX.utils.sheet_to_json(workbook.Sheets[name]);
+    json.forEach(row => {
+      const sId = String(row['股票代號'] || row['代號'] || '').trim();
+      const sName = String(row['股票名稱'] || row['名稱'] || '').trim();
+      if (!sId) return;
+      if (!stockMap.has(sId)) stockMap.set(sId, { stock_id: sId, stock_name: sName, sheet_tags: [] });
+      if (!stockMap.get(sId).sheet_tags.includes(name)) stockMap.get(sId).sheet_tags.push(name);
+    });
+  });
+  const dbStockData = Array.from(stockMap.values());
+
+  const { data: lastRecord } = await supabase.from('stock_chips_daily').select('date').order('date', { ascending: false }).limit(1);
+  let startDate = new Date('2026-01-01');
+  if (lastRecord && lastRecord.length > 0) {
+    const lastDate = new Date(lastRecord[0].date);
+    lastDate.setDate(lastDate.getDate() + 1);
+    startDate = lastDate;
+  }
+  const endDateStr = formatDateToString(new Date());
+  
+  for (let stock of dbStockData) {
+    const dateMap = {};
+    try {
+        const pRes = await axios.get(`https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${formatDateToString(startDate)}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`);
+        if(pRes.data.data) {
+            pRes.data.data.forEach(p => {
+                dateMap[p.date] = { stock_id: stock.stock_id, date: p.date, price: p.close, change_value: p.spread || 0 };
+            });
+        }
+        await supabase.from('stock_chips_daily').upsert(Object.values(dateMap));
+    } catch(e) { console.error(e); }
+  }
   await calculateAndWriteBackIndicators(dbStockData);
 }
-
 run();
