@@ -192,7 +192,7 @@
     let currentActiveStockId = ""; 
     let currentChipSubTab = "f";   
 
-    // 無視大小寫自動取值輔助函式
+    // 無視大小寫精準對應欄位輔助器
     function getValIgnoreCase(obj, targetKey) {
       if (!obj) return null;
       const actualKey = Object.keys(obj).find(k => k.toLowerCase() === targetKey.toLowerCase());
@@ -286,7 +286,7 @@
         let success = false;
 
         while (retries > 0 && !success) {
-          // 🔥 核心修正：改為強制點名抓取包含 MACD 的完整欄位
+          // 🧠 強制點名要求 API 提供包含 MACD 的完整欄位，徹底解決快取問題
           const { data, error } = await supabaseClient
             .from('stock_chips_daily')
             .select('*, macd_dif, macd_signal, macd_osc') 
@@ -317,11 +317,19 @@
                              .sort((a, b) => b.localeCompare(a)); 
         
         if (dbDates.length > 0) {
+          // 🧠 關鍵同步修復：確保排行計算視窗跟隨資料庫真實日期，不再截斷撞車
           extendedTrendDates = dbDates.slice(0, 20); 
           recentDates = dbDates.slice(0, 5); 
           updateDisplayDates(recentDates[0]);
         }
       }
+    }
+
+    function formatDateToString(dateObj) {
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     }
 
     function changeSumDaysMode(val) {
@@ -541,7 +549,7 @@
             if (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) mainMA20 = latestDayData.ma20;
             if (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) mainRSI14 = latestDayData.rsi14;
             
-            // 💡 讀取 MACD 數據
+            // 🧠 無視大小寫精準獲取 MACD 資料
             const rawMacd = getValIgnoreCase(latestDayData, 'macd_osc');
             if (rawMacd !== null && rawMacd !== undefined) mainMACDOsc = rawMacd;
           }
@@ -554,7 +562,7 @@
           priceChangeHtml = `<span class="text-emerald-600 font-bold">▼${Math.abs(changeValue)}</span>`;
         }
 
-        // 💡 組合主頁卡片 MACD 的 HTML
+        // 🧠 建立主頁卡片 MACD 箭頭視覺效果
         let macdHtml = `<span class="text-slate-950 ml-1 grow text-right">${mainMACDOsc}</span>`;
         if (mainMACDOsc !== "--") {
           if (mainMACDOsc > 0) {
@@ -722,13 +730,13 @@
           document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
           document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
           
-          // 💡 彈窗內頂部看板新增 MACD 數據渲染
+          // 🧠 彈窗看板內也完美加入 MACD 數據渲染
           const rawMacd = getValIgnoreCase(latestDayData, 'macd_osc');
           if (rawMacd !== null && rawMacd !== undefined) {
             if (rawMacd > 0) {
-              document.getElementById("modalInfoMACD").innerHTML = `<span class="text-rose-600 font-bold">▲${rawMacd}</span>`;
+              document.getElementById("modalInfoMACD").innerHTML = `<span class="text-rose-600">▲${rawMacd}</span>`;
             } else if (rawMacd < 0) {
-              document.getElementById("modalInfoMACD").innerHTML = `<span class="text-emerald-600 font-bold">▼${Math.abs(rawMacd)}</span>`;
+              document.getElementById("modalInfoMACD").innerHTML = `<span class="text-emerald-600">▼${Math.abs(rawMacd)}</span>`;
             } else {
               document.getElementById("modalInfoMACD").innerText = '0.0';
             }
@@ -858,7 +866,7 @@
         };
       });
 
-      mappedNews.sort((a, b) => b.timestamp - a.timestamp);
+      mappedNews.sort((a, b) => b.localeCompare(a));
       activeNewsData = mappedNews;
 
       let listHtml = "";
@@ -883,6 +891,7 @@
       document.getElementById("newsModal").classList.add("hidden");
     }
 
+    // 🧠 三大法人歷史圖表保持原樣
     function renderChipTrendChart() {
       const chipChartEl = document.getElementById("trendChipChart");
       if (!chipChartEl || !currentActiveStockId) return;
