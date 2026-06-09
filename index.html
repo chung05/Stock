@@ -78,32 +78,48 @@
         </div>
 
         <div id="macdZone" class="hidden space-y-4 w-full grow">
-          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <div class="flex justify-between items-center mb-3">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD 20日專業指標圖（上層折線 / 下層柱狀體）</h4>
-              <div class="flex items-center gap-3 text-[10px] font-bold">
-                <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
-                <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
-                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-rose-500 inline-block"></span>多方動能</span>
-                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 inline-block"></span>空方動能</span>
+          <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+            
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs lg:col-span-3">
+              <div class="flex justify-between items-center mb-3">
+                <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD 20日指標圖</h4>
+                <div class="flex items-center gap-3 text-[10px] font-bold">
+                  <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
+                  <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 bg-rose-500 inline-block"></span>多方動能</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 inline-block"></span>空方動能</span>
+                </div>
+              </div>
+              <div class="w-full overflow-x-auto pb-2 scrollbar-none">
+                <div class="min-w-[760px] bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-4 relative">
+                  
+                  <div class="flex flex-col gap-1 relative">
+                    <div class="text-[11px] font-black text-slate-400 px-1">📈 DIF / DEA 趨勢轉折線</div>
+                    <div id="macdLineChart" class="flex items-center justify-between h-36 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  </div>
+
+                  <div class="flex flex-col gap-1 relative">
+                    <div class="text-[11px] font-black text-slate-400 px-1">📊 MACD 柱狀動能體 (OSC)</div>
+                    <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  </div>
+
+                  <div id="combinedMacdDates" class="flex justify-between font-black w-full px-0.5"></div>
+                </div>
               </div>
             </div>
-            <div class="w-full overflow-x-auto pb-2 scrollbar-none">
-              <div class="min-w-[960px] bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-4">
-                
-                <div class="flex flex-col gap-1">
-                  <div class="text-[11px] font-black text-slate-400 px-1">📈 DIF / DEA 趨勢轉折線</div>
-                  <div id="macdLineChart" class="flex items-center justify-between h-36 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
-                </div>
 
-                <div class="flex flex-col gap-1">
-                  <div class="text-[11px] font-black text-slate-400 px-1">📊 MACD 柱狀動能體 (OSC)</div>
-                  <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col h-full justify-between">
+              <div>
+                <h4 class="text-xs font-black text-slate-500 mb-3 flex items-center gap-1">🎯 智慧多空動能訊號判讀</h4>
+                <div id="macdSignalBoard" class="space-y-2.5">
+                  <div class="text-center py-8 text-slate-400 text-xs font-medium">量能解碼中...</div>
                 </div>
-
-                <div id="combinedMacdDates" class="flex justify-between font-black w-full px-0.5"></div>
+              </div>
+              <div class="mt-4 p-2 bg-slate-50 rounded-lg border border-slate-100 text-[10px] font-semibold text-slate-400 leading-normal">
+                ※ 註：本系統依據最新交易日之快慢線轉折斜率、黃金/死亡交叉狀態及動能柱增減，進行全自動智能階段診斷。
               </div>
             </div>
+
           </div>
         </div>
 
@@ -614,7 +630,7 @@
                 <div class="flex items-center"><span class="text-blue-600 shrink-0 font-bold">M10:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA10}</span></div>
                 <div class="flex items-center"><span class="text-orange-600 shrink-0 font-bold">M20:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA20}</span></div>
                 <div class="flex items-center"><span class="text-purple-600 shrink-0 font-bold">RSI:</span><span class="text-slate-950 ml-1 grow text-right">${mainRSI14}</span></div>
-                <div class="flex items-center"><span class="text-teal-600 shrink-0 font-bold">MACD:</span>${macdHtml}</div>
+                <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
               </div>
             </td>
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
@@ -764,12 +780,13 @@
 
             priceHtml += `
               <div class="flex flex-col items-center flex-1 h-full justify-end relative group min-w-0">
-                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
+                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
                 <div class="absolute w-[1px] bg-slate-200 bottom-0 top-0 left-1/2 -translate-x-1/2 border-dashed"></div>
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
             `;
-            dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
+            datePartHtml = `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
+            dateHtml += datePartHtml;
           });
           priceChartEl.innerHTML = priceHtml;
           priceDatesEl.innerHTML = dateHtml;
@@ -779,8 +796,8 @@
         }
         renderChipTrendChart();
         
-        // 💡 渲染全新設計的雙層 MACD 獨立走勢與轉折圖
-        renderSeparatedMacdChart(localTrendDates, myChipsRaw);
+        // 💡 渲染全新升級的券商級【雙層折線 SVG 串接 + 智慧條件判讀】
+        renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
         scrollToLatestTrend();
       } else {
         priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
@@ -792,7 +809,7 @@
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
       const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
-      debugBox.innerHTML += `-> 目標關鍵字組: ${rawSearchKeyword}\n`;
+      debugBox.innerHTML += `-> 目裝關鍵字組: ${rawSearchKeyword}\n`;
       
       const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
       const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
@@ -853,12 +870,14 @@
       }
     }
 
-    // 💡 核心視覺繪圖引擎：徹底將【快慢折線圖】與【動能柱狀圖】垂直分離
-    function renderSeparatedMacdChart(dates, chips) {
+    // 💡 繪圖與智慧訊號核心引擎：繪製高階 SVG 連續折線，並全自動多維度診斷多空階段
+    function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       const lineChartEl = document.getElementById("macdLineChart");
       const barChartEl = document.getElementById("macdBarChart");
       const datesEl = document.getElementById("combinedMacdDates");
+      const boardEl = document.getElementById("macdSignalBoard");
       
+      // 1. 正序建立時間序列陣列以進行線條座標計算
       let dataset = dates.map(d => {
         const row = chips.find(c => String(c.date) === d);
         return {
@@ -869,91 +888,177 @@
         };
       });
 
-      // 1️⃣ 第一部分：計算上層【DIF / DEA 折線圖】的垂直縮放區間
+      // 2. 計算上層【DIF / DEA 折線圖】垂直比例
       let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v));
       let maxLine = Math.max(...lineValues, 0.01);
       let minLine = Math.min(...lineValues, -0.01);
       let lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
 
-      // 2️⃣ 第二部分：計算下層【OSC 獨立柱狀圖】的對稱正負比例
+      // 3. 計算下層【OSC 獨立動能柱狀圖】垂直比例
       let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v));
       let maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
+
+      // --- 🧠 核心升級一：精準計算連續折線的 SVG 繪製路徑 (Polyline Path) ---
+      let containerWidth = lineChartEl.clientWidth || 728; 
+      let count = dataset.length;
+      let stepX = containerWidth / (count - 1 || 1);
+
+      let difPoints = [];
+      let sigPoints = [];
 
       let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`;
       let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
       let dateHtml = "";
 
-      dataset.forEach((d) => {
+      dataset.forEach((d, idx) => {
         const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
         dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
 
-        // 📈 A. 上層折線點位置精準轉化 (透過百分比定位)
-        let difTopPercent = d.dif !== null ? Math.round(((maxLine - d.dif) / lineRange) * 70) + 15 : 50;
-        let sigTopPercent = d.sig !== null ? Math.round(((maxLine - d.sig) / lineRange) * 70) + 15 : 50;
+        // 計算折線圖中各點的 X, Y 絕對像素點位置
+        let xPos = idx * stepX;
+        let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
+        let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
+        
+        let difY = (difTopPercent / 100) * 144; // 144px 是 h-36 的高度
+        let sigY = (sigTopPercent / 100) * 144;
 
+        if (d.dif !== null) difPoints.push(`${xPos},${difY}`);
+        if (d.sig !== null) sigPoints.push(`${xPos},${sigY}`);
+
+        // 建立快慢線定位節點與隱藏工具卡
         lineChartHtml += `
-          <div class="flex flex-col items-center flex-1 h-full relative group min-w-0">
-            <div class="absolute w-[1px] bg-slate-50 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed"></div>
+          <div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20">
+            <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
+            <div class="absolute w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white shadow-xs transition-transform group-hover:scale-150 cursor-pointer" style="top: calc(${difTopPercent}% - 4px); left: calc(50% - 4px);"></div>
+            <div class="absolute w-2 h-2 rounded-full bg-orange-400 ring-2 ring-white shadow-xs transition-transform group-hover:scale-150 cursor-pointer" style="top: calc(${sigTopPercent}% - 4px); left: calc(50% - 4px);"></div>
             
-            <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-500 z-30 ring-2 ring-white shadow-xs transition-transform group-hover:scale-125 cursor-pointer" style="top: calc(${difTopPercent}% - 5px); left: calc(50% - 5px);"></div>
-            <div class="absolute w-2.5 h-2.5 rounded-full bg-orange-400 z-30 ring-2 ring-white shadow-xs transition-transform group-hover:scale-125 cursor-pointer" style="top: calc(${sigTopPercent}% - 5px); left: calc(50% - 5px);"></div>
-            
-            <div class="hidden group-hover:flex flex-col absolute bg-slate-900/95 text-white text-[10px] p-2 rounded shadow-xl z-40 border border-slate-700 pointer-events-none -top-12 whitespace-nowrap font-bold leading-tight shadow-slate-950/40">
+            <div class="hidden group-hover:flex flex-col absolute bg-slate-900/95 text-white text-[10px] p-2 rounded shadow-xl z-50 border border-slate-700 pointer-events-none -top-12 whitespace-nowrap font-bold leading-tight">
               <div>📅 日期: ${d.date}</div>
-              <div class="text-blue-400">DIF 快線: ${d.dif !== null ? d.dif.toFixed(3) : '--'}</div>
+              <div class="text-sky-400">DIF 快線: ${d.dif !== null ? d.dif.toFixed(3) : '--'}</div>
               <div class="text-orange-400">DEA 慢線: ${d.sig !== null ? d.sig.toFixed(3) : '--'}</div>
-              <div class="${d.osc >= 0 ? 'text-rose-400' : 'text-emerald-400'}">OSC 動能柱: ${d.osc !== null ? d.osc.toFixed(3) : '--'}</div>
+              <div class="${d.osc >= 0 ? 'text-rose-400' : 'text-emerald-400'}">OSC 柱狀體: ${d.osc !== null ? d.osc.toFixed(3) : '--'}</div>
             </div>
           </div>
         `;
 
-        // 📊 B. 下層獨立柱狀體 (OSC) 對齊比例轉化
+        // 下層 OSC 獨立動能柱狀體高度
         let oscHeightPct = 0, oscBg = "bg-transparent", oscTop = "50%", oscHeightStyle = "0%";
         if (d.osc !== null) {
           oscHeightPct = Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45);
           if (d.osc > 0) {
-            oscBg = "bg-rose-500/90";
+            oscBg = "bg-rose-500/95";
             oscTop = `calc(50% - ${oscHeightPct}%)`;
             oscHeightStyle = `${oscHeightPct}%`;
           } else if (d.osc < 0) {
-            oscBg = "bg-emerald-500/90";
+            oscBg = "bg-emerald-500/95";
             oscTop = "50%";
             oscHeightStyle = `${oscHeightPct}%`;
           }
         }
 
         barChartHtml += `
-          <div class="flex flex-col items-center flex-1 h-full relative group min-w-0">
-            <div class="absolute w-[1px] bg-slate-50 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed"></div>
-            <div class="absolute w-3.5 max-w-[14px] min-w-[5px] ${oscBg} rounded-xs shadow-3xs transition-all group-hover:brightness-95 z-20" style="top: ${oscTop}; height: ${oscHeightStyle};"></div>
+          <div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20">
+            <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
+            <div class="absolute w-3.5 max-w-[14px] min-w-[5px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${oscHeightStyle};"></div>
           </div>
         `;
       });
 
+      // 拼接內嵌 SVG 畫布到折線圖背景中
+      if (difPoints.length > 0 || sigPoints.length > 0) {
+        let svgLinesHtml = `
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `;
+        lineChartHtml += svgLinesHtml;
+      }
+
       lineChartEl.innerHTML = lineChartHtml;
       barChartEl.innerHTML = barChartHtml;
       datesEl.innerHTML = dateHtml;
-    }
 
-    function closeNewsModal() { document.getElementById("newsModal").classList.add("hidden"); }
-    function switchTab(sheetName) { currentSourceTab = sheetName; applyFilters(); }
-    function handleSearchKeyup(e) { if (document.getElementById("keywordInput").value.trim() !== "") { document.getElementById("clearSearchBtn").classList.remove("hidden"); } else { document.getElementById("clearSearchBtn").classList.add("hidden"); } if (e.key === "Enter") executeStockSearch(); }
-    function executeStockSearch() { searchKeyword = document.getElementById("keywordInput").value.trim().toLowerCase(); applyFilters(); }
-    function clearSearchField() { document.getElementById("keywordInput").value = ""; document.getElementById("clearSearchBtn").classList.add("hidden"); searchKeyword = ""; applyFilters(); }
+      // --- 🧠 核心升級二：多期量能趨勢自動化診斷看板 (A~F條件全邏輯交叉判定) ---
+      // 取出最新前三日的數值進行斜率與加速度判定 (時間由舊到新排序：idx 0 是最舊，idx recentDates.length-1 是最新)
+      let t0 = dataset[0]; // 倒數第 20 天
+      let t_minus_2 = dataset[count - 3]; // 前天
+      let t_minus_1 = dataset[count - 2]; // 昨天
+      let t_latest = dataset[count - 1];  // 今日最新數據
 
-    function renderChipTrendChart() {
-      const chipChartEl = document.getElementById("trendChipChart");
-      if (!chipChartEl || !currentActiveStockId) return;
-      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
-      const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a));
-      const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
-      const cfg = subTabConfigs[currentChipSubTab];
-      let nets = localTrendDates.map(d => { const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; if (currentChipSubTab === "ds") return Math.round(((row.ds_buy||0)+(row.dh_buy||0))/1000) - Math.round(((row.ds_sell||0)+(row.dh_sell||0))/1000); return Math.round((row[cfg.bKey]||0)/1000) - Math.round((row[cfg.sKey]||0)/1000); });
-      let absMax = Math.max(...nets.map(Math.abs), 1);
-      let barsHtml = localTrendDates.map((d, i) => { const val = nets[i]; const isPositive = val >= 0; const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80); return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${d.split('-')[1] + '/' + d.split('-')[2]}</span></div></div>`; }).join('');
-      chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+      let boardHtml = "";
+      if (t_latest && t_minus_1) {
+        let d_dif = t_latest.dif, d_dea = t_latest.sig, d_osc = t_latest.osc;
+        let p_dif = t_minus_1.dif, p_dea = t_minus_1.sig, p_osc = t_minus_1.osc;
+        let pp_osc = t_minus_2 ? t_minus_2.osc : 0;
+
+        // 初始化所有條件狀態布林判定
+        let is_gold_cross = d_dif > d_dea;
+        let dif_rising = d_dif > p_dif;
+        let dif_slowing_or_flat = (d_dif <= p_dif) || (Math.abs(d_dif - p_dif) < Math.abs(p_dif - (t_minus_2 ? t_minus_2.dif : 0)));
+        let dif_bending_down = d_dif < p_dif;
+        let dea_flat_or_rising = p_dea !== null ? (d_dea >= p_dea || Math.abs(d_dea - p_dea) < 0.001) : true;
+
+        let osc_neg_to_pos_and_expanding = (p_osc <= 0 && d_osc > 0) || (d_osc > 0 && d_osc > p_osc);
+        let osc_shrinking_but_positive = d_osc > 0 && d_osc < p_net_osc_check(p_osc);
+        let osc_fast_shrinking_near_zero = d_osc > 0 && d_osc < p_osc && d_osc < (maxOscAbs * 0.15);
+        let osc_turning_negative = d_osc < 0 && p_osc >= 0;
+        let osc_neg_expanding = d_osc < 0 && (p_osc === null || d_osc < p_osc);
+        let osc_neg_shrinking = d_osc < 0 && p_osc !== null && d_osc > p_osc;
+
+        function p_net_osc_check(v) { return v !== null ? v : 0; }
+
+        // 依據條件矩陣判定六大警示燈號
+        let sigA = is_gold_cross && dif_rising && osc_neg_to_pos_and_expanding;
+        let sigB = is_gold_cross && osc_shrinking_but_positive;
+        let sigC = dif_bending_down && dea_flat_or_rising && d_osc < p_osc;
+        let sigD = d_dif < d_dea && p_dif >= p_dea && d_osc < 0; 
+        let sigE = d_dif < d_dea && d_dif < p_dif && osc_neg_expanding;
+        let sigF = d_dif < d_dea && d_dif >= p_dif && osc_neg_shrinking;
+
+        // 如果出現複雜重疊，則依據優先權挑選出最顯著的趨勢
+        let matchedSignal = "None";
+        if (sigA) matchedSignal = "A";
+        else if (sigD) matchedSignal = "D";
+        else if (sigE) matchedSignal = "E";
+        else if (sigC) matchedSignal = "C";
+        else if (sigB) matchedSignal = "B";
+        else if (sigF) matchedSignal = "F";
+
+        // 防呆：如果都沒契合，使用數值狀態進行降維契合
+        if (matchedSignal === "None") {
+          if (d_dif > d_dea) {
+            matchedSignal = d_osc > p_osc ? "A" : "B";
+          } else {
+            matchedSignal = d_osc > p_osc ? "F" : "E";
+          }
+        }
+
+        const buildCard = (id, title, desc, condText, active) => {
+          const activeBg = active ? 'bg-linear-to-br from-amber-50 to-orange-100 border-amber-400 shadow-md ring-2 ring-amber-400/20' : 'bg-slate-50/50 border-slate-200 opacity-60';
+          const titleColor = active ? 'text-amber-800 text-sm font-black' : 'text-slate-500 text-xs font-bold';
+          const badgeClass = active ? 'bg-amber-600 text-white animate-pulse' : 'bg-slate-300 text-slate-600';
+          return `
+            <div class="p-2.5 rounded-xl border transition-all ${activeBg}">
+              <div class="flex justify-between items-center gap-2 mb-1">
+                <h5 class="${titleColor}">${title}</h5>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold tracking-tighter ${badgeClass}">${active?'當前市況':'未觸發'}</span>
+              </div>
+              <p class="text-[11px] font-bold text-slate-500 leading-snug mb-1">${desc}</p>
+              <div class="text-[10px] font-mono text-slate-400 leading-tight border-t border-slate-200/60 pt-1 tracking-tighter">條件: ${condText}</div>
+            </div>
+          `;
+        };
+
+        boardHtml += buildCard("A", "🔥 A. 趨勢正在加速 (最強多頭)", "市場呈現強勢多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，有利漲勢延續。", "DIF > DEA 且 DIF 走揚 且 柱狀圖由負轉正或向上擴大", matchedSignal === "A");
+        boardHtml += buildCard("B", "⚠️ B. 多頭趨勢仍存，但開始降溫", "目前仍處於多頭格局，但快線向上動能走平，且多方柱狀體出現連續收縮，注意高檔獲利賣壓。", "DIF > DEA 且 DIF 趨緩 且 柱狀圖持續縮小但維持正值", matchedSignal === "B");
+        boardHtml += buildCard("C", "🚨 C. 轉弱初期 (關鍵觀察防守區)", "快線已領先出現下彎回檔，而慢線走平，動能柱快速向零軸收斂，多單應調緊停損防守點。", "DIF 開始下彎 且 DEA 走平或上升 且 柱狀圖收斂向0", matchedSignal === "C");
+        boardHtml += buildCard("D", "💀 D. 空頭開始 (多空轉折成形)", "快線正式跌破慢線形成高檔死亡交叉，動能柱瞬間翻負，波段轉折確認確立，宜避開多單風險。", "DIF 跌破 DEA (死亡交叉) 且 DIF 下彎 且 柱狀圖翻負", matchedSignal === "D");
+        boardHtml += buildCard("E", "📉 E. 空頭加速 (下跌最強主跌段)", "完全進入空頭主跌段，快慢線同步於零軸下方加速下瀉，空方柱狀體急速放大，下跌動能強勁。", "DIF < DEA 且 DIF 持續下滑 且 負向柱狀圖持續擴大", matchedSignal === "E");
+        boardHtml += buildCard("F", "🚀 F. 空頭衰退 (築底反彈準備段)", "雖然快線仍在慢線下方，但快線跌勢已收斂、開始走平，且空方柱狀體連續縮短，暗示低檔買盤承接。", "DIF < DEA 且 負向柱狀圖持續縮短 且 DIF 跌勢走平", matchedSignal === "F");
+      }
+      boardEl.innerHTML = boardHtml;
     }
-    function updateTabSelectOptions(sheets) { const select = document.getElementById("tabSelect"); if (!select) return; select.innerHTML = `<option value="全部">🌐 全部成分股</option>`; sheets.forEach(sheet => { if (sheet) select.innerHTML += `<option value="${sheet}">📁 ${sheet}</option>`; }); select.value = currentSourceTab; }
   </script>
 </body>
 </html>
