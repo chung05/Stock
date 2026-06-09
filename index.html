@@ -864,4 +864,96 @@
         return {
           date: d,
           dif: row ? getValIgnoreCase(row, 'macd_dif') : null,
-          sig: row ? getValIgnoreCase(row, 'macd
+          sig: row ? getValIgnoreCase(row, 'macd_signal') : null,
+          osc: row ? getValIgnoreCase(row, 'macd_osc') : null
+        };
+      });
+
+      // 1️⃣ 第一部分：計算上層【DIF / DEA 折線圖】的垂直縮放區間
+      let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v));
+      let maxLine = Math.max(...lineValues, 0.01);
+      let minLine = Math.min(...lineValues, -0.01);
+      let lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
+
+      // 2️⃣ 第二部分：計算下層【OSC 獨立柱狀圖】的對稱正負比例
+      let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v));
+      let maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
+
+      let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`;
+      let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
+      let dateHtml = "";
+
+      dataset.forEach((d) => {
+        const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
+        dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
+
+        // 📈 A. 上層折線點位置精準轉化 (透過百分比定位)
+        let difTopPercent = d.dif !== null ? Math.round(((maxLine - d.dif) / lineRange) * 70) + 15 : 50;
+        let sigTopPercent = d.sig !== null ? Math.round(((maxLine - d.sig) / lineRange) * 70) + 15 : 50;
+
+        lineChartHtml += `
+          <div class="flex flex-col items-center flex-1 h-full relative group min-w-0">
+            <div class="absolute w-[1px] bg-slate-50 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed"></div>
+            
+            <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-500 z-30 ring-2 ring-white shadow-xs transition-transform group-hover:scale-125 cursor-pointer" style="top: calc(${difTopPercent}% - 5px); left: calc(50% - 5px);"></div>
+            <div class="absolute w-2.5 h-2.5 rounded-full bg-orange-400 z-30 ring-2 ring-white shadow-xs transition-transform group-hover:scale-125 cursor-pointer" style="top: calc(${sigTopPercent}% - 5px); left: calc(50% - 5px);"></div>
+            
+            <div class="hidden group-hover:flex flex-col absolute bg-slate-900/95 text-white text-[10px] p-2 rounded shadow-xl z-40 border border-slate-700 pointer-events-none -top-12 whitespace-nowrap font-bold leading-tight shadow-slate-950/40">
+              <div>📅 日期: ${d.date}</div>
+              <div class="text-blue-400">DIF 快線: ${d.dif !== null ? d.dif.toFixed(3) : '--'}</div>
+              <div class="text-orange-400">DEA 慢線: ${d.sig !== null ? d.sig.toFixed(3) : '--'}</div>
+              <div class="${d.osc >= 0 ? 'text-rose-400' : 'text-emerald-400'}">OSC 動能柱: ${d.osc !== null ? d.osc.toFixed(3) : '--'}</div>
+            </div>
+          </div>
+        `;
+
+        // 📊 B. 下層獨立柱狀體 (OSC) 對齊比例轉化
+        let oscHeightPct = 0, oscBg = "bg-transparent", oscTop = "50%", oscHeightStyle = "0%";
+        if (d.osc !== null) {
+          oscHeightPct = Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45);
+          if (d.osc > 0) {
+            oscBg = "bg-rose-500/90";
+            oscTop = `calc(50% - ${oscHeightPct}%)`;
+            oscHeightStyle = `${oscHeightPct}%`;
+          } else if (d.osc < 0) {
+            oscBg = "bg-emerald-500/90";
+            oscTop = "50%";
+            oscHeightStyle = `${oscHeightPct}%`;
+          }
+        }
+
+        barChartHtml += `
+          <div class="flex flex-col items-center flex-1 h-full relative group min-w-0">
+            <div class="absolute w-[1px] bg-slate-50 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed"></div>
+            <div class="absolute w-3.5 max-w-[14px] min-w-[5px] ${oscBg} rounded-xs shadow-3xs transition-all group-hover:brightness-95 z-20" style="top: ${oscTop}; height: ${oscHeightStyle};"></div>
+          </div>
+        `;
+      });
+
+      lineChartEl.innerHTML = lineChartHtml;
+      barChartEl.innerHTML = barChartHtml;
+      datesEl.innerHTML = dateHtml;
+    }
+
+    function closeNewsModal() { document.getElementById("newsModal").classList.add("hidden"); }
+    function switchTab(sheetName) { currentSourceTab = sheetName; applyFilters(); }
+    function handleSearchKeyup(e) { if (document.getElementById("keywordInput").value.trim() !== "") { document.getElementById("clearSearchBtn").classList.remove("hidden"); } else { document.getElementById("clearSearchBtn").classList.add("hidden"); } if (e.key === "Enter") executeStockSearch(); }
+    function executeStockSearch() { searchKeyword = document.getElementById("keywordInput").value.trim().toLowerCase(); applyFilters(); }
+    function clearSearchField() { document.getElementById("keywordInput").value = ""; document.getElementById("clearSearchBtn").classList.add("hidden"); searchKeyword = ""; applyFilters(); }
+
+    function renderChipTrendChart() {
+      const chipChartEl = document.getElementById("trendChipChart");
+      if (!chipChartEl || !currentActiveStockId) return;
+      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
+      const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a));
+      const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
+      const cfg = subTabConfigs[currentChipSubTab];
+      let nets = localTrendDates.map(d => { const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; if (currentChipSubTab === "ds") return Math.round(((row.ds_buy||0)+(row.dh_buy||0))/1000) - Math.round(((row.ds_sell||0)+(row.dh_sell||0))/1000); return Math.round((row[cfg.bKey]||0)/1000) - Math.round((row[cfg.sKey]||0)/1000); });
+      let absMax = Math.max(...nets.map(Math.abs), 1);
+      let barsHtml = localTrendDates.map((d, i) => { const val = nets[i]; const isPositive = val >= 0; const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80); return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${d.split('-')[1] + '/' + d.split('-')[2]}</span></div></div>`; }).join('');
+      chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+    }
+    function updateTabSelectOptions(sheets) { const select = document.getElementById("tabSelect"); if (!select) return; select.innerHTML = `<option value="全部">🌐 全部成分股</option>`; sheets.forEach(sheet => { if (sheet) select.innerHTML += `<option value="${sheet}">📁 ${sheet}</option>`; }); select.value = currentSourceTab; }
+  </script>
+</body>
+</html>
