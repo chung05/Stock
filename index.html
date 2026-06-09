@@ -37,18 +37,42 @@
       </div>
 
       <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
-        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">目前股價</div><div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div></div>
-        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">今日漲跌</div><div id="modalInfoChange" class="text-xs font-black text-slate-800">--</div></div>
-        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA10 均線</div><div id="modalInfoMA10" class="text-xs font-black text-blue-600">--</div></div>
-        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA20 均線</div><div id="modalInfoMA20" class="text-xs font-black text-orange-600">--</div></div>
-        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">RSI14 強弱</div><div id="modalInfoRSI14" class="text-xs font-black text-purple-600">--</div></div>
-        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MACD 動能</div><div id="modalInfoMACD" class="text-xs font-black text-slate-800">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">目前股價</div>
+          <div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">今日漲跌</div>
+          <div id="modalInfoChange" class="text-xs font-black text-slate-800">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">MA10 均線</div>
+          <div id="modalInfoMA10" class="text-xs font-black text-blue-600">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">MA20 均線</div>
+          <div id="modalInfoMA20" class="text-xs font-black text-orange-600">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">RSI14 強弱</div>
+          <div id="modalInfoRSI14" class="text-xs font-black text-purple-600">--</div>
+        </div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-[10px] font-bold text-slate-400">MACD 動能</div>
+          <div id="modalInfoMACD" class="text-xs font-black text-slate-800">--</div>
+        </div>
       </div>
 
       <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
-        <button id="tabBtnTrend" onclick="switchModalTab('trend')" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 近期走勢</button>
-        <button id="tabBtnMacd" onclick="switchModalTab('macd')" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD 趨勢圖</button>
-        <button id="tabBtnNews" onclick="switchModalTab('news')" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 財經新聞</button>
+        <button id="tabBtnTrend" onclick="switchModalTab('trend')" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">
+          📈 近期走勢
+        </button>
+        <button id="tabBtnMacd" onclick="switchModalTab('macd')" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">
+          📊 MACD 趨勢圖
+        </button>
+        <button id="tabBtnNews" onclick="switchModalTab('news')" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">
+          📰 財經新聞
+        </button>
       </div>
       
       <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
@@ -73,35 +97,27 @@
                 <button id="subTabDS" onclick="switchChipSubTab('ds')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
               </div>
             </div>
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin"><div id="trendChipChart" class="w-full min-w-[960px]"></div></div>
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div id="trendChipChart" class="w-full min-w-[960px]"></div>
+            </div>
           </div>
         </div>
 
         <div id="macdZone" class="hidden space-y-4 w-full grow">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-            <div class="flex justify-between items-center mb-3">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD 20日專業指標圖（上層折線 / 下層柱狀體）</h4>
+            <div class="flex justify-between items-center mb-2">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD 20日快慢線與動能組合圖</h4>
               <div class="flex items-center gap-3 text-[10px] font-bold">
-                <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
-                <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-sky-500 inline-block"></span>DIF快線</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-amber-500 inline-block"></span>DEA慢線</span>
                 <span class="flex items-center gap-1"><span class="w-2 h-2 bg-rose-500 inline-block"></span>多方動能</span>
                 <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 inline-block"></span>空方動能</span>
               </div>
             </div>
-            <div class="w-full overflow-x-auto pb-2 scrollbar-none">
-              <div class="min-w-[960px] bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-4">
-                
-                <div class="flex flex-col gap-1">
-                  <div class="text-[11px] font-black text-slate-400 px-1">📈 DIF / DEA 趨勢轉折線</div>
-                  <div id="macdLineChart" class="flex items-center justify-between h-36 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
-                </div>
-
-                <div class="flex flex-col gap-1">
-                  <div class="text-[11px] font-black text-slate-400 px-1">📊 MACD 柱狀動能體 (OSC)</div>
-                  <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
-                </div>
-
-                <div id="combinedMacdDates" class="flex justify-between font-black w-full px-0.5"></div>
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div class="min-w-[960px] px-1 bg-slate-50/60 p-3 rounded-lg border border-slate-200/60">
+                <div id="combinedMacdChart" class="flex items-center justify-between h-44 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                <div id="combinedMacdDates" class="flex justify-between font-black mt-1.5 w-full"></div>
               </div>
             </div>
           </div>
@@ -124,10 +140,18 @@
       </div>
       <div class="flex items-center gap-4 shrink-0 min-w-0">
         <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span></span>
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span></span>
+          <span class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+            名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span>
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span>
+          </span>
         </div>
-        <button onclick="forceSyncFlow()" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">⚡ 更新</button>
+        <button onclick="forceSyncFlow()" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">
+          ⚡ 更新
+        </button>
       </div>
     </div>
   </div>
@@ -145,14 +169,19 @@
             <option value="全部">🌐 全部成分股</option>
           </select>
         </div>
-        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票</div>
+        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票
+        </div>
       </div>
+      
       <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
         <div class="relative flex items-center">
-          <input type="text" id="keywordInput" onkeyup="handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none transition-colors" />
+          <input type="text" id="keywordInput" onkeyup="handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
           <button onclick="clearSearchField()" id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
         </div>
-        <button onclick="executeStockSearch()" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+        <button onclick="executeStockSearch()" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">
+          🔍 搜尋
+        </button>
       </div>
     </section>
 
@@ -617,23 +646,23 @@
                 <div class="flex items-center"><span class="text-teal-600 shrink-0 font-bold">MACD:</span>${macdHtml}</div>
               </div>
             </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
             ${getSumCell(sumF, false)}${fRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px z-20 text-center w-[52px]">外陸資自營商</td>
             ${getSumCell(sumFD, true)}${fdRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">投信</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">投信</td>
             ${getSumCell(sumIT, false)}${iRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">自營商(自行)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(自行)</td>
             ${getSumCell(sumDS, true)}${dsRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50">
-            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">自營商(避險)</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">自營商(避險)</td>
             ${getSumCell(sumDH, false)}${dhRow}
           </tr>
         `;
@@ -764,7 +793,7 @@
 
             priceHtml += `
               <div class="flex flex-col items-center flex-1 h-full justify-end relative group min-w-0">
-                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
+                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-600 z-10 shadow-xs transition-all group-hover:scale-125" style="bottom: ${heightPercent}%;"></div>
                 <div class="absolute w-[1px] bg-slate-200 bottom-0 top-0 left-1/2 -translate-x-1/2 border-dashed"></div>
                 <span class="text-xs font-black text-slate-900 absolute bg-white/90 px-1 rounded border border-slate-300 shadow-3xs whitespace-nowrap z-20 scale-90" style="bottom: calc(${heightPercent}% + 12px);">${displayP}</span>
               </div>
@@ -778,9 +807,7 @@
           priceDatesEl.innerHTML = "";
         }
         renderChipTrendChart();
-        
-        // 💡 渲染全新設計的雙層 MACD 獨立走勢與轉折圖
-        renderSeparatedMacdChart(localTrendDates, myChipsRaw);
+        renderCombinedMacdChart(localTrendDates, myChipsRaw);
         scrollToLatestTrend();
       } else {
         priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto py-4">資料庫初期建置中，暫無此標的之歷史資料</div>`;
@@ -853,10 +880,8 @@
       }
     }
 
-    // 💡 核心視覺繪圖引擎：徹底將【快慢折線圖】與【動能柱狀圖】垂直分離
-    function renderSeparatedMacdChart(dates, chips) {
-      const lineChartEl = document.getElementById("macdLineChart");
-      const barChartEl = document.getElementById("macdBarChart");
+    function renderCombinedMacdChart(dates, chips) {
+      const chartEl = document.getElementById("combinedMacdChart");
       const datesEl = document.getElementById("combinedMacdDates");
       
       let dataset = dates.map(d => {
@@ -864,4 +889,72 @@
         return {
           date: d,
           dif: row ? getValIgnoreCase(row, 'macd_dif') : null,
-          sig: row ? getValIgnoreCase(row, 'macd
+          sig: row ? getValIgnoreCase(row, 'macd_signal') : null,
+          osc: row ? getValIgnoreCase(row, 'macd_osc') : null
+        };
+      });
+
+      let allValues = dataset.flatMap(d => [d.dif, d.sig, d.osc]).filter(v => v !== null && !isNaN(v));
+      let maxAbs = Math.max(...allValues.map(Math.abs), 0.1);
+
+      let chartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
+      let dateHtml = "";
+
+      dataset.forEach((d) => {
+        const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
+        dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
+
+        let oscHeightPct = 0, oscBg = "bg-transparent", oscTop = "50%", oscHeightStyle = "0%";
+        if (d.osc !== null) {
+          oscHeightPct = Math.min((Math.abs(d.osc) / maxAbs) * 50, 50);
+          if (d.osc > 0) {
+            oscBg = "bg-rose-500/80";
+            oscTop = `calc(50% - ${oscHeightPct}%)`;
+            oscHeightStyle = `${oscHeightPct}%`;
+          } else if (d.osc < 0) {
+            oscBg = "bg-emerald-500/80";
+            oscTop = "50%";
+            oscHeightStyle = `${oscHeightPct}%`;
+          }
+        }
+
+        let difPosPct = d.dif !== null ? 50 - (d.dif / maxAbs) * 50 : 50;
+        let sigPosPct = d.sig !== null ? 50 - (d.sig / maxAbs) * 50 : 50;
+
+        chartHtml += `
+          <div class="flex flex-col items-center flex-1 h-full relative group min-w-0">
+            <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed"></div>
+            <div class="absolute w-3 max-w-[12px] min-w-[4px] ${oscBg} z-20" style="top: ${oscTop}; height: ${oscHeightStyle};"></div>
+            <div class="absolute w-2 h-2 rounded-full bg-sky-500 z-30 ring-1 ring-white" style="top: calc(${difPosPct}% - 4px); left: calc(50% - 4px);"></div>
+            <div class="absolute w-2 h-2 rounded-full bg-amber-500 z-30 ring-1 ring-white" style="top: calc(${sigPosPct}% - 4px); left: calc(50% - 4px);"></div>
+            <div class="hidden group-hover:flex flex-col absolute bg-slate-900/95 text-white text-[10px] p-1.5 rounded shadow-lg z-40 border border-slate-700 pointer-events-none -top-12 whitespace-nowrap font-medium leading-tight">
+              <div>📅 ${d.date}</div>
+              <div class="text-sky-400">DIF: ${d.dif !== null ? d.dif.toFixed(3) : '--'}</div>
+              <div class="text-amber-400">DEA: ${d.sig !== null ? d.sig.toFixed(3) : '--'}</div>
+              <div class="${d.osc >= 0 ? 'text-rose-400' : 'text-emerald-400'}">OSC: ${d.osc !== null ? d.osc.toFixed(3) : '--'}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      chartEl.innerHTML = chartHtml;
+      datesEl.innerHTML = dateHtml;
+    }
+
+    function closeNewsModal() { document.getElementById("newsModal").classList.add("hidden"); }
+    
+    function renderChipTrendChart() {
+      const chipChartEl = document.getElementById("trendChipChart");
+      if (!chipChartEl || !currentActiveStockId) return;
+      const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
+      const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a));
+      const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
+      const cfg = subTabConfigs[currentChipSubTab];
+      let nets = localTrendDates.map(d => { const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; if (currentChipSubTab === "ds") return Math.round(((row.ds_buy||0)+(row.dh_buy||0))/1000) - Math.round(((row.ds_sell||0)+(row.dh_sell||0))/1000); return Math.round((row[cfg.bKey]||0)/1000) - Math.round((row[cfg.sKey]||0)/1000); });
+      let absMax = Math.max(...nets.map(Math.abs), 1);
+      let barsHtml = localTrendDates.map((d, i) => { const val = nets[i]; const isPositive = val >= 0; const heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80); return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${d.split('-')[1] + '/' + d.split('-')[2]}</span></div></div>`; }).join('');
+      chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+    }
+  </script>
+</body>
+</html>
