@@ -224,6 +224,15 @@
 
     let globalActiveSignalDetail = { title: "", desc: "", cond: "" };
 
+    // 💡 補上核心缺失工具函式，徹底解決 Console formatDateToString is not defined 的閃退問題！
+    function formatDateToString(dateObj) {
+      if (!dateObj) return "";
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
     function getValIgnoreCase(obj, targetKey) {
       if (!obj) return null;
       const actualKey = Object.keys(obj).find(k => k.toLowerCase() === targetKey.toLowerCase());
@@ -372,7 +381,6 @@
       const headerSub = document.getElementById("tableHeaderSub");
       if (!headerDates || !headerSub) return;
 
-      // 💡 5. 標的下拉選項已完全移除所有「賣超」相關字眼
       let datesHtml = `
         <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
@@ -624,7 +632,7 @@
         htmlString += `
           <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
             <td rowspan="5" onclick="openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
-              <div class="text-base font-black tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
+              <div class="text-base font-black tracking-tighter text-blue-700 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
               <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 hover:text-blue-900 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
               <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
                 <div class="text-sm text-slate-900 font-bold">${currentPrice}</div>
@@ -686,7 +694,6 @@
         }
       });
       
-      // 💡 防死結核心修正：切換頁籤時，同樣給予 30ms 的外觀 Layout 展開緩衝，絕不允許 clientWidth 為 0
       setTimeout(() => {
         if (currentActiveStockId) {
           const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
@@ -726,14 +733,12 @@
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       
-      // 1. 先解除 hidden 狀態，讓視窗在畫面上展開
       document.getElementById("newsModal").classList.remove("hidden");
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
       
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a)); 
 
-      // 🧠 終極防死結關鍵點：使用 setTimeout 延遲 35 毫秒執行繪圖。這能讓瀏覽器百分之百把 `#newsModal` 的視窗物理長度渲染出來，此時 clientWidth 絕對是有值的實體像素（例如 940px），徹底清除 NaN 崩潰盲點！
       setTimeout(() => {
         switchModalTab('trend');
         switchChipSubTab('f'); 
@@ -811,7 +816,6 @@
       } else { listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
     }
 
-    // 💡 1. 近期走勢圖：原生 SVG 折線連續串接引擎（加入寬度置中防線條偏移補償）
     function renderPriceTrendLineChart(dates, chips) {
       const priceChartEl = document.getElementById("trendPriceChart");
       const priceDatesEl = document.getElementById("trendPriceDates");
@@ -833,10 +837,9 @@
       let minP = Math.min(...validPrices);
       let rangeP = maxP - minP === 0 ? 1 : maxP - minP;
 
-      // 🧠 取得實體渲染像素寬度
       let containerWidth = priceChartEl.clientWidth || 940;
       let count = dates.length;
-      let stepX = containerWidth / count; // 依據格子數等分
+      let stepX = containerWidth / count; 
 
       let polylinePoints = [];
       let priceHtml = "";
@@ -848,9 +851,8 @@
         const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 65) + 10 : 40;
         const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
-        // 🧠 水平對齊位置加上格子半寬（stepX / 2），折線就能分毫不差地精準穿過每一個圓點的中心點！
         let exactX = idx * stepX + (stepX / 2);
-        let exactY = 96 - ((heightPercent / 100) * 96); // h-24 是 96px
+        let exactY = 96 - ((heightPercent / 100) * 96); 
         if (price !== null) polylinePoints.push(`${exactX},${exactY}`);
 
         priceHtml += `
@@ -876,7 +878,6 @@
       priceDatesEl.innerHTML = dateHtml;
     }
 
-    // 🧠 雙層 MACD 完全分離且「完美穿孔對齊補償與雙層獨立日期軸」引擎
     function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       const lineChartEl = document.getElementById("macdLineChart");
       const barChartEl = document.getElementById("macdBarChart");
@@ -904,7 +905,7 @@
 
       let containerWidth = lineChartEl.clientWidth || 728; 
       let count = dataset.length;
-      let stepX = containerWidth / count; // 依據區間塊等分
+      let stepX = containerWidth / count; 
 
       let difPoints = [];
       let sigPoints = [];
@@ -912,7 +913,6 @@
       let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`;
       let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
       
-      // 💡 3. 快慢線與柱狀圖各自建立獨立、對齊的雙日期時間軸
       let lineDateHtml = "";
       let barDateHtml = "";
 
@@ -922,12 +922,11 @@
         lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
         barDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
 
-        // 💡 2. 核心修正：同樣加入 `+ (stepX / 2)` 水平居中對齊補償，折線就會如絲般順滑地精準穿過所有快慢線的實體圓圈！
         let xPos = idx * stepX + (stepX / 2);
         let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
         let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
         
-        let difY = (difTopPercent / 100) * 144; // h-36 代表 144px
+        let difY = (difTopPercent / 100) * 144; 
         let sigY = (sigTopPercent / 100) * 144;
 
         if (d.dif !== null) difPoints.push(`${xPos},${difY}`);
@@ -983,11 +982,9 @@
       lineChartEl.innerHTML = lineChartHtml;
       barChartEl.innerHTML = barChartHtml;
       
-      // 💡 3. 各自獨立渲染對齊的雙日期欄位
       lineDatesEl.innerHTML = lineDateHtml;
       barDatesEl.innerHTML = barDateHtml;
 
-      // 智慧多空量能分析判讀
       let t_minus_2 = dataset[count - 3]; 
       let t_minus_1 = dataset[count - 2]; 
       let t_latest = dataset[count - 1];  
@@ -1025,7 +1022,6 @@
           matchedSignal = d_dif > d_dea ? (d_osc > p_osc ? "A" : "B") : (d_osc > p_osc ? "F" : "E");
         }
 
-        // 💡 4.2 看板橫幅完美更新對齊
         switch (matchedSignal) {
           case "A":
             globalActiveSignalDetail = {
