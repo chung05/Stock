@@ -16,8 +16,7 @@
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
     .sticky-col-shadow { box-shadow: 3px 0 6px -3px rgba(0, 0, 0, 0.25); }
-    /* 調整 Info Popup 的原生背景遮罩樣式 */
-    dialog::backdrop { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); }
+    dialog::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
@@ -223,7 +222,6 @@
     let currentActiveStockId = ""; 
     let currentChipSubTab = "f";   
 
-    // 全域快取當前股票的智慧診斷特徵，供 Info 視窗點擊時彈出
     let globalActiveSignalDetail = { title: "", desc: "", cond: "" };
 
     function getValIgnoreCase(obj, targetKey) {
@@ -237,7 +235,6 @@
       renderTableHeader(); 
       await forceSyncFlow(); 
 
-      // 繫結 Info 按鈕點擊彈出事件
       document.getElementById("macdInfoBtn").addEventListener("click", () => {
         if (!globalActiveSignalDetail.title) return;
         document.getElementById("infoDialogTitle").innerText = "📋 " + globalActiveSignalDetail.title;
@@ -375,7 +372,7 @@
       const headerSub = document.getElementById("tableHeaderSub");
       if (!headerDates || !headerSub) return;
 
-      // 💡 5. 標的下拉選單：精準移除所有賣超選項，只保留代號與買超排序
+      // 💡 5. 標的下拉選項已完全移除所有「賣超」相關字眼
       let datesHtml = `
         <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
           <div class="flex flex-col items-center gap-1">
@@ -689,17 +686,19 @@
         }
       });
       
-      if (tabMode === 'macd' && currentActiveStockId) {
-        const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
-        const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a));
-        renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
-      }
-      if (tabMode === 'trend') {
-        const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
-        const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a));
-        renderPriceTrendLineChart(localTrendDates, myChipsRaw);
-        scrollToLatestTrend();
-      }
+      // 💡 防死結核心修正：切換頁籤時，同樣給予 30ms 的外觀 Layout 展開緩衝，絕不允許 clientWidth 為 0
+      setTimeout(() => {
+        if (currentActiveStockId) {
+          const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
+          const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a));
+          if (tabMode === 'macd') {
+            renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
+          } else if (tabMode === 'trend') {
+            renderPriceTrendLineChart(localTrendDates, myChipsRaw);
+            renderChipTrendChart();
+          }
+        }
+      }, 30);
     }
 
     function switchChipSubTab(subKey) {
@@ -727,18 +726,22 @@
     async function openCombinedModal(stockId, stockName) {
       currentActiveStockId = stockId; 
       
+      // 1. 先解除 hidden 狀態，讓視窗在畫面上展開
       document.getElementById("newsModal").classList.remove("hidden");
       document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
       
-      switchModalTab('trend');
-      switchChipSubTab('f'); 
-
-      const debugBox = document.getElementById("debugLogZone");
-      debugBox.classList.remove("hidden");
-      debugBox.innerHTML = `[系統診斷開始] 初始化 ${stockId} (${stockName}) 新聞獲取流...\n`;
-
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
       const localTrendDates = [...extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a)); 
+
+      // 🧠 終極防死結關鍵點：使用 setTimeout 延遲 35 毫秒執行繪圖。這能讓瀏覽器百分之百把 `#newsModal` 的視窗物理長度渲染出來，此時 clientWidth 絕對是有值的實體像素（例如 940px），徹底清除 NaN 崩潰盲點！
+      setTimeout(() => {
+        switchModalTab('trend');
+        switchChipSubTab('f'); 
+        renderPriceTrendLineChart(localTrendDates, myChipsRaw);
+        renderChipTrendChart();
+        renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
+        scrollToLatestTrend();
+      }, 35);
 
       if (recentDates.length > 0) {
         const latestDayData = myChipsRaw.find(c => String(c.date) === recentDates[0]);
@@ -771,14 +774,11 @@
         }
       }
 
-      // 💡 1. 呼叫整合了原生 SVG 折線的收盤價走勢渲染引擎
-      renderPriceTrendLineChart(localTrendDates, myChipsRaw);
-      renderChipTrendChart();
-      renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
-      scrollToLatestTrend();
-
+      const debugBox = document.getElementById("debugLogZone");
       const listZone = document.getElementById("newsListZone");
+      debugBox.classList.remove("hidden");
       listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
+      debugBox.innerHTML = `[系統診斷開始] 初始化 ${stockId} (${stockName}) 新聞獲取流...\n`;
 
       const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
       const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
@@ -811,7 +811,7 @@
       } else { listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
     }
 
-    // 💡 1. 全新設計：近期走勢圖「原生 SVG 折線渲染引擎」
+    // 💡 1. 近期走勢圖：原生 SVG 折線連續串接引擎（加入寬度置中防線條偏移補償）
     function renderPriceTrendLineChart(dates, chips) {
       const priceChartEl = document.getElementById("trendPriceChart");
       const priceDatesEl = document.getElementById("trendPriceDates");
@@ -833,26 +833,24 @@
       let minP = Math.min(...validPrices);
       let rangeP = maxP - minP === 0 ? 1 : maxP - minP;
 
+      // 🧠 取得實體渲染像素寬度
       let containerWidth = priceChartEl.clientWidth || 940;
-      let stepX = containerWidth / (dates.length - 1 || 1);
-      let polylinePoints = [];
+      let count = dates.length;
+      let stepX = containerWidth / count; // 依據格子數等分
 
+      let polylinePoints = [];
       let priceHtml = "";
       let dateHtml = "";
 
       dates.forEach((d, idx) => {
         const price = pricePoints[idx];
         const displayP = price !== null ? price : '--';
-        
-        // 推算圓點點位置百分比 (保留下墊高10%，頂部預留20%)
         const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 65) + 10 : 40;
         const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
-        // 換算成實體像素點座標位置，供 SVG 折線使用 (注意：SVG 頂部 Y 是 0，所以要用 96px 減去高度像素)
-        let exactX = idx * stepX + (stepX / 2); // 加上半步補償，精準對齊置中點
-        if (idx === 0) exactX = 8; // 起點偏移
-        if (idx === dates.length - 1) exactX = containerWidth - 8; // 終點偏移
-        let exactY = 96 - ((heightPercent / 100) * 96);
+        // 🧠 水平對齊位置加上格子半寬（stepX / 2），折線就能分毫不差地精準穿過每一個圓點的中心點！
+        let exactX = idx * stepX + (stepX / 2);
+        let exactY = 96 - ((heightPercent / 100) * 96); // h-24 是 96px
         if (price !== null) polylinePoints.push(`${exactX},${exactY}`);
 
         priceHtml += `
@@ -865,11 +863,10 @@
         dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
       });
 
-      // 注入 SVG 連續折線背景
       if (polylinePoints.length > 0) {
         let svgHtml = `
-          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg">
-            <polyline points="${polylinePoints.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg" style="width: ${containerWidth}px;">
+            <polyline points="${polylinePoints.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         `;
         priceHtml += svgHtml;
@@ -879,7 +876,7 @@
       priceDatesEl.innerHTML = dateHtml;
     }
 
-    // 🧠 雙層 MACD 折線/柱狀完全分離且「對齊補償與雙日期軸」引擎
+    // 🧠 雙層 MACD 完全分離且「完美穿孔對齊補償與雙層獨立日期軸」引擎
     function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       const lineChartEl = document.getElementById("macdLineChart");
       const barChartEl = document.getElementById("macdBarChart");
@@ -907,7 +904,7 @@
 
       let containerWidth = lineChartEl.clientWidth || 728; 
       let count = dataset.length;
-      let stepX = containerWidth / (count || 1); // 💡 改為區間塊分配比例
+      let stepX = containerWidth / count; // 依據區間塊等分
 
       let difPoints = [];
       let sigPoints = [];
@@ -915,23 +912,22 @@
       let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`;
       let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
       
-      // 💡 3. 分離獨立的雙層日期 HTML 字串
+      // 💡 3. 快慢線與柱狀圖各自建立獨立、對齊的雙日期時間軸
       let lineDateHtml = "";
       let barDateHtml = "";
 
       dataset.forEach((d, idx) => {
         const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
         
-        // 💡 3. 雙日期軸同步填入
         lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
         barDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
 
-        // 💡 2. 核心修正：加入一半的水平位移量 (stepX / 2)，讓折線座標點完美穿過實體圓圈的最中心！
+        // 💡 2. 核心修正：同樣加入 `+ (stepX / 2)` 水平居中對齊補償，折線就會如絲般順滑地精準穿過所有快慢線的實體圓圈！
         let xPos = idx * stepX + (stepX / 2);
         let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
         let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
         
-        let difY = (difTopPercent / 100) * 144; 
+        let difY = (difTopPercent / 100) * 144; // h-36 代表 144px
         let sigY = (sigTopPercent / 100) * 144;
 
         if (d.dif !== null) difPoints.push(`${xPos},${difY}`);
@@ -974,7 +970,6 @@
         `;
       });
 
-      // 💡 2. 核心修正：將對齊補償過後的完全平滑 SVG 向量路徑寫入
       if (difPoints.length > 0 || sigPoints.length > 0) {
         let svgLinesHtml = `
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg" style="width: ${containerWidth}px;">
@@ -988,11 +983,11 @@
       lineChartEl.innerHTML = lineChartHtml;
       barChartEl.innerHTML = barChartHtml;
       
-      // 💡 3. 雙日期標示重繪歸位
+      // 💡 3. 各自獨立渲染對齊的雙日期欄位
       lineDatesEl.innerHTML = lineDateHtml;
       barDatesEl.innerHTML = barDateHtml;
 
-      // 智慧量能訊號交叉條件矩陣計算
+      // 智慧多空量能分析判讀
       let t_minus_2 = dataset[count - 3]; 
       let t_minus_1 = dataset[count - 2]; 
       let t_latest = dataset[count - 1];  
@@ -1030,7 +1025,7 @@
           matchedSignal = d_dif > d_dea ? (d_osc > p_osc ? "A" : "B") : (d_osc > p_osc ? "F" : "E");
         }
 
-        // 💡 4.2 僅顯示主要狀態標題，並將詳細特徵條件寫入全域變數，待點擊 Info 時呼叫
+        // 💡 4.2 看板橫幅完美更新對齊
         switch (matchedSignal) {
           case "A":
             globalActiveSignalDetail = {
@@ -1038,31 +1033,31 @@
               desc: "市場呈現極強多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，代表多頭買盤源源不絕，有利中長線波段大漲勢的發動與延續。",
               cond: "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 數值大於昨日 (持續上升) 且 OSC 動能柱由負翻正或正值持續放大。"
             };
-            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-rose-600 text-white rounded font-extrabold text-xs animate-pulse mr-1.5">多頭暴發</span> <span class="text-rose-600 font-extrabold">${globalActiveSignalDetail.title}</span>`;
+            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-rose-600 text-white rounded font-extrabold text-xs animate-pulse mr-1.5">多頭暴發</span> <span class="text-rose-600 font-extrabold text-sm md:text-base">${globalActiveSignalDetail.title}</span>`;
             break;
           case "B":
             globalActiveSignalDetail = {
               title: "B. 趨勢仍多頭，但開始降溫",
               desc: "目前仍處於多頭格局之中，但快線向上挺進的斜率變慢、開始走平，且多方柱狀體出現連續收縮，需慎防高檔多頭獲利回吐的洗盤壓力。",
-              cond: "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 上升速度變慢或走平 且 OSC 柱狀圖高檔連續縮小但還是維持正值。"
+              cond: "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 上升速度變慢或走平 且 OSC 柱狀體高檔連續縮小但還是維持正值。"
             };
-            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-orange-500 text-white rounded font-extrabold text-xs mr-1.5">多頭減速</span> <span class="text-orange-600 font-extrabold">${globalActiveSignalDetail.title}</span>`;
+            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-orange-500 text-white rounded font-extrabold text-xs mr-1.5">多頭減速</span> <span class="text-orange-600 font-extrabold text-sm md:text-base">${globalActiveSignalDetail.title}</span>`;
             break;
           case "C":
             globalActiveSignalDetail = {
-              title: "C. 轉弱初期 (關鍵觀察防守區)",
+              title: "C. 轉弱初期 (關鍵觀察區)",
               desc: "多空關鍵防守位置。快線已領先出現向下彎頭回檔，而慢線仍在滯後上升，動能柱正快速向零軸收斂收縮，暗示高檔主力籌碼可能正分批調節。",
               cond: "DIF 快線領先開始下彎 且 DEA 慢線還在上升或走平 且 OSC 柱狀圖多方動能快速縮小並接近 0。"
             };
-            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-amber-500 text-white rounded font-extrabold text-xs mr-1.5">警戒轉弱</span> <span class="text-amber-600 font-extrabold">${globalActiveSignalDetail.title}</span>`;
+            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-amber-500 text-white rounded font-extrabold text-xs mr-1.5">警戒轉弱</span> <span class="text-amber-600 font-extrabold text-sm md:text-base">${globalActiveSignalDetail.title}</span>`;
             break;
           case "D":
             globalActiveSignalDetail = {
               title: "D. 空頭開始 (真正轉折點成立)",
-              desc: "趨勢發生高檔向下致命扭轉。快線正式向下擊穿慢線形成『死亡交叉』，動能柱翻黑轉為負值，波段轉空確立，此時多單宜全面避開風險。",
+              desc: "趨勢發生高檔向下致命扭轉。快線正式向下擊穿慢線形成『死亡交叉』，動能柱瞬間翻黑轉為負值，波段轉空確立，此時多單宜全面避開風險。",
               cond: "DIF 快線向下破 DEA 慢線 (死亡交叉) 且 DIF 持續下彎 且 OSC 柱狀體翻負 (跌破零軸)。"
             };
-            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-slate-700 text-white rounded font-extrabold text-xs mr-1.5">轉折確立</span> <span class="text-slate-800 font-extrabold">${globalActiveSignalDetail.title}</span>`;
+            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-slate-700 text-white rounded font-extrabold text-xs mr-1.5">轉折確立</span> <span class="text-slate-800 font-extrabold text-sm md:text-base">${globalActiveSignalDetail.title}</span>`;
             break;
           case "E":
             globalActiveSignalDetail = {
@@ -1070,15 +1065,15 @@
               desc: "完全進入窒息的主跌段，快慢線同步於零軸下方加速向下瀉，空方負向柱狀體急速向下擴大，下跌動能最為猛烈，不可盲目伸手進場摸底。",
               cond: "DIF 快線小於 DEA 慢線 且 DIF 數值持續下滑 且 OSC 負值柱狀體持續向下變長放大。"
             };
-            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-emerald-600 text-white rounded font-extrabold text-xs mr-1.5">空頭加速</span> <span class="text-emerald-600 font-extrabold">${globalActiveSignalDetail.title}</span>`;
+            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-emerald-600 text-white rounded font-extrabold text-xs mr-1.5">空頭加速</span> <span class="text-emerald-600 font-extrabold text-sm md:text-base">${globalActiveSignalDetail.title}</span>`;
             break;
           case "F":
             globalActiveSignalDetail = {
-              title: "F. 空頭衰退 (築底反彈準備段)",
+              title: "F. 空頭衰退 (反彈準備段)",
               desc: "雖然型態上仍屬空頭架構，但快線下跌斜率已收斂並開始底部走平，空方柱狀體連續縮短（負值變小），暗示低檔有實質承接買盤正在醖釀反彈。",
               cond: "DIF 快線小於 DEA 慢線 (仍空頭) 且 OSC 負向柱狀圖連續縮短變小 且 DIF 指標開始底部走平。"
             };
-            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-purple-600 text-white rounded font-extrabold text-xs mr-1.5">築底醖釀</span> <span class="text-purple-600 font-extrabold">${globalActiveSignalDetail.title}</span>`;
+            boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-purple-600 text-white rounded font-extrabold text-xs mr-1.5">築底醖釀</span> <span class="text-purple-600 font-extrabold text-sm md:text-base">${globalActiveSignalDetail.title}</span>`;
             break;
         }
       }
