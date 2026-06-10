@@ -101,13 +101,13 @@
         <div id="macdZone" class="hidden space-y-4 w-full grow">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
             
+            <!-- 💡 1. 橫幅看板版面調整：移除固定標題文字，並將右側按鈕精簡文字改為 "ℹ️ 條件" -->
             <div class="p-3 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-black text-blue-800">🎯 最新智慧量能判讀市況：</span>
-                <span id="macdSignalTitle" class="text-sm font-black text-slate-900">分析中...</span>
+              <div class="flex items-center min-w-0">
+                <span id="macdSignalTitle" class="text-sm font-black text-slate-900 truncate">分析中...</span>
               </div>
-              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer">
-                ℹ️ 查閱特徵條件
+              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">
+                ℹ️ 條件
               </button>
             </div>
 
@@ -190,7 +190,7 @@
           <input type="text" id="keywordInput" onkeyup="handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none transition-colors" />
           <button onclick="clearSearchField()" id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
         </div>
-        <button onclick="executeStockSearch()" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">🔍 搜尋</button>
+        <button onclick="executeStockSearch()" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
       </div>
     </section>
 
@@ -372,7 +372,6 @@
       }
     }
 
-    // 💡 完美補齊：修正遺漏 renderTableHeader 函式本體的致命 ReferenceError
     function renderTableHeader() {
       const headerDates = document.getElementById("tableHeaderDates");
       const headerSub = document.getElementById("tableHeaderSub");
@@ -653,7 +652,7 @@
                 <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
               </div>
             </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
             ${getSumCell(sumF, false)}${fRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center">
@@ -1041,6 +1040,7 @@
           matchedSignal = d_dif > d_dea ? (d_osc > p_osc ? "A" : "B") : (d_osc > p_osc ? "F" : "E");
         }
 
+        // 💡 1. 橫幅內文重塑：不顯示 "🎯 最新智慧量能判讀市況："，直接大器顯示主要狀態
         switch (matchedSignal) {
           case "A":
             globalActiveSignalDetail = {
@@ -1053,7 +1053,7 @@
           case "B":
             globalActiveSignalDetail = {
               title: "B. 趨勢仍多頭，但開始降溫",
-              desc: "目前仍處於多頭格局之中，但快線向上挺進的斜率變慢、開始走平，且多方柱狀體出現連續收縮，需慎防高檔多頭獲利回吐的洗盤壓力。",
+              desc: "目前仍處於多頭格局之中，但快線向上挺進的斜率變慢、開始走平，且多方柱狀體出現連續收縮，需慎防高檔多頭獲點回吐的洗盤壓力。",
               cond: "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 上升速度變慢或走平 且 OSC 柱狀體高檔連續縮小但還是維持正值。"
             };
             boardTitleEl.innerHTML = `<span class="px-2 py-0.5 bg-orange-500 text-white rounded font-extrabold text-xs mr-1.5">多頭減速</span> <span class="text-orange-600 font-extrabold text-sm md:text-base">${globalActiveSignalDetail.title}</span>`;
@@ -1095,14 +1095,12 @@
     }
     window.renderSeparatedMacdChartAndDecodeSignals = renderSeparatedMacdChartAndDecodeSignals;
 
-    // 💡 完美修復：時間軸校正歸位，徹底恢復並亮燈「三大法人買賣超柱狀圖」
     function renderChipTrendChart() {
       const chipChartEl = document.getElementById("trendChipChart");
       if (!chipChartEl || !currentActiveStockId) return;
 
       const myChipsRaw = globalChipCache.filter(c => String(c.stock_id).trim() === String(currentActiveStockId).trim());
       
-      // 🧠 關鍵核心修復：克隆 localTrendDates，並將其重新用 a.localeCompare(b) 升序排列，還原為由舊到新的標準繪圖流，防止陣列死結
       const localTrendDates = [...extendedTrendDates]
         .filter(d => myChipsRaw.some(c => String(c.date) === d))
         .sort((a, b) => a.localeCompare(b)); 
@@ -1156,6 +1154,52 @@
       `;
     }
     window.renderChipTrendChart = renderChipTrendChart;
+
+    function renderTableHeader() {
+      const headerDates = document.getElementById("tableHeaderDates");
+      const headerSub = document.getElementById("tableHeaderSub");
+      if (!headerDates || !headerSub) return;
+
+      let datesHtml = `
+        <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
+          <div class="flex flex-col items-center gap-1">
+            <span class="font-extrabold text-[11px] text-slate-900 whitespace-nowrap tracking-tighter">標的</span>
+            <select onchange="changeSortMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-bold cursor-pointer focus:outline-none w-full text-slate-800 tracking-tighter">
+              <option value="stock_id" ${currentSortMode==='stock_id'?'selected':''}>🔢 代號排序</option>
+              <option value="foreign_buy" ${currentSortMode==='foreign_buy'?'selected':''}>🔺 外資買超前列</option>
+              <option value="foreign_dealer_buy" ${currentSortMode==='foreign_dealer_buy'?'selected':''}>🔺 外陸資自營買超</option>
+              <option value="investment_buy" ${currentSortMode==='investment_buy'?'selected':''}>🔺 投信買超前列</option>
+              <option value="dealer_self_buy" ${currentSortMode==='dealer_self_buy'?'selected':''}>🔺 自營商自行買超</option>
+              <option value="dealer_hedging_buy" ${currentSortMode==='dealer_hedging_buy'?'selected':''}>🔺 自營商避險買超</option>
+            </select>
+          </div>
+        </th>
+        <th rowspan="2" class="px-1 py-2 bg-slate-100 font-extrabold text-xs text-slate-800 sticky left-[112px] z-40 w-[52px] min-w-[52px] max-w-[52px] align-middle whitespace-nowrap border-r border-slate-300 text-center">法人</th>
+        <th rowspan="2" class="px-1 py-1 bg-rose-50 sticky left-[164px] z-40 w-[74px] min-w-[74px] max-w-[74px] align-middle border-r border-slate-300 text-center sticky-col-shadow">
+          <select onchange="changeSumDaysMode(this.value)" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-black cursor-pointer focus:outline-none w-full text-rose-600 tracking-tighter text-center">
+            <option value="5" ${currentSumDaysMode===5?'selected':''}>5日結</option>
+            <option value="3" ${currentSumDaysMode===3?'selected':''}>3日結</option>
+          </select>
+        </th>
+      `;
+      let subHtml = "";
+
+      recentDates.forEach((dateStr, index) => {
+        const parts = dateStr.split('-');
+        const formattedDate = parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr;
+        const borderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300";
+        datesHtml += `<th colspan="3" class="px-2 py-2 ${borderClass} text-sm bg-slate-100 text-slate-900 font-bold whitespace-nowrap">${formattedDate}</th>`;
+        
+        const subBorderClass = index === recentDates.length - 1 ? "" : "border-r border-slate-300";
+        subHtml += `
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-blue-600">買</th>
+          <th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-emerald-600">賣</th>
+          <th class="py-1.5 ${subBorderClass} w-[65px] min-w-[65px] text-sm font-extrabold text-rose-600">結</th>
+        `;
+      });
+      headerDates.innerHTML = datesHtml;
+      headerSub.innerHTML = subHtml;
+    }
 
     function renderMatrixTableFromCache(stocks) {
       document.getElementById("recordCount").innerText = stocks.length;
@@ -1268,7 +1312,7 @@
                 <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
               </div>
             </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
             ${getSumCell(sumF, false)}${fRow}
           </tr>
           <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center">
