@@ -79,7 +79,7 @@
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
             <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
               <div class="min-w-[960px] px-1 relative">
-                <div id="trendPriceChart" class="flex items-end justify-between h-24 pt-4 border-b border-slate-200 relative w-full"></div>
+                <div id="trendPriceChart" class="h-24 relative w-full border-b border-slate-200 bg-white"></div>
                 <div id="trendPriceDates" class="flex justify-between font-black mt-1.5 w-full"></div>
               </div>
             </div>
@@ -154,7 +154,7 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
-        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛 analysis 站</h1>
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
       </div>
       <div class="flex items-center gap-4 shrink-0 min-w-0">
         <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
@@ -447,8 +447,6 @@
       currentSourceTab = sheetName;
       applyFilters();
     }
-
-    // 🧠 確保事件綁定不會因為模組隔離而出錯
     window.switchTab = switchTab;
 
     function handleSearchKeyup(e) {
@@ -826,7 +824,7 @@
     }
     window.openCombinedModal = openCombinedModal;
 
-    // 💡 核心優化：1:1 精準對齊的股價折線與圓圈中心串接引擎 (修復上下位移)
+    // 💡 1:1 絕對對齊！修復「近期走勢圖」中折線無法準確穿透數值點的視覺偏差
     function renderPriceTrendLineChart(dates, chips) {
       const priceChartEl = document.getElementById("trendPriceChart");
       const priceDatesEl = document.getElementById("trendPriceDates");
@@ -848,7 +846,7 @@
       let minP = Math.min(...validPrices);
       let rangeP = maxP - minP === 0 ? 1 : maxP - minP;
 
-      // 🧠 統一網頁在畫面上完全展開後的實體像素寬度
+      // 🧠 取得快照容器的實體水平分配寬度
       let containerWidth = priceChartEl.clientWidth || 940;
       let count = dates.length;
       let stepX = containerWidth / count; 
@@ -861,15 +859,14 @@
         const price = pricePoints[idx];
         const displayP = price !== null ? price : '--';
         
-        // 🧠 Y軸對齊修正：在 SVG 折線與 HTML 圓點間採用完全一致的乘積與底補償運算式
+        // 🧠 關鍵計算對齊：上移 8 像素（扣除 padding 微調），並精準拉高縮放係數
         const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 65) + 10 : 40;
         const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
-        // 🧠 X軸對齊修正：增加 (stepX / 2) 半步中點位置補償
+        // 🧠 X軸完美穿心：idx * stepX（區間起點） + (stepX / 2)（中點置中補償）
         let exactX = idx * stepX + (stepX / 2);
         
-        // 🧠 重要修復：因為您外層的 #trendPriceChart 帶有 pt-4 (頂部內邊距16px) 且高度為 h-24 (96px)
-        // SVG 與 HTML 的底定位必須扣除這個偏差，折線才能真正「穿心」刺透圓點。
+        // 🧠 Y軸完美穿心：24代表總高度96像素扣除原版 pt-4 (16px) 的絕對高度對齊公式
         let exactY = 96 - ((heightPercent / 100) * 80) - 8; 
         if (price !== null) polylinePoints.push(`${exactX},${exactY}`);
 
@@ -883,7 +880,7 @@
         dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
       });
 
-      // 💡 繪製與點位完全 100% 貼合的專業相連折線
+      // 💡 注入重新對齊過後的 SVG 畫布
       if (polylinePoints.length > 0) {
         let svgHtml = `
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg" style="width: ${containerWidth}px; height: 96px;">
@@ -897,7 +894,6 @@
       priceDatesEl.innerHTML = dateHtml;
     }
 
-    // 💡 核心優化：對齊補償過後的標準雙層 MACD 折線/柱狀分離繪圖引擎
     function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       const lineChartEl = document.getElementById("macdLineChart");
       const barChartEl = document.getElementById("macdBarChart");
@@ -942,7 +938,6 @@
         lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
         barDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
 
-        // 🧠 X軸對齊修正：加入 (stepX / 2) 居中補償，讓 MACD 折線完全精準穿透圓點
         let xPos = idx * stepX + (stepX / 2);
         let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
         let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
