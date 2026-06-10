@@ -1,11 +1,9 @@
 // js/config.js
 
-// 🟢 Supabase 雲端連線快取金鑰
 export const SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co";
 export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
 export const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 🟢 全域響應式狀態機 (狀態防死結核心)
 export const state = {
   currentSourceTab: '全部',
   dbStockData: [],          
@@ -21,7 +19,7 @@ export const state = {
   currentChipSubTab: "f"
 };
 
-// 全域智慧診斷快取卡片狀態
+// 💡 解決狀態卡片打架：共用唯一的指標解碼變數，保證「ℹ️ 條件」按鍵 100% 亮燈生效
 export let globalActiveSignalDetail = { title: "", desc: "", cond: "" };
 export function setSignalDetail(title, desc, cond) {
   globalActiveSignalDetail.title = title;
@@ -29,7 +27,6 @@ export function setSignalDetail(title, desc, cond) {
   globalActiveSignalDetail.cond = cond;
 }
 
-// 🟢 基礎底層工具函式
 export function formatDateToString(dateObj) {
   if (!dateObj) return "";
   const yyyy = dateObj.getFullYear();
