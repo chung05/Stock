@@ -32,7 +32,7 @@
   <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
     <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
       <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
-      <button id="closeInfoDialogBtn" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
+      <button onclick="document.getElementById('infoDialog').close()" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
     </div>
     <div class="space-y-3">
       <div>
@@ -45,7 +45,7 @@
       </div>
     </div>
     <div class="mt-5 flex justify-end">
-      <button id="closeInfoDialogConfirmBtn" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl cursor-pointer shadow-sm transition-all">確認並關閉</button>
+      <button onclick="document.getElementById('infoDialog').close()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl cursor-pointer shadow-sm transition-all">確認並關閉</button>
     </div>
   </dialog>
 
@@ -54,7 +54,7 @@
       
       <div class="py-2 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl shrink-0">
         <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
-        <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
+        <button onclick="window.closeNewsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
       </div>
 
       <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
@@ -67,12 +67,13 @@
       </div>
 
       <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
-        <button id="tabBtnTrend" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 近期走勢</button>
-        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD 趨勢圖</button>
-        <button id="tabBtnNews" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 財經新聞</button>
+        <button id="tabBtnTrend" onclick="window.switchModalTab('trend')" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 近期走勢</button>
+        <button id="tabBtnMacd" onclick="window.switchModalTab('macd')" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD 趨勢圖</button>
+        <button id="tabBtnNews" onclick="window.switchModalTab('news')" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 財經新聞</button>
       </div>
       
       <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
+        
         <div id="trendZone" class="block space-y-4 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
@@ -83,13 +84,14 @@
               </div>
             </div>
           </div>
+
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1">
               <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
               <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                <button id="subTabF" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
-                <button id="subTabIT" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
-                <button id="subTabDS" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
+                <button id="subTabF" onclick="window.switchChipSubTab('f')" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
+                <button id="subTabIT" onclick="window.switchChipSubTab('it')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
+                <button id="subTabDS" onclick="window.switchChipSubTab('ds')" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
               </div>
             </div>
             <div class="w-full overflow-x-auto pb-2 scrollbar-thin"><div id="trendChipChart" class="w-full min-w-[960px]"></div></div>
@@ -98,10 +100,16 @@
 
         <div id="macdZone" class="hidden space-y-4 w-full grow">
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+            
             <div class="p-3 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
-              <div class="flex items-center min-w-0"><span id="macdSignalTitle" class="text-sm font-black text-slate-900 truncate">分析中...</span></div>
-              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">ℹ️ 條件</button>
+              <div class="flex items-center min-w-0">
+                <span id="macdSignalTitle" class="text-sm font-black text-slate-900 truncate">分析中...</span>
+              </div>
+              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">
+                ℹ️ 條件
+              </button>
             </div>
+
             <div class="flex justify-between items-center">
               <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD 20日專業指標圖</h4>
               <div class="flex items-center gap-3 text-[10px] font-bold">
@@ -111,18 +119,22 @@
                 <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 inline-block"></span>空方動能</span>
               </div>
             </div>
+            
             <div class="w-full overflow-x-auto pb-2 scrollbar-none">
               <div class="min-w-[760px] bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-5 relative">
+                
                 <div class="flex flex-col gap-1 relative">
                   <div class="text-[11px] font-black text-slate-400 px-1"> McKinley 線型 ── DIF / DEA 趨勢轉折線</div>
                   <div id="macdLineChart" class="flex items-center justify-between h-36 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
+
                 <div class="flex flex-col gap-1 relative">
                   <div class="text-[11px] font-black text-slate-400 px-1"> Momentum 矩陣 ── MACD 柱狀動能體 (OSC)</div>
                   <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
+
               </div>
             </div>
           </div>
@@ -132,6 +144,7 @@
           <div id="debugLogZone" class="mb-4 p-3 bg-slate-900 text-amber-400 font-mono text-[11px] rounded-xl border border-slate-700 leading-normal hidden whitespace-pre-wrap text-left"></div>
           <div id="newsListZone" class="space-y-3 block w-full"></div>
         </div>
+
       </div>
     </div>
   </div>
@@ -147,7 +160,9 @@
           <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span></span>
           <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span></span>
         </div>
-        <button id="forceSyncBtn" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">⚡ 更新</button>
+        <button onclick="window.forceSyncFlow()" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">
+          ⚡ 更新
+        </button>
       </div>
     </div>
   </div>
@@ -160,15 +175,21 @@
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-center gap-3 grow sm:max-w-xl">
-        <div class="w-40 md:w-48 shrink-0"><select id="tabSelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select></div>
-        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票</div>
+        <div class="w-40 md:w-48 shrink-0">
+          <select id="tabSelect" onchange="window.switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white cursor-pointer transition-colors">
+            <option value="全部">🌐 全部成分股</option>
+          </select>
+        </div>
+        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票
+        </div>
       </div>
       <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
         <div class="relative flex items-center">
-          <input type="text" id="keywordInput" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none transition-colors" />
-          <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
+          <input type="text" id="keywordInput" onkeyup="window.handleSearchKeyup(event)" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+          <button onclick="window.clearSearchField()" id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
         </div>
-        <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+        <button onclick="window.executeStockSearch()" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
       </div>
     </section>
 
@@ -186,60 +207,29 @@
   <script type="module">
     import { state } from './js/config.js';
     import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
-    import { applyFilters, switchModalTab, switchChipSubTab, openCombinedModal } from './js/ui.js';
+    import { 
+      renderTableHeader, switchTab, changeSortMode, changeSumDaysMode,
+      handleSearchKeyup, executeStockSearch, clearSearchField, 
+      switchModalTab, switchChipSubTab, openCombinedModal, closeNewsModal
+    } from './js/ui.js';
 
-    // 1. 初始化監聽與開局同步
-    document.addEventListener("DOMContentLoaded", async () => {
-      calculateTradeDaysLists();
-      
-      // 動態事件綁定 (完美剔除 Inline 屬性)
-      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
-      document.getElementById("closeNewsModalBtn").addEventListener("click", () => document.getElementById("newsModal").classList.add("hidden"));
-      document.getElementById("closeInfoDialogBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
-      document.getElementById("closeInfoDialogConfirmBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
-      
-      document.getElementById("tabSelect").addEventListener("change", (e) => { state.currentSourceTab = e.target.value; applyFilters(); });
-      document.getElementById("searchStockBtn").addEventListener("click", executeSearchAction);
-      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchAction);
-      
-      document.getElementById("keywordInput").addEventListener("keyup", (e) => {
-        document.getElementById("clearSearchBtn").classList.toggle("hidden", e.target.value.trim() === "");
-        if (e.key === "Enter") executeSearchAction();
-      });
+    // 🧠 穿透式對接：將外部 HTML 行內屬性呼叫的函式，精準掛載到全域 window 上，確保絕不閃退
+    window.forceSyncFlow = forceSyncFlow;
+    window.switchTab = switchTab;
+    window.changeSortMode = changeSortMode;
+    window.changeSumDaysMode = changeSumDaysMode;
+    window.handleSearchKeyup = handleSearchKeyup;
+    window.executeStockSearch = executeStockSearch;
+    window.clearSearchField = clearSearchField;
+    window.switchModalTab = switchModalTab;
+    window.switchChipSubTab = switchChipSubTab;
+    window.openCombinedModal = openCombinedModal;
+    window.closeNewsModal = closeNewsModal;
 
-      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));
-      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));
-      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));
-
-      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));
-      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
-      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
-
-      // 智慧事件代理：接管動態產生表格中個股點擊彈窗事件
-      document.getElementById("stockTableBody").addEventListener("click", (e) => {
-        const cell = e.target.closest(".stock-target-cell");
-        if (cell) {
-          const id = cell.getAttribute("data-stockid");
-          const name = cell.getAttribute("data-stockname");
-          openCombinedModal(id, name);
-        }
-      });
-
-      // 觸發雲端初始化連線
-      await forceSyncFlow();
-    });
-
-    function executeSearchAction() {
-      state.searchKeyword = document.getElementById("keywordInput").value.trim().toLowerCase();
-      applyFilters();
-    }
-
-    function clearSearchAction() {
-      document.getElementById("keywordInput").value = "";
-      document.getElementById("clearSearchBtn").classList.add("hidden");
-      state.searchKeyword = "";
-      applyFilters();
-    }
+    // 🟢 保證非同步渲染核心：一進網頁，最基本的交易日期分配陣列能正確跑完，隨後無縫接軌 API 拉取流
+    calculateTradeDaysLists();
+    renderTableHeader();
+    await forceSyncFlow();
   </script>
 </body>
 </html>
