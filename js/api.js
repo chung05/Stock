@@ -1,8 +1,7 @@
 // js/api.js
 import { state, supabaseClient, formatDateToString } from './config.js';
-import { updateDisplayDates, updateTabSelectOptions, applyFilters } from './ui.js';
+import { updateDisplayDates, updateTabSelectOptions, renderTableHeader, applyFilters } from './ui.js';
 
-// 計算 20 天核心快取軸與 5 日排行視窗
 export function calculateTradeDaysLists() {
   let dates20 = [];
   let d = new Date();
@@ -15,10 +14,13 @@ export function calculateTradeDaysLists() {
   }
   state.extendedTrendDates = dates20; 
   state.recentDates = dates20.slice(0, 5); 
-  updateDisplayDates(state.recentDates[0]);
+  
+  // 🧠 修正點：利用微緩衝，保證主頁日期 100% 能被 DOM 捕捉填入，防止消失
+  setTimeout(() => {
+    updateDisplayDates(state.recentDates[0]);
+  }, 10);
 }
 
-// 雲端標的名單與核心籌碼異步同步主流程
 export async function forceSyncFlow() {
   const modal = document.getElementById("loadingModal");
   const detailText = document.getElementById("loadingDetail");
@@ -52,6 +54,7 @@ export async function forceSyncFlow() {
     await fetchAllChipsFromSupabase();
 
     detailText.innerText = "3. 正在建立網頁表格視覺矩陣...";
+    renderTableHeader();
     applyFilters();
 
   } catch (err) {
@@ -61,7 +64,6 @@ export async function forceSyncFlow() {
   }
 }
 
-// 核心 Supabase 大數據批次分流拉取引擎 (180檔防超載)
 export async function fetchAllChipsFromSupabase() {
   if (state.extendedTrendDates.length === 0 || state.dbStockData.length === 0) return;
   const detailText = document.getElementById("loadingDetail");
@@ -107,24 +109,4 @@ export async function fetchAllChipsFromSupabase() {
       updateDisplayDates(state.recentDates[0]);
     }
   }
-}
-
-// Google News 即時 RSS 連線解碼流
-export async function fetchLiveGoogleNews(stockId, stockName, debugBox, listZone) {
-  const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
-
-  let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
-  while (currentRetry < maxRetries && !successFetch) {
-    currentRetry++;
-    try {
-      const res = await fetch(apiUrl);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.status === 'ok') { resJson = json; successFetch = true; break; }
-      }
-    } catch (fetchErr) { debugBox.innerHTML += `⚠️ 請求失敗: ${fetchErr.message}\n`; }
-  }
-  return { successFetch, resJson };
 }
