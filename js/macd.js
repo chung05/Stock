@@ -1,0 +1,109 @@
+// js/macd.js
+import { state, getValIgnoreCase, setSignalDetail } from './config.js';
+
+export function renderPriceTrendLineChart(dates, chips) {
+  const priceChartEl = document.getElementById("trendPriceChart");
+  const priceDatesEl = document.getElementById("trendPriceDates");
+  if (!priceChartEl || dates.length === 0) return;
+
+  let pricePoints = dates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.price) ? day.price : null; });
+  let validPrices = pricePoints.filter(p => p !== null);
+  if (validPrices.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; priceDatesEl.innerHTML = ""; return; }
+
+  let maxP = Math.max(...validPrices), minP = Math.min(...validPrices), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
+  let containerWidth = priceChartEl.clientWidth || 940, count = dates.length, stepX = containerWidth / count; 
+  let polylinePoints = [], svgCirclesHtml = "", dateHtml = "";
+
+  dates.forEach((d, idx) => {
+    const price = pricePoints[idx], datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    const heightPercent = price !== null ? ((price - minP) / rangeP) * 55 + 20 : 50;
+    let exactX = idx * stepX + (stepX / 2), exactY = 96 - ((heightPercent / 100) * 96); 
+
+    if (price !== null) {
+      polylinePoints.push(`${exactX},${exactY}`);
+      let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 15) : (exactY - 9);
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
+    }
+    dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
+  });
+
+  priceChartEl.innerHTML = `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;"><line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" /><polyline points="${polylinePoints.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${svgCirclesHtml}</svg>`;
+  priceDatesEl.innerHTML = dateHtml;
+}
+
+export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
+  const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
+  const lineDatesEl = document.getElementById("macdLineDates"), barDatesEl = document.getElementById("macdBarDates"), boardTitleEl = document.getElementById("macdSignalTitle");
+  
+  let dataset = dates.map(d => { const row = chips.find(c => String(c.date) === d); return { date: d, dif: row ? getValIgnoreCase(row, 'macd_dif') : null, sig: row ? getValIgnoreCase(row, 'macd_signal') : null, osc: row ? getValIgnoreCase(row, 'macd_osc') : null }; });
+  let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
+  let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
+  let containerWidth = lineChartEl.clientWidth || 728, count = dataset.length, stepX = containerWidth / count; 
+  let difPoints = [], sigPoints = [], lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`, lineDateHtml = "", barDateHtml = "";
+
+  dataset.forEach((d, idx) => {
+    const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
+    lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
+    barDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
+    let xPos = idx * stepX + (stepX / 2), difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50, sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
+    if (d.dif !== null) difPoints.push(`${xPos},${(difTopPercent / 100) * 144}`); if (d.sig !== null) sigPoints.push(`${xPos},${(sigTopPercent / 100) * 144}`);
+
+    lineChartHtml += `
+      <div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20">
+        <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
+        <div class="absolute w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white" style="top: calc(${difTopPercent}% - 4px); left: calc(50% - 4px);"></div>
+        <div class="absolute w-2 h-2 rounded-full bg-orange-400 ring-2 ring-white" style="top: calc(${sigTopPercent}% - 4px); left: calc(50% - 4px);"></div>
+        <div class="hidden group-hover:flex flex-col absolute bg-slate-900/95 text-white text-[10px] p-2 rounded shadow-xl z-50 border border-slate-700 pointer-events-none -top-12 whitespace-nowrap font-bold leading-tight"><div>📅 日期: ${d.date}</div><div class="text-sky-400">DIF: ${d.dif !== null ? d.dif.toFixed(3) : '--'}</div><div class="text-orange-400">DEA: ${d.sig !== null ? d.sig.toFixed(3) : '--'}</div><div class="${d.osc >= 0 ? 'text-rose-400' : 'text-emerald-400'}">OSC: ${d.osc !== null ? d.osc.toFixed(3) : '--'}</div></div>
+      </div>`;
+    let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0, oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90", oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
+    barChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div><div class="absolute w-3.5 max-w-[14px] min-w-[5px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${oscHeightPct}%;"></div></div>`;
+  });
+
+  if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  lineChartEl.innerHTML = lineChartHtml; barChartEl.innerHTML = barChartHtml; lineDatesEl.innerHTML = lineDateHtml; barDatesEl.innerHTML = barDateHtml;
+
+  let t_minus_2 = dataset[count - 3], t_minus_1 = dataset[count - 2], t_latest = dataset[count - 1];  
+  if (t_latest && t_minus_1) {
+    let d_dif = t_latest.dif, d_dea = t_latest.sig, d_osc = t_latest.osc, p_dif = t_minus_1.dif, p_dea = t_minus_1.sig, p_osc = t_minus_1.osc;
+    let is_gold_cross = d_dif > d_dea, dif_rising = d_dif > p_dif, dif_bending_down = d_dif < p_dif, dea_flat_or_rising = p_dea !== null ? (d_dea >= p_dea) : true;
+    let osc_neg_to_pos_and_expanding = (p_osc <= 0 && d_osc > 0) || (d_osc > 0 && d_osc > p_osc), osc_shrinking_but_positive = d_osc > 0 && d_osc < (p_osc !== null ? p_osc : 0), osc_neg_expanding = d_osc < 0 && (p_osc === null || d_osc < p_osc), osc_neg_shrinking = d_osc < 0 && p_osc !== null && d_osc > p_osc;
+    let sigA = is_gold_cross && dif_rising && osc_neg_to_pos_and_expanding, sigB = is_gold_cross && osc_shrinking_but_positive, sigC = dif_bending_down && dea_flat_or_rising && d_osc < (p_osc||0), sigD = d_dif < d_dea && p_dif >= p_dea, sigE = d_dif < d_dea && d_dif < p_dif && osc_neg_expanding, sigF = d_dif < d_dea && d_dif >= p_dif && osc_neg_shrinking;
+    let m = "None"; if (sigA) m = "A"; else if (sigD) m = "D"; else if (sigE) m = "E"; else if (sigC) m = "C"; else if (sigB) m = "B"; else if (sigF) m = "F"; if (m === "None") m = d_dif > d_dea ? (d_osc > p_osc ? "A" : "B") : (d_osc > p_osc ? "F" : "E");
+
+    let t = "", d = "", c = "", bg = "";
+    if (m === "A") { t = "A. 趨勢正在加速 (最強多頭狀態)"; d = "市場呈現極強多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，代表多頭買盤源源不絕，有利漲勢延續。"; c = "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 持續上升 且 OSC 動能柱由負翻正或正值放大"; bg = "bg-rose-600 text-rose-600"; }
+    if (m === "B") { t = "B. 趨勢仍多頭，但開始降溫"; d = "目前仍處於多頭格局之中，但快線向上挺進斜率走平，多方柱狀體出現連續收縮，需補防獲利洗盤賣壓。"; c = "DIF > DEA 且 DIF 上升變慢 且 OSC 柱狀圖連續縮小但維持正值"; bg = "bg-orange-500 text-orange-600"; }
+    if (m === "C") { t = "C. 轉弱初期 (關鍵觀察區)"; d = "多空關鍵防守位置。快線已領先出現向下彎頭回檔，慢線走平，動能柱正快速向零軸收斂，暗示高檔主力籌碼分批調節。"; c = "DIF 開始下彎 且 DEA 仍上升或走平 且 OSC 柱狀圖收斂向0"; bg = "bg-amber-500 text-amber-600"; }
+    if (m === "D") { t = "D. 空頭開始 (真正轉折點成立)"; d = "趨勢發生高檔向下扭轉。快線正式下穿慢線形成死亡交叉，動能柱翻黑轉負，波段轉空確立，多單宜全面避開風險。"; c = "DIF 跌破 DEA (死亡交叉) 且 DIF 下彎 且 OSC 轉負"; bg = "bg-slate-700 text-slate-800"; }
+    if (m === "E") { t = "E. 空頭加速 (下跌最強主跌段)"; d = "完全進入窒息的主跌段，快慢線同步於零軸下方加速下滑，空方負向柱狀體急速放大，下跌動能強勁，不可波段盲目摸底。"; c = "DIF < DEA 且 DIF 持續下滑 且 負值柱狀體負值放大"; bg = "bg-emerald-600 text-emerald-600"; }
+    if (m === "F") { t = "F. 空頭衰退 (反彈準備段)"; d = "雖然屬空頭架構，但快線下跌斜率已收斂並開始底部走平，空方柱狀體連續縮短（負值變小），暗示低檔反彈醖釀。"; c = "DIF < DEA 且 負向柱狀圖持續縮短 且 DIF 開始走平"; bg = "bg-purple-600 text-purple-600"; }
+    
+    setSignalDetail(t, d, c);
+    let lbl = m==="A"||m==="B"?"多頭暴發":(m==="C"?"警戒轉弱":(m==="D"?"轉折確立":(m==="E"?"空頭加速":"築底醖釀")));
+    boardTitleEl.innerHTML = `<span class="px-2 py-0.5 ${bg.split(' ')[0]} text-white rounded font-extrabold text-xs animate-pulse mr-1.5">${lbl}</span> <span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${t}</span>`;
+  }
+}
+
+export function renderChipTrendChart() {
+  const chipChartEl = document.getElementById("trendChipChart");
+  if (!chipChartEl || !state.currentActiveStockId) return;
+
+  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
+  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
+
+  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
+  const cfg = subTabConfigs[state.currentChipSubTab];
+  
+  let nets = localTrendDates.map(d => { 
+    const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; 
+    if (state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
+    return Math.round((row[cfg.bKey] || 0) / 1000) - Math.round((row[cfg.sKey] || 0) / 1000); 
+  });
+
+  let absMax = Math.max(...nets.map(Math.abs), 1), barsHtml = localTrendDates.map((d, i) => { 
+    const val = nets[i], isPositive = val >= 0, heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80), datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${datePart}</span></div></div>`; 
+  }).join('');
+
+  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+}
