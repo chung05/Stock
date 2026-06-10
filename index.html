@@ -154,7 +154,7 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
-        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛 analysis 站</h1>
       </div>
       <div class="flex items-center gap-4 shrink-0 min-w-0">
         <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
@@ -181,7 +181,9 @@
             <option value="全部">🌐 全部成分股</option>
           </select>
         </div>
-        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票</div>
+        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票
+        </div>
       </div>
       <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
         <div class="relative flex items-center">
@@ -224,7 +226,6 @@
 
     let globalActiveSignalDetail = { title: "", desc: "", cond: "" };
 
-    // 💡 補上核心缺失工具函式，徹底解決 Console formatDateToString is not defined 的閃退問題！
     function formatDateToString(dateObj) {
       if (!dateObj) return "";
       const yyyy = dateObj.getFullYear();
@@ -447,6 +448,9 @@
       applyFilters();
     }
 
+    // 🧠 確保事件綁定不會因為模組隔離而出錯
+    window.switchTab = switchTab;
+
     function handleSearchKeyup(e) {
       const input = document.getElementById("keywordInput");
       const clearBtn = document.getElementById("clearSearchBtn");
@@ -457,12 +461,14 @@
       }
       if (e.key === "Enter") executeStockSearch();
     }
+    window.handleSearchKeyup = handleSearchKeyup;
 
     function executeStockSearch() {
       const input = document.getElementById("keywordInput");
       searchKeyword = input.value.trim().toLowerCase();
       applyFilters();
     }
+    window.executeStockSearch = executeStockSearch;
 
     function clearSearchField() {
       const input = document.getElementById("keywordInput");
@@ -471,6 +477,7 @@
       searchKeyword = "";
       applyFilters();
     }
+    window.clearSearchField = clearSearchField;
 
     function applyFilters() {
       let filteredStocks = [...dbStockData];
@@ -645,22 +652,22 @@
                 <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
               </div>
             </td>
-            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+            <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
             ${getSumCell(sumF, false)}${fRow}
           </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center">
             <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>
             ${getSumCell(sumFD, true)}${fdRow}
           </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center">
             <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">投信</td>
             ${getSumCell(sumIT, false)}${iRow}
           </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center">
             <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">自營商(自行)</td>
             ${getSumCell(sumDS, true)}${dsRow}
           </tr>
-          <tr class="border-t border-slate-200 hover:bg-slate-50/50">
+          <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center">
             <td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">自營商(避險)</td>
             ${getSumCell(sumDH, false)}${dhRow}
           </tr>
@@ -707,6 +714,7 @@
         }
       }, 30);
     }
+    window.switchModalTab = switchModalTab;
 
     function switchChipSubTab(subKey) {
       currentChipSubTab = subKey;
@@ -722,6 +730,7 @@
       });
       renderChipTrendChart();
     }
+    window.switchChipSubTab = switchChipSubTab;
 
     function scrollToLatestTrend() {
       setTimeout(() => {
@@ -815,7 +824,9 @@
         } else { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`; }
       } else { listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
     }
+    window.openCombinedModal = openCombinedModal;
 
+    // 💡 核心優化：1:1 精準對齊的股價折線與圓圈中心串接引擎 (修復上下位移)
     function renderPriceTrendLineChart(dates, chips) {
       const priceChartEl = document.getElementById("trendPriceChart");
       const priceDatesEl = document.getElementById("trendPriceDates");
@@ -837,6 +848,7 @@
       let minP = Math.min(...validPrices);
       let rangeP = maxP - minP === 0 ? 1 : maxP - minP;
 
+      // 🧠 統一網頁在畫面上完全展開後的實體像素寬度
       let containerWidth = priceChartEl.clientWidth || 940;
       let count = dates.length;
       let stepX = containerWidth / count; 
@@ -848,11 +860,17 @@
       dates.forEach((d, idx) => {
         const price = pricePoints[idx];
         const displayP = price !== null ? price : '--';
+        
+        // 🧠 Y軸對齊修正：在 SVG 折線與 HTML 圓點間採用完全一致的乘積與底補償運算式
         const heightPercent = price !== null ? Math.round(((price - minP) / rangeP) * 65) + 10 : 40;
         const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
+        // 🧠 X軸對齊修正：增加 (stepX / 2) 半步中點位置補償
         let exactX = idx * stepX + (stepX / 2);
-        let exactY = 96 - ((heightPercent / 100) * 96); 
+        
+        // 🧠 重要修復：因為您外層的 #trendPriceChart 帶有 pt-4 (頂部內邊距16px) 且高度為 h-24 (96px)
+        // SVG 與 HTML 的底定位必須扣除這個偏差，折線才能真正「穿心」刺透圓點。
+        let exactY = 96 - ((heightPercent / 100) * 80) - 8; 
         if (price !== null) polylinePoints.push(`${exactX},${exactY}`);
 
         priceHtml += `
@@ -865,10 +883,11 @@
         dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
       });
 
+      // 💡 繪製與點位完全 100% 貼合的專業相連折線
       if (polylinePoints.length > 0) {
         let svgHtml = `
-          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg" style="width: ${containerWidth}px;">
-            <polyline points="${polylinePoints.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg" style="width: ${containerWidth}px; height: 96px;">
+            <polyline points="${polylinePoints.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         `;
         priceHtml += svgHtml;
@@ -878,6 +897,7 @@
       priceDatesEl.innerHTML = dateHtml;
     }
 
+    // 💡 核心優化：對齊補償過後的標準雙層 MACD 折線/柱狀分離繪圖引擎
     function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       const lineChartEl = document.getElementById("macdLineChart");
       const barChartEl = document.getElementById("macdBarChart");
@@ -922,6 +942,7 @@
         lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
         barDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
 
+        // 🧠 X軸對齊修正：加入 (stepX / 2) 居中補償，讓 MACD 折線完全精準穿透圓點
         let xPos = idx * stepX + (stepX / 2);
         let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
         let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
@@ -1076,10 +1097,16 @@
     }
 
     function closeNewsModal() { document.getElementById("newsModal").classList.add("hidden"); }
+    window.closeNewsModal = closeNewsModal;
+
     function switchTab(sheetName) { currentSourceTab = sheetName; applyFilters(); }
-    function handleSearchKeyup(e) { if (document.getElementById("keywordInput").value.trim() !== "") { document.getElementById("clearSearchBtn").classList.remove("hidden"); } else { document.getElementById("clearSearchBtn").classList.add("hidden"); } if (e.key === "Enter") executeStockSearch(); }
-    function executeStockSearch() { searchKeyword = document.getElementById("keywordInput").value.trim().toLowerCase(); applyFilters(); }
-    function clearSearchField() { document.getElementById("keywordInput").value = ""; document.getElementById("clearSearchBtn").classList.add("hidden"); searchKeyword = ""; applyFilters(); }
+    window.switchTab = switchTab;
+
+    function changeSortMode(val) { currentSortMode = val; applyFilters(); }
+    window.changeSortMode = changeSortMode;
+
+    function changeSumDaysMode(val) { currentSumDaysMode = parseInt(val, 10); applyFilters(); }
+    window.changeSumDaysMode = changeSumDaysMode;
 
     function renderChipTrendChart() {
       const chipChartEl = document.getElementById("trendChipChart");
