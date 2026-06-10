@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+    .sticky-col-shadow { box-shadow: 3px 0 6px -3px rgba(0, 0, 0, 0.25); }
+    dialog::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+  <div id="loadingModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-slate-100 flex flex-col items-center">
+      <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <h3 class="text-base font-bold text-slate-900 mb-1">雲端籌碼智慧同步中...</h3>
+      <p id="loadingDetail" class="text-xs text-slate-500 font-medium">安全連線中...</p>
+    </div>
+  </div>
+
+  <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
+    <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
+      <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
+      <button id="closeInfoDialogBtn" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <div class="text-xs font-bold text-slate-400 mb-0.5">📊 盤勢特徵描述</div>
+        <p id="infoDialogDesc" class="text-sm font-semibold text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100"></p>
+      </div>
+      <div>
+        <div class="text-xs font-bold text-slate-400 mb-0.5">💻 程式觸發邏輯條件</div>
+        <div id="infoDialogCond" class="text-xs font-mono font-bold text-amber-600 bg-amber-50/60 p-2.5 rounded-xl border border-amber-100/60 leading-normal tracking-tight"></div>
+      </div>
+    </div>
+    <div class="mt-5 flex justify-end">
+      <button id="closeInfoDialogConfirmBtn" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl cursor-pointer shadow-sm transition-all">確認並關閉</button>
+    </div>
+  </dialog>
+
+  <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
+      
+      <div class="py-2 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl shrink-0">
+        <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
+        <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
+      </div>
+
+      <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">目前股價</div><div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">今日漲跌</div><div id="modalInfoChange" class="text-xs font-black text-slate-800">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA10 均線</div><div id="modalInfoMA10" class="text-xs font-black text-blue-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA20 均線</div><div id="modalInfoMA20" class="text-xs font-black text-orange-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">RSI14 強弱</div><div id="modalInfoRSI14" class="text-xs font-black text-purple-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MACD 動能</div><div id="modalInfoMACD" class="text-xs font-black text-slate-800">--</div></div>
+      </div>
+
+      <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
+        <button id="tabBtnTrend" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 近期走勢</button>
+        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD 趨勢圖</button>
+        <button id="tabBtnNews" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 財經新聞</button>
+      </div>
+      
+      <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
+        <div id="trendZone" class="block space-y-4 w-full grow">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <h4 class="text-xs font-black text-slate-500 mb-1 flex items-center gap-1">🔹 股價走勢</h4>
+            <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div class="min-w-[960px] px-1 relative">
+                <div id="trendPriceChart" class="h-24 relative w-full border-b border-slate-200 bg-white"></div>
+                <div id="trendPriceDates" class="flex justify-between font-black mt-1.5 w-full"></div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
+              <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button id="subTabF" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
+                <button id="subTabIT" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
+                <button id="subTabDS" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
+              </div>
+            </div>
+            <div class="w-full overflow-x-auto pb-2 scrollbar-thin"><div id="trendChipChart" class="w-full min-w-[960px]"></div></div>
+          </div>
+        </div>
+
+        <div id="macdZone" class="hidden space-y-4 w-full grow">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+            <div class="p-3 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
+              <div class="flex items-center min-w-0"><span id="macdSignalTitle" class="text-sm font-black text-slate-900 truncate">分析中...</span></div>
+              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">ℹ️ 條件</button>
+            </div>
+            <div class="flex justify-between items-center">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD 20日專業指標圖</h4>
+              <div class="flex items-center gap-3 text-[10px] font-bold">
+                <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-rose-500 inline-block"></span>多方動能</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 inline-block"></span>空方動能</span>
+              </div>
+            </div>
+            <div class="w-full overflow-x-auto pb-2 scrollbar-none">
+              <div class="min-w-[760px] bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-5 relative">
+                <div class="flex flex-col gap-1 relative">
+                  <div class="text-[11px] font-black text-slate-400 px-1"> McKinley 線型 ── DIF / DEA 趨勢轉折線</div>
+                  <div id="macdLineChart" class="flex items-center justify-between h-36 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="macdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
+                </div>
+                <div class="flex flex-col gap-1 relative">
+                  <div class="text-[11px] font-black text-slate-400 px-1"> Momentum 矩陣 ── MACD 柱狀動能體 (OSC)</div>
+                  <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="newsZone" class="hidden h-full w-full overflow-y-auto grow">
+          <div id="debugLogZone" class="mb-4 p-3 bg-slate-900 text-amber-400 font-mono text-[11px] rounded-xl border border-slate-700 leading-normal hidden whitespace-pre-wrap text-left"></div>
+          <div id="newsListZone" class="space-y-3 block w-full"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-3 shadow-md border-b border-sky-300/30 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0 shrink-0">
+        <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
+      </div>
+      <div class="flex items-center gap-4 shrink-0 min-w-0">
+        <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span></span>
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span></span>
+        </div>
+        <button id="forceSyncBtn" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">⚡ 更新</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sm:hidden bg-slate-100 border-b border-slate-200 px-4 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-600">
+    <span>名單：<span id="listUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
+    <span>資料更新：<span id="chipUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
+    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-3 grow sm:max-w-xl">
+        <div class="w-40 md:w-48 shrink-0"><select id="tabSelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select></div>
+        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票</div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
+        <div class="relative flex items-center">
+          <input type="text" id="keywordInput" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none transition-colors" />
+          <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
+        </div>
+        <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+      </div>
+    </section>
+
+    <section id="mainTableWrapper" class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
+      <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
+        <thead class="text-slate-800 font-extrabold sticky top-0 z-30 bg-slate-100 shadow-xs border-b border-slate-300">
+          <tr id="tableHeaderDates"></tr>
+          <tr id="tableHeaderSub" class="text-xs text-slate-500 bg-slate-50/80"></tr>
+        </thead>
+        <tbody id="stockTableBody" class="bg-white"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script type="module">
+    import { state } from './js/config.js';
+    import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
+    import { applyFilters, switchModalTab, switchChipSubTab, openCombinedModal } from './js/ui.js';
+
+    // 1. 初始化監聽與開局同步
+    document.addEventListener("DOMContentLoaded", async () => {
+      calculateTradeDaysLists();
+      
+      // 動態事件綁定 (完美剔除 Inline 屬性)
+      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
+      document.getElementById("closeNewsModalBtn").addEventListener("click", () => document.getElementById("newsModal").classList.add("hidden"));
+      document.getElementById("closeInfoDialogBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
+      document.getElementById("closeInfoDialogConfirmBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
+      
+      document.getElementById("tabSelect").addEventListener("change", (e) => { state.currentSourceTab = e.target.value; applyFilters(); });
+      document.getElementById("searchStockBtn").addEventListener("click", executeSearchAction);
+      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchAction);
+      
+      document.getElementById("keywordInput").addEventListener("keyup", (e) => {
+        document.getElementById("clearSearchBtn").classList.toggle("hidden", e.target.value.trim() === "");
+        if (e.key === "Enter") executeSearchAction();
+      });
+
+      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));
+      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));
+      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));
+
+      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));
+      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
+      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
+
+      // 智慧事件代理：接管動態產生表格中個股點擊彈窗事件
+      document.getElementById("stockTableBody").addEventListener("click", (e) => {
+        const cell = e.target.closest(".stock-target-cell");
+        if (cell) {
+          const id = cell.getAttribute("data-stockid");
+          const name = cell.getAttribute("data-stockname");
+          openCombinedModal(id, name);
+        }
+      });
+
+      // 觸發雲端初始化連線
+      await forceSyncFlow();
+    });
+
+    function executeSearchAction() {
+      state.searchKeyword = document.getElementById("keywordInput").value.trim().toLowerCase();
+      applyFilters();
+    }
+
+    function clearSearchAction() {
+      document.getElementById("keywordInput").value = "";
+      document.getElementById("clearSearchBtn").classList.add("hidden");
+      state.searchKeyword = "";
+      applyFilters();
+    }
+  </script>
+</body>
+</html>
