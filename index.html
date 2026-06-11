@@ -64,9 +64,9 @@
       </div>
 
       <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
-        <button id="tabBtnTrend" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 近期走勢</button>
-        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD 趨勢圖</button>
-        <button id="tabBtnNews" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 財經新聞</button>
+        <button id="tabBtnTrend" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 走勢</button>
+        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD</button>
+        <button id="tabBtnNews" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 新聞</button>
       </div>
       
       <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
@@ -89,7 +89,9 @@
                 <button id="subTabDS" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
               </div>
             </div>
-            <div class="w-full overflow-x-auto pb-2 scrollbar-thin"><div id="trendChipChart" class="w-full min-w-[960px]"></div></div>
+            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div id="trendChipChart" class="w-full min-w-[960px]"></div>
+            </div>
           </div>
         </div>
 
@@ -97,10 +99,10 @@
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
             <div class="p-3 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
               <div class="flex items-center min-w-0"><span id="macdSignalTitle" class="text-sm font-black text-slate-900 truncate">分析中...</span></div>
-              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">ℹ️ 條件</button>
+              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">ℹ️</button>
             </div>
             <div class="flex justify-between items-center">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD 20日專業指標圖</h4>
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD圖</h4>
               <div class="flex items-center gap-3 text-[10px] font-bold">
                 <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
                 <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
@@ -108,7 +110,7 @@
                 <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 inline-block"></span>空方動能</span>
               </div>
             </div>
-            <div class="w-full overflow-x-auto pb-2 scrollbar-none">
+            <div id="macdChartScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-none">
               <div class="min-w-[760px] bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-5 relative">
                 <div class="flex flex-col gap-1 relative">
                   <div class="text-[11px] font-black text-slate-400 px-1"> McKinley 線型 ── DIF / DEA 趨勢轉折線</div>
@@ -165,7 +167,7 @@
           <input type="text" id="keywordInput" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
           <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
         </div>
-        <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+        <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">🔍 搜尋</button>
       </div>
     </section>
 
@@ -197,12 +199,10 @@
       calculateTradeDaysLists();
       renderTableHeader();
 
-      // 按鈕事件精準連線
+      // 按鈕註冊
       document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
       document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
       document.getElementById("macdInfoBtn").addEventListener("click", showSignalInfoDialog);
-      
-      // 💡 僅保留一個右上角的 ✕ 按鍵監聽，完美連線點擊關閉
       document.getElementById("closeInfoDialogBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
       
       document.getElementById("tabSelect").addEventListener("change", (e) => { state.currentSourceTab = e.target.value; applyFilters(); });
