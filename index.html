@@ -44,9 +44,6 @@
         <div id="infoDialogCond" class="text-xs font-mono font-bold text-amber-600 bg-amber-50/60 p-2.5 rounded-xl border border-amber-100/60 leading-normal tracking-tight"></div>
       </div>
     </div>
-    <div class="mt-5 flex justify-end">
-      <button id="closeInfoDialogConfirmBtn" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl cursor-pointer shadow-sm transition-all">確認並關閉</button>
-    </div>
   </dialog>
 
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
@@ -205,9 +202,8 @@
       document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
       document.getElementById("macdInfoBtn").addEventListener("click", showSignalInfoDialog);
       
-      // 💡 關鍵優化：修復關閉按鈕無效。將事件監聽器精準綁定到對應的 HTML dialogue 按鈕上
+      // 💡 僅保留一個右上角的 ✕ 按鍵監聽，完美連線點擊關閉
       document.getElementById("closeInfoDialogBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
-      document.getElementById("closeInfoDialogConfirmBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
       
       document.getElementById("tabSelect").addEventListener("change", (e) => { state.currentSourceTab = e.target.value; applyFilters(); });
       document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
