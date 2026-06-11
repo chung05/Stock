@@ -19,7 +19,6 @@ export const state = {
   currentChipSubTab: "f"
 };
 
-// 💡 解決條件按鍵無效：利用模組共享記憶體物件，保證 Info 按鈕點擊時 100% 抓得到盤勢資料
 export let globalActiveSignalDetail = { title: "", desc: "", cond: "" };
 
 export function setSignalDetail(title, desc, cond) {
