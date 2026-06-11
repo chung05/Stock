@@ -191,7 +191,6 @@
     } from './js/ui.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 🧠 穿透式綁定：將 window 的控制權完全交還給模組導出的函式，這樣 HTML 中的行內點擊就不會引發隔離錯誤了
       window.openCombinedModal = openCombinedModal;
       window.closeNewsModal = closeNewsModal;
       window.changeSortMode = changeSortMode;
@@ -201,10 +200,14 @@
       calculateTradeDaysLists();
       renderTableHeader();
 
-      // 按鈕註冊
+      // 按鈕事件精準連線
       document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
       document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
       document.getElementById("macdInfoBtn").addEventListener("click", showSignalInfoDialog);
+      
+      // 💡 關鍵優化：修復關閉按鈕無效。將事件監聽器精準綁定到對應的 HTML dialogue 按鈕上
+      document.getElementById("closeInfoDialogBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
+      document.getElementById("closeInfoDialogConfirmBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
       
       document.getElementById("tabSelect").addEventListener("change", (e) => { state.currentSourceTab = e.target.value; applyFilters(); });
       document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
