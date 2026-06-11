@@ -1,6 +1,129 @@
 // js/macd.js
 import { state, getValIgnoreCase, setSignalDetail } from './config.js';
 
+export function closeNewsModal() { 
+  document.getElementById("newsModal").classList.add("hidden"); 
+}
+
+export function switchModalTab(tabMode) {
+  const btnTrend = document.getElementById("tabBtnTrend");
+  const btnMacd = document.getElementById("tabBtnMacd");
+  const btnNews = document.getElementById("tabBtnNews");
+  const zoneTrend = document.getElementById("trendZone");
+  const zoneMacd = document.getElementById("macdZone");
+  const zoneNews = document.getElementById("newsZone");
+
+  const tabs = { trend: { btn: btnTrend, zone: zoneTrend }, macd: { btn: btnMacd, zone: zoneMacd }, news: { btn: btnNews, zone: zoneNews } };
+  Object.keys(tabs).forEach(k => {
+    if (k === tabMode) {
+      tabs[k].btn.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
+      tabs[k].zone.classList.replace("hidden", "block");
+    } else {
+      tabs[k].btn.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
+      tabs[k].zone.classList.replace("block", "hidden");
+    }
+  });
+  
+  setTimeout(() => {
+    if (state.currentActiveStockId) {
+      const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
+      const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a));
+      if (tabMode === 'macd') {
+        renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
+      } else if (tabMode === 'trend') {
+        renderPriceTrendLineChart(localTrendDates, myChipsRaw);
+        renderChipTrendChart();
+      }
+    }
+  }, 30);
+}
+
+export function switchChipSubTab(subKey) {
+  state.currentChipSubTab = subKey;
+  const tabs = { f: 'subTabF', it: 'subTabIT', ds: 'subTabDS' };
+  Object.keys(tabs).forEach(k => {
+    const btn = document.getElementById(tabs[k]);
+    if (k === subKey) {
+      btn.className = "px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all";
+    } else {
+      btn.className = "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all";
+    }
+  });
+  renderChipTrendChart();
+}
+
+export function scrollToLatestTrend() {
+  setTimeout(() => { const pWrapper = document.getElementById("priceScrollWrapper"); if (pWrapper) pWrapper.scrollLeft = 0; }, 60);
+}
+
+export async function openCombinedModal(stockId, stockName) {
+  state.currentActiveStockId = stockId; 
+  document.getElementById("newsModal").classList.remove("hidden");
+  document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
+  
+  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
+  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => b.localeCompare(a)); 
+
+  setTimeout(() => {
+    switchModalTab('trend');
+    switchChipSubTab('f'); 
+    renderPriceTrendLineChart(localTrendDates, myChipsRaw);
+    renderChipTrendChart();
+    renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
+    scrollToLatestTrend();
+  }, 35);
+
+  if (state.recentDates.length > 0) {
+    const latestDayData = myChipsRaw.find(c => String(c.date) === state.recentDates[0]);
+    if (latestDayData) {
+      document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
+      const cv = latestDayData.change_value || 0;
+      if (cv > 0) document.getElementById("modalInfoChange").innerHTML = `<span class="text-rose-600">▲${cv}</span>`;
+      else if (cv < 0) document.getElementById("modalInfoChange").innerHTML = `<span class="text-emerald-600">▼${Math.abs(cv)}</span>`;
+      else document.getElementById("modalInfoChange").innerText = '0.0';
+      document.getElementById("modalInfoMA10").innerText = (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) ? latestDayData.ma10 : '--';
+      document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
+      document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
+      
+      const rawMacd = getValIgnoreCase(latestDayData, 'macd_osc');
+      if (rawMacd !== null && rawMacd !== undefined) {
+        if (rawMacd > 0) document.getElementById("modalInfoMACD").innerHTML = `<span class="text-rose-600 font-bold">▲${rawMacd}</span>`;
+        else if (rawMacd < 0) document.getElementById("modalInfoMACD").innerHTML = `<span class="text-emerald-600 font-bold">▼${Math.abs(rawMacd)}</span>`;
+        else document.getElementById("modalInfoMACD").innerText = '0.0';
+      } else { document.getElementById("modalInfoMACD").innerText = '--'; }
+    }
+  }
+
+  const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
+  debugBox.classList.remove("hidden"); listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
+  debugBox.innerHTML = `[系統診斷開始] 初始化 ${stockId} (${stockName}) 新聞獲取流...\n`;
+
+  const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
+
+  let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
+  while (currentRetry < maxRetries && !successFetch) {
+    currentRetry++;
+    try {
+      const res = await fetch(apiUrl);
+      if (res.ok) { const json = await res.json(); if (json.status === 'ok') { resJson = json; successFetch = true; break; } }
+    } catch (fetchErr) { console.error(fetchErr); }
+  }
+
+  if (successFetch && resJson) {
+    const fetchedItems = resJson.items || [];
+    if (fetchedItems.length > 0) {
+      let listHtml = "";
+      fetchedItems.slice(0, 10).forEach(item => {
+        const pubDate = new Date(item.pubDate), dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+        listHtml += `<a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item"><div class="text-xs text-slate-400 font-bold flex items-center gap-2"><span>📅 ${dateStr}</span><span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div><h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4></a>`;
+      });
+      listZone.innerHTML = listHtml; debugBox.classList.add("hidden");
+    } else { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查過相關新聞</div>`; }
+  } else { listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
+}
+
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   const priceDatesEl = document.getElementById("trendPriceDates");
@@ -72,7 +195,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
     let t = "", d = "", c = "", bg = "";
     if (m === "A") { t = "A. 趨勢正在加速 (最強多頭狀態)"; d = "市場呈現極強多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，代表多頭買盤源源不絕，有利漲勢延續。"; c = "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 持續上升 且 OSC 動能柱由負翻正或正值放大"; bg = "bg-rose-600 text-rose-600"; }
-    if (m === "B") { t = "B. 趨勢仍多頭，打開始降溫"; d = "目前仍處於多頭格局之中，但快線向上挺進斜率走平，多方柱狀體出現連續收縮，需補防獲利洗盤賣壓。"; c = "DIF > DEA 且 DIF 上升變慢 且 OSC 柱狀圖連續縮小但維持正值"; bg = "bg-orange-500 text-orange-600"; }
+    if (m === "B") { t = "B. 趨勢仍多頭，但開始降溫"; d = "目前仍處於多頭格局之中，但快線向上挺進斜率走平，多方柱狀體出現連續收縮，需補防獲利洗盤賣壓。"; c = "DIF > DEA 且 DIF 上升變慢 且 OSC 柱狀圖連續縮小但維持正值"; bg = "bg-orange-500 text-orange-600"; }
     if (m === "C") { t = "C. 轉弱初期 (關鍵觀察區)"; d = "多空關鍵防守位置。快線已領先出現向下彎頭回檔，慢線走平，動能柱正快速向零軸收斂，暗示高檔主力籌碼分批調節。"; c = "DIF 開始下彎 且 DEA 仍上升或走平 且 OSC 柱狀圖收斂向0"; bg = "bg-amber-500 text-amber-600"; }
     if (m === "D") { t = "D. 空頭開始 (真正轉折點成立)"; d = "趨勢發生高檔向下扭轉。快線正式下穿慢線形成死亡交叉，動能柱翻黑轉負，波段轉空確立，多單宜全面避開風險。"; c = "DIF 跌破 DEA (死亡交叉) 且 DIF 下彎 且 OSC 轉負"; bg = "bg-slate-700 text-slate-800"; }
     if (m === "E") { t = "E. 空頭加速 (下跌最強主跌段)"; d = "完全進入窒息的主跌段，快慢線同步於零軸下方加速下滑，空方負向柱狀體急速放大，下跌動能強勁，不可波段盲目摸底。"; c = "DIF < DEA 且 DIF 持續下滑 且 負值柱狀體負值放大"; bg = "bg-emerald-600 text-emerald-600"; }
