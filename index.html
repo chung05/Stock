@@ -165,7 +165,7 @@
       </div>
       <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
         <div class="relative flex items-center">
-          <input type="text" id="keywordInput" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none transition-colors" />
+          <input type="text" id="keywordInput" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
           <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
         </div>
         <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
@@ -191,11 +191,10 @@
     } from './js/ui.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 🧠 核心防護修正：強制先完成日期序列計算，再立刻繪製表頭，徹底排除異步時間差的 Null 斷裂漏洞
       calculateTradeDaysLists();
       renderTableHeader();
 
-      // 動態事件綁定
+      // 行內事件解耦
       document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
       document.getElementById("closeNewsModalBtn").addEventListener("click", () => document.getElementById("newsModal").classList.add("hidden"));
       document.getElementById("macdInfoBtn").addEventListener("click", showSignalInfoDialog);
@@ -213,7 +212,7 @@
       document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
       document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
 
-      // 觸發雲端初始化連線
+      // 啟動雲端連線
       await forceSyncFlow();
     });
   </script>
