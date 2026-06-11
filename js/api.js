@@ -14,11 +14,6 @@ export function calculateTradeDaysLists() {
   }
   state.extendedTrendDates = dates20; 
   state.recentDates = dates20.slice(0, 5); 
-  
-  // 🧠 修正點：利用微緩衝，保證主頁日期 100% 能被 DOM 捕捉填入，防止消失
-  setTimeout(() => {
-    updateDisplayDates(state.recentDates[0]);
-  }, 10);
 }
 
 export async function forceSyncFlow() {
@@ -48,13 +43,16 @@ export async function forceSyncFlow() {
     });
         
     updateTabSelectOptions(Array.from(state.targetSheetsSet));
+    
+    // 同步完成計算與標頭重繪，徹底消滅 0 檔
     calculateTradeDaysLists();
+    updateDisplayDates(state.recentDates[0]);
+    renderTableHeader();
 
     detailText.innerText = "2. 正在讀取雲端籌碼與股價數據...";
     await fetchAllChipsFromSupabase();
 
     detailText.innerText = "3. 正在建立網頁表格視覺矩陣...";
-    renderTableHeader();
     applyFilters();
 
   } catch (err) {
@@ -107,6 +105,7 @@ export async function fetchAllChipsFromSupabase() {
       state.extendedTrendDates = dbDates.slice(0, 20); 
       state.recentDates = dbDates.slice(0, 5); 
       updateDisplayDates(state.recentDates[0]);
+      renderTableHeader();
     }
   }
 }
