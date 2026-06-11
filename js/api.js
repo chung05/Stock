@@ -44,7 +44,6 @@ export async function forceSyncFlow() {
         
     updateTabSelectOptions(Array.from(state.targetSheetsSet));
     
-    // 同步完成計算與標頭重繪，徹底消滅 0 檔
     calculateTradeDaysLists();
     updateDisplayDates(state.recentDates[0]);
     renderTableHeader();
