@@ -11,7 +11,7 @@ export function switchModalTab(tabMode) {
   const btnNews = document.getElementById("tabBtnNews");
   const zoneTrend = document.getElementById("trendZone");
   const zoneMacd = document.getElementById("macdZone");
-  const zoneNews = document.getElementById("newsZone"); // 💡 修正：將原本筆誤的 newsNews 修正為正確的 newsZone
+  const zoneNews = document.getElementById("newsZone");
 
   const tabs = { trend: { btn: btnTrend, zone: zoneTrend }, macd: { btn: btnMacd, zone: zoneMacd }, news: { btn: btnNews, zone: zoneNews } };
   Object.keys(tabs).forEach(k => {
@@ -28,16 +28,16 @@ export function switchModalTab(tabMode) {
   setTimeout(() => {
     if (state.currentActiveStockId) {
       const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-      // 🧠 統一黃金看盤時序：從左到右，由舊到新
       const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
       if (tabMode === 'macd') {
         renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
       } else if (tabMode === 'trend') {
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
+        // 💡 項目 6 雙向聯動核心：初次載入或切換回來時，動能注入雙向對齊綁定
+        bindBiDirectionalScrollLinkage();
       }
-      // 🧠 智慧聚焦：切換分頁標籤時，自動將捲軸推到最新日期的位置
-      scrollToLatestTrend();
+      scrollToLatestTrend(tabMode);
     }
   }, 30);
 }
@@ -54,24 +54,55 @@ export function switchChipSubTab(subKey) {
   renderChipTrendChart();
 }
 
-// 🧠 智慧型橫向聚焦引擎：自動聚焦在最右側（最新的日期位置）
-export function scrollToLatestTrend() {
+// 🧠 項目 6、7：全功能雙向自動聚焦與同步引擎
+export function scrollToLatestTrend(tabMode = 'trend') {
   setTimeout(() => { 
-    const pWrapper = document.getElementById("priceScrollWrapper"); 
-    if (pWrapper) {
-      // 將捲軸直接拉到實體最右端最大值，行動端與電腦版使用者一開視窗即可直接看見最新日期數據
-      pWrapper.scrollLeft = pWrapper.scrollWidth; 
-    } 
+    if (tabMode === 'trend') {
+      const pWrapper = document.getElementById("priceScrollWrapper"); 
+      const cWrapper = document.getElementById("chipScrollWrapper");
+      // 自動將走勢與籌碼同步聚焦在最右側（最新的日期位置）
+      if (pWrapper) pWrapper.scrollLeft = pWrapper.scrollWidth;
+      if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
+    } else if (tabMode === 'macd') {
+      const mWrapper = document.getElementById("macdChartScrollWrapper");
+      // 💡 項目 7 優化：MACD 趨勢圖也全自動聚焦最新一天的右側位置
+      if (mWrapper) mWrapper.scrollLeft = mWrapper.scrollWidth;
+    }
   }, 60);
+}
+
+// 🧠 項目 6 優化：建立「股價走勢圖」與「三大法人」兩者分毫不差的雙向連動滾動鎖
+function bindBiDirectionalScrollLinkage() {
+  const pWrapper = document.getElementById("priceScrollWrapper");
+  const cWrapper = document.getElementById("chipScrollWrapper");
+  if (!pWrapper || !cWrapper) return;
+
+  let isSyncingPriceScroll = false;
+  let isSyncingChipScroll = false;
+
+  pWrapper.onscroll = () => {
+    if (!isSyncingChipScroll) {
+      isSyncingPriceScroll = true;
+      cWrapper.scrollLeft = pWrapper.scrollLeft; // 股價牽引籌碼
+    }
+    isSyncingChipScroll = false;
+  };
+
+  cWrapper.onscroll = () => {
+    if (!isSyncingPriceScroll) {
+      isSyncingChipScroll = true;
+      pWrapper.scrollLeft = cWrapper.scrollLeft; // 籌碼回牽股價
+    }
+    isSyncingPriceScroll = false;
+  };
 }
 
 export async function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
-  document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
+  document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧過濾籌碼寬資版`;
   
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
-  // 時序由舊到新
   const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
   setTimeout(() => {
@@ -80,7 +111,9 @@ export async function openCombinedModal(stockId, stockName) {
     renderPriceTrendLineChart(localTrendDates, myChipsRaw);
     renderChipTrendChart();
     renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
-    scrollToLatestTrend();
+    // 開啟時動態綁定事件連線
+    bindBiDirectionalScrollLinkage();
+    scrollToLatestTrend('trend');
   }, 35);
 
   if (state.recentDates.length > 0) {
