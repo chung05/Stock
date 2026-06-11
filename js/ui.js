@@ -13,55 +13,19 @@ export function updateTabSelectOptions(sheets) {
   const select = document.getElementById("tabSelect");
   if (!select) return;
   select.innerHTML = `<option value="全部">🌐 全部成分股</option>`;
-  sheets.forEach(sheet => {
-    if (sheet) select.innerHTML += `<option value="${sheet}">📁 ${sheet}</option>`;
-  });
+  sheets.forEach(sheet => { if (sheet) select.innerHTML += `<option value="${sheet}">📁 ${sheet}</option>`; });
   select.value = state.currentSourceTab;
 }
 
-export function switchTab(sheetName) {
-  state.currentSourceTab = sheetName;
-  applyFilters();
-}
-
-export function changeSortMode(val) {
-  state.currentSortMode = val;
-  applyFilters();
-}
-
-export function changeSumDaysMode(val) {
-  state.currentSumDaysMode = parseInt(val, 10);
-  applyFilters();
-}
-
-export function handleSearchKeyup(e) {
-  const input = document.getElementById("keywordInput");
-  const clearBtn = document.getElementById("clearSearchBtn");
-  if (input.value.trim() !== "") {
-    clearBtn.classList.remove("hidden");
-  } else {
-    clearBtn.classList.add("hidden");
-  }
-  if (e.key === "Enter") executeStockSearch();
-}
-
-export function executeStockSearch() {
-  const input = document.getElementById("keywordInput");
-  state.searchKeyword = input.value.trim().toLowerCase();
-  applyFilters();
-}
-
-export function clearSearchField() {
-  const input = document.getElementById("keywordInput");
-  input.value = "";
-  document.getElementById("clearSearchBtn").classList.add("hidden");
-  state.searchKeyword = "";
-  applyFilters();
-}
+export function switchTab(sheetName) { state.currentSourceTab = sheetName; applyFilters(); }
+export function changeSortMode(val) { state.currentSortMode = val; applyFilters(); }
+export function changeSumDaysMode(val) { state.currentSumDaysMode = parseInt(val, 10); applyFilters(); }
+export function handleSearchKeyup(e) { const clearBtn = document.getElementById("clearSearchBtn"); if (document.getElementById("keywordInput").value.trim() !== "") { clearBtn.classList.remove("hidden"); } else { clearBtn.classList.add("hidden"); } if (e.key === "Enter") executeStockSearch(); }
+export function executeStockSearch() { state.searchKeyword = document.getElementById("keywordInput").value.trim().toLowerCase(); applyFilters(); }
+export function clearSearchField() { document.getElementById("keywordInput").value = ""; document.getElementById("clearSearchBtn").classList.add("hidden"); state.searchKeyword = ""; applyFilters(); }
 
 export function renderTableHeader() {
-  const headerDates = document.getElementById("tableHeaderDates");
-  const headerSub = document.getElementById("tableHeaderSub");
+  const headerDates = document.getElementById("tableHeaderDates"), headerSub = document.getElementById("tableHeaderSub");
   if (!headerDates || !headerSub || state.recentDates.length === 0) return;
 
   let datesHtml = `
@@ -84,55 +48,35 @@ export function renderTableHeader() {
         <option value="5" ${state.currentSumDaysMode===5?'selected':''}>5日結</option>
         <option value="3" ${state.currentSumDaysMode===3?'selected':''}>3日結</option>
       </select>
-    </th>
-  `;
+    </th>`;
   let subHtml = "";
 
   state.recentDates.forEach((dateStr, index) => {
-    const parts = dateStr.split('-');
-    const formattedDate = parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr;
-    const borderClass = index === state.recentDates.length - 1 ? "" : "border-r border-slate-300";
+    const parts = dateStr.split('-'), formattedDate = parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr, borderClass = index === state.recentDates.length - 1 ? "" : "border-r border-slate-300";
     datesHtml += `<th colspan="3" class="px-2 py-2 ${borderClass} text-sm bg-slate-100 text-slate-900 font-bold whitespace-nowrap">${formattedDate}</th>`;
     subHtml += `<th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-blue-600">買</th><th class="py-1.5 border-r border-slate-200 w-[55px] min-w-[55px] text-sm font-bold text-emerald-600">賣</th><th class="py-1.5 ${index === state.recentDates.length - 1 ? "" : "border-r border-slate-300"} w-[65px] min-w-[65px] text-sm font-extrabold text-rose-600">結</th>`;
   });
-  headerDates.innerHTML = datesHtml;
-  headerSub.innerHTML = subHtml;
+  headerDates.innerHTML = datesHtml; headerSub.innerHTML = subHtml;
 
-  // 🧠 動態綁定表頭內部 Select 事件，防範 type=module 變數死結
   document.getElementById("headerSortSelect").addEventListener("change", (e) => changeSortMode(e.target.value));
   document.getElementById("headerSumDaysSelect").addEventListener("change", (e) => changeSumDaysMode(e.target.value));
 }
 
 export function applyFilters() {
   let filteredStocks = [...state.dbStockData];
-  if (state.currentSourceTab !== '全部') {
-    filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(state.currentSourceTab));
-  }
-  if (state.searchKeyword !== "") {
-    filteredStocks = filteredStocks.filter(item => {
-      if (!item) return false;
-      const idStr = String(item.stock_id).toLowerCase();
-      const nameStr = String(item.stock_name || '').toLowerCase();
-      return idStr.includes(state.searchKeyword) || nameStr.includes(state.searchKeyword);
-    });
-  }
+  if (state.currentSourceTab !== '全部') { filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(state.currentSourceTab)); }
+  if (state.searchKeyword !== "") { filteredStocks = filteredStocks.filter(item => { if (!item) return false; return String(item.stock_id).toLowerCase().includes(state.searchKeyword) || String(item.stock_name || '').toLowerCase().includes(state.searchKeyword); }); }
   
   filteredStocks.sort((a, b) => {
-    const idA = String(a.stock_id).trim();
-    const idB = String(b.stock_id).trim();
+    const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
     if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
 
     const getSumForStock = (stockId, buyField, sellField) => {
-      const chips = state.globalChipCache.filter(c => String(c.stock_id).trim() === stockId);
-      const sumDates = getActiveSumDates();
-      return chips.reduce((acc, row) => {
-        if (!sumDates.includes(String(row.date))) return acc; 
-        return acc + (Math.round((row[buyField] || 0) / 1000) - Math.round((row[sellField] || 0) / 1000));
-      }, 0);
+      const chips = state.globalChipCache.filter(c => String(c.stock_id).trim() === stockId), sumDates = state.recentDates.slice(0, state.currentSumDaysMode);
+      return chips.reduce((acc, row) => { if (!sumDates.includes(String(row.date))) return acc; return acc + (Math.round((row[buyField] || 0) / 1000) - Math.round((row[sellField] || 0) / 1000)); }, 0);
     };
 
-    let valA = 0, valB = 0;
-    const m = state.currentSortMode;
+    let valA = 0, valB = 0; const m = state.currentSortMode;
     if (m==='foreign_buy') { valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell'); return valB - valA; }
     if (m==='foreign_dealer_buy') { valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell'); return valB - valA; }
     if (m==='investment_buy') { valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell'); return valB - valA; }
@@ -140,28 +84,18 @@ export function applyFilters() {
     if (m==='dealer_hedging_buy') { valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell'); return valB - valA; }
     return 0;
   });
-
   renderMatrixTableFromCache(filteredStocks);
 }
 
 export function renderMatrixTableFromCache(stocks) {
   document.getElementById("recordCount").innerText = stocks.length;
-  const tbody = document.getElementById("stockTableBody");
-  if (!tbody) return;
-  if (stocks.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${3 + state.recentDates.length * 3}" class="py-8 text-slate-400 font-medium text-center">無符合條件的股票資料</td></tr>`;
-    return;
-  }
+  const tbody = document.getElementById("stockTableBody"); if (!tbody) return;
+  if (stocks.length === 0) { tbody.innerHTML = `<tr><td colspan="${3 + state.recentDates.length * 3}" class="py-8 text-slate-400 font-medium text-center">無符合條件的股票資料</td></tr>`; return; }
 
-  let htmlString = "";
-  const sumDates = getActiveSumDates();
-
+  let htmlString = ""; const sumDates = state.recentDates.slice(0, state.currentSumDaysMode);
   stocks.forEach(item => {
-    if (!item) return;
-    const currentIdStr = String(item.stock_id).trim();
-    const myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === currentIdStr);
+    if (!item) return; const currentIdStr = String(item.stock_id).trim(), myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === currentIdStr);
     let currentPrice = "--", changeValue = 0, mainMA10 = "--", mainMA20 = "--", mainRSI14 = "--", mainMACDOsc = "--";
-    
     if (state.recentDates.length > 0) {
       const latestDayData = myChips.find(c => String(c.date) === state.recentDates[0]);
       if (latestDayData) {
@@ -170,11 +104,9 @@ export function renderMatrixTableFromCache(stocks) {
         if (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) mainMA10 = latestDayData.ma10;
         if (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) mainMA20 = latestDayData.ma20;
         if (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) mainRSI14 = latestDayData.rsi14;
-        const rawMacd = getValIgnoreCase(latestDayData, 'macd_osc');
-        if (rawMacd !== null && rawMacd !== undefined) mainMACDOsc = rawMacd;
+        const rawMacd = getValIgnoreCase(latestDayData, 'macd_osc'); if (rawMacd !== null && rawMacd !== undefined) mainMACDOsc = rawMacd;
       }
     }
-
     let priceChangeHtml = `<span class="text-slate-500 font-medium">0.0</span>`;
     if (changeValue > 0) priceChangeHtml = `<span class="text-rose-600 font-bold">▲${changeValue}</span>`;
     else if (changeValue < 0) priceChangeHtml = `<span class="text-emerald-600 font-bold">▼${Math.abs(changeValue)}</span>`;
@@ -213,7 +145,7 @@ export function renderMatrixTableFromCache(stocks) {
 
     htmlString += `
       <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
-        <td class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors" onclick="window.openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')">
+        <td rowspan="5" onclick="window.openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
           <div class="text-base font-black tracking-tighter text-blue-700 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_id}</div>
           <div class="text-sm font-extrabold mt-0.5 truncate tracking-tighter text-blue-700 underline decoration-2 underline-offset-2 decoration-blue-700">${item.stock_name || ''}</div>
           <div class="mt-1 tracking-tighter flex flex-col items-center gap-0.5 whitespace-nowrap">
@@ -227,7 +159,7 @@ export function renderMatrixTableFromCache(stocks) {
             <div class="flex items-center"><span class="text-teal-600 shrink-0 font-bold">MACD:</span>${macdHtml}</div>
           </div>
         </td>
-        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
         ${getSumCell(sumF, false)}${fRow}
       </tr>
       <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center"><td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>${getSumCell(sumFD, true)}${fdRow}</tr>
@@ -237,3 +169,6 @@ export function renderMatrixTableFromCache(stocks) {
   });
   tbody.innerHTML = htmlString;
 }
+
+// 💡 100% 精準對接修正：將 macd.js 內部的切換與繪圖函式，透過 ui.js 統一 export，徹底解決 switchChipSubTab / switchModalTab 的導出 SyntaxError 閃退
+export { closeNewsModal, switchModalTab, switchChipSubTab, openCombinedModal } from './macd.js';
