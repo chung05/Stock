@@ -187,16 +187,23 @@
     import { state, showSignalInfoDialog } from './js/config.js';
     import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
     import { 
-      renderTableHeader, applyFilters, switchModalTab, switchChipSubTab, clearSearchField, executeStockSearch, handleSearchKeyup
+      renderTableHeader, applyFilters, switchModalTab, switchChipSubTab, clearSearchField, executeStockSearch, handleSearchKeyup, openCombinedModal, closeNewsModal, changeSortMode, changeSumDaysMode, switchTab
     } from './js/ui.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
+      // 🧠 穿透式綁定：將 window 的控制權完全交還給模組導出的函式，這樣 HTML 中的行內點擊就不會引發隔離錯誤了
+      window.openCombinedModal = openCombinedModal;
+      window.closeNewsModal = closeNewsModal;
+      window.changeSortMode = changeSortMode;
+      window.changeSumDaysMode = changeSumDaysMode;
+      window.switchTab = switchTab;
+
       calculateTradeDaysLists();
       renderTableHeader();
 
-      // 行內事件解耦
+      // 按鈕註冊
       document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
-      document.getElementById("closeNewsModalBtn").addEventListener("click", () => document.getElementById("newsModal").classList.add("hidden"));
+      document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
       document.getElementById("macdInfoBtn").addEventListener("click", showSignalInfoDialog);
       
       document.getElementById("tabSelect").addEventListener("change", (e) => { state.currentSourceTab = e.target.value; applyFilters(); });
@@ -212,7 +219,6 @@
       document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
       document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
 
-      // 啟動雲端連線
       await forceSyncFlow();
     });
   </script>
