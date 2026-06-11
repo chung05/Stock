@@ -1,6 +1,5 @@
 // js/ui.js
 import { state, getValIgnoreCase } from './config.js';
-import { renderPriceTrendLineChart, renderSeparatedMacdChartAndDecodeSignals, renderChipTrendChart } from './macd.js';
 
 export function updateDisplayDates(startDateStr) {
   const el = document.getElementById("chipUpdateTime");
@@ -143,6 +142,7 @@ export function renderMatrixTableFromCache(stocks) {
       return val > 0 ? `<td class="py-2.5 border-r border-slate-300 font-black text-rose-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">+${val}</td>` : (val < 0 ? `<td class="py-2.5 border-r border-slate-300 font-black text-emerald-600 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">${val}</td>` : `<td class="py-2.5 border-r border-slate-300 font-bold text-slate-400 text-sm sticky left-[164px] z-20 ${bgClass} sticky-col-shadow text-center">0</td>`);
     };
 
+    // 💡 穿透解決彈窗失效核心：直接在 <td> 元件上使用 window.openCombinedModal，繞開 module 的點擊保護牆！
     htmlString += `
       <tr class="border-t-2 border-slate-300 hover:bg-slate-50/50">
         <td rowspan="5" onclick="window.openCombinedModal('${item.stock_id}', '${item.stock_name || ''}')" class="px-1 py-3 border-r border-slate-300 font-mono bg-slate-100 sticky left-0 z-20 text-center leading-tight w-[112px] max-w-[112px] overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors">
@@ -156,10 +156,10 @@ export function renderMatrixTableFromCache(stocks) {
             <div class="flex items-center"><span class="text-blue-600 shrink-0 font-bold">M10:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA10}</span></div>
             <div class="flex items-center"><span class="text-orange-600 shrink-0 font-bold">M20:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA20}</span></div>
             <div class="flex items-center"><span class="text-purple-600 shrink-0 font-bold">RSI:</span><span class="text-slate-950 ml-1 grow text-right">${mainRSI14}</span></div>
-            <div class="flex items-center"><span class="text-teal-600 shrink-0 font-bold">MACD:</span>${macdHtml}</div>
+            <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
           </div>
         </td>
-        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
         ${getSumCell(sumF, false)}${fRow}
       </tr>
       <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center"><td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>${getSumCell(sumFD, true)}${fdRow}</tr>
@@ -170,5 +170,5 @@ export function renderMatrixTableFromCache(stocks) {
   tbody.innerHTML = htmlString;
 }
 
-// 💡 100% 精準對接修正：將 macd.js 內部的切換與繪圖函式，透過 ui.js 統一 export，徹底解決 switchChipSubTab / switchModalTab 的導出 SyntaxError 閃退
+// 💡 修正導出導出標籤缺陷
 export { closeNewsModal, switchModalTab, switchChipSubTab, openCombinedModal } from './macd.js';
