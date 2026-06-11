@@ -11,11 +11,11 @@ export function switchModalTab(tabMode) {
   const btnNews = document.getElementById("tabBtnNews");
   const zoneTrend = document.getElementById("trendZone");
   const zoneMacd = document.getElementById("macdZone");
-  const zoneNews = document.getElementById("newsNews");
+  const zoneNews = document.getElementById("newsZone"); // 💡 修正：將原本筆誤的 newsNews 修正為正確的 newsZone
 
   const tabs = { trend: { btn: btnTrend, zone: zoneTrend }, macd: { btn: btnMacd, zone: zoneMacd }, news: { btn: btnNews, zone: zoneNews } };
   Object.keys(tabs).forEach(k => {
-    const b = tabs[k].btn, z = document.getElementById(tabs[k].zone) || zoneTrend;
+    const b = tabs[k].btn, z = tabs[k].zone;
     if (k === tabMode) {
       if(b) b.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
       if(z) z.classList.replace("hidden", "block");
@@ -28,7 +28,7 @@ export function switchModalTab(tabMode) {
   setTimeout(() => {
     if (state.currentActiveStockId) {
       const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-      // 🧠 統一黃金看盤時序：從左到右，一律由舊到新
+      // 🧠 統一黃金看盤時序：從左到右，由舊到新
       const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
       if (tabMode === 'macd') {
         renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
@@ -36,7 +36,7 @@ export function switchModalTab(tabMode) {
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
       }
-      // 🧠 跨平台自適應：切換標籤時自動將捲軸推到最右側聚焦最新今日
+      // 🧠 智慧聚焦：切換分頁標籤時，自動將捲軸推到最新日期的位置
       scrollToLatestTrend();
     }
   }, 30);
@@ -59,7 +59,7 @@ export function scrollToLatestTrend() {
   setTimeout(() => { 
     const pWrapper = document.getElementById("priceScrollWrapper"); 
     if (pWrapper) {
-      // 將捲軸直接拉到實體最右端最大值，行動端使用者一開視窗即可看見最新今日數據
+      // 將捲軸直接拉到實體最右端最大值，行動端與電腦版使用者一開視窗即可直接看見最新日期數據
       pWrapper.scrollLeft = pWrapper.scrollWidth; 
     } 
   }, 60);
@@ -71,7 +71,7 @@ export async function openCombinedModal(stockId, stockName) {
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧指標與籌碼數據庫`;
   
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
-  // 🧠 由舊到新
+  // 時序由舊到新
   const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
   setTimeout(() => {
@@ -142,7 +142,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   const priceDatesEl = document.getElementById("trendPriceDates");
   if (!priceChartEl || dates.length === 0) return;
 
-  // 🧠 舊到新標準流
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
   let pricePoints = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.price) ? day.price : null; });
@@ -174,7 +173,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), barDatesEl = document.getElementById("macdBarDates"), boardTitleEl = document.getElementById("macdSignalTitle");
   
-  // 🧠 舊到新標準流
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
   let dataset = cronDates.map(d => { const row = chips.find(c => String(c.date) === d); return { date: d, dif: row ? getValIgnoreCase(row, 'macd_dif') : null, sig: row ? getValIgnoreCase(row, 'macd_signal') : null, osc: row ? getValIgnoreCase(row, 'macd_osc') : null }; });
@@ -203,7 +201,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml; if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
 
-  // 🧠 當前 dataset 已是舊到新，因此最後一格為「最新今日」，倒數第二格為「昨日」
   let t_latest = dataset[count - 1];  
   let t_minus_1 = dataset[count - 2]; 
 
