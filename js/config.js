@@ -19,12 +19,21 @@ export const state = {
   currentChipSubTab: "f"
 };
 
-// 💡 解決狀態卡片打架：共用唯一的指標解碼變數，保證「ℹ️ 條件」按鍵 100% 亮燈生效
+// 💡 解決條件按鍵無效：利用模組共享記憶體物件，保證 Info 按鈕點擊時 100% 抓得到盤勢資料
 export let globalActiveSignalDetail = { title: "", desc: "", cond: "" };
+
 export function setSignalDetail(title, desc, cond) {
   globalActiveSignalDetail.title = title;
   globalActiveSignalDetail.desc = desc;
   globalActiveSignalDetail.cond = cond;
+}
+
+export function showSignalInfoDialog() {
+  if (!globalActiveSignalDetail.title) return;
+  document.getElementById("infoDialogTitle").innerText = "📋 " + globalActiveSignalDetail.title;
+  document.getElementById("infoDialogDesc").innerText = globalActiveSignalDetail.desc;
+  document.getElementById("infoDialogCond").innerText = globalActiveSignalDetail.cond;
+  document.getElementById("infoDialog").showModal();
 }
 
 export function formatDateToString(dateObj) {
