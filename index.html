@@ -21,7 +21,6 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
-  <!-- 雲端同步 Loading 彈窗 -->
   <div id="loadingModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-slate-100 flex flex-col items-center">
       <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -30,7 +29,6 @@
     </div>
   </div>
 
-  <!-- 智慧訊號彈窗 -->
   <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
     <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
       <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
@@ -48,7 +46,6 @@
     </div>
   </dialog>
 
-  <!-- 個股詳細資訊 複合彈窗 -->
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
       
@@ -98,44 +95,35 @@
           </div>
         </div>
 
-        <!-- 💡 MACD 視圖面優化：精簡大量垂直空白，合併標題與圖例 -->
         <div id="macdZone" class="hidden space-y-3 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
-            
-            <!-- 智慧判讀頂部橫幅 -->
-            <div class="p-2.5 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
+            <div class="p-3 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
               <div class="flex items-center min-w-0"><span id="macdSignalTitle" class="text-sm font-black text-slate-900 truncate">分析中...</span></div>
               <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">ℹ️</button>
             </div>
-
-            <!-- 🧠 項目 2 修正：移除舊有的獨立 "🔹 MACD圖" 列，將多方/空方等 4 個圖例直接並排整合到折線圖的上方欄位，完美節省空間 -->
+            <div class="flex justify-between items-center">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD圖</h4>
+              <div class="flex items-center gap-3 text-[10px] font-bold">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
+              </div>
+            </div>
             <div id="macdChartScrollWrapper" class="w-full overflow-x-auto pb-1 scrollbar-none">
               <div class="min-w-[760px] bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col gap-4 relative">
-                
-                <!-- 第一層：DIF / DEA 趨勢轉折線 -->
                 <div class="flex flex-col gap-1 relative">
-                  <!-- 🧠 項目 1 & 2 修正：更名為 "DIF / DEA 趨勢轉折線"，並利用 flex-row justify-between 將圖例完美對齊到右側 -->
                   <div class="flex flex-row justify-between items-center px-1">
                     <div class="text-[11px] font-black text-slate-500">DIF / DEA 趨勢轉折線</div>
-                    <div class="flex items-center gap-2.5 text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs">
-                      <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
-                      <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
-                      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
-                      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
-                    </div>
                   </div>
                   <div id="macdLineChart" class="flex items-center justify-between h-36 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
-
-                <!-- 第二層：MACD 柱狀圖 -->
                 <div class="flex flex-col gap-1 relative">
-                  <!-- 🧠 項目 1 修正：將 McKinley 冗長敘述調整為精簡乾淨的 "MACD 柱狀圖" -->
                   <div class="text-[11px] font-black text-slate-500 px-1">MACD 柱狀圖</div>
                   <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
-
               </div>
             </div>
           </div>
@@ -149,7 +137,6 @@
     </div>
   </div>
 
-  <!-- 頂部導航列 -->
   <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-3 shadow-md border-b border-sky-300/30 px-4">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
@@ -174,7 +161,9 @@
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-center gap-3 grow sm:max-w-xl">
-        <div class="w-40 md:w-48 shrink-0"><select id="tabSelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select></div>
+        <div class="w-40 md:w-48 shrink-0">
+          <select id="tabSelect" onchange="window.switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select>
+        </div>
         <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票</div>
       </div>
       <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
@@ -214,13 +203,11 @@
       calculateTradeDaysLists();
       renderTableHeader();
 
-      // 按鈕事件繫結
       document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
       document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
       document.getElementById("macdInfoBtn").addEventListener("click", showSignalInfoDialog);
       document.getElementById("closeInfoDialogBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
       
-      document.getElementById("tabSelect").addEventListener("change", (e) => { state.currentSourceTab = e.target.value; applyFilters(); });
       document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
       document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);
       document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);
