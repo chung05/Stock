@@ -1,5 +1,5 @@
 // js/macd.js
-import { state, getValIgnoreCase, setSignalDetail } from './config.js';
+import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
 
 export function closeNewsModal() { 
   document.getElementById("newsModal").classList.add("hidden"); 
@@ -34,7 +34,6 @@ export function switchModalTab(tabMode) {
       } else if (tabMode === 'trend') {
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
-        // 💡 項目 6 雙向聯動核心：初次載入或切換回來時，動能注入雙向對齊綁定
         bindBiDirectionalScrollLinkage();
       }
       scrollToLatestTrend(tabMode);
@@ -54,24 +53,20 @@ export function switchChipSubTab(subKey) {
   renderChipTrendChart();
 }
 
-// 🧠 項目 6、7：全功能雙向自動聚焦與同步引擎
 export function scrollToLatestTrend(tabMode = 'trend') {
   setTimeout(() => { 
     if (tabMode === 'trend') {
       const pWrapper = document.getElementById("priceScrollWrapper"); 
       const cWrapper = document.getElementById("chipScrollWrapper");
-      // 自動將走勢與籌碼同步聚焦在最右側（最新的日期位置）
       if (pWrapper) pWrapper.scrollLeft = pWrapper.scrollWidth;
       if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
     } else if (tabMode === 'macd') {
       const mWrapper = document.getElementById("macdChartScrollWrapper");
-      // 💡 項目 7 優化：MACD 趨勢圖也全自動聚焦最新一天的右側位置
       if (mWrapper) mWrapper.scrollLeft = mWrapper.scrollWidth;
     }
   }, 60);
 }
 
-// 🧠 項目 6 優化：建立「股價走勢圖」與「三大法人」兩者分毫不差的雙向連動滾動鎖
 function bindBiDirectionalScrollLinkage() {
   const pWrapper = document.getElementById("priceScrollWrapper");
   const cWrapper = document.getElementById("chipScrollWrapper");
@@ -83,7 +78,7 @@ function bindBiDirectionalScrollLinkage() {
   pWrapper.onscroll = () => {
     if (!isSyncingChipScroll) {
       isSyncingPriceScroll = true;
-      cWrapper.scrollLeft = pWrapper.scrollLeft; // 股價牽引籌碼
+      cWrapper.scrollLeft = pWrapper.scrollLeft;
     }
     isSyncingChipScroll = false;
   };
@@ -91,7 +86,7 @@ function bindBiDirectionalScrollLinkage() {
   cWrapper.onscroll = () => {
     if (!isSyncingPriceScroll) {
       isSyncingChipScroll = true;
-      pWrapper.scrollLeft = cWrapper.scrollLeft; // 籌碼回牽股價
+      pWrapper.scrollLeft = cWrapper.scrollLeft;
     }
     isSyncingPriceScroll = false;
   };
@@ -111,7 +106,6 @@ export async function openCombinedModal(stockId, stockName) {
     renderPriceTrendLineChart(localTrendDates, myChipsRaw);
     renderChipTrendChart();
     renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
-    // 開啟時動態綁定事件連線
     bindBiDirectionalScrollLinkage();
     scrollToLatestTrend('trend');
   }, 35);
@@ -234,54 +228,22 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml; if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
 
-  let t_latest = dataset[count - 1];  
-  let t_minus_1 = dataset[count - 2]; 
-
-  if (t_latest && t_minus_1) {
-    let d_dif = t_latest.dif, d_dea = t_latest.sig, d_osc = t_latest.osc;
-    let p_dif = t_minus_1.dif, p_dea = t_minus_1.sig, p_osc = t_minus_1.osc;
-
-    let is_gold_cross = d_dif > d_dea;
-    let dif_rising = d_dif > p_dif;
-    let dif_bending_down = d_dif < p_dif;
-    let dea_flat_or_rising = p_dea !== null ? (d_dea >= p_dea) : true;
-
-    let osc_neg_to_pos_and_expanding = (p_osc <= 0 && d_osc > 0) || (d_osc > 0 && d_osc > p_osc);
-    let osc_shrinking_but_positive = d_osc > 0 && d_osc < (p_osc !== null ? p_osc : 0);
-    let osc_neg_expanding = d_osc < 0 && (p_osc === null || d_osc < p_osc);
-    let osc_neg_shrinking = d_osc < 0 && p_osc !== null && d_osc > p_osc;
-
-    let sigA = is_gold_cross && dif_rising && (d_osc > p_osc);
-    let sigB = is_gold_cross && osc_shrinking_but_positive;
-    let sigC = dif_bending_down && dea_flat_or_rising && d_osc < (p_osc || 0);
-    let sigD = d_dif < d_dea && p_dif >= p_dea; 
-    let sigE = d_dif < d_dea && d_dif < p_dif && osc_neg_expanding;
-    let sigF = d_dif < d_dea && d_dif >= p_dif && osc_neg_shrinking;
-
-    let m = "None"; 
-    if (sigA) m = "A"; 
-    else if (sigD) m = "D"; 
-    else if (sigE) m = "E"; 
-    else if (sigC) m = "C"; 
-    else if (sigB) m = "B"; 
-    else if (sigF) m = "F"; 
-    
-    if (m === "None") {
-      m = d_dif > d_dea ? (d_osc > p_osc ? "A" : "B") : (d_osc > p_osc ? "F" : "E");
-    }
-
-    let t = "", d = "", c = "", bg = "";
-    if (m === "A") { t = "A. 趨勢正在加速 (最強多頭狀態)"; d = "市場呈現極強多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，代表多頭買盤源源不絕，有利漲勢延續。"; c = "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 持續上升 且 OSC 動能柱由負翻正或正值放大"; bg = "bg-rose-600 text-rose-600"; }
-    if (m === "B") { t = "B. 趨勢仍多頭，但開始降溫"; d = "目前仍處於多頭格局之中，但快線向上挺進斜率走平，多方柱狀體出現連續收縮，需補防獲利洗盤賣壓。"; c = "DIF > DEA 且 DIF 上升變慢 且 OSC 柱狀圖連續縮小但維持正值"; bg = "bg-orange-500 text-orange-600"; }
-    if (m === "C") { t = "C. 轉弱初期 (關鍵觀察區)"; d = "多空關鍵防守位置。快線已領先出現向下彎頭回檔，慢線走平，動能柱正快速向零軸收斂，暗示高檔主力籌碼分批調節。"; c = "DIF 開始下彎 且 DEA 仍上升或走平 且 OSC 柱狀圖收斂向0"; bg = "bg-amber-500 text-amber-600"; }
-    if (m === "D") { t = "D. 空頭開始 (真正轉折點成立)"; d = "趨勢發生高檔向下扭轉。快線正式下穿慢線形成死亡交叉，動能柱翻黑轉負，波段轉空確立，多單宜全面避開風險。"; c = "DIF 跌破 DEA (死亡交叉) 且 DIF 下彎 且 OSC 轉負"; bg = "bg-slate-700 text-slate-800"; }
-    if (m === "E") { t = "E. 空頭加速 (下跌最強主跌段)"; d = "完全進入窒息的主跌段，快慢線同步於零軸下方加速下滑，空方負向柱狀體急速放大，下跌動能強勁，不可波段盲目摸底。"; c = "DIF < DEA 且 DIF 持續下滑 且 負值柱狀體負值放大"; bg = "bg-emerald-600 text-emerald-600"; }
-    if (m === "F") { t = "F. 空頭衰退 (反彈準備段)"; d = "雖然屬空頭架構，但快線下跌斜率已收斂並開始底部走平，空方柱狀體連續縮短（負值變小），暗示低檔反彈醖釀。"; c = "DIF < DEA 且 負向柱狀圖持續縮短 且 DIF 開始走平"; bg = "bg-purple-600 text-purple-600"; }
-    
-    setSignalDetail(t, d, c);
-    let lbl = m === "A" || m === "B" ? "多頭暴發" : (m === "C" ? "警戒轉弱" : (m === "D" ? "轉折確立" : (m === "E" ? "空頭加速" : "築底醖釀")));
-    if(boardTitleEl) boardTitleEl.innerHTML = `<span class="px-2 py-0.5 ${bg.split(' ')[0]} text-white rounded font-extrabold text-xs animate-pulse mr-1.5">${lbl}</span> <span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${t}</span>`;
-  }
+  // 🧠 透過共用的解碼晶片直接對齊
+  const currentSignalCode = decodeMacdSignal(chips);
+  
+  let titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
+  let descText = "", condText = "", bg = "";
+  
+  if (currentSignalCode === "A") { descText = "市場呈現極強多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，代表多頭買盤源源不絕，有利漲勢延續。"; condText = "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 持續上升 且 OSC 動能柱由負翻正或正值放大"; bg = "bg-rose-600 text-rose-600"; }
+  if (currentSignalCode === "B") { descText = "目前仍處於多頭格局之中，但快線向上挺進斜率走平，多方柱狀體出現連續收縮，需補防獲利洗盤賣壓。"; condText = "DIF > DEA 且 DIF 上升變慢 且 OSC 柱狀圖連續縮小但維持正值"; bg = "bg-orange-500 text-orange-600"; }
+  if (currentSignalCode === "C") { descText = "多空關鍵防守位置。快線已領先出現向下彎頭回檔，慢線走平，動能柱正快速向零軸收斂，暗示高檔主力籌碼分批調節。"; condText = "DIF 開始下彎 且 DEA 仍上升或走平 且 OSC 柱狀圖收斂向0"; bg = "bg-amber-500 text-amber-600"; }
+  if (currentSignalCode === "D") { descText = "趨勢發生高檔向下扭轉。快線正式下穿慢線形成死亡交叉，動能柱翻黑轉負，波段轉空確立，多單宜全面避開風險。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF 下彎 且 OSC 轉負"; bg = "bg-slate-700 text-slate-800"; }
+  if (currentSignalCode === "E") { descText = "完全進入窒息的主跌段，快慢線同步於零軸下方加速下滑，空方負向柱狀體急速放大，下跌動能強勁，不可波段盲目摸底。"; condText = "DIF < DEA 且 DIF 持續下滑 且 負值柱狀體負值放大"; bg = "bg-emerald-600 text-emerald-600"; }
+  if (currentSignalCode === "F") { descText = "雖然屬空頭架構，但快線下跌斜率已收斂並開始底部走平，空方柱狀體連續縮短（負值變小），暗示低檔反彈醖釀。"; condText = "DIF < DEA 且 負向柱狀圖持續縮短 且 DIF 開始走平"; bg = "bg-purple-600 text-purple-600"; }
+  
+  setSignalDetail(titleText, descText, condText);
+  let lbl = currentSignalCode === "A" || currentSignalCode === "B" ? "多頭暴發" : (currentSignalCode === "C" ? "警戒轉弱" : (currentSignalCode === "D" ? "轉折確立" : (currentSignalCode === "E" ? "空頭加速" : "築底醖釀")));
+  if(boardTitleEl) boardTitleEl.innerHTML = `<span class="px-2 py-0.5 ${bg.split(' ')[0]} text-white rounded font-extrabold text-xs animate-pulse mr-1.5">${lbl}</span> <span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${titleText}</span>`;
 }
 
 export function renderChipTrendChart() {
