@@ -9,10 +9,16 @@ export function updateDisplayDates(startDateStr) {
   if (elMob) elMob.innerText = startDateStr || "--";
 }
 
-// 💡 終極修正：拔除一切外部 DOM 延遲干擾，100% 實打實強行注入 6 大指標型態選項至頂部 tabSelect
+// 💡 終極修正：升級為「全自動狀態記憶選單引擎」，徹底防止非同步連線後選單被再次洗白清空
 export function updateTabSelectOptions(sheets) {
   const select = document.getElementById("tabSelect");
   if (!select) return;
+  
+  // 🧠 智慧記憶：如果異步撈完資料後沒有傳入 sheets 頁籤，自動自動從全域緩衝 state 中撈取，確保萬無一失
+  let activeSheets = sheets;
+  if (!activeSheets || activeSheets.length === 0) {
+    activeSheets = Array.from(state.targetSheetsSet);
+  }
   
   let html = `<option value="全部">🌐 全部成分股</option>`;
   
@@ -23,9 +29,9 @@ export function updateTabSelectOptions(sheets) {
   });
   html += `</optgroup>`;
 
-  // 注入原本的 Excel 分類頁籤
+  // 注入 Excel 分類頁籤
   html += `<optgroup label="📁 雲端標的分群">`;
-  sheets.forEach(sheet => { if (sheet) html += `<option value="${sheet}">📁 ${sheet}</option>`; });
+  activeSheets.forEach(sheet => { if (sheet) html += `<option value="${sheet}">📁 ${sheet}</option>`; });
   html += `</optgroup>`;
   
   select.innerHTML = html;
@@ -46,6 +52,7 @@ export function renderTableHeader() {
   const headerDates = document.getElementById("tableHeaderDates"), headerSub = document.getElementById("tableHeaderSub");
   if (!headerDates || !headerSub || state.recentDates.length === 0) return;
 
+  // 💡 智慧連線：確保大表格內部的排序與結算天數一律精準對齊 state 全域物件
   let datesHtml = `
     <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
       <div class="flex flex-col items-center gap-1">
@@ -84,10 +91,10 @@ export function applyFilters() {
   let filteredStocks = [...state.dbStockData];
   const tab = state.currentSourceTab;
 
-  // 智慧篩選過濾判定
+  // 智慧篩選型態攔截過濾
   if (tab !== '全部') {
     if (tab.startsWith("MACD_")) {
-      const targetSignalCode = tab.replace("MACD_", ""); // 提取出 A, B, C, D, E, F 代號
+      const targetSignalCode = tab.replace("MACD_", ""); // 分離出 A, B, C, D, E, F 代號
       filteredStocks = state.dbStockData.filter(item => {
         if (!item) return false;
         const myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(item.stock_id).trim());
@@ -211,7 +218,7 @@ export function renderMatrixTableFromCache(stocks) {
             <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
           </div>
         </td>
-        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
         ${getSumCell(sumF, false)}${fRow}
       </tr>
       <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center"><td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>${getSumCell(sumFD, true)}${fdRow}</tr>
