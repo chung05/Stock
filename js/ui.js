@@ -9,7 +9,7 @@ export function updateDisplayDates(startDateStr) {
   if (elMob) elMob.innerText = startDateStr || "--";
 }
 
-// 💡 智慧修正：精準對齊頂部的 id="tabSelect" 群組選單，100% 注入 6 大指標型態選項
+// 💡 終極修正：拔除一切外部 DOM 延遲干擾，100% 實打實強行注入 6 大指標型態選項至頂部 tabSelect
 export function updateTabSelectOptions(sheets) {
   const select = document.getElementById("tabSelect");
   if (!select) return;
@@ -211,7 +211,7 @@ export function renderMatrixTableFromCache(stocks) {
             <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
           </div>
         </td>
-        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
         ${getSumCell(sumF, false)}${fRow}
       </tr>
       <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center"><td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>${getSumCell(sumFD, true)}${fdRow}</tr>
@@ -221,16 +221,5 @@ export function renderMatrixTableFromCache(stocks) {
   });
   tbody.innerHTML = htmlString;
 }
-
-// 修正：動態監聽綁定
-document.addEventListener("DOMContentLoaded", () => {
-  const select = document.getElementById("tabSelect");
-  if(select) {
-    select.addEventListener("change", (e) => {
-      state.currentSourceTab = e.target.value;
-      applyFilters();
-    });
-  }
-});
 
 export { closeNewsModal, switchModalTab, switchChipSubTab, openCombinedModal } from './macd.js';
