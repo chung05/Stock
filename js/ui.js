@@ -15,7 +15,7 @@ export function updateTabSelectOptions(sheets) {
   
   let html = `<option value="全部">🌐 全部成分股</option>`;
   
-  // 💡 智慧注入：在選單中追加 6 大 MACD 指標過濾選項
+  // 智慧注入：在選單中追加 6 大 MACD 指標過濾選項
   html += `<optgroup label="🎯 MACD 趨勢型態篩選">`;
   Object.keys(MACD_SIGNALS).forEach(key => {
     html += `<option value="MACD_${key}">📈 ${MACD_SIGNALS[key]}</option>`;
@@ -45,6 +45,7 @@ export function renderTableHeader() {
   const headerDates = document.getElementById("tableHeaderDates"), headerSub = document.getElementById("tableHeaderSub");
   if (!headerDates || !headerSub || state.recentDates.length === 0) return;
 
+  // 💡 終極修正：將第 66 行原本筆誤的 currentSumDaysMode 補上物件根節點，修正為正確的 state.currentSumDaysMode
   let datesHtml = `
     <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
       <div class="flex flex-col items-center gap-1">
@@ -63,7 +64,7 @@ export function renderTableHeader() {
     <th rowspan="2" class="px-1 py-1 bg-rose-50 sticky left-[164px] z-40 w-[74px] min-w-[74px] max-w-[74px] align-middle border-r border-slate-300 text-center sticky-col-shadow">
       <select id="headerSumDaysSelect" class="text-[11px] border border-slate-400 rounded px-0.5 py-0.5 bg-white font-black cursor-pointer focus:outline-none w-full text-rose-600 tracking-tighter text-center">
         <option value="5" ${state.currentSumDaysMode===5?'selected':''}>5日結</option>
-        <option value="3" ${currentSumDaysMode===3?'selected':''}>3日結</option>
+        <option value="3" ${state.currentSumDaysMode===3?'selected':''}>3日結</option>
       </select>
     </th>`;
   let subHtml = "";
@@ -83,7 +84,7 @@ export function applyFilters() {
   let filteredStocks = [...state.dbStockData];
   const tab = state.currentSourceTab;
 
-  // 🧠 核心過濾變更：判斷選單是 MACD 型態還是分群頁籤
+  // 核心過濾：判斷選單是 MACD 型態還是分群頁籤
   if (tab !== '全部') {
     if (tab.startsWith("MACD_")) {
       const targetSignalCode = tab.replace("MACD_", ""); // 分離出 A, B, C, D, E, F
@@ -105,7 +106,7 @@ export function applyFilters() {
     });
   }
   
-  // 🧠 核心排序：如果選單挑選了 MACD 指標型態，自動覆蓋改為「依最新 OSC 動能柱大小由大到小排序」！
+  // 核心排序：如果選單挑選了 MACD 指標型態，自動覆蓋改為「依最新 OSC 動能柱大至小排序」
   if (tab.startsWith("MACD_")) {
     filteredStocks.sort((a, b) => {
       const chipsA = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(a.stock_id).trim()).sort((x,y) => y.date.localeCompare(x.date));
