@@ -31,7 +31,7 @@
 
   <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
     <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
-      <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
+      <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特鎖與條件</h4>
       <button id="closeInfoDialogBtn" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
     </div>
     <div class="space-y-3">
@@ -120,7 +120,7 @@
                   <div id="macdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
                 <div class="flex flex-col gap-1 relative">
-                  <div class="text-[11px] font-black text-slate-500 px-1">MACD 柱狀圖</div>
+                  <div class="text-[11px] font-black text-slate-400 px-1">MACD 柱狀圖</div>
                   <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
@@ -160,12 +160,29 @@
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div class="flex items-center gap-3 grow sm:max-w-xl">
+      <div class="flex flex-wrap items-center gap-3 grow min-w-0">
         <div class="w-40 md:w-48 shrink-0">
           <select id="tabSelect" onchange="window.switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select>
         </div>
-        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票</div>
+        
+        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0 ml-1 sm:ml-4">
+          <span class="text-xs font-extrabold text-slate-400 whitespace-nowrap">MACD型態:</span>
+          <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
+            <option value="ALL">🌐 不指定</option>
+            <option value="A">📈 A. 趨勢正在加速</option>
+            <option value="B">📈 B. 趨勢仍多頭</option>
+            <option value="C">📈 C. 轉弱初期</option>
+            <option value="D">📉 D. 空頭開始</option>
+            <option value="E">📉 E. 空頭加速</option>
+            <option value="F">📈 F. 空頭衰退</option>
+          </select>
+        </div>
       </div>
+
       <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
         <div class="relative flex items-center">
           <input type="text" id="keywordInput" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
@@ -190,7 +207,7 @@
     import { state, showSignalInfoDialog } from './js/config.js';
     import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
     import { 
-      renderTableHeader, applyFilters, switchModalTab, switchChipSubTab, clearSearchField, executeStockSearch, handleSearchKeyup, openCombinedModal, closeNewsModal, changeSortMode, changeSumDaysMode, switchTab
+      renderTableHeader, applyFilters, switchModalTab, switchChipSubTab, clearSearchField, executeStockSearch, handleSearchKeyup, openCombinedModal, closeNewsModal, changeSortMode, changeSumDaysMode, switchTab, changeMacdFilter
     } from './js/ui.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -199,6 +216,8 @@
       window.changeSortMode = changeSortMode;
       window.changeSumDaysMode = changeSumDaysMode;
       window.switchTab = switchTab;
+      // 💡 穿透綁定全新的型態過濾函式
+      window.changeMacdFilter = changeMacdFilter;
 
       calculateTradeDaysLists();
       renderTableHeader();
