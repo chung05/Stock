@@ -9,6 +9,8 @@
   
   <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
   
+  <link rel="icon" type="image/png" href="main_icon.png">
+  
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -57,7 +59,7 @@
       <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
         <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">目前股價</div><div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div></div>
         <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">今日漲跌</div><div id="modalInfoChange" class="text-xs font-black text-slate-800">--</div></div>
-        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA10 均線</div><div id="modalInfoMA10" class="text-xs font-black text-blue-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA5 均線</div><div id="modalInfoMA10" class="text-xs font-black text-purple-600">--</div></div>
         <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA20 均線</div><div id="modalInfoMA20" class="text-xs font-black text-orange-600">--</div></div>
         <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">RSI14 強弱</div><div id="modalInfoRSI14" class="text-xs font-black text-purple-600">--</div></div>
         <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MACD 動能</div><div id="modalInfoMACD" class="text-xs font-black text-slate-800">--</div></div>
@@ -75,18 +77,18 @@
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5 border-b border-slate-100 pb-1.5">
               <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 股價與均線走勢</h4>
-              <div class="flex flex-wrap gap-3 items-center text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 shadow-3xs">
+              <div class="flex flex-wrap gap-2.5 items-center text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 shadow-3xs">
                 <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
                   <input type="checkbox" id="toggleMA5" checked onchange="window.toggleLine('ma5', this.checked)" class="rounded text-purple-600 focus:ring-purple-400 w-3.5 h-3.5 cursor-pointer" />
-                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-purple-500 inline-block"></span>週線(MA5)</span>
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-purple-500 inline-block rounded-xs"></span>(MA5)</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
-                  <input type="checkbox" id="toggleMA10" checked onchange="window.toggleLine('ma10', this.checked)" class="rounded text-blue-600 focus:ring-blue-400 w-3.5 h-3.5 cursor-pointer" />
-                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-blue-400 inline-block"></span>雙週(MA10)</span>
+                  <input type="checkbox" id="toggleMA10" checked onchange="window.toggleLine('ma10', this.checked)" class="rounded text-emerald-600 focus:ring-emerald-400 w-3.5 h-3.5 cursor-pointer" />
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-emerald-500 inline-block rounded-xs"></span>(MA10)</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
                   <input type="checkbox" id="toggleMA20" checked onchange="window.toggleLine('ma20', this.checked)" class="rounded text-orange-600 focus:ring-orange-400 w-3.5 h-3.5 cursor-pointer" />
-                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-orange-400 inline-block"></span>月線(MA20)</span>
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-orange-500 inline-block rounded-xs"></span>(MA20)</span>
                 </label>
               </div>
             </div>
@@ -172,6 +174,11 @@
     </div>
   </div>
 
+  <div class="sm:hidden bg-slate-100 border-b border-slate-200 px-4 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-600">
+    <span>名單：<span id="listUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
+    <span>資料更新：<span id="chipUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
+  </div>
+
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-3 grow min-w-0">
@@ -194,7 +201,7 @@
               <option value="4">🚀 4. 多頭再啟動（第二波上漲）</option>
             </optgroup>
             <optgroup label="🔴 空頭控盤區 (0軸下)">
-              <option value="5">🌊 5. 強勢空頭加速（主跌段）</option>
+              <option value="5">Waves 5. 強勢空頭加速（主跌段）</option>
               <option value="6">📉 6. 強勢空頭減速（賣壓下降）</option>
               <option value="7">🔋 7. 空頭反彈（跌深反彈）</option>
               <option value="8">💥 8. 空頭續跌（跌勢延續）</option>
@@ -248,7 +255,6 @@
       window.changeSumDaysMode = changeSumDaysMode;
       window.switchTab = switchTab;
       window.changeMacdFilter = changeMacdFilter;
-      // 💡 穿透繫結線條 Toggle 機制
       window.toggleLine = toggleLine;
 
       calculateTradeDaysLists();
