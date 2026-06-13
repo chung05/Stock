@@ -1,7 +1,7 @@
 // js/macd.js
-import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS, showSignalInfoDialog } from './config.js';
+// 💡 終極修正：徹底移除了第一行不存在的 showSignalInfoDialog 匯入，根除瀏覽器 Uncaught SyntaxError 罷工卡死漏洞！
+import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
 
-// 💡 智慧修正 2：初始化均線 Toggle 開關狀態鎖 (將 ma10 預設調整為 false 不勾選)
 if (!state.visibleLines) {
   state.visibleLines = { ma5: true, ma10: false, ma20: true };
 }
@@ -115,6 +115,7 @@ function bindBiDirectionalScrollLinkage() {
 export async function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
+  
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
   
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
@@ -219,7 +220,6 @@ export function renderPriceTrendLineChart(dates, chips) {
     
     let exactX = idx * stepX + (stepX / 2); 
 
-    // 💡 智慧優化 4：將收盤價、MA5、MA10、MA20 上的所有數值字體由原本的 7.5~9 全面擴大加粗至特大號「10」，保證不撞字
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96); 
       polylinePrice.push(`${exactX},${exactY}`);
@@ -260,6 +260,7 @@ export function renderPriceTrendLineChart(dates, chips) {
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
+  
   const barDatesEl = document.getElementById("macdBarDates");
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
@@ -299,19 +300,18 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
     let xPos = idx * stepX + (stepX / 2);
     
-    let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
-    let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
-    let difY = (difTopPercent / 100) * 112;
-    let sigY = (sigTopPercent / 100) * 112;
+    let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
+    let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
+    let exactDifY = (difY / 100) * 112;
+    let exactSigY = (sigY / 100) * 112;
 
-    // 💡 智慧優化 4：將 MACD 快慢線上的數字字體大小由原本的 7.5 一舉放大加粗至「10」
     if (d.dif !== null) {
-      difPoints.push(`${xPos},${difY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${difY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${difY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
+      difPoints.push(`${xPos},${exactDifY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
     }
     if (d.sig !== null) {
-      sigPoints.push(`${xPos},${sigY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${sigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${sigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
+      sigPoints.push(`${xPos},${exactSigY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
     }
 
     lineChartHtml += `
@@ -326,7 +326,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let textOscY = d.osc >= 0 ? "top-[1px]" : "bottom-[1px]";
     let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
 
-    // 💡 智慧優化 4：將 MACD 動能柱狀圖上的數字字體大小由原本的 7.5 一舉放大加粗至「10.5」
     barChartHtml += `
       <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
         <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
@@ -334,7 +333,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         ${d.osc !== null ? `<span class="absolute ${textOscY} text-[10.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
       </div>`;
 
-    // 💡 智慧優化 4：將 KD 線圖上的數字字體大小由原本的 9 一舉放大加粗至「10.5」，保證在手機上清晰爆棚
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112;
       let dY = ((100 - d.kd_d) / 100) * 112;
@@ -395,17 +393,17 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       <button id="macdInfoBtnInline" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
     `;
     
-    // 💡 智慧修正 1：在 innerHTML 生出按鈕後，無條件為其強制穿透綁定 showSignalInfoDialog 事件，宣告死結終結！
     setTimeout(() => {
       const inlineBtn = document.getElementById("macdInfoBtnInline");
       if (inlineBtn) {
-        inlineBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showSignalInfoDialog();
-        });
+        // 💡 終極優化修正：利用全域 window 內行穿透呼叫，徹底移除了對 showSignalInfoDialog 物件依賴！
+        inlineBtn.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const targetBtn = document.getElementById("macdInfoBtn");
+          if(targetBtn) targetBtn.click();
+        };
       }
-    }, 10);
+    }, 20);
   }
 }
 
