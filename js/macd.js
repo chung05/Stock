@@ -183,7 +183,6 @@ export async function openCombinedModal(stockId, stockName) {
   } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
 }
 
-// 💡 智慧重大升級：為 MA5, MA10, MA20 補齊「獨立數據圓點」與「獨立浮動數值標籤」，並優化高反差色系配比
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   const priceDatesEl = document.getElementById("trendPriceDates");
@@ -219,7 +218,6 @@ export function renderPriceTrendLineChart(dates, chips) {
     
     let exactX = idx * stepX + (stepX / 2); 
 
-    // 🔵 1. 當日股價主線座標 (深藍線)
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 55 + 20;
       let exactY = 96 - ((yPercent / 100) * 96); 
@@ -229,30 +227,24 @@ export function renderPriceTrendLineChart(dates, chips) {
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="9" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
     
-    // 🟣 2. MA5 週線座標與數值點 (鮮紫線)
     if (ma5 !== null && state.visibleLines.ma5) {
       let yPercent = ((ma5 - minP) / rangeP) * 55 + 20;
       let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA5.push(`${exactX},${exactY}`);
-      // 補齊數值點與微型標籤：高度向下方修正防撞
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 8}" text-anchor="middle" font-weight="bold" font-size="8" fill="#6b21a8" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
     }
 
-    // 🟢 3. MA10 雙週線座標與數值點 (嫩綠線)
     if (ma10 !== null && state.visibleLines.ma10) {
       let yPercent = ((ma10 - minP) / rangeP) * 55 + 20;
       let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA10.push(`${exactX},${exactY}`);
-      // 補齊數值點與微型標籤：高度向上方修正防撞
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="bold" font-size="8" fill="#065f46" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
 
-    // 🟠 4. MA20 月線座標與數值點 (亮橘線)
     if (ma20 !== null && state.visibleLines.ma20) {
       let yPercent = ((ma20 - minP) / rangeP) * 55 + 20;
       let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA20.push(`${exactX},${exactY}`);
-      // 補齊數值點與微型標籤：高度向更深下方修正防撞
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="bold" font-size="8" fill="#9a3412" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
     }
 
@@ -262,15 +254,10 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceChartEl.innerHTML = `
     <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;">
       <line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
-      
       ${polylineMA5.length > 0 ? `<polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#a855f7" stroke-width="1.2" stroke-dasharray="2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      
       ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      
       ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      
       <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      
       ${svgCirclesHtml}
     </svg>`;
     
@@ -324,19 +311,12 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (currentSignalCode === "9") { descText = "下跌動能持續減弱，市場賣壓枯竭開始尋找底部支撐，為反轉重要前兆。"; condText = "綠柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成黃金交叉"; bg = "bg-teal-600 text-teal-600"; }
   if (currentSignalCode === "10") { descText = "空頭架構正式終結，中期多頭結構開始形成，為極具波段價值的翻多訊號。"; condText = "DIF黃金交叉DEA 且 柱狀圖由綠轉紅 (可伴隨底背離特徵)"; bg = "bg-indigo-600 text-indigo-600"; }
   if (currentSignalCode === "11") { descText = "上漲高檔動能開始流失，追價意願顯著下降，主力籌碼分批撤離。"; condText = "紅柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成死亡交叉"; bg = "bg-fuchsia-600 text-fuchsia-600"; }
-  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立。"; condText = "DIF死亡交叉DEA 且 柱狀圖由紅轉綠 (可伴隨頂背離特徵)"; bg = "bg-purple-600 text-purple-600"; }
+  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立. "; condText = "DIF死亡交叉DEA 且 柱狀圖由紅轉綠 (可伴隨頂背離特徵)"; bg = "bg-purple-600 text-purple-600"; }
   
-  const labelMap = {
-    "1": "多頭加速", "2": "多頭減速", "3": "多頭回檔", "4": "多頭再啟",
-    "5": "空頭加速", "6": "空頭減速", "7": "空頭反彈", "8": "空頭續跌",
-    "9": "底部築底", "10": "底部翻多", "11": "頂部鈍化", "12": "頂部翻空"
-  };
-  
-  let lbl = labelMap[currentSignalCode] || "未知趨勢";
-
   setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
-    boardTitleEl.innerHTML = `<span class="px-2 py-0.5 ${bg.split(' ')[0]} text-white rounded font-extrabold text-xs animate-pulse mr-1.5">${lbl}</span> <span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${titleText}</span>`;
+    // 💡 智慧修正點：完全清洗掉原本重複出現的 lbl 色塊閃爍標籤，只保留唯一的 12 大模型大橫幅，清爽俐落
+    boardTitleEl.innerHTML = `<span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${titleText}</span>`;
   }
 }
 
