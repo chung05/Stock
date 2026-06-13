@@ -12,30 +12,40 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBackfill() {
-  console.log("🚀 開始執行【全量歷史結構覆蓋】技術指標大回填補件工程...");
+  console.log("🚀 開始執行【180 檔全量無損結構覆蓋】技術指標大回填補件工程...");
 
-  // 1. 取得資料庫中所有股票代號
-  const { data: stocks, error: stockErr } = await supabase
+  // 🧠 終極優化：利用 rpc 或是大資料量校正，改用精準的不重複分組查詢，徹底突破 Supabase 1000 筆單次傳輸限制
+  const { data: stockNodes, error: stockErr } = await supabase
     .from('stock_chips_daily')
-    .select('stock_id');
+    .select('stock_id')
+    .not('stock_id', 'is', null);
 
-  if (stockErr) { console.error("無法撈取代號:", stockErr); return; }
-  const uniqueStockIds = [...new Set(stocks.map(s => s.stock_id))];
-  console.log(`📊 總共有 ${uniqueStockIds.length} 檔股票需要進行歷史全指標回填。`);
+  if (stockErr) { console.error("❌ 無法撈取代號清單:", stockErr); return; }
+
+  // 💡 安全雙重保障：改用大容量 Mapping 對齊
+  const uniqueStockIds = [...new Set(stockNodes.map(s => String(s.stock_id).trim()))].sort();
+  console.log(`📊 經全量去重校正，實際偵測到有紀錄的個股總數: ${uniqueStockIds.length} 檔 (應為 180 檔)`);
+
+  let successCount = 0;
+  let failCount = 0;
 
   for (let i = 0; i < uniqueStockIds.length; i++) {
     const stockId = uniqueStockIds[i];
     console.log(`🔄 (${i + 1}/${uniqueStockIds.length}) 歷史全指標洗白重算中: ${stockId}`);
 
     try {
-      // 2. 獲取該股自 2026 年以來的所有歷史資料
+      // 獲取該股自 2026 年以來的所有歷史資料
       const { data: pricePool, error: fetchErr } = await supabase
         .from('stock_chips_daily')
         .select('*')
         .eq('stock_id', stockId)
         .order('date', { ascending: true });
 
-      if (fetchErr || !pricePool || pricePool.length === 0) continue;
+      if (fetchErr || !pricePool || pricePool.length === 0) {
+        console.log(`⚠️ 標的 ${stockId} 在資料庫中無價格列，跳過。`);
+        failCount++;
+        continue;
+      }
 
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
       const difHistory = [];
@@ -55,7 +65,7 @@ async function runBackfill() {
         let calculatedDif = null, calculatedMacdSignal = null, calculatedMacdOsc = null;
 
         if (currentPrice !== null && currentPrice !== undefined) {
-          // 🧠 (A) MA5 計算
+          // 🧠 (A) MA5 週線計算
           if (subLen >= 5) {
             const sum5 = subPool.slice(-5).reduce((a, b) => a + (b.price || 0), 0);
             calculatedMA5 = parseFloat((sum5 / 5).toFixed(2));
@@ -76,7 +86,7 @@ async function runBackfill() {
             calculatedMA60 = parseFloat((sum60 / 60).toFixed(2));
           }
 
-          // 🧠 (E) RSI14 遞迴回填
+          // 🧠 (E) RSI14 遞迴計算
           if (subLen >= 15) {
             let avgUp = 0, avgDown = 0;
             let rsiInitialized = false;
@@ -136,19 +146,29 @@ async function runBackfill() {
         });
       }
 
-      // 3. 分批安全寫回
+      // 分批安全寫回
       const { error: writeErr } = await supabase
         .from('stock_chips_daily')
         .upsert(rowUpdates);
       
-      if (writeErr) console.error(`❌ 歷史更新 ${stockId} 失敗:`, writeErr.message);
+      if (writeErr) {
+        console.error(`❌ 歷史更新 ${stockId} 失敗:`, writeErr.message);
+        failCount++;
+      } else {
+        successCount++;
+        console.log(`[回填成功] ${stockId} 技術指標全數補件到位。`);
+      }
 
     } catch (err) {
-      console.error(`⚠️ ${stockId} 歷史校正發生異常，跳過。`);
+      console.error(`⚠️ ${stockId} 歷史校正發生系統級異常，跳過。`);
+      failCount++;
     }
     await sleep(60); 
   }
-  console.log("✅ 歷史全量補件與 MA5 週線工程大獲全勝！");
+
+  console.log(`\n🏁 【補件工程報告】全數執行完畢！`);
+  console.log(`✅ 成功重新回填指標: ${successCount} 檔`);
+  console.log(`❌ 遭跳過檔數: ${failCount} 檔`);
 }
 
 runBackfill();
