@@ -1,6 +1,9 @@
 // js/ui.js
-import { state, getValIgnoreCase, MACD_SIGNALS, decodeMacdSignal } from './config.js';
+import { state, getValIgnoreCase, decodeMacdSignal } from './config.js';
 import { renderPriceTrendLineChart, renderSeparatedMacdChartAndDecodeSignals, renderChipTrendChart, scrollToLatestTrend } from './macd.js';
+
+// 初始化全域新過濾狀態
+state.currentMacdFilter = 'ALL';
 
 export function updateDisplayDates(startDateStr) {
   const el = document.getElementById("chipUpdateTime");
@@ -9,30 +12,17 @@ export function updateDisplayDates(startDateStr) {
   if (elMob) elMob.innerText = startDateStr || "--";
 }
 
-// 💡 終極修正：升級為「全自動狀態記憶選單引擎」，徹底防止非同步連線後選單被再次洗白清空
 export function updateTabSelectOptions(sheets) {
   const select = document.getElementById("tabSelect");
   if (!select) return;
   
-  // 🧠 智慧記憶：如果異步撈完資料後沒有傳入 sheets 頁籤，自動自動從全域緩衝 state 中撈取，確保萬無一失
   let activeSheets = sheets;
   if (!activeSheets || activeSheets.length === 0) {
     activeSheets = Array.from(state.targetSheetsSet);
   }
   
   let html = `<option value="全部">🌐 全部成分股</option>`;
-  
-  // 🧠 核心注入：在選單中追加 6 大 MACD 趨勢型態篩選群組
-  html += `<optgroup label="🎯 MACD 趨勢型態篩選">`;
-  Object.keys(MACD_SIGNALS).forEach(key => {
-    html += `<option value="MACD_${key}">📈 ${MACD_SIGNALS[key]}</option>`;
-  });
-  html += `</optgroup>`;
-
-  // 注入 Excel 分類頁籤
-  html += `<optgroup label="📁 雲端標的分群">`;
   activeSheets.forEach(sheet => { if (sheet) html += `<option value="${sheet}">📁 ${sheet}</option>`; });
-  html += `</optgroup>`;
   
   select.innerHTML = html;
   select.value = state.currentSourceTab;
@@ -42,6 +32,13 @@ export function switchTab(sheetName) {
   state.currentSourceTab = sheetName; 
   applyFilters(); 
 }
+
+// 💡 智慧新增：變更 MACD 型態過濾器的觸發中樞
+export function changeMacdFilter(val) {
+  state.currentMacdFilter = val;
+  applyFilters();
+}
+
 export function changeSortMode(val) { state.currentSortMode = val; applyFilters(); }
 export function changeSumDaysMode(val) { state.currentSumDaysMode = parseInt(val, 10); applyFilters(); }
 export function handleSearchKeyup(e) { const clearBtn = document.getElementById("clearSearchBtn"); if (document.getElementById("keywordInput").value.trim() !== "") { clearBtn.classList.remove("hidden"); } else { clearBtn.classList.add("hidden"); } if (e.key === "Enter") executeStockSearch(); }
@@ -52,7 +49,6 @@ export function renderTableHeader() {
   const headerDates = document.getElementById("tableHeaderDates"), headerSub = document.getElementById("tableHeaderSub");
   if (!headerDates || !headerSub || state.recentDates.length === 0) return;
 
-  // 💡 智慧連線：確保大表格內部的排序與結算天數一律精準對齊 state 全域物件
   let datesHtml = `
     <th rowspan="2" class="px-1 py-2 bg-slate-200 sticky left-0 z-40 w-[112px] min-w-[112px] max-w-[112px] align-middle text-center border-r border-slate-300">
       <div class="flex flex-col items-center gap-1">
@@ -91,21 +87,21 @@ export function applyFilters() {
   let filteredStocks = [...state.dbStockData];
   const tab = state.currentSourceTab;
 
-  // 智慧篩選型態攔截過濾
+  // 🧠 1. 第一軌過濾：Excel群組分頁篩選
   if (tab !== '全部') {
-    if (tab.startsWith("MACD_")) {
-      const targetSignalCode = tab.replace("MACD_", ""); // 分離出 A, B, C, D, E, F 代號
-      filteredStocks = state.dbStockData.filter(item => {
-        if (!item) return false;
-        const myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(item.stock_id).trim());
-        return decodeMacdSignal(myChips) === targetSignalCode;
-      });
-    } else {
-      // 傳統頁籤分類過濾
-      filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
-    }
+    filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
   }
 
+  // 🧠 2. 第二軌過濾：獨立的 MACD 六大象限技術型態篩選 (雙軌疊加交叉計算)
+  if (state.currentMacdFilter !== 'ALL') {
+    filteredStocks = filteredStocks.filter(item => {
+      if (!item) return false;
+      const myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(item.stock_id).trim());
+      return decodeMacdSignal(myChips) === state.currentMacdFilter;
+    });
+  }
+
+  // 關鍵字搜尋過濾
   if (state.searchKeyword !== "") {
     filteredStocks = filteredStocks.filter(item => {
       if (!item) return false;
@@ -113,35 +109,24 @@ export function applyFilters() {
     });
   }
   
-  // 🧠 核心動能加壓排序：如果下拉選單切換至 MACD 型態，自動強制改為「依今日最新動能 OSC 柱狀體由大到小排序」
-  if (tab.startsWith("MACD_")) {
-    filteredStocks.sort((a, b) => {
-      const chipsA = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(a.stock_id).trim()).sort((x,y) => y.date.localeCompare(x.date));
-      const chipsB = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(b.stock_id).trim()).sort((x,y) => y.date.localeCompare(x.date));
-      const oscA = chipsA.length > 0 ? (getValIgnoreCase(chipsA[0], 'macd_osc') || 0) : -999;
-      const oscB = chipsB.length > 0 ? (getValIgnoreCase(chipsB[0], 'macd_osc') || 0) : -999;
-      return oscB - oscA; 
-    });
-  } else {
-    // 傳統三大法人籌碼加總排行
-    filteredStocks.sort((a, b) => {
-      const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
-      if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+  // 🧠 3. 完美回歸常規排序：當篩選完畢後，排序權重 100% 交還給右側原汁原味的「代號、外資、投信買賣超」
+  filteredStocks.sort((a, b) => {
+    const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
+    if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
 
-      const getSumForStock = (stockId, buyField, sellField) => {
-        const chips = state.globalChipCache.filter(c => String(c.stock_id).trim() === stockId), sumDates = state.recentDates.slice(0, state.currentSumDaysMode);
-        return chips.reduce((acc, row) => { if (!sumDates.includes(String(row.date))) return acc; return acc + (Math.round((row[buyField] || 0) / 1000) - Math.round((row[sellField] || 0) / 1000)); }, 0);
-      };
+    const getSumForStock = (stockId, buyField, sellField) => {
+      const chips = state.globalChipCache.filter(c => String(c.stock_id).trim() === stockId), sumDates = state.recentDates.slice(0, state.currentSumDaysMode);
+      return chips.reduce((acc, row) => { if (!sumDates.includes(String(row.date))) return acc; return acc + (Math.round((row[buyField] || 0) / 1000) - Math.round((row[sellField] || 0) / 1000)); }, 0);
+    };
 
-      let valA = 0, valB = 0; const m = state.currentSortMode;
-      if (m==='foreign_buy') { valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell'); return valB - valA; }
-      if (m==='foreign_dealer_buy') { valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell'); return valB - valA; }
-      if (m==='investment_buy') { valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell'); return valB - valA; }
-      if (m==='dealer_self_buy') { valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell'); return valB - valA; }
-      if (m==='dealer_hedging_buy') { valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell'); return valB - valA; }
-      return 0;
-    });
-  }
+    let valA = 0, valB = 0; const m = state.currentSortMode;
+    if (m==='foreign_buy') { valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell'); return valB - valA; }
+    if (m==='foreign_dealer_buy') { valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell'); return valB - valA; }
+    if (m==='investment_buy') { valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell'); return valB - valA; }
+    if (m==='dealer_self_buy') { valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell'); return valB - valA; }
+    if (m==='dealer_hedging_buy') { valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell'); return valB - valA; }
+    return 0;
+  });
 
   renderMatrixTableFromCache(filteredStocks);
 }
