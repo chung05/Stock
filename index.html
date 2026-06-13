@@ -51,12 +51,16 @@
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
       
-      <div class="py-2.5 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl shrink-0">
-        <h3 id="newsModalTitle" class="text-sm font-black text-slate-500 shrink-0">個股詳細資訊</h3>
-        <div id="macdSignalTitle" class="flex items-center justify-center gap-1.5 grow px-4 min-w-0 text-center">
+      <div class="py-2.5 px-4 border-b border-slate-200 grid grid-cols-3 items-center bg-slate-50 rounded-t-2xl shrink-0">
+        <h3 id="newsModalTitle" class="text-xs sm:text-sm font-black text-slate-900 truncate text-left">個股詳細資訊</h3>
+        
+        <div id="macdSignalTitle" class="text-center flex justify-center items-center gap-1 min-w-0">
           <span class="text-xs font-bold text-slate-400 animate-pulse">正在精準解碼趨勢模型...</span>
         </div>
-        <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1 shrink-0">✕</button>
+        
+        <div class="text-right">
+          <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1 inline-block">✕</button>
+        </div>
       </div>
 
       <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
