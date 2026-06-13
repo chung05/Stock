@@ -226,27 +226,27 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   });
 
   if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml; if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
+  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml; if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
 
+  // 🧠 終極修復對接點：強制向擁有 20 天縱向歷史深度的原始快取（chips 參數已在 openCombinedModal 傳入原始快取母陣列）要資料！
   const currentSignalCode = decodeMacdSignal(chips);
   const titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
   let descText = "", condText = "", bg = "";
   
   if (currentSignalCode === "A") { descText = "市場呈現極強多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，代表多頭買盤源源不絕，有利漲勢延續。"; condText = "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 持續上升 且 OSC 動能柱由負翻正或正值放大"; bg = "bg-rose-600 text-rose-600"; }
-  if (currentSignalCode === "B") { descText = "目前仍處於多頭格局之中，但快線向上挺進斜率走平，多方柱狀體出現連續收縮，需補防獲利洗盤賣壓。"; condText = "DIF > DEA 且 DIF 上升變慢 且 OSC 柱狀圖連續縮小但維持正值"; bg = "bg-orange-500 text-orange-600"; }
+  if (currentSignalCode === "B") { descText = "滿足這 1~2 天內是「第一天剛發動突破」！可能為快慢線第一天完成黃金交叉，或是多方動能柱第一天由綠翻紅，為極珍貴的黑馬起漲點。"; condText = "昨日DIF <= 昨日DEA 且 今日DIF > 今日DEA OR 昨日OSC <= 0 且 今日OSC > 0"; bg = "bg-blue-600 text-blue-600"; }
   if (currentSignalCode === "C") { descText = "多空關鍵防守位置。快線已領先出現向下彎頭回檔，慢線走平，動能柱正快速向零軸收斂，暗示高檔主力籌碼分批調節。"; condText = "DIF 開始下彎 且 DEA 仍上升或走平 且 OSC 柱狀圖收斂向0"; bg = "bg-amber-500 text-amber-600"; }
   if (currentSignalCode === "D") { descText = "趨勢發生高檔向下扭轉。快線正式下穿慢線形成死亡交叉，動能柱翻黑轉負，波段轉空確立，多單宜全面避開風險。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF 下彎 且 OSC 轉負"; bg = "bg-slate-700 text-slate-800"; }
   if (currentSignalCode === "E") { descText = "完全進入窒息的主跌段，快慢線同步於零軸下方加速下滑，空方負向柱狀體急速放大，下跌動能強勁，不可波段盲目摸底。"; condText = "DIF < DEA 且 DIF 持續下滑 且 負值柱狀體負值放大"; bg = "bg-emerald-600 text-emerald-600"; }
   if (currentSignalCode === "F") { descText = "雖然屬空頭架構，但快線下跌斜率已收斂並開始底部走平，空方柱狀體連續縮短（負值變小），暗示低檔反彈醖釀。"; condText = "DIF < DEA 且 負向柱狀圖持續縮短 且 DIF 開始走平"; bg = "bg-purple-600 text-purple-600"; }
   
-  // 🧠 完美校正：直接定義 6 種型態各自獨立對應的小標籤文字，實現全量對齊！
   const labelMap = {
-    "A": "多頭加速",
-    "B": "多頭降溫",
-    "C": "警戒轉弱",
-    "D": "轉折波段",
+    "A": "持續續強",
+    "B": "初動轉強",
+    "C": "多頭降溫",
+    "D": "空頭開始",
     "E": "空頭加速",
-    "F": "築底醖釀"
+    "F": "空頭衰退"
   };
   
   let lbl = labelMap[currentSignalCode] || "未知型態";
