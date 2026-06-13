@@ -114,7 +114,7 @@ function bindBiDirectionalScrollLinkage() {
 export async function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
-  document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName} - 智慧過濾籌碼寬資版`;
+  document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
   
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
   const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
@@ -137,7 +137,7 @@ export async function openCombinedModal(stockId, stockName) {
       if (cv > 0) document.getElementById("modalInfoChange").innerHTML = `<span class="text-rose-600">▲${cv}</span>`;
       else if (cv < 0) document.getElementById("modalInfoChange").innerHTML = `<span class="text-emerald-600">▼${Math.abs(cv)}</span>`;
       else document.getElementById("modalInfoChange").innerText = '0.0';
-      document.getElementById("modalInfoMA10").innerText = (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) ? latestDayData.ma10 : '--';
+      document.getElementById("modalInfoMA10").innerText = (latestDayData.ma5 !== undefined && latestDayData.ma5 !== null) ? latestDayData.ma5 : '--';
       document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
       document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
       
@@ -222,32 +222,25 @@ export function renderPriceTrendLineChart(dates, chips) {
       let yPercent = ((price - minP) / rangeP) * 55 + 20;
       let exactY = 96 - ((yPercent / 100) * 96); 
       polylinePrice.push(`${exactX},${exactY}`);
-      
       let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 14) : (exactY - 6);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="9" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
     
     if (ma5 !== null && state.visibleLines.ma5) {
-      let yPercent = ((ma5 - minP) / rangeP) * 55 + 20;
-      let exactY = 96 - ((yPercent / 100) * 96);
+      let yPercent = ((ma5 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA5.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 8}" text-anchor="middle" font-weight="bold" font-size="8" fill="#6b21a8" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
     }
-
     if (ma10 !== null && state.visibleLines.ma10) {
-      let yPercent = ((ma10 - minP) / rangeP) * 55 + 20;
-      let exactY = 96 - ((yPercent / 100) * 96);
+      let yPercent = ((ma10 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA10.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="bold" font-size="8" fill="#065f46" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
-
     if (ma20 !== null && state.visibleLines.ma20) {
-      let yPercent = ((ma20 - minP) / rangeP) * 55 + 20;
-      let exactY = 96 - ((yPercent / 100) * 96);
+      let yPercent = ((ma20 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA20.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="bold" font-size="8" fill="#9a3412" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
     }
-
     dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
   });
 
@@ -260,42 +253,107 @@ export function renderPriceTrendLineChart(dates, chips) {
       <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       ${svgCirclesHtml}
     </svg>`;
-    
   priceDatesEl.innerHTML = dateHtml;
 }
 
+// 💡 終極優化重構：整合置中標題、動態移位 MACD 圖例、並完美加開渲染全新的 KD 線圖 (0~100固態空間)
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
   
+  // 🚀 智慧追加：取得全新 KD 線圖畫布與日期欄位節點
+  const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
+
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
-  let dataset = cronDates.map(d => { const row = chips.find(c => String(c.date) === d); return { date: d, dif: row ? getValIgnoreCase(row, 'macd_dif') : null, sig: row ? getValIgnoreCase(row, 'macd_signal') : null, osc: row ? getValIgnoreCase(row, 'macd_osc') : null }; });
+  let dataset = cronDates.map(d => { 
+    const row = chips.find(c => String(c.date) === d); 
+    return { 
+      date: d, 
+      dif: row ? getValIgnoreCase(row, 'macd_dif') : null, 
+      sig: row ? getValIgnoreCase(row, 'macd_signal') : null, 
+      osc: row ? getValIgnoreCase(row, 'macd_osc') : null,
+      kd_k: row ? getValIgnoreCase(row, 'kd_k') : null, // 🚀 提取實體 KD 數據
+      kd_d: row ? getValIgnoreCase(row, 'kd_d') : null  // 🚀 提取實體 KD 數據
+    }; 
+  });
+
+  // --- MACD 數值邊界計算 ---
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
-  let containerWidth = lineChartEl.clientWidth || 728, count = dataset.length, stepX = containerWidth / count; 
+  let containerWidth = lineChartEl.clientWidth || 820, count = dataset.length, stepX = containerWidth / count; 
+  
   let difPoints = [], sigPoints = [], lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
+
+  // --- ⚡ KD 指標邊界計算 (隨機指標永遠固定在固定的 0 ~ 100 區間畫布空間中) ---
+  let kdChartHtml = `
+    <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
+    <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
+    <div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>
+    <div class="absolute left-1 font-black text-[7px] text-rose-400 pointer-events-none" style="top: calc(20% - 4px);">80 超買</div>
+    <div class="absolute left-1 font-bold text-[7px] text-slate-400 pointer-events-none" style="top: calc(50% - 4px);">50 中軸</div>
+    <div class="absolute left-1 font-black text-[7px] text-emerald-500 pointer-events-none" style="top: calc(80% - 4px);">20 超賣</div>
+  `;
+  let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400">${datePart}</span>`;
-    let xPos = idx * stepX + (stepX / 2), difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50, sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
-    if (d.dif !== null) difPoints.push(`${xPos},${(difTopPercent / 100) * 144}`); if (d.sig !== null) sigPoints.push(`${xPos},${(sigTopPercent / 100) * 144}`);
+    let xPos = idx * stepX + (stepX / 2);
+    
+    // (A) MACD 快慢線高度百分比
+    let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
+    let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
+    if (d.dif !== null) difPoints.push(`${xPos},${(difTopPercent / 100) * 112}`); 
+    if (d.sig !== null) sigPoints.push(`${xPos},${(sigTopPercent / 100) * 112}`);
 
     lineChartHtml += `
       <div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20">
         <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
-        <div class="absolute w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white" style="top: calc(${difTopPercent}% - 4px); left: calc(50% - 4px);"></div>
-        <div class="absolute w-2 h-2 rounded-full bg-orange-400 ring-2 ring-white" style="top: calc(${sigTopPercent}% - 4px); left: calc(50% - 4px);"></div>
-        <div class="hidden group-hover:flex flex-col absolute bg-slate-900/95 text-white text-[10px] p-2 rounded shadow-xl z-50 border border-slate-700 pointer-events-none -top-12 whitespace-nowrap font-bold leading-tight"><div>📅 日期: ${d.date}</div><div class="text-sky-400">DIF: ${d.dif !== null ? d.dif.toFixed(3) : '--'}</div><div class="text-orange-400">DEA: ${d.sig !== null ? d.sig.toFixed(3) : '--'}</div><div class="${d.osc >= 0 ? 'text-rose-400' : 'text-emerald-400'}">OSC: ${d.osc !== null ? d.osc.toFixed(3) : '--'}</div></div>
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-blue-500" style="top: calc(${difTopPercent}% - 3px); left: calc(50% - 3px);"></div>
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-orange-400" style="top: calc(${sigTopPercent}% - 3px); left: calc(50% - 3px);"></div>
       </div>`;
+      
+    // MACD 柱狀體
     let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0, oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90", oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
-    barChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div><div class="absolute w-3.5 max-w-[14px] min-w-[5px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${oscHeightPct}%;"></div></div>`;
+    barChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div><div class="absolute w-3.5 max-w-[12px] min-w-[4px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${oscHeightPct}%;"></div></div>`;
+
+    // 🚀 (B) 隨機指標 KD 線圖圖層計算 (0 ~ 100 固態空間對照)
+    if (d.kd_k !== null && d.kd_d !== null) {
+      let kTopPct = 100 - d.kd_k; // 100 減去數值即為 SVG 由上而下的 Top 座標
+      let dTopPct = 100 - d.kd_d;
+      
+      kPoints.push(`${xPos},${(kTopPct / 100) * 112}`);
+      dPoints.push(`${xPos},${(dTopPct / 100) * 112}`);
+
+      // 補齊 KD 線圖的圓點與精準數值標籤 (一上一下交錯防撞字)
+      kdCirclesHtml += `
+        <circle cx="${xPos}" cy="${(kTopPct / 100) * 112}" r="2" fill="#0ea5e9" />
+        <circle cx="${xPos}" cy="${(dTopPct / 100) * 112}" r="2" fill="#f59e0b" />
+        <text x="${xPos}" y="${(kTopPct / 100) * 112 - 4}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text>
+        <text x="${xPos}" y="${(dTopPct / 100) * 112 + 9}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>
+      `;
+    }
+    kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  // 渲染 MACD 快慢線
+  if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml; if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
 
+  // 🚀 核心繪製：渲染 KD 雙軌隨機強弱曲線與數值標籤
+  if (kPoints.length > 0 || dPoints.length > 0) {
+    kdChartHtml += `
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;">
+        <polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${kdCirclesHtml}
+      </svg>`;
+  }
+  if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
+  if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
+
+  // 12 趨勢解碼晶片大腦
   const currentSignalCode = decodeMacdSignal(chips);
   const titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
   let descText = "", condText = "", bg = "";
@@ -311,12 +369,17 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (currentSignalCode === "9") { descText = "下跌動能持續減弱，市場賣壓枯竭開始尋找底部支撐，為反轉重要前兆。"; condText = "綠柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成黃金交叉"; bg = "bg-teal-600 text-teal-600"; }
   if (currentSignalCode === "10") { descText = "空頭架構正式終結，中期多頭結構開始形成，為極具波段價值的翻多訊號。"; condText = "DIF黃金交叉DEA 且 柱狀圖由綠轉紅 (可伴隨底背離特徵)"; bg = "bg-indigo-600 text-indigo-600"; }
   if (currentSignalCode === "11") { descText = "上漲高檔動能開始流失，追價意願顯著下降，主力籌碼分批撤離。"; condText = "紅柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成死亡交叉"; bg = "bg-fuchsia-600 text-fuchsia-600"; }
-  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立. "; condText = "DIF死亡交叉DEA 且 柱狀圖由紅轉綠 (可伴隨頂背離特徵)"; bg = "bg-purple-600 text-purple-600"; }
+  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立。"; condText = "DIF死亡交叉DEA 且 柱狀圖由紅轉綠 (可伴隨頂背離特徵)"; bg = "bg-purple-600 text-purple-600"; }
   
   setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
-    // 💡 智慧修正點：完全清洗掉原本重複出現的 lbl 色塊閃爍標籤，只保留唯一的 12 大模型大橫幅，清爽俐落
-    boardTitleEl.innerHTML = `<span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${titleText}</span>`;
+    // 💡 智慧修正 1：依照您的需求，將 12 趨勢資訊以高亮粗體「置中」呈現在最頂端標題，並伴隨整合 ℹ️ 按鈕
+    boardTitleEl.innerHTML = `
+      <div class="flex items-center justify-center gap-1.5 w-full">
+        <span class="${bg.split(' ')[1]} font-black text-sm md:text-base tracking-wide">${titleText}</span>
+        <button id="macdInfoBtnInline" onclick="document.getElementById('macdInfoBtn').click()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1.5 py-0.5 text-[10px] font-black shadow-3xs transition-all cursor-pointer">ℹ️ 條件</button>
+      </div>
+    `;
   }
 }
 
