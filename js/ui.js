@@ -90,12 +90,10 @@ export function applyFilters() {
     let filteredStocks = [...state.dbStockData];
     const tab = state.currentSourceTab;
 
-    // 🧠 1. 第一軌過濾：Excel群組分頁篩選
     if (tab !== '全部') {
       filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
     }
 
-    // 🧠 2. 第二軌過濾：獨立的 MACD 十二大立體趨勢型態篩選
     if (state.currentMacdFilter !== 'ALL') {
       filteredStocks = filteredStocks.filter(item => {
         if (!item) return false;
@@ -104,7 +102,6 @@ export function applyFilters() {
       });
     }
 
-    // 關鍵字搜尋過濾
     if (state.searchKeyword !== "") {
       filteredStocks = filteredStocks.filter(item => {
         if (!item) return false;
@@ -112,7 +109,6 @@ export function applyFilters() {
       });
     }
     
-    // 🧠 3. 法人籌碼排序
     filteredStocks.sort((a, b) => {
       const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
       if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
@@ -150,12 +146,14 @@ export function renderMatrixTableFromCache(stocks) {
   let htmlString = ""; const sumDates = state.recentDates.slice(0, state.currentSumDaysMode);
   stocks.forEach(item => {
     if (!item) return; const currentIdStr = String(item.stock_id).trim(), myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === currentIdStr);
-    let currentPrice = "--", changeValue = 0, mainMA10 = "--", mainMA20 = "--", mainRSI14 = "--", mainMACDOsc = "--";
+    let currentPrice = "--", changeValue = 0, mainMA5 = "--", mainMA10 = "--", mainMA20 = "--", mainRSI14 = "--", mainMACDOsc = "--";
     if (state.recentDates.length > 0) {
       const latestDayData = myChips.find(c => String(c.date) === state.recentDates[0]);
       if (latestDayData) {
         if (latestDayData.price !== undefined && latestDayData.price !== null) currentPrice = latestDayData.price;
         changeValue = latestDayData.change_value || 0;
+        // 💡 智慧對齊：提取每日同步與歷史補齊的真理 ma5 / ma10 / ma20 欄位
+        if (latestDayData.ma5 !== undefined && latestDayData.ma5 !== null) mainMA5 = latestDayData.ma5;
         if (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) mainMA10 = latestDayData.ma10;
         if (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) mainMA20 = latestDayData.ma20;
         if (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) mainRSI14 = latestDayData.rsi14;
@@ -212,8 +210,8 @@ export function renderMatrixTableFromCache(stocks) {
             <div class="text-xs mt-0.5">${priceChangeHtml}</div>
           </div>
           <div class="mt-2 mx-0.5 p-1 bg-slate-200/80 rounded border border-slate-300/60 flex flex-col gap-0.5 text-[14px] font-black text-left tracking-tighter leading-none">
-            <div class="flex items-center"><span class="text-blue-600 shrink-0 font-bold">M10:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA10}</span></div>
-            <div class="flex items-center"><span class="text-orange-600 shrink-0 font-bold">M20:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA20}</span></div>
+            <div class="flex items-center"><span class="text-purple-600 shrink-0 font-bold">MA5:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA5}</span></div>
+            <div class="flex items-center"><span class="text-orange-600 shrink-0 font-bold">MA20:</span><span class="text-slate-950 ml-1 grow text-right">${mainMA20}</span></div>
             <div class="flex items-center"><span class="text-purple-600 shrink-0 font-bold">RSI:</span><span class="text-slate-950 ml-1 grow text-right">${mainRSI14}</span></div>
             <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
           </div>
@@ -229,5 +227,4 @@ export function renderMatrixTableFromCache(stocks) {
   tbody.innerHTML = htmlString;
 }
 
-// 💡 關鍵修正對接點：將 macd.js 內部宣告的 toggleLine 穿透中繼匯出，100% 滿足 index.html 的模組宣告！
 export { closeNewsModal, switchModalTab, switchChipSubTab, openCombinedModal, toggleLine } from './macd.js';
