@@ -6,7 +6,7 @@ export const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 export const state = {
   currentSourceTab: '全部',
-  currentMacdFilter: 'ALL', // 串接首頁獨立 Filter 下拉選單的動態過濾變數
+  currentMacdFilter: 'ALL', // 100% 綁定首頁 12 種黃金型態 Filter
   dbStockData: [],          
   globalChipCache: [],      
   targetSheetsSet: new Set(),
@@ -20,14 +20,20 @@ export const state = {
   currentChipSubTab: "f"
 };
 
-// 完美一對一精準定義 6 大波段層級的對照表
+// 💡 完美對齊您重新規劃的 12 種趨勢模型對照表 (全域唯一真理)
 export const MACD_SIGNALS = {
-  "A": "A. 趨勢持續續強",
-  "B": "B. 初動剛轉強",
-  "C": "C. 多頭降溫期",
-  "D": "D. 空頭開始",
-  "E": "E. 空頭加速",
-  "F": "F. 空頭衰退"
+  "1": "1. 強勢多頭加速（主升段）",
+  "2": "2. 強勢多頭減速（仍漲，但動能下降）",
+  "3": "3. 多頭回檔（上漲後修正）",
+  "4": "4. 多頭再啟動（第二波上漲）",
+  "5": "5. 強勢空頭加速（主跌段）",
+  "6": "6. 強勢空頭減速（仍跌，但賣壓下降）",
+  "7": "7. 空頭反彈（跌深反彈）",
+  "8": "8. 空頭續跌（跌勢延續）",
+  "9": "9. 底部築底（空頭衰竭）",
+  "10": "10. 底部翻多（反轉向上）",
+  "11": "11. 頂部鈍化（多頭衰竭）",
+  "12": "12. 頂部翻空（反轉向下）"
 };
 
 export let globalActiveSignalDetail = { title: "", desc: "", cond: "" };
@@ -60,11 +66,10 @@ export function getValIgnoreCase(obj, targetKey) {
   return actualKey ? obj[actualKey] : null;
 }
 
-// 🧠 終極量化解碼晶片：利用 3 日連續歷史縱向軌跡，將「初動剛轉強」與「慣性持續續強」進行神級分流判定
+// 🧠 12維度立體解碼晶片：100% 遵循您的「空間線 + 柱狀圖 + 0軸相對位置」規則
 export function decodeMacdSignal(stockChips) {
-  if (!stockChips || stockChips.length < 3) return "None"; // 連續比對機制：最少必須具備 3 天以上數據
+  if (!stockChips || stockChips.length < 3) return "None"; 
   
-  // 嚴格依照日期由舊到新排序 (陣列尾端依序為: [..., 前天, 昨日, 今日])
   const dataset = [...stockChips]
     .filter(c => getValIgnoreCase(c, 'macd_dif') !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -72,61 +77,73 @@ export function decodeMacdSignal(stockChips) {
   const count = dataset.length;
   if (count < 3) return "None";
 
-  const t_latest = dataset[count - 1];  // 最新今日 (T)
-  const t_minus_1 = dataset[count - 2]; // 緊鄰昨日 (T-1)
-  const t_minus_2 = dataset[count - 3]; // 黃金前天 (T-2)
+  const t_latest = dataset[count - 1];  // 今日 (T)
+  const t_minus_1 = dataset[count - 2]; // 昨日 (T-1)
+  const t_minus_2 = dataset[count - 3]; // 前天 (T-2)
 
-  // 1. 提取今日最新數值
   let d_dif = getValIgnoreCase(t_latest, 'macd_dif');
   let d_dea = getValIgnoreCase(t_latest, 'macd_signal');
   let d_osc = getValIgnoreCase(t_latest, 'macd_osc');
+  let d_price = t_latest.price || 0;
   
-  // 2. 提取昨日數值
   let p_dif = getValIgnoreCase(t_minus_1, 'macd_dif');
   let p_dea = getValIgnoreCase(t_minus_1, 'macd_signal');
   let p_osc = getValIgnoreCase(t_minus_1, 'macd_osc');
+  let p_price = t_minus_1.price || 0;
 
-  // 3. 提取前天數值
   let pp_dif = getValIgnoreCase(t_minus_2, 'macd_dif');
-  let pp_dea = getValIgnoreCase(t_minus_2, 'macd_signal');
   let pp_osc = getValIgnoreCase(t_minus_2, 'macd_osc');
+  let pp_price = t_minus_2.price || 0;
 
-  if (d_dif === null || d_dea === null || d_osc === null || p_dif === null || p_dea === null || p_osc === null || pp_dif === null || pp_dea === null || pp_osc === null) return "None";
+  if (d_dif === null || d_dea === null || d_osc === null || p_dif === null || p_dea === null || p_osc === null) return "None";
 
-  // 🌟【交叉點具有最高否決優先權】今日正式死叉，直接確立 D 狀態 (不需看 OSC)[cite: 8]
-  if (d_dif < d_dea && p_dif >= p_dea) return "D"; 
+  // 核心微幅比對參數
+  const is_gold_cross = (d_dif > d_dea);
+  const was_gold_cross = (p_dif > p_dea);
+  const just_gold_crossed = (d_dif > d_dea && p_dif <= p_dea);
+  const just_death_crossed = (d_dif < d_dea && p_dif >= p_dea);
 
-  // 🟢 第一大軌：今日屬於多頭黃金交叉架構 (DIF > DEA)[cite: 8]
-  if (d_dif > d_dea) {
+  // 🎛️ 第一大區：多頭區（0軸上）
+  if (d_dif > 0 && d_dea > 0) {
+    if (just_gold_crossed) return "4"; // 4. 多頭再啟動（出現黃金交叉）
+    if (just_death_crossed) return "3"; // 3. 多頭回檔（出現死亡交叉）
     
-    // 【層級一：初動剛轉強 (B狀態)】── 滿足以下任一，即代表這 1~2 天內是「第一天剛發動突破」
-    // 條件(1): 昨天快線還在慢線下方，今天第一天完成黃金交叉[cite: 8]
-    // 條件(2): 昨天動能柱還是負值綠柱，今天第一天由負翻正變紅柱 (d_osc > 0 且 p_osc <= 0)[cite: 8]
-    let is_first_cross = (p_dif <= p_dea);
-    let is_first_osc_positive = (d_osc > 0 && p_osc <= 0);
-    if (is_first_cross || is_first_osc_positive) {
-      return "B";
+    if (is_gold_cross) {
+      if (d_osc > p_osc) return "1"; // 1. 強勢多頭加速（紅柱持續變長）
+      if (d_osc < p_osc) return "2"; // 2. 強勢多頭減速（紅柱持續縮短）
     }
-
-    // 【層級二：多頭降溫期 (C狀態)】── 快線領先往下彎低頭，多頭慣性煞車[cite: 8]
-    if (d_dif < p_dif) return "C";
-    
-    // 【層級三：趨勢持續續強 (A狀態)】── 排除初動與降溫後，動能紅柱呈現完美連續三天「階梯式放大」[cite: 8]
-    if (d_dif > p_dif && d_osc > p_osc && p_osc > pp_osc) {
-      return "A";
-    }
-    
-    // 其餘多頭平穩慢速推進狀態，一律歸為 C (多頭降溫期)[cite: 8]
-    return "C";
   }
 
-  // 🔴 第二大軌：今日屬於空頭死亡交叉架構 (DIF < DEA)[cite: 8]
-  if (d_dif < d_dea) {
-    // 空方綠柱持續連續縮短衰退 (今日負值 < 昨日負值 < 前天負值，向零軸靠攏)，醞釀反彈 (F狀態)[cite: 8]
-    if (d_osc > p_osc && p_osc > pp_osc) return "F";
-    // 其餘空頭探底狀態，一律視為空頭主跌段 (E. 空頭加速)[cite: 8]
-    return "E";
+  // 🎛️ 第二大區：空頭區（0軸下）
+  if (d_dif < 0 && d_dea < 0) {
+    if (just_gold_crossed) return "7"; // 7. 空頭反彈（出現黃金交叉）
+    if (just_death_crossed) return "8"; // 8. 空頭續跌（出現死亡交叉）
+    
+    if (!is_gold_cross) {
+      if (d_osc < p_osc) return "5"; // 5. 強勢空頭加速（綠柱持續變長/負值變小）
+      if (d_osc > p_osc) return "6"; // 6. 強勢空頭減速（綠柱持續縮短/負值變大趨向0）
+    }
   }
 
-  return "None";
+  // 🎛️ 第三大區：頂部轉折區 (多頭衰竭或面臨反轉向上/向下)
+  if (d_osc > 0 || (p_osc > 0 && d_osc <= 0)) {
+    // 12. 頂部翻空：出現死亡交叉，且具備頂背離特徵（今日股價高於前天，但今日DIF低於前天DIF）
+    if (just_death_crossed && d_price > pp_price && d_dif < pp_dif) return "12";
+    if (just_death_crossed) return "12"; // 基準死亡交叉轉折
+    // 11. 頂部鈍化：紅柱持續縮短，DIF向DEA靠近，尚未死亡交叉
+    if (is_gold_cross && d_osc < p_osc && d_dif < p_dif) return "11";
+  }
+
+  // 🎛️ 第四大區：底部轉折區 (空頭衰竭)
+  if (d_osc < 0 || (p_osc < 0 && d_osc >= 0)) {
+    // 10. 底部翻多：出現黃金交叉，且具備底背離特徵（今日股價低於前天，但今日DIF高於前天DIF）
+    if (just_gold_crossed && d_price < pp_price && d_dif > pp_dif) return "10";
+    if (just_gold_crossed) return "10"; // 基準黃金交叉轉折
+    // 9. 底部築底：綠柱持續縮短(負值變大)，DIF向DEA靠近，尚未黃金交叉
+    if (!is_gold_cross && d_osc > p_osc && d_dif > p_dif) return "9";
+  }
+
+  // 容錯防線：兜底回傳
+  if (is_gold_cross) return "1";
+  return "5";
 }
