@@ -86,12 +86,12 @@ export function applyFilters() {
   let filteredStocks = [...state.dbStockData];
   const tab = state.currentSourceTab;
 
-  // 🧠 1. 第一軌過濾：Excel頁籤標的分群
+  // 🧠 1. 第一軌過濾：Excel群組分頁篩選
   if (tab !== '全部') {
     filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
   }
 
-  // 🧠 2. 第二軌過濾：全新 12 大波段趨勢 Filter (交叉兼顧)
+  // 🧠 2. 第二軌過濾：獨立的 MACD 12大立體趨勢型態篩選 (雙軌疊加交叉計算)
   if (state.currentMacdFilter !== 'ALL') {
     filteredStocks = filteredStocks.filter(item => {
       if (!item) return false;
@@ -100,6 +100,7 @@ export function applyFilters() {
     });
   }
 
+  // 關鍵字搜尋過濾
   if (state.searchKeyword !== "") {
     filteredStocks = filteredStocks.filter(item => {
       if (!item) return false;
@@ -107,7 +108,7 @@ export function applyFilters() {
     });
   }
   
-  // 🧠 3. 法人籌碼排序
+  // 🧠 3. 完美回歸常規排序：當篩選完畢後，排序權重 100% 交還給右側原汁原味的「代號、外資、投信買賣超」
   filteredStocks.sort((a, b) => {
     const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
     if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
@@ -177,7 +178,12 @@ export function renderMatrixTableFromCache(stocks) {
         sumDS += (Math.round((dayData.ds_buy||0)/1000) - Math.round((dayData.ds_sell||0)/1000));
         sumDH += (Math.round((dayData.dh_buy||0)/1000) - Math.round((dayData.dh_sell||0)/1000));
       }
-      fRow += getCell(dayData.f_buy, dayData.f_sell); fdRow += getCell(dayData.fd_buy, dayData.fd_sell); iRow += getCell(dayData.it_buy, dateData.it_sell || dayData.it_sell); dsRow += getCell(dayData.ds_buy, dayData.ds_sell); dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
+      fRow += getCell(dayData.f_buy, dayData.f_sell); 
+      fdRow += getCell(dayData.fd_buy, dayData.fd_sell); 
+      // 💡 終極修復點：將原本誤植的 dateData 修正回歸為標準的 dayData，破除變數未定義死結！
+      iRow += getCell(dayData.it_buy, dayData.it_sell); 
+      dsRow += getCell(dayData.ds_buy, dayData.ds_sell); 
+      dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
     });
 
     const getSumCell = (val, isDarkRow) => {
