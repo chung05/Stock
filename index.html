@@ -89,7 +89,7 @@
                   <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-purple-500 inline-block rounded-xs"></span>(MA5)</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
-                  <input type="checkbox" id="toggleMA10" checked onchange="window.toggleLine('ma10', this.checked)" class="rounded text-emerald-600 focus:ring-emerald-400 w-3.5 h-3.5 cursor-pointer" />
+                  <input type="checkbox" id="toggleMA10" onchange="window.toggleLine('ma10', this.checked)" class="rounded text-emerald-600 focus:ring-emerald-400 w-3.5 h-3.5 cursor-pointer" />
                   <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-emerald-500 inline-block rounded-xs"></span>(MA10)</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
@@ -183,7 +183,7 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
-        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛 analysis 站</h1>
       </div>
       <div class="flex items-center gap-4 shrink-0 min-w-0">
         <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
@@ -256,42 +256,5 @@
     <span class="inline-block animate-spin text-lg text-blue-400">⏳</span>
     <span>大數據多空交叉過濾中...</span>
   </div>
-
-  <script type="module">
-    import { state, showSignalInfoDialog } from './js/config.js';
-    import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
-    import { 
-      renderTableHeader, applyFilters, switchModalTab, switchChipSubTab, clearSearchField, executeStockSearch, handleSearchKeyup, openCombinedModal, closeNewsModal, changeSortMode, changeSumDaysMode, switchTab, changeMacdFilter, toggleLine
-    } from './js/ui.js';
-
-    document.addEventListener("DOMContentLoaded", async () => {
-      window.openCombinedModal = openCombinedModal;
-      window.closeNewsModal = closeNewsModal;
-      window.changeSortMode = changeSortMode;
-      window.changeSumDaysMode = changeSumDaysMode;
-      window.switchTab = switchTab;
-      window.changeMacdFilter = changeMacdFilter;
-      window.toggleLine = toggleLine;
-
-      calculateTradeDaysLists();
-      renderTableHeader();
-
-      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
-      document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
-      document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
-      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);
-      document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);
-
-      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));
-      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));
-      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));
-
-      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));
-      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
-      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
-
-      await forceSyncFlow();
-    });
-  </script>
 </body>
 </html>
