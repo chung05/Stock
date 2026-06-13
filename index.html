@@ -1,419 +1,293 @@
-// js/macd.js
-import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
-
-if (!state.visibleLines) {
-  state.visibleLines = { ma5: true, ma10: false, ma20: true };
-}
-
-export function closeNewsModal() { 
-  document.getElementById("newsModal").classList.add("hidden"); 
-}
-
-export function toggleLine(lineKey, isChecked) {
-  if (state.visibleLines) {
-    state.visibleLines[lineKey] = isChecked;
-  }
-  if (state.currentActiveStockId) {
-    const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-    const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
-    renderPriceTrendLineChart(localTrendDates, myChipsRaw);
-  }
-}
-
-export function switchModalTab(tabMode) {
-  const btnTrend = document.getElementById("tabBtnTrend");
-  const btnMacd = document.getElementById("tabBtnMacd");
-  const btnNews = document.getElementById("tabBtnNews");
-  const zoneTrend = document.getElementById("trendZone");
-  const zoneMacd = document.getElementById("macdZone");
-  const zoneNews = document.getElementById("newsZone");
-
-  const tabs = { trend: { btn: btnTrend, zone: zoneTrend }, macd: { btn: btnMacd, zone: zoneMacd }, news: { btn: btnNews, zone: zoneNews } };
-  Object.keys(tabs).forEach(k => {
-    const b = tabs[k].btn, z = tabs[k].zone;
-    if (k === tabMode) {
-      if(b) b.className = "py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all";
-      if(z) z.classList.replace("hidden", "block");
-    } else {
-      if(b) b.className = "py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all";
-      if(z) z.classList.replace("block", "hidden");
-    }
-  });
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   
-  setTimeout(() => {
-    if (state.currentActiveStockId) {
-      const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-      const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
-      if (tabMode === 'macd') {
-        renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
-      } else if (tabMode === 'trend') {
-        if (document.getElementById("toggleMA5")) document.getElementById("toggleMA5").checked = state.visibleLines.ma5;
-        if (document.getElementById("toggleMA10")) document.getElementById("toggleMA10").checked = state.visibleLines.ma10;
-        if (document.getElementById("toggleMA20")) document.getElementById("toggleMA20").checked = state.visibleLines.ma20;
-        
-        renderPriceTrendLineChart(localTrendDates, myChipsRaw);
-        renderChipTrendChart();
-        bindBiDirectionalScrollLinkage();
-      }
-      scrollToLatestTrend(tabMode);
-    }
-  }, 30);
-}
-
-export function switchChipSubTab(subKey) {
-  state.currentChipSubTab = subKey;
-  const tabs = { f: 'subTabF', it: 'subTabIT', ds: 'subTabDS' };
-  Object.keys(tabs).forEach(k => {
-    const btn = document.getElementById(tabs[k]);
-    if (btn) {
-      btn.className = k === subKey ? "px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all" : "px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all";
-    }
-  });
-  renderChipTrendChart();
-}
-
-export function scrollToLatestTrend(tabMode = 'trend') {
-  setTimeout(() => { 
-    if (tabMode === 'trend') {
-      const pWrapper = document.getElementById("priceScrollWrapper"); 
-      const cWrapper = document.getElementById("chipScrollWrapper");
-      if (pWrapper) pWrapper.scrollLeft = pWrapper.scrollWidth;
-      if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
-    } else if (tabMode === 'macd') {
-      const mWrapper = document.getElementById("macdChartScrollWrapper");
-      if (mWrapper) mWrapper.scrollLeft = mWrapper.scrollWidth;
-    }
-  }, 60);
-}
-
-function bindBiDirectionalScrollLinkage() {
-  const pWrapper = document.getElementById("priceScrollWrapper");
-  const cWrapper = document.getElementById("chipScrollWrapper");
-  if (!pWrapper || !cWrapper) return;
-
-  let isSyncingPriceScroll = false;
-  let isSyncingChipScroll = false;
-
-  pWrapper.onscroll = () => {
-    if (!isSyncingChipScroll) {
-      isSyncingPriceScroll = true;
-      cWrapper.scrollLeft = pWrapper.scrollLeft;
-    }
-    isSyncingChipScroll = false;
-  };
-
-  cWrapper.onscroll = () => {
-    if (!isSyncingPriceScroll) {
-      isSyncingChipScroll = true;
-      pWrapper.scrollLeft = cWrapper.scrollLeft;
-    }
-    isSyncingPriceScroll = false;
-  };
-}
-
-export async function openCombinedModal(stockId, stockName) {
-  state.currentActiveStockId = stockId; 
-  document.getElementById("newsModal").classList.remove("hidden");
-  document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
+  <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
   
-  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
+  <link rel="icon" type="image/png" href="main_icon.png">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+    .sticky-col-shadow { box-shadow: 3px 0 6px -3px rgba(0, 0, 0, 0.25); }
+    dialog::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
-  setTimeout(() => {
-    switchModalTab('trend');
-    switchChipSubTab('f'); 
-    renderPriceTrendLineChart(localTrendDates, myChipsRaw);
-    renderChipTrendChart();
-    renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
-    bindBiDirectionalScrollLinkage();
-    scrollToLatestTrend('trend');
-  }, 35);
+  <div id="loadingModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-slate-100 flex flex-col items-center">
+      <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <h3 class="text-base font-bold text-slate-900 mb-1">雲端籌碼智慧同步中...</h3>
+      <p id="loadingDetail" class="text-xs text-slate-500 font-medium">安全連線中...</p>
+    </div>
+  </div>
 
-  if (state.recentDates.length > 0) {
-    const latestDayData = myChipsRaw.find(c => String(c.date) === state.recentDates[0]);
-    if (latestDayData) {
-      document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
-      const cv = latestDayData.change_value || 0;
-      if (cv > 0) document.getElementById("modalInfoChange").innerHTML = `<span class="text-rose-600">▲${cv}</span>`;
-      else if (cv < 0) document.getElementById("modalInfoChange").innerHTML = `<span class="text-emerald-600">▼${Math.abs(cv)}</span>`;
-      else document.getElementById("modalInfoChange").innerText = '0.0';
-      document.getElementById("modalInfoMA10").innerText = (latestDayData.ma5 !== undefined && latestDayData.ma5 !== null) ? latestDayData.ma5 : '--';
-      document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
-      document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
+  <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
+    <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
+      <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
+      <button id="closeInfoDialogBtn" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <div class="text-xs font-bold text-slate-400 mb-0.5">📊 盤勢特徵描述</div>
+        <p id="infoDialogDesc" class="text-sm font-semibold text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100"></p>
+      </div>
+      <div>
+        <div class="text-xs font-bold text-slate-400 mb-0.5">💻 程式觸發邏輯條件</div>
+        <div id="infoDialogCond" class="text-xs font-mono font-bold text-amber-600 bg-amber-50/60 p-2.5 rounded-xl border border-amber-100/60 leading-normal tracking-tight"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
       
-      const rawMacd = getValIgnoreCase(latestDayData, 'macd_osc');
-      if (rawMacd !== null && rawMacd !== undefined) {
-        if (rawMacd > 0) document.getElementById("modalInfoMACD").innerHTML = `<span class="text-rose-600 font-bold">▲${rawMacd}</span>`;
-        else if (rawMacd < 0) document.getElementById("modalInfoMACD").innerHTML = `<span class="text-emerald-600 font-bold">▼${Math.abs(rawMacd)}</span>`;
-        else document.getElementById("modalInfoMACD").innerText = '0.0';
-      } else { document.getElementById("modalInfoMACD").innerText = '--'; }
-    }
-  }
+      <div class="py-2.5 px-4 border-b border-slate-200 grid grid-cols-3 items-center bg-slate-50 rounded-t-2xl shrink-0">
+        <h3 id="newsModalTitle" class="text-xs sm:text-sm font-black text-slate-900 truncate text-left">個股詳細資訊</h3>
+        <div id="macdSignalTitle" class="text-center flex justify-center items-center gap-1 min-w-0">
+          <span class="text-xs font-bold text-slate-400 animate-pulse">正在精準解碼趨勢模型...</span>
+        </div>
+        <div class="text-right">
+          <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1 inline-block">✕</button>
+        </div>
+      </div>
 
-  const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
-  if(debugBox) {
-    debugBox.classList.remove("hidden");
-    debugBox.innerHTML = `[系統診斷開始] 初始化 ${stockId} (${stockName}) 新聞獲取流...\n`;
-  }
-  if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
+      <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">目前股價</div><div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">今日漲跌</div><div id="modalInfoChange" class="text-xs font-black text-slate-800">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA5 均線</div><div id="modalInfoMA10" class="text-xs font-black text-purple-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA20 均線</div><div id="modalInfoMA20" class="text-xs font-black text-orange-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">RSI14 強弱</div><div id="modalInfoRSI14" class="text-xs font-black text-purple-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MACD 動能</div><div id="modalInfoMACD" class="text-xs font-black text-slate-800">--</div></div>
+      </div>
 
-  const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
-
-  let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
-  while (currentRetry < maxRetries && !successFetch) {
-    currentRetry++;
-    try {
-      const res = await fetch(apiUrl);
-      if (res.ok) { const json = await res.json(); if (json.status === 'ok') { resJson = json; successFetch = true; break; } }
-    } catch (fetchErr) { console.error(fetchErr); }
-  }
-
-  if (successFetch && resJson) {
-    const fetchedItems = resJson.items || [];
-    if (fetchedItems.length > 0) {
-      let listHtml = "";
-      fetchedItems.slice(0, 10).forEach(item => {
-        const pubDate = new Date(item.pubDate), dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-        listHtml += `<a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item"><div class="text-xs text-slate-400 font-bold flex items-center gap-2"><span>📅 ${dateStr}</span><span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div><h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4></a>`;
-      });
-      if(listZone) listZone.innerHTML = listHtml; if(debugBox) debugBox.classList.add("hidden");
-    } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`; }
-  } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
-}
-
-export function renderPriceTrendLineChart(dates, chips) {
-  const priceChartEl = document.getElementById("trendPriceChart");
-  const priceDatesEl = document.getElementById("trendPriceDates");
-  if (!priceChartEl || dates.length === 0) return;
-
-  let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-
-  let pricePoints = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.price) ? day.price : null; });
-  let ma5Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma5 !== undefined && day.ma5 !== null) ? day.ma5 : null; });
-  let ma10Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma10 !== undefined && day.ma10 !== null) ? day.ma10 : null; });
-  let ma20Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma20 !== undefined && day.ma20 !== null) ? day.ma20 : null; });
-
-  let checkPool = [...pricePoints];
-  if (state.visibleLines.ma5) checkPool.push(...ma5Points);
-  if (state.visibleLines.ma10) checkPool.push(...ma10Points);
-  if (state.visibleLines.ma20) checkPool.push(...ma20Points);
-
-  let allValidValues = checkPool.filter(v => v !== null && !isNaN(v));
-  if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; priceDatesEl.innerHTML = ""; return; }
-
-  let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
-  let containerWidth = priceChartEl.clientWidth || 940, count = cronDates.length, stepX = containerWidth / count; 
-  
-  let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
-  let svgCirclesHtml = "", dateHtml = "";
-
-  cronDates.forEach((d, idx) => {
-    const price = pricePoints[idx];
-    const ma5 = ma5Points[idx];
-    const ma10 = ma10Points[idx];
-    const ma20 = ma20Points[idx];
-    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    
-    let exactX = idx * stepX + (stepX / 2); 
-
-    if (price !== null) {
-      let yPercent = ((price - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96); 
-      polylinePrice.push(`${exactX},${exactY}`);
-      let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 14) : (exactY - 6);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
-    }
-    
-    if (ma5 !== null && state.visibleLines.ma5) {
-      let yPercent = ((ma5 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
-      polylineMA5.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#581c87" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
-    }
-    if (ma10 !== null && state.visibleLines.ma10) {
-      let yPercent = ((ma10 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
-      polylineMA10.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
-    }
-    if (ma20 !== null && state.visibleLines.ma20) {
-      let yPercent = ((ma20 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
-      polylineMA20.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
-    }
-    dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
-  });
-
-  priceChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;">
-      <line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
-      <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      ${svgCirclesHtml}
-    </svg>`;
-  priceDatesEl.innerHTML = dateHtml;
-}
-
-export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
-  const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
-  const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
-  
-  const barDatesEl = document.getElementById("macdBarDates");
-  const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
-
-  let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-
-  let dataset = cronDates.map(d => { 
-    const row = chips.find(c => String(c.date) === d); 
-    return { 
-      date: d, 
-      dif: row ? getValIgnoreCase(row, 'macd_dif') : null, 
-      sig: row ? getValIgnoreCase(row, 'macd_signal') : null, 
-      osc: row ? getValIgnoreCase(row, 'macd_osc') : null,
-      kd_k: row ? getValIgnoreCase(row, 'kd_k') : null,
-      kd_d: row ? getValIgnoreCase(row, 'kd_d') : null
-    }; 
-  });
-
-  let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
-  let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
-  let containerWidth = lineChartEl.clientWidth || 820, count = dataset.length, stepX = containerWidth / count; 
-  
-  let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
-
-  let kdChartHtml = `
-    <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
-    <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
-    <div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>
-    <div class="absolute left-1 font-black text-[7px] text-rose-400 pointer-events-none" style="top: calc(20% - 4px);">80 超買</div>
-    <div class="absolute left-1 font-bold text-[7px] text-slate-400 pointer-events-none" style="top: calc(50% - 4px);">50 中軸</div>
-    <div class="absolute left-1 font-black text-[7px] text-emerald-500 pointer-events-none" style="top: calc(80% - 4px);">20 超賣</div>
-  `;
-  let kPoints = [], dPoints = [], kdCirclesHtml = "";
-
-  dataset.forEach((d, idx) => {
-    const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
-    lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
-    let xPos = idx * stepX + (stepX / 2);
-    
-    let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
-    let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
-    let exactDifY = (difY / 100) * 112;
-    let exactSigY = (sigY / 100) * 112;
-
-    if (d.dif !== null) {
-      difPoints.push(`${xPos},${exactDifY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
-    }
-    if (d.sig !== null) {
-      sigPoints.push(`${xPos},${exactSigY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
-    }
-
-    lineChartHtml += `
-      <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
-        <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
-      </div>`;
+      <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
+        <button id="tabBtnTrend" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 走勢</button>
+        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD/KD</button>
+        <button id="tabBtnNews" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 新聞</button>
+      </div>
       
-    let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0;
-    let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
-    let oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
-    
-    let textOscY = d.osc >= 0 ? "top-[1px]" : "bottom-[1px]";
-    let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
+      <div class="p-4 overflow-y-auto h-[550px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
+        <div id="trendZone" class="block space-y-4 w-full grow">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5 border-b border-slate-100 pb-1.5">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 股價與均線走勢</h4>
+              <div class="flex flex-wrap gap-2.5 items-center text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 shadow-3xs">
+                <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
+                  <input type="checkbox" id="toggleMA5" checked onchange="window.toggleLine('ma5', this.checked)" class="rounded text-purple-600 focus:ring-purple-400 w-3.5 h-3.5 cursor-pointer" />
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-purple-500 inline-block rounded-xs"></span>(MA5)</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
+                  <input type="checkbox" id="toggleMA10" onchange="window.toggleLine('ma10', this.checked)" class="rounded text-emerald-600 focus:ring-emerald-400 w-3.5 h-3.5 cursor-pointer" />
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-emerald-500 inline-block rounded-xs"></span>(MA10)</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
+                  <input type="checkbox" id="toggleMA20" checked onchange="window.toggleLine('ma20', this.checked)" class="rounded text-orange-600 focus:ring-orange-400 w-3.5 h-3.5 cursor-pointer" />
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-orange-400 inline-block rounded-xs"></span>(MA20)</span>
+                </label>
+              </div>
+            </div>
 
-    barChartHtml += `
-      <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
-        <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
-        <div class="absolute w-3.5 max-w-[12px] min-w-[4px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${oscHeightPct}%;"></div>
-        ${d.osc !== null ? `<span class="absolute ${textOscY} text-[10.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
-      </div>`;
+            <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div class="min-w-[960px] px-1 relative">
+                <div id="trendPriceChart" class="h-24 relative w-full border-b border-slate-200 bg-white"></div>
+                <div id="trendPriceDates" class="flex justify-between font-black mt-1.5 w-full"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
+              <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button id="subTabF" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
+                <button id="subTabIT" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
+                <button id="subTabDS" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
+              </div>
+            </div>
+            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div id="trendChipChart" class="w-full min-w-[960px]"></div>
+            </div>
+          </div>
+        </div>
 
-    if (d.kd_k !== null && d.kd_d !== null) {
-      let kY = ((100 - d.kd_k) / 100) * 112;
-      let dY = ((100 - d.kd_d) / 100) * 112;
+        <div id="macdZone" class="hidden space-y-3 w-full grow">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
+            <div id="macdChartScrollWrapper" class="w-full overflow-x-auto pb-1 scrollbar-none">
+              <div class="min-w-[860px] bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col gap-5 relative">
+                
+                <div class="flex flex-col gap-1 relative">
+                  <div class="flex flex-row justify-between items-center px-1">
+                    <div class="text-[11px] font-black text-slate-900 flex items-center gap-2">
+                      <span>📈 MACD趨勢</span>
+                      <div class="flex items-center gap-2.5 text-[9px] font-extrabold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-3xs ml-2">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="macdLineChart" class="flex items-center justify-between h-28 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="macdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
+                </div>
+
+                <div class="flex flex-col gap-1 relative border-b border-slate-200 pb-4">
+                  <div class="text-[11px] font-black text-slate-900 px-1">📊 MACD動能</div>
+                  <div id="macdBarChart" class="flex items-center justify-between h-20 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
+                </div>
+
+                <div class="flex flex-col gap-1 relative">
+                  <div class="flex flex-row justify-between items-center px-1">
+                    <div class="text-[11px] font-black text-slate-900 flex items-center gap-2">
+                      <span>⚡ KD 指標</span>
+                      <div class="flex items-center gap-2.5 text-[9px] font-extrabold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-3xs ml-2">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-sky-500 inline-block"></span>K值 (快線)</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-amber-500 inline-block"></span>D值 (慢線)</span>
+                        <span class="text-rose-500 text-[8px] font-black">超買區 &gt;80</span>
+                        <span class="text-emerald-600 text-[8px] font-black">超賣區 &lt;20</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="kdLineChart" class="flex items-center justify-between h-28 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="kdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="newsZone" class="hidden h-full w-full overflow-y-auto grow">
+          <div id="debugLogZone" class="mb-4 p-3 bg-slate-900 text-amber-400 font-mono text-[11px] rounded-xl border border-slate-700 leading-normal hidden whitespace-pre-wrap text-left"></div>
+          <div id="newsListZone" class="space-y-3 block w-full"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-3 shadow-md border-b border-sky-300/30 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0 shrink-0">
+        <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛 analysis 站</h1>
+      </div>
+      <div class="flex items-center gap-4 shrink-0 min-w-0">
+        <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span></span>
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span></span>
+        </div>
+        <button id="forceSyncBtn" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">⚡ 更新</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
+    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-row items-center gap-2 w-full sm:w-auto grow min-w-0">
+        <div class="flex-1 sm:w-44 sm:flex-initial">
+          <select id="tabSelect" onchange="window.switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select>
+        </div>
+        <div class="flex-1 sm:w-56 sm:flex-initial">
+          <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
+            <option value="ALL">🌐 不指定型態</option>
+            <optgroup label="🟢 多頭掌控區 (0軸上)">
+              <option value="1">🔥 1. 強勢多頭加速（主升段）</option>
+              <option value="2">📈 2. 強勢多頭減速（動能下降）</option>
+              <option value="3">🚨 3. 多頭回檔（上漲後修正）</option>
+              <option value="4">🚀 4. 多頭再啟動（第二波上漲）</option>
+            </optgroup>
+            <optgroup label="🔴 空頭控盤區 (0軸下)">
+              <option value="5">🌊 5. 強勢空頭加速（主跌段）</option>
+              <option value="6">📉 6. 強勢空頭減速（賣壓下降）</option>
+              <option value="7">🔋 7. 空頭反彈（跌深反彈）</option>
+              <option value="8">💥 8. 空頭續跌（跌勢延續）</option>
+            </optgroup>
+            <optgroup label="⚖️ 底部與頂部轉折區">
+              <option value="9">🧱 9. 底部築底（空頭衰竭）</option>
+              <option value="10">⚡ 10. 底部翻多（反轉向上）</option>
+              <option value="11">💎 11. 頂部鈍化（多頭衰竭）</option>
+              <option value="12">⚠️ 12. 頂部翻空（反轉向下）</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-row items-center justify-between gap-2 w-full sm:w-auto shrink-0 border-t border-slate-100 pt-2 sm:border-t-0 sm:pt-0">
+        <div class="text-xs text-slate-500 font-extrabold whitespace-nowrap shrink-0">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔
+        </div>
+        <div class="flex items-center gap-1.5 min-w-0 grow justify-end">
+          <div class="relative flex items-center min-w-0 grow max-w-[180px] sm:max-w-none">
+            <input type="text" id="keywordInput" placeholder="代號或名稱..." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+            <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
+          </div>
+          <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="mainTableWrapper" class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
+      <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
+        <thead class="text-slate-800 font-extrabold sticky top-0 z-30 bg-slate-100 shadow-xs border-b border-slate-300">
+          <tr id="tableHeaderDates"></tr>
+          <tr id="tableHeaderSub" class="text-xs text-slate-500 bg-slate-50/80"></tr>
+        </thead>
+        <tbody id="stockTableBody" class="bg-white"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <div id="toastNotice" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-950/95 text-white border border-slate-700 font-black px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 text-sm tracking-wide shadow-black/40">
+    <span class="inline-block animate-spin text-lg text-blue-400">⏳</span>
+    <span>大數據多空交叉過濾中...</span>
+  </div>
+
+  <script type="module">
+    import { state, showSignalInfoDialog } from './js/config.js'; // 👈 導入特徵解說視窗
+    import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
+    import { renderTableHeader, applyFilters, clearSearchField, executeStockSearch, handleSearchKeyup, switchTab, changeMacdFilter } from './js/ui.js';
+    import { openCombinedModal, closeNewsModal, switchModalTab, switchChipSubTab, toggleLine } from './js/macd.js';
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 💡 智慧對齊修復點：將核心說明 Dialog 打開機制，正式穿透暴露給 window，讓動態 innerHTML 按鈕重獲新生
+      window.showSignalInfoDialog = showSignalInfoDialog;
       
-      kPoints.push(`${xPos},${kY}`);
-      dPoints.push(`${xPos},${dY}`);
+      window.openCombinedModal = openCombinedModal;
+      window.closeNewsModal = closeNewsModal;
+      window.switchTab = switchTab;
+      window.changeMacdFilter = changeMacdFilter;
+      window.toggleLine = toggleLine;
 
-      kdCirclesHtml += `
-        <circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" />
-        <circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" />
-        <text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text>
-        <text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>
-      `;
-    }
-    kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
-  });
+      calculateTradeDaysLists();
+      renderTableHeader();
 
-  if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
-  
-  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
-  if(barChartEl) barChartEl.innerHTML = barChartHtml;
+      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
+      document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
+      document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
+      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);
+      document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);
 
-  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
-  if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
+      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));
+      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));
+      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));
 
-  if (kPoints.length > 0 || dPoints.length > 0) {
-    kdChartHtml += `
-      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;">
-        <polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        ${kdCirclesHtml}
-      </svg>`;
-  }
-  if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
-  if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
+      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));
+      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
+      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
 
-  const currentSignalCode = decodeMacdSignal(chips);
-  const titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
-  let descText = "", condText = "", bg = "";
-  
-  if (currentSignalCode === "1") { descText = "多頭趨勢強勁，上漲速度持續增加，屬於全市場最強勢的攻擊主升段。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續變長"; bg = "bg-rose-600 text-rose-600"; }
-  if (currentSignalCode === "2") { descText = "股價仍偏多，上漲趨勢未變，但買盤推升力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
-  if (currentSignalCode === "3") { descText = "多頭結構尚未破壞，短期出現正常的獲利了結回檔，屬於良性波段修正。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-amber-500 text-amber-600"; }
-  if (currentSignalCode === "4") { descText = "回檔整理結束，多頭重新掌控盤勢，常見於主升段行情的中繼再噴發。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-red-600 text-red-600"; }
-  if (currentSignalCode === "5") { descText = "空頭趨勢強勁，下跌速度持續增加，屬於窒息的多殺多主跌爆跌段。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續變長"; bg = "bg-emerald-600 text-emerald-600"; }
-  if (currentSignalCode === "6") { descText = "股價仍偏空，下跌慣性未變，低檔實質賣壓與恐慌盤已開始減弱。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續縮短"; bg = "bg-cyan-600 text-cyan-600"; }
-  if (currentSignalCode === "7") { descText = "空頭波段中的短線深幅反彈，非正式翻多，需密切觀察是否能站上零軸。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF < 0 且 DEA < 0"; bg = "bg-blue-600 text-blue-600"; }
-  if (currentSignalCode === "8") { descText = "跌深反彈遭遇解套壓力宣告失敗，空頭重新主導大局，下跌趨勢延續。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF < 0 且 DEA < 0"; bg = "bg-slate-700 text-slate-800"; }
-  if (currentSignalCode === "9") { descText = "下跌動能持續減弱，市場賣壓枯竭開始尋找底部支撐，為反轉重要前兆。"; condText = "綠柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成黃金交叉"; bg = "bg-teal-600 text-teal-600"; }
-  if (currentSignalCode === "10") { descText = "空頭架構正式終結，中期多頭結構開始形成，為極具波段價值的翻多訊號。"; condText = "DIF黃金交叉DEA 且 柱狀圖由綠轉紅 (可伴隨底背離特徵)"; bg = "bg-indigo-600 text-indigo-600"; }
-  if (currentSignalCode === "11") { descText = "上漲高檔動能開始流失，追價意願顯著下降，主力籌碼分批撤離。"; condText = "紅柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成死亡交叉"; bg = "bg-fuchsia-600 text-fuchsia-600"; }
-  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立。"; bg = "bg-purple-600 text-purple-600"; }
-  
-  setSignalDetail(titleText, descText, condText);
-  if(boardTitleEl) {
-    // 💡 終極修正點：利用 window.showSignalInfoDialog() 進行純 HTML 穿透式全域onclick綁定，徹底免疫任何非同步重繪沖刷！
-    boardTitleEl.innerHTML = `
-      <span class="${bg.split(' ')[1]} font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
-      <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
-    `;
-  }
-}
-
-export function renderChipTrendChart() {
-  const chipChartEl = document.getElementById("trendChipChart");
-  if (!chipChartEl || !state.currentActiveStockId) return;
-
-  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
-
-  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
-  const cfg = subTabConfigs[state.currentChipSubTab];
-  
-  let nets = localTrendDates.map(d => { 
-    const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; 
-    if (state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
-    return Math.round((row[cfg.bKey] || 0) / 1000) - Math.round((row[cfg.sKey] || 0) / 1000); 
-  });
-
-  let absMax = Math.max(...nets.map(Math.abs), 1), barsHtml = localTrendDates.map((d, i) => { 
-    const val = nets[i], isPositive = val >= 0, heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80), datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${datePart}</span></div></div>`; 
-  }).join('');
-
-  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
-}
+      await forceSyncFlow();
+    });
+  </script>
+</body>
+</html>
