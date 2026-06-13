@@ -1,7 +1,6 @@
 // js/macd.js
 import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
 
-// 💡 智慧新增：初始化 3 條均線的動態顯示 Toggle 狀態鎖 (開局預設皆顯示)
 if (!state.visibleLines) {
   state.visibleLines = { ma5: true, ma10: true, ma20: true };
 }
@@ -10,12 +9,10 @@ export function closeNewsModal() {
   document.getElementById("newsModal").classList.add("hidden"); 
 }
 
-// 💡 智慧新增：外部 Toggle 改變時的唯一驅動中樞
 export function toggleLine(lineKey, isChecked) {
   if (state.visibleLines) {
     state.visibleLines[lineKey] = isChecked;
   }
-  // 即時重新觸發繪圖更新
   if (state.currentActiveStockId) {
     const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
     const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
@@ -50,7 +47,6 @@ export function switchModalTab(tabMode) {
       if (tabMode === 'macd') {
         renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
       } else if (tabMode === 'trend') {
-        // 同步勾選狀態至 HTML 的 Checkbox
         if (document.getElementById("toggleMA5")) document.getElementById("toggleMA5").checked = state.visibleLines.ma5;
         if (document.getElementById("toggleMA10")) document.getElementById("toggleMA10").checked = state.visibleLines.ma10;
         if (document.getElementById("toggleMA20")) document.getElementById("toggleMA20").checked = state.visibleLines.ma20;
@@ -187,6 +183,7 @@ export async function openCombinedModal(stockId, stockName) {
   } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
 }
 
+// 💡 智慧重大升級：為 MA5, MA10, MA20 補齊「獨立數據圓點」與「獨立浮動數值標籤」，並優化高反差色系配比
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   const priceDatesEl = document.getElementById("trendPriceDates");
@@ -195,12 +192,10 @@ export function renderPriceTrendLineChart(dates, chips) {
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
   let pricePoints = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.price) ? day.price : null; });
-  // 💡 智慧對齊修改：精準呼叫已在 Supabase 補件成功的全新 ma5 欄位數據！
   let ma5Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma5 !== undefined && day.ma5 !== null) ? day.ma5 : null; });
   let ma10Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma10 !== undefined && day.ma10 !== null) ? day.ma10 : null; });
   let ma20Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma20 !== undefined && day.ma20 !== null) ? day.ma20 : null; });
 
-  // 混合判定最高/最低邊界
   let checkPool = [...pricePoints];
   if (state.visibleLines.ma5) checkPool.push(...ma5Points);
   if (state.visibleLines.ma10) checkPool.push(...ma10Points);
@@ -224,42 +219,55 @@ export function renderPriceTrendLineChart(dates, chips) {
     
     let exactX = idx * stepX + (stepX / 2); 
 
+    // 🔵 1. 當日股價主線座標 (深藍線)
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 55 + 20;
       let exactY = 96 - ((yPercent / 100) * 96); 
       polylinePrice.push(`${exactX},${exactY}`);
       
-      let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 14) : (exactY - 8);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
+      let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 14) : (exactY - 6);
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="9" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
     
-    // 💡 智慧新增：根據 Toggle 開關狀態決定是否生成各均線座標
+    // 🟣 2. MA5 週線座標與數值點 (鮮紫線)
     if (ma5 !== null && state.visibleLines.ma5) {
       let yPercent = ((ma5 - minP) / rangeP) * 55 + 20;
-      polylineMA5.push(`${exactX},${96 - ((yPercent / 100) * 96)}`);
+      let exactY = 96 - ((yPercent / 100) * 96);
+      polylineMA5.push(`${exactX},${exactY}`);
+      // 補齊數值點與微型標籤：高度向下方修正防撞
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 8}" text-anchor="middle" font-weight="bold" font-size="8" fill="#6b21a8" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
     }
+
+    // 🟢 3. MA10 雙週線座標與數值點 (嫩綠線)
     if (ma10 !== null && state.visibleLines.ma10) {
       let yPercent = ((ma10 - minP) / rangeP) * 55 + 20;
-      polylineMA10.push(`${exactX},${96 - ((yPercent / 100) * 96)}`);
+      let exactY = 96 - ((yPercent / 100) * 96);
+      polylineMA10.push(`${exactX},${exactY}`);
+      // 補齊數值點與微型標籤：高度向上方修正防撞
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="bold" font-size="8" fill="#065f46" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
+
+    // 🟠 4. MA20 月線座標與數值點 (亮橘線)
     if (ma20 !== null && state.visibleLines.ma20) {
       let yPercent = ((ma20 - minP) / rangeP) * 55 + 20;
-      polylineMA20.push(`${exactX},${96 - ((yPercent / 100) * 96)}`);
+      let exactY = 96 - ((yPercent / 100) * 96);
+      polylineMA20.push(`${exactX},${exactY}`);
+      // 補齊數值點與微型標籤：高度向更深下方修正防撞
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="bold" font-size="8" fill="#9a3412" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
     }
 
     dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
   });
 
-  // 渲染多軌動態 SVG 畫布
   priceChartEl.innerHTML = `
     <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;">
       <line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
       
-      ${polylineMA5.length > 0 ? `<polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      ${polylineMA5.length > 0 ? `<polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#a855f7" stroke-width="1.2" stroke-dasharray="2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       
-      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       
-      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       
       <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       
@@ -306,16 +314,16 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let descText = "", condText = "", bg = "";
   
   if (currentSignalCode === "1") { descText = "多頭趨勢強勁，上漲速度持續增加，屬於全市場最強勢的攻擊主升段。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續變長"; bg = "bg-rose-600 text-rose-600"; }
-  if (currentSignalCode === "2") { descText = "股價仍偏多，上漲趨勢未變，但買盤推推力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
+  if (currentSignalCode === "2") { descText = "股價仍偏多，上漲趨勢未變，但買盤推升力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
   if (currentSignalCode === "3") { descText = "多頭結構尚未破壞，短期出現正常的獲利了結回檔，屬於良性波段修正。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-amber-500 text-amber-600"; }
   if (currentSignalCode === "4") { descText = "回檔整理結束，多頭重新掌控盤勢，常見於主升段行情的中繼再噴發。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-red-600 text-red-600"; }
   if (currentSignalCode === "5") { descText = "空頭趨勢強勁，下跌速度持續增加，屬於窒息的多殺多主跌爆跌段。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續變長"; bg = "bg-emerald-600 text-emerald-600"; }
-  if (currentSignalCode === "6") { descText = "股價仍偏空，下跌慣性未變，幕後低檔賣壓與恐慌盤已開始減弱。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續縮短"; bg = "bg-cyan-600 text-cyan-600"; }
+  if (currentSignalCode === "6") { descText = "股價仍偏空，下跌慣性未變，低檔實質賣壓與恐慌盤已開始減弱。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續縮短"; bg = "bg-cyan-600 text-cyan-600"; }
   if (currentSignalCode === "7") { descText = "空頭波段中的短線深幅反彈，非正式翻多，需密切觀察是否能站上零軸。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF < 0 且 DEA < 0"; bg = "bg-blue-600 text-blue-600"; }
   if (currentSignalCode === "8") { descText = "跌深反彈遭遇解套壓力宣告失敗，空頭重新主導大局，下跌趨勢延續。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF < 0 且 DEA < 0"; bg = "bg-slate-700 text-slate-800"; }
   if (currentSignalCode === "9") { descText = "下跌動能持續減弱，市場賣壓枯竭開始尋找底部支撐，為反轉重要前兆。"; condText = "綠柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成黃金交叉"; bg = "bg-teal-600 text-teal-600"; }
-  if (currentSignalCode === "10") { descText = "空頭架構正式終結，中期多頭結構開始形成，為極具波段價值的翻多起漲訊號。"; condText = "DIF黃金交叉DEA 且 柱狀圖由綠轉紅 (可伴隨底背離特徵)"; bg = "bg-indigo-600 text-indigo-600"; }
-  if (currentSignalCode === "11") { descText = "上漲高檔動能開始流失，追價意願顯著下降，主力籌碼分批調節撤離。"; condText = "紅柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成死亡交叉"; bg = "bg-fuchsia-600 text-fuchsia-600"; }
+  if (currentSignalCode === "10") { descText = "空頭架構正式終結，中期多頭結構開始形成，為極具波段價值的翻多訊號。"; condText = "DIF黃金交叉DEA 且 柱狀圖由綠轉紅 (可伴隨底背離特徵)"; bg = "bg-indigo-600 text-indigo-600"; }
+  if (currentSignalCode === "11") { descText = "上漲高檔動能開始流失，追價意願顯著下降，主力籌碼分批撤離。"; condText = "紅柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成死亡交叉"; bg = "bg-fuchsia-600 text-fuchsia-600"; }
   if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立。"; condText = "DIF死亡交叉DEA 且 柱狀圖由紅轉綠 (可伴隨頂背離特徵)"; bg = "bg-purple-600 text-purple-600"; }
   
   const labelMap = {
