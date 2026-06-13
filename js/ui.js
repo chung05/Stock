@@ -1,6 +1,6 @@
 // js/ui.js
+// 💡 智慧修正：完全移除了對 macd.js 的靜態 Import 依賴，根除循環載入死結！
 import { state, getValIgnoreCase, decodeMacdSignal } from './config.js';
-import { renderPriceTrendLineChart, renderSeparatedMacdChartAndDecodeSignals, renderChipTrendChart } from './macd.js';
 
 // 初始化全域過濾狀態
 state.currentMacdFilter = 'ALL';
