@@ -115,6 +115,9 @@ export async function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
   
+  // 💡 終極修復對接點：將名稱與代號精準畫入獨立的左側格子，絕不允許被中央的 innerHTML 洗刷！
+  document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
+  
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
   const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
@@ -254,7 +257,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceDatesEl.innerHTML = dateHtml;
 }
 
-// 💡 智慧重大改版優化 3：為 MACD趨勢線 與 MACD動能圖 全面補齊數值文字與數據圓點，並將 KD數值字體全面放大加粗！
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -274,7 +276,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }; 
   });
 
-  // --- MACD 邊界與比例軸 ---
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   let containerWidth = lineChartEl.clientWidth || 820, count = dataset.length, stepX = containerWidth / count; 
@@ -282,7 +283,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`;
 
-  // --- KD 隨機強弱固定邊界圖層 ---
   let kdChartHtml = `
     <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
     <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
@@ -296,7 +296,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   dataset.forEach((d, idx) => {
     let xPos = idx * stepX + (stepX / 2);
     
-    // 📊 A. 繪製 MACD 趨勢線與數據點標籤
     let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
     let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
     let difY = (difTopPercent / 100) * 112;
@@ -316,12 +315,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
       </div>`;
       
-    // 📊 B. 繪製 MACD 動能柱狀圖與精準數值標籤
     let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0;
     let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
     let oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
     
-    // 數值高度連動修正
     let textOscY = d.osc >= 0 ? "top-[2px]" : "bottom-[2px]";
     let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
 
@@ -332,7 +329,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         ${d.osc !== null ? `<span class="absolute ${textOscY} text-[7.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
       </div>`;
 
-    // ⚡ C. 繪製 KD 指標折線與數據圓點 (K值天藍、D值鮮橘)
     if (d.kd_k !== null && d.kd_d !== null) {
       let kTopPct = 100 - d.kd_k;
       let dTopPct = 100 - d.kd_d;
@@ -342,7 +338,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       kPoints.push(`${xPos},${kY}`);
       dPoints.push(`${xPos},${dY}`);
 
-      // 💡 智慧優化：將 K值 與 D值的標籤字體大小由 7.5 全面「加大加粗至 9」，保證清晰不重疊
       kdCirclesHtml += `
         <circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" />
         <circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" />
@@ -353,11 +348,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  // 渲染 MACD 趨勢折線圖
   if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml;
 
-  // 渲染 KD 指標曲線與大字體標籤
   if (kPoints.length > 0 || dPoints.length > 0) {
     kdChartHtml += `
       <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;">
@@ -369,13 +362,12 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
   if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  // 12趨勢常規映射解碼
   const currentSignalCode = decodeMacdSignal(chips);
   const titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
   let descText = "", condText = "", bg = "";
   
   if (currentSignalCode === "1") { descText = "多頭趨勢強勁，上漲速度持續增加，屬於全市場最強勢的攻擊主升段。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續變長"; bg = "bg-rose-600 text-rose-600"; }
-  if (currentSignalCode === "2") { descText = "股價仍偏多，上漲趨勢未變，但買盤推升力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
+  if (currentSignalCode === "2") { descText = "股館仍偏多，上漲趨勢未變，但買盤推升力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
   if (currentSignalCode === "3") { descText = "多頭結構尚未破壞，短期出現正常的獲利了結回檔，屬於良性波段修正。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-amber-500 text-amber-600"; }
   if (currentSignalCode === "4") { descText = "回檔整理結束，多頭重新掌控盤勢，常見於主升段行情的中繼再噴發。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-red-600 text-red-600"; }
   if (currentSignalCode === "5") { descText = "空頭趨勢強勁，下跌速度持續增加，屬於窒息的多殺多主跌爆跌段。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續變長"; bg = "bg-emerald-600 text-emerald-600"; }
@@ -389,11 +381,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
+    // 💡 終極修正點：只單獨更新「正中央」格子的內容，並加入安全穿透綁定，絕對不影響左側個股名稱！
     boardTitleEl.innerHTML = `
-      <div class="flex items-center justify-center gap-1.5 w-full">
-        <span class="${bg.split(' ')[1]} font-black text-sm md:text-base tracking-wide">${titleText}</span>
-        <button id="macdInfoBtnInline" onclick="document.getElementById('macdInfoBtn').click()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1.5 py-0.5 text-[10px] font-black shadow-3xs transition-all cursor-pointer">ℹ️ 條件</button>
-      </div>
+      <span class="${bg.split(' ')[1]} font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
+      <button id="macdInfoBtnInline" onclick="document.getElementById('macdInfoBtn').click()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
     `;
   }
 }
