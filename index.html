@@ -31,7 +31,7 @@
 
   <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
     <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
-      <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特鎖與條件</h4>
+      <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
       <button id="closeInfoDialogBtn" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
     </div>
     <div class="space-y-3">
@@ -153,11 +153,6 @@
     </div>
   </div>
 
-  <div class="sm:hidden bg-slate-100 border-b border-slate-200 px-4 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-600">
-    <span>名單：<span id="listUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
-    <span>資料更新：<span id="chipUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
-  </div>
-
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-3 grow min-w-0">
@@ -172,13 +167,25 @@
         <div class="flex items-center gap-1.5 shrink-0 ml-1 sm:ml-4">
           <span class="text-xs font-extrabold text-slate-400 whitespace-nowrap">MACD型態:</span>
           <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
-            <option value="ALL">🌐 不指定</option>
-            <option value="A">📈 A. 趨勢正在加速</option>
-            <option value="B">📈 B. 趨勢仍多頭</option>
-            <option value="C">📈 C. 轉弱初期</option>
-            <option value="D">📉 D. 空頭開始</option>
-            <option value="E">📉 E. 空頭加速</option>
-            <option value="F">📈 F. 空頭衰退</option>
+            <option value="ALL">🌐 不指定型態</option>
+            <optgroup label="🟢 多頭掌控區 (0軸上)">
+              <option value="1">🔥 1. 強勢多頭加速（主升段）</option>
+              <option value="2">📈 2. 強勢多頭減速（動能下降）</option>
+              <option value="3">🚨 3. 多頭回檔（上漲後修正）</option>
+              <option value="4">🚀 4. 多頭再啟動（第二波上漲）</option>
+            </optgroup>
+            <optgroup label="🔴 空頭控盤區 (0軸下)">
+              <option value="5">🌊 5. 強勢空頭加速（主跌段）</option>
+              <option value="6">📉 6. 強勢空頭減速（賣壓下降）</option>
+              <option value="7">🔋 7. 空頭反彈（跌深反彈）</option>
+              <option value="8">💥 8. 空頭續跌（跌勢延續）</option>
+            </optgroup>
+            <optgroup label="⚖️ 底部與頂部轉折區">
+              <option value="9">🧱 9. 底部築底（空頭衰竭）</option>
+              <option value="10">⚡ 10. 底部翻多（反轉向上）</option>
+              <option value="11">💎 11. 頂部鈍化（多頭衰竭）</option>
+              <option value="12">⚠️ 12. 頂部翻空（反轉向下）</option>
+            </optgroup>
           </select>
         </div>
       </div>
@@ -216,7 +223,6 @@
       window.changeSortMode = changeSortMode;
       window.changeSumDaysMode = changeSumDaysMode;
       window.switchTab = switchTab;
-      // 💡 穿透綁定全新的型態過濾函式
       window.changeMacdFilter = changeMacdFilter;
 
       calculateTradeDaysLists();
