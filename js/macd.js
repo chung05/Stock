@@ -1,8 +1,9 @@
 // js/macd.js
-import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
+import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS, showSignalInfoDialog } from './config.js';
 
+// 💡 智慧修正 2：初始化均線 Toggle 開關狀態鎖 (將 ma10 預設調整為 false 不勾選)
 if (!state.visibleLines) {
-  state.visibleLines = { ma5: true, ma10: true, ma20: true };
+  state.visibleLines = { ma5: true, ma10: false, ma20: true };
 }
 
 export function closeNewsModal() { 
@@ -114,8 +115,6 @@ function bindBiDirectionalScrollLinkage() {
 export async function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
-  
-  // 💡 隔離優化 1：一開局就在絕對隔離的格子裡畫入個股名稱，確保永久錨定，再也不會被圖表 innerHTML 刷掉
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
   
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
@@ -220,27 +219,28 @@ export function renderPriceTrendLineChart(dates, chips) {
     
     let exactX = idx * stepX + (stepX / 2); 
 
+    // 💡 智慧優化 4：將收盤價、MA5、MA10、MA20 上的所有數值字體由原本的 7.5~9 全面擴大加粗至特大號「10」，保證不撞字
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96); 
       polylinePrice.push(`${exactX},${exactY}`);
       let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 14) : (exactY - 6);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="9" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
     
     if (ma5 !== null && state.visibleLines.ma5) {
       let yPercent = ((ma5 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA5.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 8}" text-anchor="middle" font-weight="bold" font-size="8" fill="#6b21a8" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#581c87" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
     }
     if (ma10 !== null && state.visibleLines.ma10) {
       let yPercent = ((ma10 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA10.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="bold" font-size="8" fill="#065f46" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
     if (ma20 !== null && state.visibleLines.ma20) {
       let yPercent = ((ma20 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA20.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="bold" font-size="8" fill="#9a3412" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
     }
     dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
   });
@@ -248,7 +248,7 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceChartEl.innerHTML = `
     <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;">
       <line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
-      ${polylineMA5.length > 0 ? `<polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#a855f7" stroke-width="1.2" stroke-dasharray="2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      ${polylineMA5.length > 0 ? `<polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -260,8 +260,6 @@ export function renderPriceTrendLineChart(dates, chips) {
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
-  
-  // 💡 隔離優化 2：精準對齊三大指標畫布的日期節點
   const barDatesEl = document.getElementById("macdBarDates");
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
@@ -279,7 +277,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }; 
   });
 
-  // --- MACD 計算 ---
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   let containerWidth = lineChartEl.clientWidth || 820, count = dataset.length, stepX = containerWidth / count; 
@@ -287,7 +284,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
 
-  // --- KD 固定邊界 ---
   let kdChartHtml = `
     <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
     <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
@@ -303,18 +299,19 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
     let xPos = idx * stepX + (stepX / 2);
     
-    let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
-    let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
-    let exactDifY = (difY / 100) * 112;
-    let exactSigY = (sigY / 100) * 112;
+    let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
+    let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
+    let difY = (difTopPercent / 100) * 112;
+    let sigY = (sigTopPercent / 100) * 112;
 
+    // 💡 智慧優化 4：將 MACD 快慢線上的數字字體大小由原本的 7.5 一舉放大加粗至「10」
     if (d.dif !== null) {
-      difPoints.push(`${xPos},${exactDifY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
+      difPoints.push(`${xPos},${difY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${difY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${difY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
     }
     if (d.sig !== null) {
-      sigPoints.push(`${xPos},${exactSigY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
+      sigPoints.push(`${xPos},${sigY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${sigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${sigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
     }
 
     lineChartHtml += `
@@ -326,16 +323,18 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
     let oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
     
-    let textOscY = d.osc >= 0 ? "top-[2px]" : "bottom-[2px]";
+    let textOscY = d.osc >= 0 ? "top-[1px]" : "bottom-[1px]";
     let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
 
+    // 💡 智慧優化 4：將 MACD 動能柱狀圖上的數字字體大小由原本的 7.5 一舉放大加粗至「10.5」
     barChartHtml += `
       <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
         <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
         <div class="absolute w-3.5 max-w-[12px] min-w-[4px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${oscHeightPct}%;"></div>
-        ${d.osc !== null ? `<span class="absolute ${textOscY} text-[7.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
+        ${d.osc !== null ? `<span class="absolute ${textOscY} text-[10.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
       </div>`;
 
+    // 💡 智慧優化 4：將 KD 線圖上的數字字體大小由原本的 9 一舉放大加粗至「10.5」，保證在手機上清晰爆棚
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112;
       let dY = ((100 - d.kd_d) / 100) * 112;
@@ -346,8 +345,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       kdCirclesHtml += `
         <circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" />
         <circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" />
-        <text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="9" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text>
-        <text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="9" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>
+        <text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text>
+        <text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>
       `;
     }
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
@@ -358,7 +357,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
   if(barChartEl) barChartEl.innerHTML = barChartHtml;
 
-  // 💡 隔離優化 2：將日期同步渲染填滿至三組指標的時間軸格子中，消滅日期消失漏件
   if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
   if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
 
@@ -392,11 +390,22 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
-    // 💡 隔離優化 1：這裡使用專用中央格子，只更改自己管轄的文字，永遠不沖刷左側個股代號
     boardTitleEl.innerHTML = `
       <span class="${bg.split(' ')[1]} font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
-      <button id="macdInfoBtnInline" onclick="document.getElementById('macdInfoBtn').click()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
+      <button id="macdInfoBtnInline" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
     `;
+    
+    // 💡 智慧修正 1：在 innerHTML 生出按鈕後，無條件為其強制穿透綁定 showSignalInfoDialog 事件，宣告死結終結！
+    setTimeout(() => {
+      const inlineBtn = document.getElementById("macdInfoBtnInline");
+      if (inlineBtn) {
+        inlineBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showSignalInfoDialog();
+        });
+      }
+    }, 10);
   }
 }
 
