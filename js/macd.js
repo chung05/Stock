@@ -198,7 +198,7 @@ export function renderPriceTrendLineChart(dates, chips) {
 
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
-  const lineDatesEl = document.getElementById("macdLineDates"), barDatesEl = document.getElementById("macdBarDates"), boardTitleEl = document.getElementById("macdSignalTitle");
+  const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
   
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
@@ -228,10 +228,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml; if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
 
-  // 🧠 透過共用的解碼晶片直接對齊
   const currentSignalCode = decodeMacdSignal(chips);
-  
-  let titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
+  const titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
   let descText = "", condText = "", bg = "";
   
   if (currentSignalCode === "A") { descText = "市場呈現極強多頭特徵，快線持續上攻，多方量能柱全面爆發擴大，代表多頭買盤源源不絕，有利漲勢延續。"; condText = "DIF 快線大於 DEA 慢線 (黃金交叉) 且 DIF 持續上升 且 OSC 動能柱由負翻正或正值放大"; bg = "bg-rose-600 text-rose-600"; }
@@ -241,9 +239,22 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (currentSignalCode === "E") { descText = "完全進入窒息的主跌段，快慢線同步於零軸下方加速下滑，空方負向柱狀體急速放大，下跌動能強勁，不可波段盲目摸底。"; condText = "DIF < DEA 且 DIF 持續下滑 且 負值柱狀體負值放大"; bg = "bg-emerald-600 text-emerald-600"; }
   if (currentSignalCode === "F") { descText = "雖然屬空頭架構，但快線下跌斜率已收斂並開始底部走平，空方柱狀體連續縮短（負值變小），暗示低檔反彈醖釀。"; condText = "DIF < DEA 且 負向柱狀圖持續縮短 且 DIF 開始走平"; bg = "bg-purple-600 text-purple-600"; }
   
+  // 🧠 完美校正：直接定義 6 種型態各自獨立對應的小標籤文字，實現全量對齊！
+  const labelMap = {
+    "A": "多頭加速",
+    "B": "多頭降溫",
+    "C": "警戒轉弱",
+    "D": "轉折波段",
+    "E": "空頭加速",
+    "F": "築底醖釀"
+  };
+  
+  let lbl = labelMap[currentSignalCode] || "未知型態";
+
   setSignalDetail(titleText, descText, condText);
-  let lbl = currentSignalCode === "A" || currentSignalCode === "B" ? "多頭暴發" : (currentSignalCode === "C" ? "警戒轉弱" : (currentSignalCode === "D" ? "轉折確立" : (currentSignalCode === "E" ? "空頭加速" : "築底醖釀")));
-  if(boardTitleEl) boardTitleEl.innerHTML = `<span class="px-2 py-0.5 ${bg.split(' ')[0]} text-white rounded font-extrabold text-xs animate-pulse mr-1.5">${lbl}</span> <span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${titleText}</span>`;
+  if(boardTitleEl) {
+    boardTitleEl.innerHTML = `<span class="px-2 py-0.5 ${bg.split(' ')[0]} text-white rounded font-extrabold text-xs animate-pulse mr-1.5">${lbl}</span> <span class="${bg.split(' ')[1]} font-extrabold text-sm md:text-base">${titleText}</span>`;
+  }
 }
 
 export function renderChipTrendChart() {
