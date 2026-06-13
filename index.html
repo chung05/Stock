@@ -49,11 +49,14 @@
   </dialog>
 
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
       
-      <div class="py-2 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl shrink-0">
-        <h3 id="newsModalTitle" class="text-base font-black text-slate-900">個股詳細資訊</h3>
-        <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">✕</button>
+      <div class="py-2.5 px-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl shrink-0">
+        <h3 id="newsModalTitle" class="text-sm font-black text-slate-500 shrink-0">個股詳細資訊</h3>
+        <div id="macdSignalTitle" class="flex items-center justify-center gap-1.5 grow px-4 min-w-0 text-center">
+          <span class="text-xs font-bold text-slate-400 animate-pulse">正在精準解碼趨勢模型...</span>
+        </div>
+        <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1 shrink-0">✕</button>
       </div>
 
       <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
@@ -67,11 +70,11 @@
 
       <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
         <button id="tabBtnTrend" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 走勢</button>
-        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD</button>
+        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 指標矩陣</button>
         <button id="tabBtnNews" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 新聞</button>
       </div>
       
-      <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
+      <div class="p-4 overflow-y-auto h-[550px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
         <div id="trendZone" class="block space-y-4 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5 border-b border-slate-100 pb-1.5">
@@ -117,33 +120,48 @@
 
         <div id="macdZone" class="hidden space-y-3 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
-            <div class="p-3 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl flex items-center justify-between shadow-2xs">
-              <div class="flex items-center min-w-0"><span id="macdSignalTitle" class="text-sm font-black text-slate-900 truncate">分析中...</span></div>
-              <button id="macdInfoBtn" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-300 rounded-lg px-2.5 py-1 text-xs font-black shadow-3xs transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-4">ℹ️</button>
-            </div>
-            <div class="flex justify-between items-center">
-              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 MACD圖</h4>
-              <div class="flex items-center gap-3 text-[10px] font-bold">
-                <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
-                <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
-                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
-                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
-              </div>
-            </div>
+            
             <div id="macdChartScrollWrapper" class="w-full overflow-x-auto pb-1 scrollbar-none">
-              <div class="min-w-[760px] bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col gap-4 relative">
+              <div class="min-w-[860px] bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col gap-5 relative">
+                
                 <div class="flex flex-col gap-1 relative">
                   <div class="flex flex-row justify-between items-center px-1">
-                    <div class="text-[11px] font-black text-slate-500">DIF / DEA 趨勢轉折線</div>
+                    <div class="text-[11px] font-black text-slate-900 flex items-center gap-2">
+                      <span>📈 MACD 快慢線轉折</span>
+                      <div class="flex items-center gap-2.5 text-[9px] font-extrabold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-3xs ml-2">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-blue-500 inline-block"></span>DIF快線</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-orange-400 inline-block"></span>DEA慢線</span>
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
+                      </div>
+                    </div>
                   </div>
-                  <div id="macdLineChart" class="flex items-center justify-between h-36 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="macdLineChart" class="flex items-center justify-between h-28 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
-                <div class="flex flex-col gap-1 relative">
-                  <div class="text-[11px] font-black text-slate-400 px-1">MACD 柱狀圖</div>
-                  <div id="macdBarChart" class="flex items-center justify-between h-24 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+
+                <div class="flex flex-col gap-1 relative border-b border-slate-200 pb-4">
+                  <div class="text-[11px] font-black text-slate-400 px-1">MACD 柱狀圖動能</div>
+                  <div id="macdBarChart" class="flex items-center justify-between h-20 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
+
+                <div class="flex flex-col gap-1 relative">
+                  <div class="flex flex-row justify-between items-center px-1">
+                    <div class="text-[11px] font-black text-slate-900 flex items-center gap-2">
+                      <span>⚡ KD 隨機強弱指標</span>
+                      <div class="flex items-center gap-2.5 text-[9px] font-extrabold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-3xs ml-2">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-sky-500 inline-block"></span>K值 (快線)</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-amber-500 inline-block"></span>D值 (慢線)</span>
+                        <span class="text-rose-500 text-[8px] font-black">超買區 &gt;80</span>
+                        <span class="text-emerald-600 text-[8px] font-black">超賣區 &lt;20</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="kdLineChart" class="flex items-center justify-between h-28 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="kdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -175,7 +193,6 @@
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-      
       <div class="flex flex-row items-center gap-2 w-full sm:w-auto grow min-w-0">
         <div class="flex-1 sm:w-44 sm:flex-initial">
           <select id="tabSelect" onchange="window.switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select>
@@ -218,7 +235,6 @@
           <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
         </div>
       </div>
-      
     </section>
 
     <section id="mainTableWrapper" class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
@@ -230,11 +246,6 @@
         <tbody id="stockTableBody" class="bg-white"></tbody>
       </table>
     </section>
-  </div>
-
-  <div id="toastNotice" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-950/95 text-white border border-slate-700 font-black px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 text-sm tracking-wide shadow-black/40">
-    <span class="inline-block animate-spin text-lg text-blue-400">⏳</span>
-    <span>大數據多空交叉過濾中...</span>
   </div>
 
   <script type="module">
@@ -258,9 +269,6 @@
 
       document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
       document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
-      document.getElementById("macdInfoBtn").addEventListener("click", showSignalInfoDialog);
-      document.getElementById("closeInfoDialogBtn").addEventListener("click", () => document.getElementById("infoDialog").close());
-      
       document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
       document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);
       document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);
