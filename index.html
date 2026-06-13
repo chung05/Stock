@@ -74,7 +74,6 @@
       <div class="p-4 overflow-y-auto h-[500px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
         <div id="trendZone" class="block space-y-4 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-            
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5 border-b border-slate-100 pb-1.5">
               <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 股價與均線走勢</h4>
               <div class="flex flex-wrap gap-2.5 items-center text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 shadow-3xs">
@@ -88,7 +87,7 @@
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
                   <input type="checkbox" id="toggleMA20" checked onchange="window.toggleLine('ma20', this.checked)" class="rounded text-orange-600 focus:ring-orange-400 w-3.5 h-3.5 cursor-pointer" />
-                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-orange-500 inline-block rounded-xs"></span>(MA20)</span>
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-orange-400 inline-block rounded-xs"></span>(MA20)</span>
                 </label>
               </div>
             </div>
@@ -174,25 +173,15 @@
     </div>
   </div>
 
-  <div class="sm:hidden bg-slate-100 border-b border-slate-200 px-4 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-600">
-    <span>名單：<span id="listUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
-    <span>資料更新：<span id="chipUpdateTimeMob" class="text-slate-900 font-black">..</span></span>
-  </div>
-
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
-    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-3 grow min-w-0">
-        <div class="w-40 md:w-48 shrink-0">
+    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+      
+      <div class="flex flex-row items-center gap-2 w-full sm:w-auto grow min-w-0">
+        <div class="flex-1 sm:w-44 sm:flex-initial">
           <select id="tabSelect" onchange="window.switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select>
         </div>
-        
-        <div class="text-xs text-slate-500 font-semibold whitespace-nowrap">
-          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔股票
-        </div>
-
-        <div class="flex items-center gap-1.5 shrink-0 ml-1 sm:ml-4">
-          <span class="text-xs font-extrabold text-slate-400 whitespace-nowrap">MACD型態:</span>
-          <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
+        <div class="flex-1 sm:w-56 sm:flex-initial">
+          <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
             <option value="ALL">🌐 不指定型態</option>
             <optgroup label="🟢 多頭掌控區 (0軸上)">
               <option value="1">🔥 1. 強勢多頭加速（主升段）</option>
@@ -201,7 +190,7 @@
               <option value="4">🚀 4. 多頭再啟動（第二波上漲）</option>
             </optgroup>
             <optgroup label="🔴 空頭控盤區 (0軸下)">
-              <option value="5">Waves 5. 強勢空頭加速（主跌段）</option>
+              <option value="5">🌊 5. 強勢空頭加速（主跌段）</option>
               <option value="6">📉 6. 強勢空頭減速（賣壓下降）</option>
               <option value="7">🔋 7. 空頭反彈（跌深反彈）</option>
               <option value="8">💥 8. 空頭續跌（跌勢延續）</option>
@@ -216,13 +205,20 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-1.5 shrink-0 justify-start sm:justify-end">
-        <div class="relative flex items-center">
-          <input type="text" id="keywordInput" placeholder="輸入代號或名稱..." class="w-36 md:w-48 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
-          <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
+      <div class="flex flex-row items-center justify-between gap-2 w-full sm:w-auto shrink-0 border-t border-slate-100 pt-2 sm:border-t-0 sm:pt-0">
+        <div class="text-xs text-slate-500 font-extrabold whitespace-nowrap shrink-0">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔
         </div>
-        <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+        
+        <div class="flex items-center gap-1.5 min-w-0 grow justify-end">
+          <div class="relative flex items-center min-w-0 grow max-w-[180px] sm:max-w-none">
+            <input type="text" id="keywordInput" placeholder="代號或名稱..." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+            <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
+          </div>
+          <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+        </div>
       </div>
+      
     </section>
 
     <section id="mainTableWrapper" class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
