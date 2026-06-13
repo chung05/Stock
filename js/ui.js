@@ -33,7 +33,6 @@ export function switchTab(sheetName) {
   applyFilters(); 
 }
 
-// 💡 智慧新增：變更 MACD 型態過濾器的觸發中樞
 export function changeMacdFilter(val) {
   state.currentMacdFilter = val;
   applyFilters();
@@ -87,12 +86,12 @@ export function applyFilters() {
   let filteredStocks = [...state.dbStockData];
   const tab = state.currentSourceTab;
 
-  // 🧠 1. 第一軌過濾：Excel群組分頁篩選
+  // 🧠 1. 第一軌過濾：Excel頁籤標的分群
   if (tab !== '全部') {
     filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
   }
 
-  // 🧠 2. 第二軌過濾：獨立的 MACD 六大象限技術型態篩選 (雙軌疊加交叉計算)
+  // 🧠 2. 第二軌過濾：全新 12 大波段趨勢 Filter (交叉兼顧)
   if (state.currentMacdFilter !== 'ALL') {
     filteredStocks = filteredStocks.filter(item => {
       if (!item) return false;
@@ -101,7 +100,6 @@ export function applyFilters() {
     });
   }
 
-  // 關鍵字搜尋過濾
   if (state.searchKeyword !== "") {
     filteredStocks = filteredStocks.filter(item => {
       if (!item) return false;
@@ -109,7 +107,7 @@ export function applyFilters() {
     });
   }
   
-  // 🧠 3. 完美回歸常規排序：當篩選完畢後，排序權重 100% 交還給右側原汁原味的「代號、外資、投信買賣超」
+  // 🧠 3. 法人籌碼排序
   filteredStocks.sort((a, b) => {
     const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
     if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
@@ -179,7 +177,7 @@ export function renderMatrixTableFromCache(stocks) {
         sumDS += (Math.round((dayData.ds_buy||0)/1000) - Math.round((dayData.ds_sell||0)/1000));
         sumDH += (Math.round((dayData.dh_buy||0)/1000) - Math.round((dayData.dh_sell||0)/1000));
       }
-      fRow += getCell(dayData.f_buy, dayData.f_sell); fdRow += getCell(dayData.fd_buy, dayData.fd_sell); iRow += getCell(dayData.it_buy, dayData.it_sell); dsRow += getCell(dayData.ds_buy, dayData.ds_sell); dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
+      fRow += getCell(dayData.f_buy, dayData.f_sell); fdRow += getCell(dayData.fd_buy, dayData.fd_sell); iRow += getCell(dayData.it_buy, dateData.it_sell || dayData.it_sell); dsRow += getCell(dayData.ds_buy, dayData.ds_sell); dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
     });
 
     const getSumCell = (val, isDarkRow) => {
@@ -203,7 +201,7 @@ export function renderMatrixTableFromCache(stocks) {
             <div class="flex items-center"><span class="text-teal-600 font-bold">MACD:</span>${macdHtml}</div>
           </div>
         </td>
-        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外資</td>
+        <td class="py-3 border-r border-slate-300 bg-slate-50 font-extrabold text-xs text-slate-700 whitespace-nowrap sticky left-[112px] z-20 text-center w-[52px]">外資</td>
         ${getSumCell(sumF, false)}${fRow}
       </tr>
       <tr class="border-t border-slate-200 hover:bg-slate-50/50 text-center"><td class="py-3 border-r border-slate-300 bg-slate-100 font-extrabold text-xs text-slate-700 sticky left-[112px] z-20 text-center w-[52px]">外陸資自營商</td>${getSumCell(sumFD, true)}${fdRow}</tr>
