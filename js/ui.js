@@ -83,11 +83,9 @@ export function renderTableHeader() {
 }
 
 export function applyFilters() {
-  // 💡 體驗優化：立即亮起右下角「智慧過濾中」的 Toast 提示
   const toast = document.getElementById("toastNotice");
   if (toast) toast.classList.remove("hidden");
 
-  // 利用 setTimeout 微調切分執行緒，確保瀏覽器能先順暢畫出 Toast
   setTimeout(() => {
     let filteredStocks = [...state.dbStockData];
     const tab = state.currentSourceTab;
@@ -135,10 +133,8 @@ export function applyFilters() {
 
     renderMatrixTableFromCache(filteredStocks);
 
-    // 💡 體驗優化：計算與繪製渲染全數完成後，自動隱藏右下角 Toast
     if (toast) toast.classList.add("hidden");
 
-    // 💡 體驗優化：將大表格滾動條自動、平滑地捲動定位回最頂端（Filter 第一筆）
     const wrapper = document.getElementById("mainTableWrapper");
     if (wrapper) {
       wrapper.scrollTo({ top: 0, behavior: 'smooth' });
@@ -233,4 +229,5 @@ export function renderMatrixTableFromCache(stocks) {
   tbody.innerHTML = htmlString;
 }
 
-export { closeNewsModal, switchModalTab, switchChipSubTab, openCombinedModal } from './macd.js';
+// 💡 關鍵修正對接點：將 macd.js 內部宣告的 toggleLine 穿透中繼匯出，100% 滿足 index.html 的模組宣告！
+export { closeNewsModal, switchModalTab, switchChipSubTab, openCombinedModal, toggleLine } from './macd.js';
