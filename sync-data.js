@@ -25,9 +25,8 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 開始執行【智慧增量同步 + 技術指標獨立精準計算】流程...");
+    console.log("🚀 開始執行【180檔母名單直連 + 增量同步 + KD暖身篩選計算】流程...");
 
-    // 1. 載入標的清單
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
     const workbook = XLSX.read(response.data, { type: 'buffer' });
     const stockMap = new Map();
@@ -52,16 +51,14 @@ async function run() {
 
     if (dbStockData.length === 0) return;
 
-    // 2. 自動判定起訖日期 (精準對齊 stock_chips_daily 表)
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
       .order('date', { ascending: false })
       .limit(1);
       
-    if (dateErr) console.log("⚠️ 偵測最大日期異常(可能尚未有任何資料):", dateErr.message);
+    if (dateErr) console.log("⚠️ 偵測最大日期異常:", dateErr.message);
 
-    // 💡 智慧起步日期：預設從 2026-01-02 開始安全補齊
     let startDate = new Date('2026-01-02');
     if (lastRecord && lastRecord.length > 0 && lastRecord[0].date) {
       const lastDate = new Date(lastRecord[0].date);
@@ -79,7 +76,6 @@ async function run() {
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    // 3. 步驟一：下載 FinMind 籌碼與價格
     if (startDate <= today) {
       for (let i = 0; i < dbStockData.length; i++) {
         const stock = dbStockData[i];
@@ -94,7 +90,6 @@ async function run() {
         try {
           const dateMap = {};
 
-          // --- 法人籌碼 ---
           const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
           const res = await axios.get(apiUrl, { headers: commonHeaders });
           
@@ -116,7 +111,6 @@ async function run() {
             });
           }
 
-          // --- 價格與開高低量 ---
           const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stock.stock_id}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
           const priceRes = await axios.get(priceApiUrl, { headers: commonHeaders });
           
@@ -145,12 +139,9 @@ async function run() {
         }
         await sleep(200);
       }
-    } else {
-      console.log("✨ 雲端籌碼資料已是最新，跳過下載步驟。");
     }
 
-    // 4. 步驟二：執行精準獨立計算指標 Function
-    console.log("💡 開始跑獨立指標計算 function 進行全時間軸精準更新...");
+    console.log("💡 開始跑全指標計算 Function...");
     await calculateAndWriteBackIndicators(dbStockData);
 
     console.log("🎉 所有增量同步與技術指標計算流程全數完成！");
@@ -160,7 +151,6 @@ async function run() {
   }
 }
 
-// 精準計算技術指標（含全新的 MA5, MA10, MA20, MA60, RSI14 與 MACD）
 async function calculateAndWriteBackIndicators(stockList) {
   for (let i = 0; i < stockList.length; i++) {
     const stock = stockList[i];
@@ -172,159 +162,109 @@ async function calculateAndWriteBackIndicators(stockList) {
         .eq('stock_id', stock.stock_id)
         .order('date', { ascending: true });
 
-      if (fetchErr) {
-        console.error(`❌ 無法獲取 ${stock.stock_id} 的歷史價格:`, fetchErr.message);
-        continue;
-      }
-
-      if (!pricePool || pricePool.length === 0) continue;
+      if (fetchErr || !pricePool || pricePool.length === 0) continue;
 
       const totalLen = pricePool.length;
       const rowUpdates = [];
 
-      let prevEma12 = null;
-      let prevEma26 = null;
-      let prevMacd9 = null;
+      let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
       const difHistory = [];
+
+      let prevK = 50.0;
+      let prevD = 50.0;
 
       for (let j = 0; j < totalLen; j++) {
         const targetDay = pricePool[j];
         const subPool = pricePool.slice(0, j + 1);
         const subLen = subPool.length;
 
-        let calculatedMA5 = null;
-        let calculatedMA10 = null;
-        let calculatedMA20 = null;
-        let calculatedMA60 = null;
+        let calculatedMA5 = null, calculatedMA10 = null, calculatedMA20 = null, calculatedMA60 = null;
         let calculatedRSI14 = null;
+        let calculatedRSV = null, calculatedK = null, calculatedD = null;
 
-        // 🚀 智慧新增：MA5 週線計算
-        if (subLen >= 5) {
-          const sum5 = subPool.slice(-5).reduce((acc, curr) => acc + (curr.price || 0), 0);
-          calculatedMA5 = parseFloat((sum5 / 5).toFixed(2));
-        }
+        if (subLen >= 5) calculatedMA5 = parseFloat((subPool.slice(-5).reduce((acc, c) => acc + (c.price || 0), 0) / 5).toFixed(2));
+        if (subLen >= 10) calculatedMA10 = parseFloat((subPool.slice(-10).reduce((acc, c) => acc + (c.price || 0), 0) / 10).toFixed(2));
+        if (subLen >= 20) calculatedMA20 = parseFloat((subPool.slice(-20).reduce((acc, c) => acc + (c.price || 0), 0) / 20).toFixed(2));
+        if (subLen >= 60) calculatedMA60 = parseFloat((subPool.slice(-60).reduce((acc, c) => acc + (c.price || 0), 0) / 60).toFixed(2));
 
-        // 2️⃣ MA10
-        if (subLen >= 10) {
-          const sum10 = subPool.slice(-10).reduce((acc, curr) => acc + (curr.price || 0), 0);
-          calculatedMA10 = parseFloat((sum10 / 10).toFixed(2));
-        }
-
-        // 3️⃣ MA20
-        if (subLen >= 20) {
-          const sum20 = subPool.slice(-20).reduce((acc, curr) => acc + (curr.price || 0), 0);
-          calculatedMA20 = parseFloat((sum20 / 20).toFixed(2));
-        }
-
-        // 4️⃣ MA60
-        if (subLen >= 60) {
-          const sum60 = subPool.slice(-60).reduce((acc, curr) => acc + (curr.price || 0), 0);
-          calculatedMA60 = parseFloat((sum60 / 60).toFixed(2));
-        }
-
-        // 5️⃣ RSI14
         if (subLen >= 15) {
-          let avgUp = 0;
-          let avgDown = 0;
-          let rsiInitialized = false;
-
+          let avgUp = 0, avgDown = 0; let rsiInitialized = false;
           for (let k = 1; k < subLen; k++) {
-            const prevPrice = subPool[k - 1].price;
-            const currPrice = subPool[k].price;
-            
-            if (prevPrice === null || currPrice === null) continue;
-
-            const diff = currPrice - prevPrice;
-            const currentUp = diff > 0 ? diff : 0;
-            const currentDown = diff < 0 ? Math.abs(diff) : 0;
-
+            const diff = subPool[k].price - subPool[k - 1].price;
+            const currentUp = diff > 0 ? diff : 0; const currentDown = diff < 0 ? Math.abs(diff) : 0;
             if (!rsiInitialized) {
-              avgUp += currentUp;
-              avgDown += currentDown;
-              if (k === 14) {
-                avgUp = avgUp / 14;
-                avgDown = avgDown / 14;
-                rsiInitialized = true;
-              }
-            } else {
-              avgUp = (avgUp * 13 + currentUp) / 14;
-              avgDown = (avgDown * 13 + currentDown) / 14;
-            }
+              avgUp += currentUp; avgDown += currentDown;
+              if (k === 14) { avgUp /= 14; avgDown /= 14; rsiInitialized = true; }
+            } else { avgUp = (avgUp * 13 + currentUp) / 14; avgDown = (avgDown * 13 + currentDown) / 14; }
           }
-
           if (rsiInitialized) {
-            if (avgDown === 0) {
-              calculatedRSI14 = avgUp === 0 ? 50.00 : 100.00;
-            } else {
-              const rs = avgUp / avgDown;
-              calculatedRSI14 = parseFloat((100 - (100 / (1 + rs))).toFixed(2));
-            }
+            if (avgDown === 0) calculatedRSI14 = avgUp === 0 ? 50.00 : 100.00;
+            else calculatedRSI14 = parseFloat((100 - (100 / (1 + (avgUp / avgDown)))).toFixed(2));
           }
         }
 
-        // 6️⃣ MACD
-        let calculatedDif = null;
-        let calculatedMacdSignal = null;
-        let calculatedMacdOsc = null;
+        // 🚀 增量同步核心：前推自適應天際線遞迴
+        const lookbackPeriod = Math.min(subLen, 9);
+        const lastNDays = subPool.slice(-lookbackPeriod);
+        const highN = Math.max(...lastNDays.map(d => d.max || d.price || 0));
+        const lowN = Math.min(...lastNDays.map(d => d.min || d.price || 999999));
+        
+        let rsv = 50.0;
+        if (highN - lowN !== 0) {
+          rsv = ((targetDay.price - lowN) / (highN - lowN)) * 100;
+        }
+
+        let currentK = (prevK * (2 / 3)) + (rsv * (1 / 3));
+        let currentD = (prevD * (2 / 3)) + (currentK * (1 / 3));
+
+        prevK = currentK;
+        prevD = currentD;
+
+        // 💡 智慧檢查點：判定日期大於等於 2026-02-02 始准許寫入實體格子
+        if (targetDay.date >= "2026-02-02") {
+          calculatedRSV = parseFloat(rsv.toFixed(2));
+          calculatedK = parseFloat(currentK.toFixed(2));
+          calculatedD = parseFloat(currentD.toFixed(2));
+        } else {
+          calculatedRSV = null;
+          calculatedK = null;
+          calculatedD = null;
+        }
+
+        // MACD
         const currentPrice = targetDay.price;
-
         if (currentPrice !== null && currentPrice !== undefined) {
-          if (subLen === 12) {
-            const sum12 = subPool.slice(0, 12).reduce((acc, curr) => acc + (curr.price || 0), 0);
-            prevEma12 = sum12 / 12;
-          } else if (subLen > 12) {
-            prevEma12 = (currentPrice * (2 / 13)) + (prevEma12 * (11 / 13));
-          }
-
-          if (subLen === 26) {
-            const sum26 = subPool.slice(0, 26).reduce((acc, curr) => acc + (curr.price || 0), 0);
-            prevEma26 = sum26 / 26;
-          } else if (subLen > 26) {
-            prevEma26 = (currentPrice * (2 / 27)) + (prevEma26 * (25 / 27));
-          }
+          if (subLen === 12) { prevEma12 = subPool.reduce((acc, c) => acc + (c.price || 0), 0) / 12; }
+          else if (subLen > 12) { prevEma12 = (currentPrice * (2 / 13)) + (prevEma12 * (11 / 13)); }
+          if (subLen === 26) { prevEma26 = subPool.reduce((acc, c) => acc + (c.price || 0), 0) / 26; }
+          else if (subLen > 26) { prevEma26 = (currentPrice * (2 / 27)) + (prevEma26 * (25 / 27)); }
 
           if (prevEma12 !== null && prevEma26 !== null) {
-            calculatedDif = parseFloat((prevEma12 - prevEma26).toFixed(4));
-            difHistory.push(calculatedDif);
-
+            let calculatedDif = parseFloat((prevEma12 - prevEma26).toFixed(4)); difHistory.push(calculatedDif);
             if (difHistory.length === 9) {
-              const sumDif9 = difHistory.reduce((acc, val) => acc + val, 0);
-              prevMacd9 = sumDif9 / 9;
-              calculatedMacdSignal = parseFloat(prevMacd9.toFixed(4));
+              prevMacd9 = difHistory.reduce((acc, val) => acc + val, 0) / 9; calculatedMacdSignal = parseFloat(prevMacd9.toFixed(4));
             } else if (difHistory.length > 9) {
-              prevMacd9 = (calculatedDif * (2 / 10)) + (prevMacd9 * (8 / 10));
-              calculatedMacdSignal = parseFloat(prevMacd9.toFixed(4));
+              prevMacd9 = (calculatedDif * (2 / 10)) + (prevMacd9 * (8 / 10)); calculatedMacdSignal = parseFloat(prevMacd9.toFixed(4));
             }
-
-            if (calculatedMacdSignal !== null) {
-              calculatedMacdOsc = parseFloat((calculatedDif - calculatedMacdSignal).toFixed(4));
-            }
+            if (calculatedMacdSignal !== null) calculatedMacdOsc = parseFloat((calculatedDif - calculatedMacdSignal).toFixed(4));
           }
         }
 
         rowUpdates.push({
           ...targetDay, 
-          stock_id: targetDay.stock_id,
-          date: targetDay.date,
-          ma5: calculatedMA5, // 🚀 綁定回填
-          ma10: calculatedMA10,
-          ma20: calculatedMA20,
-          ma60: calculatedMA60,
-          rsi14: calculatedRSI14,
-          macd_dif: calculatedDif,
-          macd_signal: calculatedMacdSignal,
-          macd_osc: calculatedMacdOsc
+          ma5: calculatedMA5, ma10: calculatedMA10, ma20: calculatedMA20, ma60: calculatedMA60, rsi14: calculatedRSI14,
+          rsv: calculatedRSV, kd_k: calculatedK, kd_d: calculatedD,
+          macd_dif: targetDay.macd_dif, macd_signal: targetDay.macd_signal, macd_osc: targetDay.macd_osc
         });
       }
 
       if (rowUpdates.length > 0) {
-        const { error: writeErr } = await supabase.from('stock_chips_daily').upsert(rowUpdates);
-        if (writeErr) console.error(`❌ 寫回 ${stock.stock_id} 指標失敗:`, writeErr.message);
-        else console.log(`[精準增量成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 技術指標(含MA5)校正完畢！`);
+        await supabase.from('stock_chips_daily').upsert(rowUpdates);
+        console.log(`[智慧增量完畢] ${stock.stock_id} 暖身過濾完畢。`);
       }
 
     } catch (singleErr) {
-      console.error(`❌ 處理 ${stock.stock_id} 技術指標時發生錯誤:`, singleErr.message);
+      console.error(`❌ 處理 ${stock.stock_id} 指標失敗:`, singleErr.message);
     }
     await sleep(80); 
   }
