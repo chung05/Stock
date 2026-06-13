@@ -254,13 +254,15 @@
   </div>
 
   <script type="module">
-    import { state } from './js/config.js';
+    import { state, showSignalInfoDialog } from './js/config.js'; // 👈 導入特徵解說視窗
     import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
-    import { renderTableHeader, applyFilters, clearSearchField, executeStockSearch, handleSearchKeyup, switchTab, changeMacdFilter, changeSortMode, changeSumDaysMode } from './js/ui.js';
+    import { renderTableHeader, applyFilters, clearSearchField, executeStockSearch, handleSearchKeyup, switchTab, changeMacdFilter } from './js/ui.js';
     import { openCombinedModal, closeNewsModal, switchModalTab, switchChipSubTab, toggleLine } from './js/macd.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 穿透綁定至全域 window，供 HTML 行內 onclick 屬性一鍵喚醒
+      // 💡 智慧對齊修復點：將核心說明 Dialog 打開機制，正式穿透暴露給 window，讓動態 innerHTML 按鈕重獲新生
+      window.showSignalInfoDialog = showSignalInfoDialog;
+      
       window.openCombinedModal = openCombinedModal;
       window.closeNewsModal = closeNewsModal;
       window.switchTab = switchTab;
@@ -284,7 +286,6 @@
       document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
       document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
 
-      // 順暢通車！一開局立刻執行連線
       await forceSyncFlow();
     });
   </script>
