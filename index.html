@@ -34,7 +34,7 @@
   <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
     <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
       <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
-      <button id="closeInfoDialogBtn" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
+      <button onclick="document.getElementById('infoDialog').close()" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
     </div>
     <div class="space-y-3">
       <div>
@@ -208,7 +208,7 @@
               <option value="4">🚀 4. 多頭再啟動（第二波上漲）</option>
             </optgroup>
             <optgroup label="🔴 空頭控盤區 (0軸下)">
-              <option value="5">🌊 5. 強勢空頭加速（主跌段）</option>
+              <option value="5">Waves 5. 強勢空頭加速（主跌段）</option>
               <option value="6">📉 6. 強勢空頭減速（賣壓下降）</option>
               <option value="7">🔋 7. 空頭反彈（跌深反彈）</option>
               <option value="8">💥 8. 空頭續跌（跌勢延續）</option>
@@ -260,7 +260,7 @@
     import { openCombinedModal, closeNewsModal, switchModalTab, switchChipSubTab, toggleLine } from './js/macd.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 💡 智慧對齊修復點：將核心說明 Dialog 打開機制，正式穿透暴露給 window，讓動態 innerHTML 按鈕重獲新生
+      // 💡 智慧對齊：將核心說明 Dialog 打開機制，正式穿透暴露給 window，讓動態 innerHTML 按鈕重獲新生
       window.showSignalInfoDialog = showSignalInfoDialog;
       
       window.openCombinedModal = openCombinedModal;
