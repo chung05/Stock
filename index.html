@@ -53,11 +53,9 @@
       
       <div class="py-2.5 px-4 border-b border-slate-200 grid grid-cols-3 items-center bg-slate-50 rounded-t-2xl shrink-0">
         <h3 id="newsModalTitle" class="text-xs sm:text-sm font-black text-slate-900 truncate text-left">個股詳細資訊</h3>
-        
         <div id="macdSignalTitle" class="text-center flex justify-center items-center gap-1 min-w-0">
           <span class="text-xs font-bold text-slate-400 animate-pulse">正在精準解碼趨勢模型...</span>
         </div>
-        
         <div class="text-right">
           <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1 inline-block">✕</button>
         </div>
@@ -124,7 +122,6 @@
 
         <div id="macdZone" class="hidden space-y-3 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
-            
             <div id="macdChartScrollWrapper" class="w-full overflow-x-auto pb-1 scrollbar-none">
               <div class="min-w-[860px] bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col gap-5 relative">
                 
@@ -230,7 +227,6 @@
         <div class="text-xs text-slate-500 font-extrabold whitespace-nowrap shrink-0">
           共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔
         </div>
-        
         <div class="flex items-center gap-1.5 min-w-0 grow justify-end">
           <div class="relative flex items-center min-w-0 grow max-w-[180px] sm:max-w-none">
             <input type="text" id="keywordInput" placeholder="代號或名稱..." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
@@ -256,5 +252,41 @@
     <span class="inline-block animate-spin text-lg text-blue-400">⏳</span>
     <span>大數據多空交叉過濾中...</span>
   </div>
+
+  <script type="module">
+    import { state } from './js/config.js';
+    import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
+    import { renderTableHeader, applyFilters, clearSearchField, executeStockSearch, handleSearchKeyup, switchTab, changeMacdFilter, changeSortMode, changeSumDaysMode } from './js/ui.js';
+    import { openCombinedModal, closeNewsModal, switchModalTab, switchChipSubTab, toggleLine } from './js/macd.js';
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 穿透綁定至全域 window，供 HTML 行內 onclick 屬性一鍵喚醒
+      window.openCombinedModal = openCombinedModal;
+      window.closeNewsModal = closeNewsModal;
+      window.switchTab = switchTab;
+      window.changeMacdFilter = changeMacdFilter;
+      window.toggleLine = toggleLine;
+
+      calculateTradeDaysLists();
+      renderTableHeader();
+
+      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
+      document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
+      document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
+      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);
+      document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);
+
+      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));
+      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));
+      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));
+
+      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));
+      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
+      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
+
+      // 順暢通車！一開局立刻執行連線
+      await forceSyncFlow();
+    });
+  </script>
 </body>
 </html>
