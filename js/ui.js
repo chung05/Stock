@@ -12,20 +12,40 @@ export function updateDisplayDates(startDateStr) {
   if (elMob) elMob.innerText = startDateStr || "--";
 }
 
+// 💡 終極優化修正點：加入大容量全量成分股雙重後備安全防線，徹底破除開局 Set 未及時填入導致的卡死空白 Bug
 export function updateTabSelectOptions(sheets) {
   const select = document.getElementById("tabSelect");
   if (!select) return;
   
-  let activeSheets = sheets;
-  if (!activeSheets || activeSheets.length === 0) {
+  let activeSheets = [];
+  if (sheets && sheets.length > 0) {
+    activeSheets = sheets;
+  } else if (state.targetSheetsSet && state.targetSheetsSet.size > 0) {
     activeSheets = Array.from(state.targetSheetsSet);
   }
   
   let html = `<option value="全部">🌐 全部成分股</option>`;
-  activeSheets.forEach(sheet => { if (sheet) html += `<option value="${sheet}">📁 ${sheet}</option>`; });
+  
+  // 智慧相容：如果開局尚未加載完 Excel 群組分頁，先提供標準全量模式，絕對不允許程式碼罷工卡死
+  if (activeSheets.length > 0) {
+    activeSheets.forEach(sheet => { 
+      if (sheet) html += `<option value="${sheet}">📁 ${sheet}</option>`; 
+    });
+  } else {
+    // 安全後備：從既有緩存數據中實時動態提取不重複的 Excel 頁籤 tags
+    const dynamicallyExtractedSheets = new Set();
+    state.dbStockData.forEach(item => {
+      if (item && Array.isArray(item.sheet_tags)) {
+        item.sheet_tags.forEach(t => { if(t) dynamicallyExtractedSheets.add(t); });
+      }
+    });
+    dynamicallyExtractedSheets.forEach(sheet => {
+      html += `<option value="${sheet}">📁 ${sheet}</option>`;
+    });
+  }
   
   select.innerHTML = html;
-  select.value = state.currentSourceTab;
+  select.value = state.currentSourceTab || "全部";
 }
 
 export function switchTab(sheetName) { 
@@ -90,7 +110,7 @@ export function applyFilters() {
     let filteredStocks = [...state.dbStockData];
     const tab = state.currentSourceTab;
 
-    if (tab !== '全部') {
+    if (tab && tab !== '全部') {
       filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
     }
 
@@ -152,7 +172,6 @@ export function renderMatrixTableFromCache(stocks) {
       if (latestDayData) {
         if (latestDayData.price !== undefined && latestDayData.price !== null) currentPrice = latestDayData.price;
         changeValue = latestDayData.change_value || 0;
-        // 💡 智慧對齊：提取每日同步與歷史補齊的真理 ma5 / ma10 / ma20 欄位
         if (latestDayData.ma5 !== undefined && latestDayData.ma5 !== null) mainMA5 = latestDayData.ma5;
         if (latestDayData.ma10 !== undefined && latestDayData.ma10 !== null) mainMA10 = latestDayData.ma10;
         if (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) mainMA20 = latestDayData.ma20;
