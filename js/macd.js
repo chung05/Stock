@@ -115,7 +115,7 @@ export async function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
   
-  // 💡 終極修復對接點：將名稱與代號精準畫入獨立的左側格子，絕不允許被中央的 innerHTML 洗刷！
+  // 💡 隔離優化 1：一開局就在絕對隔離的格子裡畫入個股名稱，確保永久錨定，再也不會被圖表 innerHTML 刷掉
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
   
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
@@ -260,6 +260,9 @@ export function renderPriceTrendLineChart(dates, chips) {
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
+  
+  // 💡 隔離優化 2：精準對齊三大指標畫布的日期節點
+  const barDatesEl = document.getElementById("macdBarDates");
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
@@ -276,13 +279,15 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }; 
   });
 
+  // --- MACD 計算 ---
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   let containerWidth = lineChartEl.clientWidth || 820, count = dataset.length, stepX = containerWidth / count; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`;
+  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
 
+  // --- KD 固定邊界 ---
   let kdChartHtml = `
     <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
     <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
@@ -294,24 +299,26 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
   dataset.forEach((d, idx) => {
+    const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
+    lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
     let xPos = idx * stepX + (stepX / 2);
     
-    let difTopPercent = d.dif !== null ? ((maxLine - d.dif) / lineRange) * 70 + 15 : 50;
-    let sigTopPercent = d.sig !== null ? ((maxLine - d.sig) / lineRange) * 70 + 15 : 50;
-    let difY = (difTopPercent / 100) * 112;
-    let sigY = (sigTopPercent / 100) * 112;
+    let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
+    let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
+    let exactDifY = (difY / 100) * 112;
+    let exactSigY = (sigY / 100) * 112;
 
     if (d.dif !== null) {
-      difPoints.push(`${xPos},${difY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${difY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${difY - 4}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
+      difPoints.push(`${xPos},${exactDifY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
     }
     if (d.sig !== null) {
-      sigPoints.push(`${xPos},${sigY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${sigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${sigY + 8}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
+      sigPoints.push(`${xPos},${exactSigY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="bold" font-size="7.5" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
     }
 
     lineChartHtml += `
-      <div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20">
+      <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
         <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
       </div>`;
       
@@ -323,17 +330,15 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
 
     barChartHtml += `
-      <div class="flex flex-col items-center flex-1 h-full relative group min-w-0 z-20">
+      <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
         <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
         <div class="absolute w-3.5 max-w-[12px] min-w-[4px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${oscHeightPct}%;"></div>
         ${d.osc !== null ? `<span class="absolute ${textOscY} text-[7.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
       </div>`;
 
     if (d.kd_k !== null && d.kd_d !== null) {
-      let kTopPct = 100 - d.kd_k;
-      let dTopPct = 100 - d.kd_d;
-      let kY = (kTopPct / 100) * 112;
-      let dY = (dTopPct / 100) * 112;
+      let kY = ((100 - d.kd_k) / 100) * 112;
+      let dY = ((100 - d.kd_d) / 100) * 112;
       
       kPoints.push(`${xPos},${kY}`);
       dPoints.push(`${xPos},${dY}`);
@@ -349,7 +354,13 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   });
 
   if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
-  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml;
+  
+  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
+  if(barChartEl) barChartEl.innerHTML = barChartHtml;
+
+  // 💡 隔離優化 2：將日期同步渲染填滿至三組指標的時間軸格子中，消滅日期消失漏件
+  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
+  if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
 
   if (kPoints.length > 0 || dPoints.length > 0) {
     kdChartHtml += `
@@ -367,7 +378,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let descText = "", condText = "", bg = "";
   
   if (currentSignalCode === "1") { descText = "多頭趨勢強勁，上漲速度持續增加，屬於全市場最強勢的攻擊主升段。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續變長"; bg = "bg-rose-600 text-rose-600"; }
-  if (currentSignalCode === "2") { descText = "股館仍偏多，上漲趨勢未變，但買盤推升力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
+  if (currentSignalCode === "2") { descText = "股價仍偏多，上漲趨勢未變，但買盤推升力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
   if (currentSignalCode === "3") { descText = "多頭結構尚未破壞，短期出現正常的獲利了結回檔，屬於良性波段修正。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-amber-500 text-amber-600"; }
   if (currentSignalCode === "4") { descText = "回檔整理結束，多頭重新掌控盤勢，常見於主升段行情的中繼再噴發。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-red-600 text-red-600"; }
   if (currentSignalCode === "5") { descText = "空頭趨勢強勁，下跌速度持續增加，屬於窒息的多殺多主跌爆跌段。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續變長"; bg = "bg-emerald-600 text-emerald-600"; }
@@ -381,7 +392,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
-    // 💡 終極修正點：只單獨更新「正中央」格子的內容，並加入安全穿透綁定，絕對不影響左側個股名稱！
+    // 💡 隔離優化 1：這裡使用專用中央格子，只更改自己管轄的文字，永遠不沖刷左側個股代號
     boardTitleEl.innerHTML = `
       <span class="${bg.split(' ')[1]} font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
       <button id="macdInfoBtnInline" onclick="document.getElementById('macdInfoBtn').click()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
