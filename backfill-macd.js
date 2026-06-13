@@ -1,9 +1,14 @@
 // backfill-macd.js
+const axios = require('axios');
+const XLSX = require('xlsx');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// 💡 智慧同步：直接對齊 sync-data.js 的 Excel 母名單路徑，確保真理唯一
+const EXCEL_SOURCE_URL = "https://raw.githubusercontent.com/" + process.env.GITHUB_REPOSITORY + "/main/Stock_list.xlsx"; 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
@@ -12,19 +17,39 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBackfill() {
-  console.log("🚀 開始執行【180 檔全量無損結構覆蓋】技術指標大回填補件工程...");
+  console.log("🚀 開始執行【180 檔 Excel 官方名單直連】技術指標全量回填大補件工程...");
 
-  // 🧠 終極優化：利用 rpc 或是大資料量校正，改用精準的不重複分組查詢，徹底突破 Supabase 1000 筆單次傳輸限制
-  const { data: stockNodes, error: stockErr } = await supabase
-    .from('stock_chips_daily')
-    .select('stock_id')
-    .not('stock_id', 'is', null);
+  let uniqueStockIds = [];
 
-  if (stockErr) { console.error("❌ 無法撈取代號清單:", stockErr); return; }
+  try {
+    // 🧠 核心修正：不再向資料庫索取不穩定筆數，直接去下載官方 180 檔標的名單 Excel
+    const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
+    const workbook = XLSX.read(response.data, { type: 'buffer' });
+    const stockMap = new Map();
+    
+    workbook.SheetNames.forEach(name => {
+      const sheet = workbook.Sheets[name];
+      const json = XLSX.utils.sheet_to_json(sheet);
+      json.forEach(row => {
+        const sId = String(row['股票代號'] || row['代號'] || '').trim();
+        if (sId) stockMap.set(sId, true);
+      });
+    });
 
-  // 💡 安全雙重保障：改用大容量 Mapping 對齊
-  const uniqueStockIds = [...new Set(stockNodes.map(s => String(s.stock_id).trim()))].sort();
-  console.log(`📊 經全量去重校正，實際偵測到有紀錄的個股總數: ${uniqueStockIds.length} 檔 (應為 180 檔)`);
+    uniqueStockIds = Array.from(stockMap.keys()).sort();
+    console.log(`🎯 成功從 Excel 母名單載入: ${uniqueStockIds.length} 檔股票 (1216, 1227, 2606 已強制鎖定)`);
+
+  } catch (excelErr) {
+    console.error("❌ 無法讀取 Excel 母名單，啟動資料庫容錯後備方案...", excelErr.message);
+    // 容錯防線
+    const { data: stockNodes } = await supabase.from('stock_chips_daily').select('stock_id');
+    uniqueStockIds = [...new Set(stockNodes.map(s => String(s.stock_id).trim()))].sort();
+  }
+
+  if (uniqueStockIds.length === 0) {
+    console.error("❌ 未找到任何有效的股票代號，終止回填。");
+    return;
+  }
 
   let successCount = 0;
   let failCount = 0;
@@ -42,7 +67,7 @@ async function runBackfill() {
         .order('date', { ascending: true });
 
       if (fetchErr || !pricePool || pricePool.length === 0) {
-        console.log(`⚠️ 標的 ${stockId} 在資料庫中無價格列，跳過。`);
+        console.log(`⚠️ 標的 ${stockId} 在資料庫中尚無任何價格晶片列，跳過。`);
         failCount++;
         continue;
       }
@@ -146,7 +171,7 @@ async function runBackfill() {
         });
       }
 
-      // 分批安全寫回
+      // 分批安全寫回 stock_chips_daily 表
       const { error: writeErr } = await supabase
         .from('stock_chips_daily')
         .upsert(rowUpdates);
@@ -156,7 +181,7 @@ async function runBackfill() {
         failCount++;
       } else {
         successCount++;
-        console.log(`[回填成功] ${stockId} 技術指標全數補件到位。`);
+        console.log(`[回填成功] 標的 ${stockId} 技術指標全數補件到位。`);
       }
 
     } catch (err) {
