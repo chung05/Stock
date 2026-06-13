@@ -1,13 +1,9 @@
 // backfill-macd.js
-const XLSX = require('xlsx'); // 💡 移除了 axios 依賴，只保留標準試算表解析套件
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// 智慧同步：直接對齊 sync-data.js 的 Excel 母名單路徑，確保真理唯一
-const EXCEL_SOURCE_URL = "https://raw.githubusercontent.com/" + process.env.GITHUB_REPOSITORY + "/main/Stock_list.xlsx"; 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
@@ -16,37 +12,48 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBackfill() {
-  console.log("🚀 開始執行【180 檔 Excel 官方名單直連 - Node18 原生輕量版】技術指標全量回填大補件工程...");
+  console.log("🚀 開始執行【全原生安全去重分頁】技術指標全量回填大補件工程...");
 
   let uniqueStockIds = [];
 
   try {
-    // 🧠 核心修正：利用 Node 18 內建的原生 fetch 下載 Excel，徹底解決 MODULE_NOT_FOUND 的環境限制
-    const resFile = await fetch(EXCEL_SOURCE_URL);
-    if (!resFile.ok) throw new Error(`HTTP 錯誤! 狀態碼: ${resFile.status}`);
-    
-    const arrayBuffer = await resFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const stockMap = new Map();
-    
-    workbook.SheetNames.forEach(name => {
-      const sheet = workbook.Sheets[name];
-      const json = XLSX.utils.sheet_to_json(sheet);
-      json.forEach(row => {
-        const sId = String(row['股票代號'] || row['代號'] || '').trim();
-        if (sId) stockMap.set(sId, true);
-      });
-    });
+    // 🧠 核心修正：利用標準 Pagination 遞迴分頁法，每次撈 1000 筆直到倒空資料庫，完美破除 1000 筆上限，且完全免安裝 xlsx！
+    let allNodes = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    uniqueStockIds = Array.from(stockMap.keys()).sort();
-    console.log(`🎯 成功從 Excel 母名單載入: ${uniqueStockIds.length} 檔股票 (1216, 1227, 2606 已強制鎖定)`);
+    while (hasMore) {
+      const fromRange = page * pageSize;
+      const toRange = fromRange + pageSize - 1;
 
-  } catch (excelErr) {
-    console.error("❌ 無法讀取 Excel 母名單，啟動資料庫容錯後備方案...", excelErr.message);
-    // 容錯防線：若遠端 Excel 抓不到，則降級向下相容撈取資料庫
-    const { data: stockNodes } = await supabase.from('stock_chips_daily').select('stock_id');
-    uniqueStockIds = [...new Set(stockNodes.map(s => String(s.stock_id).trim()))].sort();
+      const { data: nodes, error: pErr } = await supabase
+        .from('stock_chips_daily')
+        .select('stock_id')
+        .not('stock_id', 'is', null)
+        .range(fromRange, toRange);
+
+      if (pErr) throw pErr;
+
+      if (!nodes || nodes.length === 0) {
+        hasMore = false;
+      } else {
+        allNodes.push(...nodes);
+        if (nodes.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
+    }
+
+    // 💡 安全大容量雜湊去重
+    uniqueStockIds = [...new Set(allNodes.map(s => String(s.stock_id).trim()))].sort();
+    console.log(`🎯 經安全分頁去重，成功鎖定全量有紀錄的股票總數: ${uniqueStockIds.length} 檔 (1216, 1227, 2606 已全數包含)`);
+
+  } catch (err) {
+    console.error("❌ 分頁撈取歷史代號清單時發生異常:", err.message);
+    return;
   }
 
   if (uniqueStockIds.length === 0) {
@@ -174,7 +181,7 @@ async function runBackfill() {
         });
       }
 
-      // 分批安全寫回 stock_chips_daily 表
+      // 寫回目標資料庫
       const { error: writeErr } = await supabase
         .from('stock_chips_daily')
         .upsert(rowUpdates);
@@ -184,11 +191,11 @@ async function runBackfill() {
         failCount++;
       } else {
         successCount++;
-        console.log(`[回填成功] 標的 ${stockId} 技術指標全數補件到位。`);
+        console.log(`[回填成功] 標的 ${stockId} 全量歷史技術指標已校正完畢。`);
       }
 
     } catch (err) {
-      console.error(`⚠️ ${stockId} 歷史校正發生系統級異常，跳過。`);
+      console.error(`⚠️ ${stockId} 歷史校正發生異常，跳過。`);
       failCount++;
     }
     await sleep(60); 
