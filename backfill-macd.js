@@ -1,13 +1,12 @@
 // backfill-macd.js
-const axios = require('axios');
-const XLSX = require('xlsx');
+const XLSX = require('xlsx'); // 💡 移除了 axios 依賴，只保留標準試算表解析套件
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// 💡 智慧同步：直接對齊 sync-data.js 的 Excel 母名單路徑，確保真理唯一
+// 智慧同步：直接對齊 sync-data.js 的 Excel 母名單路徑，確保真理唯一
 const EXCEL_SOURCE_URL = "https://raw.githubusercontent.com/" + process.env.GITHUB_REPOSITORY + "/main/Stock_list.xlsx"; 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -17,14 +16,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runBackfill() {
-  console.log("🚀 開始執行【180 檔 Excel 官方名單直連】技術指標全量回填大補件工程...");
+  console.log("🚀 開始執行【180 檔 Excel 官方名單直連 - Node18 原生輕量版】技術指標全量回填大補件工程...");
 
   let uniqueStockIds = [];
 
   try {
-    // 🧠 核心修正：不再向資料庫索取不穩定筆數，直接去下載官方 180 檔標的名單 Excel
-    const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
-    const workbook = XLSX.read(response.data, { type: 'buffer' });
+    // 🧠 核心修正：利用 Node 18 內建的原生 fetch 下載 Excel，徹底解決 MODULE_NOT_FOUND 的環境限制
+    const resFile = await fetch(EXCEL_SOURCE_URL);
+    if (!resFile.ok) throw new Error(`HTTP 錯誤! 狀態碼: ${resFile.status}`);
+    
+    const arrayBuffer = await resFile.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
     const stockMap = new Map();
     
     workbook.SheetNames.forEach(name => {
@@ -41,7 +44,7 @@ async function runBackfill() {
 
   } catch (excelErr) {
     console.error("❌ 無法讀取 Excel 母名單，啟動資料庫容錯後備方案...", excelErr.message);
-    // 容錯防線
+    // 容錯防線：若遠端 Excel 抓不到，則降級向下相容撈取資料庫
     const { data: stockNodes } = await supabase.from('stock_chips_daily').select('stock_id');
     uniqueStockIds = [...new Set(stockNodes.map(s => String(s.stock_id).trim()))].sort();
   }
