@@ -83,51 +83,67 @@ export function renderTableHeader() {
 }
 
 export function applyFilters() {
-  let filteredStocks = [...state.dbStockData];
-  const tab = state.currentSourceTab;
+  // 💡 體驗優化：立即亮起右下角「智慧過濾中」的 Toast 提示
+  const toast = document.getElementById("toastNotice");
+  if (toast) toast.classList.remove("hidden");
 
-  // 🧠 1. 第一軌過濾：Excel群組分頁篩選
-  if (tab !== '全部') {
-    filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
-  }
+  // 利用 setTimeout 微調切分執行緒，確保瀏覽器能先順暢畫出 Toast
+  setTimeout(() => {
+    let filteredStocks = [...state.dbStockData];
+    const tab = state.currentSourceTab;
 
-  // 🧠 2. 第二軌過濾：獨立的 MACD 12大立體趨勢型態篩選 (雙軌疊加交叉計算)
-  if (state.currentMacdFilter !== 'ALL') {
-    filteredStocks = filteredStocks.filter(item => {
-      if (!item) return false;
-      const myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(item.stock_id).trim());
-      return decodeMacdSignal(myChips) === state.currentMacdFilter;
+    // 🧠 1. 第一軌過濾：Excel群組分頁篩選
+    if (tab !== '全部') {
+      filteredStocks = state.dbStockData.filter(item => item && Array.isArray(item.sheet_tags) && item.sheet_tags.includes(tab));
+    }
+
+    // 🧠 2. 第二軌過濾：獨立的 MACD 十二大立體趨勢型態篩選
+    if (state.currentMacdFilter !== 'ALL') {
+      filteredStocks = filteredStocks.filter(item => {
+        if (!item) return false;
+        const myChips = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(item.stock_id).trim());
+        return decodeMacdSignal(myChips) === state.currentMacdFilter;
+      });
+    }
+
+    // 關鍵字搜尋過濾
+    if (state.searchKeyword !== "") {
+      filteredStocks = filteredStocks.filter(item => {
+        if (!item) return false;
+        return String(item.stock_id).toLowerCase().includes(state.searchKeyword) || String(item.stock_name || '').toLowerCase().includes(state.searchKeyword);
+      });
+    }
+    
+    // 🧠 3. 法人籌碼排序
+    filteredStocks.sort((a, b) => {
+      const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
+      if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+
+      const getSumForStock = (stockId, buyField, sellField) => {
+        const chips = state.globalChipCache.filter(c => String(c.stock_id).trim() === stockId), sumDates = state.recentDates.slice(0, state.currentSumDaysMode);
+        return chips.reduce((acc, row) => { if (!sumDates.includes(String(row.date))) return acc; return acc + (Math.round((row[buyField] || 0) / 1000) - Math.round((row[sellField] || 0) / 1000)); }, 0);
+      };
+
+      let valA = 0, valB = 0; const m = state.currentSortMode;
+      if (m==='foreign_buy') { valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell'); return valB - valA; }
+      if (m==='foreign_dealer_buy') { valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell'); return valB - valA; }
+      if (m==='investment_buy') { valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell'); return valB - valA; }
+      if (m==='dealer_self_buy') { valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell'); return valB - valA; }
+      if (m==='dealer_hedging_buy') { valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell'); return valB - valA; }
+      return 0;
     });
-  }
 
-  // 關鍵字搜尋過濾
-  if (state.searchKeyword !== "") {
-    filteredStocks = filteredStocks.filter(item => {
-      if (!item) return false;
-      return String(item.stock_id).toLowerCase().includes(state.searchKeyword) || String(item.stock_name || '').toLowerCase().includes(state.searchKeyword);
-    });
-  }
-  
-  // 🧠 3. 完美回歸常規排序：當篩選完畢後，排序權重 100% 交還給右側原汁原味的「代號、外資、投信買賣超」
-  filteredStocks.sort((a, b) => {
-    const idA = String(a.stock_id).trim(), idB = String(b.stock_id).trim();
-    if (state.currentSortMode === 'stock_id') return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+    renderMatrixTableFromCache(filteredStocks);
 
-    const getSumForStock = (stockId, buyField, sellField) => {
-      const chips = state.globalChipCache.filter(c => String(c.stock_id).trim() === stockId), sumDates = state.recentDates.slice(0, state.currentSumDaysMode);
-      return chips.reduce((acc, row) => { if (!sumDates.includes(String(row.date))) return acc; return acc + (Math.round((row[buyField] || 0) / 1000) - Math.round((row[sellField] || 0) / 1000)); }, 0);
-    };
+    // 💡 體驗優化：計算與繪製渲染全數完成後，自動隱藏右下角 Toast
+    if (toast) toast.classList.add("hidden");
 
-    let valA = 0, valB = 0; const m = state.currentSortMode;
-    if (m==='foreign_buy') { valA = getSumForStock(idA, 'f_buy', 'f_sell'); valB = getSumForStock(idB, 'f_buy', 'f_sell'); return valB - valA; }
-    if (m==='foreign_dealer_buy') { valA = getSumForStock(idA, 'fd_buy', 'fd_sell'); valB = getSumForStock(idB, 'fd_buy', 'fd_sell'); return valB - valA; }
-    if (m==='investment_buy') { valA = getSumForStock(idA, 'it_buy', 'it_sell'); valB = getSumForStock(idB, 'it_buy', 'it_sell'); return valB - valA; }
-    if (m==='dealer_self_buy') { valA = getSumForStock(idA, 'ds_buy', 'ds_sell'); valB = getSumForStock(idB, 'ds_buy', 'ds_sell'); return valB - valA; }
-    if (m==='dealer_hedging_buy') { valA = getSumForStock(idA, 'dh_buy', 'dh_sell'); valB = getSumForStock(idB, 'dh_buy', 'dh_sell'); return valB - valA; }
-    return 0;
-  });
-
-  renderMatrixTableFromCache(filteredStocks);
+    // 💡 體驗優化：將大表格滾動條自動、平滑地捲動定位回最頂端（Filter 第一筆）
+    const wrapper = document.getElementById("mainTableWrapper");
+    if (wrapper) {
+      wrapper.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, 50); 
 }
 
 export function renderMatrixTableFromCache(stocks) {
@@ -180,7 +196,6 @@ export function renderMatrixTableFromCache(stocks) {
       }
       fRow += getCell(dayData.f_buy, dayData.f_sell); 
       fdRow += getCell(dayData.fd_buy, dayData.fd_sell); 
-      // 💡 終極修復點：將原本誤植的 dateData 修正回歸為標準的 dayData，破除變數未定義死結！
       iRow += getCell(dayData.it_buy, dayData.it_sell); 
       dsRow += getCell(dayData.ds_buy, dayData.ds_sell); 
       dhRow += getCell(dayData.dh_buy, dayData.dh_sell);
