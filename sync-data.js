@@ -1,3 +1,4 @@
+// sync-data.js
 const fs = require('fs');
 const axios = require('axios');
 const XLSX = require('xlsx');
@@ -51,7 +52,7 @@ async function run() {
 
     if (dbStockData.length === 0) return;
 
-    // 2. 自動判定起訖日期
+    // 2. 自動判定起訖日期 (精準對齊 stock_chips_daily 表)
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
@@ -60,7 +61,8 @@ async function run() {
       
     if (dateErr) console.log("⚠️ 偵測最大日期異常(可能尚未有任何資料):", dateErr.message);
 
-    let startDate = new Date('2026-01-01');
+    // 💡 智慧起步日期：預設從 2026-01-02 開始安全補齊
+    let startDate = new Date('2026-01-02');
     if (lastRecord && lastRecord.length > 0 && lastRecord[0].date) {
       const lastDate = new Date(lastRecord[0].date);
       lastDate.setDate(lastDate.getDate() + 1);
@@ -158,7 +160,7 @@ async function run() {
   }
 }
 
-// 精準計算技術指標（含 MA10, MA20, MA60, RSI14 與新加入的 MACD）
+// 精準計算技術指標（含全新的 MA5, MA10, MA20, MA60, RSI14 與 MACD）
 async function calculateAndWriteBackIndicators(stockList) {
   for (let i = 0; i < stockList.length; i++) {
     const stock = stockList[i];
@@ -190,30 +192,37 @@ async function calculateAndWriteBackIndicators(stockList) {
         const subPool = pricePool.slice(0, j + 1);
         const subLen = subPool.length;
 
+        let calculatedMA5 = null;
         let calculatedMA10 = null;
         let calculatedMA20 = null;
         let calculatedMA60 = null;
         let calculatedRSI14 = null;
 
-        // 1️⃣ MA10
+        // 🚀 智慧新增：MA5 週線計算
+        if (subLen >= 5) {
+          const sum5 = subPool.slice(-5).reduce((acc, curr) => acc + (curr.price || 0), 0);
+          calculatedMA5 = parseFloat((sum5 / 5).toFixed(2));
+        }
+
+        // 2️⃣ MA10
         if (subLen >= 10) {
           const sum10 = subPool.slice(-10).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA10 = parseFloat((sum10 / 10).toFixed(2));
         }
 
-        // 2️⃣ MA20
+        // 3️⃣ MA20
         if (subLen >= 20) {
           const sum20 = subPool.slice(-20).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA20 = parseFloat((sum20 / 20).toFixed(2));
         }
 
-        // 3️⃣ MA60
+        // 4️⃣ MA60
         if (subLen >= 60) {
           const sum60 = subPool.slice(-60).reduce((acc, curr) => acc + (curr.price || 0), 0);
           calculatedMA60 = parseFloat((sum60 / 60).toFixed(2));
         }
 
-        // 4️⃣ RSI14
+        // 5️⃣ RSI14
         if (subLen >= 15) {
           let avgUp = 0;
           let avgDown = 0;
@@ -253,7 +262,7 @@ async function calculateAndWriteBackIndicators(stockList) {
           }
         }
 
-        // 5️⃣ MACD
+        // 6️⃣ MACD
         let calculatedDif = null;
         let calculatedMacdSignal = null;
         let calculatedMacdOsc = null;
@@ -297,6 +306,7 @@ async function calculateAndWriteBackIndicators(stockList) {
           ...targetDay, 
           stock_id: targetDay.stock_id,
           date: targetDay.date,
+          ma5: calculatedMA5, // 🚀 綁定回填
           ma10: calculatedMA10,
           ma20: calculatedMA20,
           ma60: calculatedMA60,
@@ -310,7 +320,7 @@ async function calculateAndWriteBackIndicators(stockList) {
       if (rowUpdates.length > 0) {
         const { error: writeErr } = await supabase.from('stock_chips_daily').upsert(rowUpdates);
         if (writeErr) console.error(`❌ 寫回 ${stock.stock_id} 指標失敗:`, writeErr.message);
-        else console.log(`[精準更新成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 歷史指標(含MACD)校正完畢！`);
+        else console.log(`[精準增量成功] (${i + 1}/${stockList.length}) ${stock.stock_id} 技術指標(含MA5)校正完畢！`);
       }
 
     } catch (singleErr) {
