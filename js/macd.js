@@ -382,25 +382,15 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (currentSignalCode === "9") { descText = "下跌動能持續減弱，市場賣壓枯竭開始尋找底部支撐，為反轉重要前兆。"; condText = "綠柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成黃金交叉"; bg = "bg-teal-600 text-teal-600"; }
   if (currentSignalCode === "10") { descText = "空頭架構正式終結，中期多頭結構開始形成，為極具波段價值的翻多訊號。"; condText = "DIF黃金交叉DEA 且 柱狀圖由綠轉紅 (可伴隨底背離特徵)"; bg = "bg-indigo-600 text-indigo-600"; }
   if (currentSignalCode === "11") { descText = "上漲高檔動能開始流失，追價意願顯著下降，主力籌碼分批撤離。"; condText = "紅柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成死亡交叉"; bg = "bg-fuchsia-600 text-fuchsia-600"; }
-  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立。"; condText = "DIF死亡交叉DEA 且 柱狀圖由紅轉綠 (可伴隨頂背離特徵)"; bg = "bg-purple-600 text-purple-600"; }
+  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立。"; bg = "bg-purple-600 text-purple-600"; }
   
   setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
+    // 💡 終極修正點：利用 window.showSignalInfoDialog() 進行純 HTML 穿透式全域onclick綁定，徹底免疫任何非同步重繪沖刷！
     boardTitleEl.innerHTML = `
       <span class="${bg.split(' ')[1]} font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
-      <button id="macdInfoBtnInline" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
+      <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
     `;
-    
-    setTimeout(() => {
-      const inlineBtn = document.getElementById("macdInfoBtnInline");
-      if (inlineBtn) {
-        inlineBtn.onclick = (e) => {
-          e.preventDefault(); e.stopPropagation();
-          const targetBtn = document.getElementById("macdInfoBtn");
-          if(targetBtn) targetBtn.click();
-        };
-      }
-    }, 20);
   }
 }
 
