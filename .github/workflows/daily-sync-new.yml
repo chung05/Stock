@@ -2,8 +2,8 @@ name: Daily Sync Top 50 New Stocks
 
 on:
   schedule:
-    # 每天台股收盤後與法人籌碼公布後的晚上 16:30 (UTC+0 是 10:30) 自動執行
-    - cron: '30 8 * * 1-5'
+    # 每天台股收盤後與法人籌碼公布後的晚上 18:30 (UTC+0 是 10:30) 自動執行
+    - cron: '30 10 * * 1-5'
   workflow_dispatch: # 允許手動點擊執行
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
+        # 💡 已移除 cache: 'npm'，避免因為找不到 package-lock.json 而報錯
 
     - name: Install Dependencies
       run: |
@@ -41,7 +41,7 @@ jobs:
           git add Stock_list.xlsx
           git commit -m "🤖 自動更新: 三大法人買超新股票寫入 NEW 分頁 [$(date +'%Y-%m-%d')]"
           git push origin main
-          console.log("🚀 檔案成功更新並推送至 GitHub 倉庫！")
+          echo "🚀 檔案成功更新並推送至 GitHub 倉庫！"
         else
           echo "無任何新股變更，跳過 Commit。"
         fi
