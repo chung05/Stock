@@ -42,7 +42,7 @@ function calculateRSI(data, period = 14) {
 // ⚙️ 主要轉換邏輯：精細化三大法人多屬性寬表格
 // ==========================================
 async function exportRichChipsFormat() {
-  console.log("⚙️ 開始將 60 天籌碼資料轉換為『超詳細三大法人中文寬表格（含MACD）』...");
+  console.log("⚙️ 開始將 60 天籌碼資料轉換為『超詳細三大法人中文寬表格（含MACD與KD）』...");
   
   if (!fs.existsSync('./data/raw_data.json')) {
     console.error("❌ 找不到原始檔，請先執行 fetch-data.js");
@@ -85,7 +85,6 @@ async function exportRichChipsFormat() {
       const stockName = dbStockNameMap[stockId] || row.stock_name || row.name || `股票_${stockId}`;
       const currentPrice = row.price || row.close_price || 0;
       
-      // 🛡️ 每日漲跌自動推算（若資料庫中無此欄位，則用今日收盤減昨日收盤）
       let dailyChange = 0;
       if (index > 0) {
         const prevPrice = history[index - 1].price || history[index - 1].close_price || 0;
@@ -95,42 +94,41 @@ async function exportRichChipsFormat() {
       }
 
       // ──【三大法人原始細緻欄位對照與防呆保護】──
-      // 1. 外資與外資自營
       const f_buy = row.f_buy || 0;
       const f_sell = row.f_sell || 0;
       const f_net = row.f_net !== undefined ? row.f_net : (f_buy - f_sell);
       
-      const f_deal_buy = row.f_deal_buy || 0; // 外資自營商買進
-      const f_deal_sell = row.f_deal_sell || 0; // 外資自營商賣出
+      const f_deal_buy = row.f_deal_buy || 0;
+      const f_deal_sell = row.f_deal_sell || 0;
       const f_deal_net = row.f_deal_net !== undefined ? row.f_deal_net : (f_deal_buy - f_deal_sell);
 
-      // 2. 投信
       const it_buy = row.it_buy || 0;
       const it_sell = row.it_sell || 0;
       const it_net = row.it_net !== undefined ? row.it_net : (it_buy - it_sell);
 
-      // 3. 自營商（自行買賣）
-      const d_prop_buy = row.d_prop_buy || row.d_own_buy || 0; // 自行買賣買進
-      const d_prop_sell = row.d_prop_sell || row.d_own_sell || 0; // 自行買賣賣出
+      const d_prop_buy = row.d_prop_buy || row.d_own_buy || 0;
+      const d_prop_sell = row.d_prop_sell || row.d_own_sell || 0;
       const d_prop_net = row.d_prop_net !== undefined ? row.d_prop_net : (d_prop_buy - d_prop_sell);
 
-      // 4. 自營商（避險）
-      const d_hedge_buy = row.d_hedge_buy || 0; // 避險買進
-      const d_hedge_sell = row.d_hedge_sell || 0; // 避險賣出
+      const d_hedge_buy = row.d_hedge_buy || 0;
+      const d_hedge_sell = row.d_hedge_sell || 0;
       const d_hedge_net = row.d_hedge_net !== undefined ? row.d_hedge_net : (d_hedge_buy - d_hedge_sell);
 
-      // 5. 自營商總合 (自行買賣 + 避險)
       const d_buy = d_prop_buy + d_hedge_buy;
       const d_sell = d_prop_sell + d_hedge_sell;
       const d_net = row.d_net !== undefined ? row.d_net : (d_buy - d_sell);
 
-      // 6. 三大法人合計總買賣超
       const total_net = f_net + it_net + d_net;
 
       // ──【MACD 直接對接讀取】──
       const macd_dif = row.macd_dif !== undefined ? row.macd_dif : "None";
       const macd_signal = row.macd_signal !== undefined ? row.macd_signal : "None";
       const macd_osc = row.macd_osc !== undefined ? row.macd_osc : "None";
+
+      // ──【🔥 新增 KD 直接對接讀取】──
+      const rsv = row.rsv !== undefined ? row.rsv : "None";
+      const kd_k = row.kd_k !== undefined ? row.kd_k : "None";
+      const kd_d = row.kd_d !== undefined ? row.kd_d : "None";
 
       // 建立全新寬表格資料行物件
       const wideRow = {
@@ -175,17 +173,22 @@ async function exportRichChipsFormat() {
         "MA60均線": ma60[index],
         "RSI14指標": rsi14[index],
         
-        // ── 🔥 新增 MACD 指標細項 ──
+        // ── MACD 指標細項 ──
         "MACD_DIF快線": macd_dif,
         "MACD_Signal慢線": macd_signal,
-        "MACD_OSC動能柱": macd_osc
+        "MACD_OSC動能柱": macd_osc,
+
+        // ── 🔥 新增 KD 指標細項 ──
+        "KD_RSV值": rsv,
+        "KD_K值": kd_k,
+        "KD_D值": kd_d
       };
 
       allFlattenedRows.push(wideRow);
     });
   });
 
-  // 3. 按日期最新到最舊排序，方便一目了然最新市況
+  // 3. 按日期最新到最舊排序
   allFlattenedRows.sort((a, b) => new Date(b.日期) - new Date(a.日期));
 
   // 4. 寫入為 JSON Lines 格式
@@ -193,10 +196,9 @@ async function exportRichChipsFormat() {
   fs.writeFileSync('./data/ai_analysis.jsonl', jsonlContent);
   
   console.log(`\n📊 === 頂級精細化中文寬表格轉換完成 ===`);
-  console.log(`✅ 成功產出包含開/高/低/收/漲跌/成交量的完整格式`);
-  console.log(`✅ 完美解構三大法人細項（含外資自營、自營商自行買賣、避險買賣之買進與賣出）`);
   console.log(`✅ 已補全技術指標：MA10, MA20, MA60, RSI14`);
-  console.log(`✅ 🔥 新增對接雲端 MACD 欄位：DIF快線、Signal慢線、OSC動能柱`);
+  console.log(`✅ 已包含對接雲端 MACD 欄位：DIF快線、Signal慢線、OSC動能柱`);
+  console.log(`✅ 🔥 新增對接雲端 KD 欄位：RSV值、K值、D值`);
   console.log(`💾 檔案已寫入: ./data/ai_analysis.jsonl`);
 }
 
