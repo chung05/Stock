@@ -7,6 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   
+  <!-- 💡 智慧精準導正：將站台瀏覽器分頁標題恢復為「牛牛分析站」 -->
   <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
   
   <link rel="icon" type="image/png" href="main_icon.png">
@@ -23,6 +24,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
+  <!-- 雲端同步 Loading 彈窗 -->
   <div id="loadingModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-slate-100 flex flex-col items-center">
       <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -31,6 +33,7 @@
     </div>
   </div>
 
+  <!-- 智慧訊號彈窗 -->
   <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
     <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
       <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
@@ -48,9 +51,11 @@
     </div>
   </dialog>
 
+  <!-- 個股詳細資訊 複合彈窗 -->
   <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
       
+      <!-- 頂端主欄位：左側個股名稱、中央解碼型態、右側關閉按鈕，結構完全隔離[cite: 2] -->
       <div class="py-2.5 px-4 border-b border-slate-200 grid grid-cols-3 items-center bg-slate-50 rounded-t-2xl shrink-0">
         <h3 id="newsModalTitle" class="text-xs sm:text-sm font-black text-slate-900 truncate text-left">個股詳細資訊</h3>
         <div id="macdSignalTitle" class="text-center flex justify-center items-center gap-1 min-w-0">
@@ -120,11 +125,13 @@
           </div>
         </div>
 
+        <!-- MACD/KD 分頁[cite: 2] -->
         <div id="macdZone" class="hidden space-y-3 w-full grow">
           <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
             <div id="macdChartScrollWrapper" class="w-full overflow-x-auto pb-1 scrollbar-none">
               <div class="min-w-[860px] bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col gap-5 relative">
                 
+                <!-- 📈 MACD趨勢線路[cite: 2] -->
                 <div class="flex flex-col gap-1 relative">
                   <div class="flex flex-row justify-between items-center px-1">
                     <div class="text-[11px] font-black text-slate-900 flex items-center gap-2">
@@ -141,12 +148,14 @@
                   <div id="macdLineDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
 
+                <!-- 📊 MACD動能[cite: 2] -->
                 <div class="flex flex-col gap-1 relative border-b border-slate-200 pb-4">
                   <div class="text-[11px] font-black text-slate-900 px-1">📊 MACD動能</div>
                   <div id="macdBarChart" class="flex items-center justify-between h-20 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
 
+                <!-- ⚡ KD 指標[cite: 2] -->
                 <div class="flex flex-col gap-1 relative">
                   <div class="flex flex-row justify-between items-center px-1">
                     <div class="text-[11px] font-black text-slate-900 flex items-center gap-2">
@@ -176,11 +185,13 @@
     </div>
   </div>
 
+  <!-- 頂部導航列[cite: 2] -->
   <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-3 shadow-md border-b border-sky-300/30 px-4">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
       <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
-        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛 analysis 站</h1>
+        <!-- 💡 智慧精準導正 1：將導航列站台名稱導正改回「牛牛分析站」 -->
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
       </div>
       <div class="flex items-center gap-4 shrink-0 min-w-0">
         <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
@@ -193,6 +204,7 @@
   </div>
 
   <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
+    <!-- 📱 手機端極簡雙列控制面板[cite: 2] -->
     <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-row items-center gap-2 w-full sm:w-auto grow min-w-0">
         <div class="flex-1 sm:w-44 sm:flex-initial">
@@ -208,7 +220,8 @@
               <option value="4">🚀 4. 多頭再啟動（第二波上漲）</option>
             </optgroup>
             <optgroup label="🔴 空頭控盤區 (0軸下)">
-              <option value="5">Waves 5. 強勢空頭加速（主跌段）</option>
+              <!-- 💡 智慧精準導正 2：將型態選單內的英文字串完全導正改回為「5. 強勢空頭加速（主跌段）」 -->
+              <option value="5">🌊 5. 強勢空頭加速（主跌段）</option>
               <option value="6">📉 6. 強勢空頭減速（賣壓下降）</option>
               <option value="7">🔋 7. 空頭反彈（跌深反彈）</option>
               <option value="8">💥 8. 空頭續跌（跌勢延續）</option>
@@ -248,45 +261,47 @@
     </section>
   </div>
 
+  <!-- 正置中提示 Toast[cite: 2] -->
   <div id="toastNotice" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-950/95 text-white border border-slate-700 font-black px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 text-sm tracking-wide shadow-black/40">
     <span class="inline-block animate-spin text-lg text-blue-400">⏳</span>
     <span>大數據多空交叉過濾中...</span>
   </div>
 
+  <!-- 唯一載入模組[cite: 2] -->
   <script type="module">
-    import { state, showSignalInfoDialog } from './js/config.js'; // 👈 導入特徵解說視窗
-    import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
-    import { renderTableHeader, applyFilters, clearSearchField, executeStockSearch, handleSearchKeyup, switchTab, changeMacdFilter } from './js/ui.js';
-    import { openCombinedModal, closeNewsModal, switchModalTab, switchChipSubTab, toggleLine } from './js/macd.js';
+    import { state, showSignalInfoDialog } from './js/config.js'; // 👈 導入特徵解說視窗[cite: 2]
+    import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';[cite: 2]
+    import { renderTableHeader, applyFilters, clearSearchField, executeStockSearch, handleSearchKeyup, switchTab, changeMacdFilter } from './js/ui.js';[cite: 2]
+    import { openCombinedModal, closeNewsModal, switchModalTab, switchChipSubTab, toggleLine } from './js/macd.js';[cite: 2]
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // 💡 智慧對齊：將核心說明 Dialog 打開機制，正式穿透暴露給 window，讓動態 innerHTML 按鈕重獲新生
-      window.showSignalInfoDialog = showSignalInfoDialog;
+      // 將核心說明 Dialog 打開機制，正式穿透暴露給 window，讓動態 innerHTML 按鈕重獲新生[cite: 2]
+      window.showSignalInfoDialog = showSignalInfoDialog;[cite: 2]
       
-      window.openCombinedModal = openCombinedModal;
-      window.closeNewsModal = closeNewsModal;
-      window.switchTab = switchTab;
-      window.changeMacdFilter = changeMacdFilter;
-      window.toggleLine = toggleLine;
+      window.openCombinedModal = openCombinedModal;[cite: 2]
+      window.closeNewsModal = closeNewsModal;[cite: 2]
+      window.switchTab = switchTab;[cite: 2]
+      window.changeMacdFilter = changeMacdFilter;[cite: 2]
+      window.toggleLine = toggleLine;[cite: 2]
 
-      calculateTradeDaysLists();
-      renderTableHeader();
+      calculateTradeDaysLists();[cite: 2]
+      renderTableHeader();[cite: 2]
 
-      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
-      document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
-      document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
-      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);
-      document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);
+      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);[cite: 2]
+      document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);[cite: 2]
+      document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);[cite: 2]
+      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);[cite: 2]
+      document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);[cite: 2]
 
-      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));
-      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));
-      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));
+      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));[cite: 2]
+      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));[cite: 2]
+      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));[cite: 2]
 
-      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));
-      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
-      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
+      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));[cite: 2]
+      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));[cite: 2]
+      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));[cite: 2]
 
-      await forceSyncFlow();
+      await forceSyncFlow();[cite: 2]
     });
   </script>
 </body>
