@@ -5,7 +5,10 @@ const XLSX = require('xlsx');
 
 const EXCEL_FILE_PATH = './Stock_list.xlsx';
 
-// 格式化日期為 20260612 格式 (證交所需要的格式)
+// 延遲函式，避免請求過於密集
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// 格式化日期為 20260612 格式
 function getFormattedDate(daysAgo = 0) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
@@ -16,32 +19,43 @@ function getFormattedDate(daysAgo = 0) {
 }
 
 async function fetchTwseDataWithRetry() {
-  // 因為週末沒有交易，我們從今天(0天前)開始往前嘗試推5天，直到拿到有開盤的最新交易日資料
-  for (let i = 0; i < 5; i++) {
+  // 從今天開始往前尋找最多 7 天（確保能安全跨越連續假期或週末）
+  for (let i = 0; i < 7; i++) {
     const dateStr = getFormattedDate(i);
-    // 證交所：三大法人買賣超前50名排行 API
-    const url = `https://www.twse.com.tw/rwd/zh/fund/TWT38U?date=${dateStr}&response=json`;
+    const targetUrl = `https://www.twse.com.tw/rwd/zh/fund/TWT38U?date=${dateStr}&response=json`;
+    
+    // 💡 核心亮點：透過 allorigins 代理轉發，完美繞過證交所對 GitHub 伺服器 IP 的爬蟲阻擋
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
     
     try {
-      console.log(`🌐 嘗試向臺灣證交所獲取日期 ${dateStr} 的法人排行資料...`);
-      const res = await axios.get(url, { 
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } 
-      });
+      console.log(`🌐 正在透過安全節點獲取日期 ${dateStr} 的法人排行...`);
       
-      if (res.data && res.data.stat === 'OK' && res.data.data && res.data.data.length > 0) {
-        console.log(`📅 成功獲取證交所最新交易日數據: ${dateStr}`);
-        return { date: dateStr, rows: res.data.data };
+      const res = await axios.get(proxyUrl, { timeout: 10000 });
+      
+      if (res.data && res.data.contents) {
+        // allorigins 會將原始 JSON 字串放在 contents 欄位中，我們需要手動 JSON.parse
+        const rawData = JSON.parse(res.data.contents);
+        
+        if (rawData.stat === 'OK' && rawData.data && rawData.data.length > 0) {
+          console.log(`🎉 成功突破限制！成功獲取最新交易日數據: ${dateStr}`);
+          return { date: dateStr, rows: rawData.data };
+        }
       }
+      
+      console.log(`⚠️ 日期 ${dateStr} 為非交易日（週末或假期），準備嘗試前一天...`);
     } catch (e) {
-      console.log(`⚠️ 日期 ${dateStr} 獲取失敗或無資料，嘗試前一天...`);
+      console.log(`⚠️ 日期 ${dateStr} 請求受阻，錯誤簡述: ${e.message}。嘗試前一天...`);
     }
+    
+    // 每次請求完強制休息 1.5 秒，展現溫和的爬蟲禮儀
+    await sleep(1500);
   }
-  throw new Error("無法從證交所獲取最近5天內任何有效的交易日資料。");
+  throw new Error("❌ 歷經 7 天重試，依然被證交所全面封鎖。請稍後再試。");
 }
 
 async function run() {
   try {
-    console.log("🚀 開始執行【證交所三大法人前50名比對 $\rightarrow$ 寫入 Stock_list.xlsx 'NEW' 分頁】流程...");
+    console.log("🚀 開始執行【跨網域安全版：證交所法人前50名比對 寫入 NEW 分頁】流程...");
 
     // 1. 檢查並讀取本地的 Stock_list.xlsx
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
@@ -78,18 +92,14 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史篩選股。`);
 
-    // 4. 從證交所撈取法人買超前 50 名
+    // 4. 從證交所代理端撈取法人買超前 50 名
     const twseResult = await fetchTwseDataWithRetry();
     
-    // 5. 解析證交所欄位
-    // 證交所 TWT38U 欄位順序：
-    // [0] 排名, [1] 股票代號, [2] 股票名稱, [3] 外資買超, [4] 投信買超, [5] 自營商買超, [6] 三大法人合計買超
-    // 注意：證交所這個日報表本身就已經「依據三大法人合計買超張數」幫我們排好前 50 名了！
-    
+    // 5. 解析證交所欄位並比對
     const newlyFoundStocksMap = new Map();
 
     twseResult.rows.forEach(row => {
-      const sId = String(row[1]).trim(); // 股票代號
+      const sId = String(row[1]).trim();   // 股票代號
       const sName = String(row[2]).trim(); // 股票名稱
 
       // 條件：不在 180 檔核心 且 不在 現有的 NEW 分頁中
