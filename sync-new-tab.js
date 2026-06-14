@@ -4,7 +4,6 @@ const axios = require('axios');
 const XLSX = require('xlsx');
 
 const EXCEL_FILE_PATH = './Stock_list.xlsx'; 
-const FINMIND_TOKEN = process.env.FINMIND_TOKEN || ''; // 若沒設定就留空
 
 // 安全地獲取近幾天的日期字串
 function getPastDateString(daysAgo = 4) {
@@ -55,15 +54,12 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史篩選股。`);
 
-    // 4. 呼叫 FinMind API (縮短日期範圍至近 4 天，減少 400 錯誤機率)
+    // 4. 呼叫 FinMind API
+    // 💡 修正對齊 sync-data.js 成功模式：完全移除了網址後方的 &token=
     const startDate = getPastDateString(4);
     console.log(`🌐 正在獲取 FinMind 法人買賣超資料 (自 ${startDate} 起)...`);
     
-    // 構建網址，若有 Token 則帶入，沒有則不帶（FinMind 支援無 Token 限制次數查詢）
-    let fmUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${startDate}`;
-    if (FINMIND_TOKEN) {
-      fmUrl += `&token=${FINMIND_TOKEN}`;
-    }
+    const fmUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${startDate}`;
     
     const fmRes = await axios.get(fmUrl);
     
