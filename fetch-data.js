@@ -22,7 +22,6 @@ async function fetchData() {
     if (error) return console.error("❌ 取得日期失敗:", error);
     uniqueDates = [...new Set([...uniqueDates, ...dateRows.map(item => item.date)])];
     
-    // 確保抓取足夠的歷史天數
     if (dateRows.length < DATE_PAGE_SIZE || uniqueDates.length >= 90) {
       hasMoreDates = false;
     } else {
@@ -37,7 +36,6 @@ async function fetchData() {
   const latest3Days = uniqueDates.slice(0, 3);
   const latest5Days = uniqueDates.slice(0, 5);
   
-  // 保留安全邊際，取前 70 天
   const cutoffDate = uniqueDates[Math.min(70, uniqueDates.length) - 1];
 
   console.log(`📥 [步驟 2] 分批撈取完整原始資料以利全局排行計算...`);
@@ -48,7 +46,8 @@ async function fetchData() {
   while (hasMoreData) {
     const { data, error } = await supabase
       .from('stock_chips_daily')
-      .select('*, macd_dif, macd_signal, macd_osc')
+      // 🔥 關鍵修正：除了 MACD，這次也明確要求 API 提供雲端資料庫的 RSV 與 KD 欄位
+      .select('*, macd_dif, macd_signal, macd_osc, rsv, kd_k, kd_d')
       .gte('date', cutoffDate)
       .order('date', { ascending: false })
       .range(page * 1000, (page + 1) * 1000 - 1);
@@ -63,9 +62,8 @@ async function fetchData() {
   
   const stockStats = {};
   allRawData.forEach(row => {
-    // 統一規範 stockId，防範資料庫欄位命名的不確定性
     const id = row.stock_id || row.code;
-    if (!id) return; // 跳過無效資料
+    if (!id) return;
 
     const fNet = row.f_net !== undefined ? row.f_net : ((row.f_buy || 0) - (row.f_sell || 0));
     const itNet = row.it_net !== undefined ? row.it_net : ((row.it_buy || 0) - (row.it_sell || 0));
@@ -82,19 +80,15 @@ async function fetchData() {
 
   const stockList = Object.values(stockStats);
 
-  // ── 1日 排行榜（前 50 名買超 / 前 50 名賣超） ──
   const top1d_buy = stockList.sort((a, b) => b.sum1d - a.sum1d).slice(0, 50).map(s => s.id);
   const top1d_sell = stockList.sort((a, b) => a.sum1d - b.sum1d).slice(0, 50).map(s => s.id);
 
-  // ── 3日 排行榜（前 50 名買超 / 前 50 名賣超） ──
   const top3d_buy = stockList.sort((a, b) => b.sum3d - a.sum3d).slice(0, 50).map(s => s.id);
   const top3d_sell = stockList.sort((a, b) => a.sum3d - b.sum3d).slice(0, 50).map(s => s.id);
 
-  // ── 5日 排行榜（前 50 名買超 / 前 50 名賣超） ──
   const top5d_buy = stockList.sort((a, b) => b.sum5d - a.sum5d).slice(0, 50).map(s => s.id);
   const top5d_sell = stockList.sort((a, b) => a.sum5d - b.sum5d).slice(0, 50).map(s => s.id);
 
-  // 透過 Set 進行聯集去重
   const eliteStockIds = new Set([
     ...top1d_buy, ...top1d_sell,
     ...top3d_buy, ...top3d_sell,
@@ -103,7 +97,6 @@ async function fetchData() {
 
   console.log(`🎯 篩選完成！全市場經去重後共有 ${eliteStockIds.size} 檔籌碼菁英股進入最終名單。`);
 
-  // 建立對應標籤，讓 export-for-ai.js 或 AI 可以識別個股屬性
   const eliteStocksWithTags = {};
   eliteStockIds.forEach(id => {
     const tags = [];
@@ -116,7 +109,6 @@ async function fetchData() {
     eliteStocksWithTags[id] = tags;
   });
 
-  // 嚴格過濾原始資料
   const filteredRawData = allRawData.filter(row => {
     const id = row.stock_id || row.code;
     return eliteStockIds.has(id);
