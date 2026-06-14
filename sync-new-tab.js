@@ -3,21 +3,45 @@ const fs = require('fs');
 const axios = require('axios');
 const XLSX = require('xlsx');
 
-const EXCEL_FILE_PATH = './Stock_list.xlsx'; 
+const EXCEL_FILE_PATH = './Stock_list.xlsx';
 
-// 安全地獲取近幾天的日期字串
-function getPastDateString(daysAgo = 4) {
+// 格式化日期為 20260612 格式 (證交所需要的格式)
+function getFormattedDate(daysAgo = 0) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return `${yyyy}${mm}${dd}`;
+}
+
+async function fetchTwseDataWithRetry() {
+  // 因為週末沒有交易，我們從今天(0天前)開始往前嘗試推5天，直到拿到有開盤的最新交易日資料
+  for (let i = 0; i < 5; i++) {
+    const dateStr = getFormattedDate(i);
+    // 證交所：三大法人買賣超前50名排行 API
+    const url = `https://www.twse.com.tw/rwd/zh/fund/TWT38U?date=${dateStr}&response=json`;
+    
+    try {
+      console.log(`🌐 嘗試向臺灣證交所獲取日期 ${dateStr} 的法人排行資料...`);
+      const res = await axios.get(url, { 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } 
+      });
+      
+      if (res.data && res.data.stat === 'OK' && res.data.data && res.data.data.length > 0) {
+        console.log(`📅 成功獲取證交所最新交易日數據: ${dateStr}`);
+        return { date: dateStr, rows: res.data.data };
+      }
+    } catch (e) {
+      console.log(`⚠️ 日期 ${dateStr} 獲取失敗或無資料，嘗試前一天...`);
+    }
+  }
+  throw new Error("無法從證交所獲取最近5天內任何有效的交易日資料。");
 }
 
 async function run() {
   try {
-    console.log("🚀 開始執行【三大法人前50名比對，更新 Stock_list.xlsx 'NEW' 分頁】流程...");
+    console.log("🚀 開始執行【證交所三大法人前50名比對 $\rightarrow$ 寫入 Stock_list.xlsx 'NEW' 分頁】流程...");
 
     // 1. 檢查並讀取本地的 Stock_list.xlsx
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
@@ -41,7 +65,7 @@ async function run() {
     });
     console.log(`📊 目前核心名單共有 ${existingStocks.size} 檔股票。`);
 
-    // 3. 讀取現有 'NEW' 分頁裡的股票（避免日後重疊）
+    // 3. 讀取現有 'NEW' 分頁裡的股票
     const existingNewStocks = new Set();
     let currentNewRows = [];
     if (workbook.SheetNames.includes('NEW')) {
@@ -54,62 +78,27 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史篩選股。`);
 
-    // 4. 呼叫 FinMind API
-    // 💡 修正對齊 sync-data.js 成功模式：完全移除了網址後方的 &token=
-    const startDate = getPastDateString(4);
-    console.log(`🌐 正在獲取 FinMind 法人買賣超資料 (自 ${startDate} 起)...`);
+    // 4. 從證交所撈取法人買超前 50 名
+    const twseResult = await fetchTwseDataWithRetry();
     
-    const fmUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${startDate}`;
+    // 5. 解析證交所欄位
+    // 證交所 TWT38U 欄位順序：
+    // [0] 排名, [1] 股票代號, [2] 股票名稱, [3] 外資買超, [4] 投信買超, [5] 自營商買超, [6] 三大法人合計買超
+    // 注意：證交所這個日報表本身就已經「依據三大法人合計買超張數」幫我們排好前 50 名了！
     
-    const fmRes = await axios.get(fmUrl);
-    
-    if (!fmRes.data || !fmRes.data.data || fmRes.data.data.length === 0) {
-      console.log("⚠️ API 回傳資料為空，可能是因為週末或非交易日尚未有新數據更新。");
-      return; 
-    }
+    const newlyFoundStocksMap = new Map();
 
-    const allData = fmRes.data.data;
-    
-    // 找出數據裡最新的實際交易日
-    const latestDate = allData.reduce((max, item) => item.date > max ? item.date : max, allData[0].date);
-    console.log(`📅 最新偵測到的實際交易日: ${latestDate}`);
+    twseResult.rows.forEach(row => {
+      const sId = String(row[1]).trim(); // 股票代號
+      const sName = String(row[2]).trim(); // 股票名稱
 
-    // 過濾出最新交易日的資料
-    const latestData = allData.filter(item => item.date === latestDate);
-
-    // 5. 分別對三大法人進行「淨買超 = 買進 - 賣出」排行並過濾
-    const targetInvestors = ['Foreign_Investor', 'Investment_Trust', 'Dealer_Trading'];
-    const newlyFoundStocksMap = new Map(); // 確保今天新加入的代號不重複
-
-    targetInvestors.forEach(investor => {
-      // 篩選特定法人
-      const invData = latestData.filter(item => item.name && item.name.toLowerCase().includes(investor.toLowerCase()));
-
-      // 聚合相同股票（如自營商拆成避險與自行買賣）
-      const stockGroup = {};
-      invData.forEach(item => {
-        if (!stockGroup[item.stock_id]) {
-          stockGroup[item.stock_id] = { stock_id: item.stock_id, stock_name: item.stock_name, net_buy: 0 };
-        }
-        stockGroup[item.stock_id].net_buy += (item.buy - item.sell);
-      });
-
-      // 排序取前 50 名
-      const sortedTop50 = Object.values(stockGroup)
-        .sort((a, b) => b.net_buy - a.net_buy)
-        .slice(0, 50);
-
-      // 比對是否符合新股資格
-      sortedTop50.forEach(stock => {
-        const sId = String(stock.stock_id).trim();
-        // 條件：不在 180 檔核心 且 不在 現有的 NEW 分頁中
-        if (!existingStocks.has(sId) && !existingNewStocks.has(sId)) {
-          newlyFoundStocksMap.set(sId, {
-            '股票代號': sId,
-            '股票名稱': stock.stock_name
-          });
-        }
-      });
+      // 條件：不在 180 檔核心 且 不在 現有的 NEW 分頁中
+      if (!existingStocks.has(sId) && !existingNewStocks.has(sId)) {
+        newlyFoundStocksMap.set(sId, {
+          '股票代號': sId,
+          '股票名稱': sName
+        });
+      }
     });
 
     console.log(`✨ 今日比對完成！新增了 ${newlyFoundStocksMap.size} 檔不在核心名單內的新股票。`);
@@ -133,12 +122,7 @@ async function run() {
     }
 
   } catch (error) {
-    if (error.response) {
-      console.error(`❌ API 錯誤狀態碼: ${error.response.status}`);
-      console.error("❌ 錯誤詳情:", error.response.data);
-    } else {
-      console.error("❌ 執行發生錯誤:", error.message);
-    }
+    console.error("❌ 執行發生錯誤:", error.message);
     process.exit(1);
   }
 }
