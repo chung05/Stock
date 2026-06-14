@@ -1,0 +1,47 @@
+name: Daily Sync Top 50 New Stocks
+
+on:
+  schedule:
+    # 每天台股收盤後與法人籌碼公布後的晚上 16:30 (UTC+0 是 10:30) 自動執行
+    - cron: '30 8 * * 1-5'
+  workflow_dispatch: # 允許手動點擊執行
+
+jobs:
+  sync-new-tab:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true # 允許 Push 回 GitHub
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: |
+        npm install axios xlsx
+
+    - name: Run Sync New Tab Script
+      env:
+        FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+      run: node sync-new-tab.js
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        # 檢查 Excel 是否有被修改，若有才進行 Commit
+        if [ -n "$(git status --porcelain Stock_list.xlsx)" ]; then
+          git add Stock_list.xlsx
+          git commit -m "🤖 自動更新: 三大法人買超新股票寫入 NEW 分頁 [$(date +'%Y-%m-%d')]"
+          git push origin main
+          console.log("🚀 檔案成功更新並推送至 GitHub 倉庫！")
+        else
+          echo "無任何新股變更，跳過 Commit。"
+        fi
