@@ -3,26 +3,17 @@ const fs = require('fs');
 const axios = require('axios');
 const XLSX = require('xlsx');
 
-// 讀取 GitHub Actions 環境變數
-const FINMIND_TOKEN = process.env.FINMIND_TOKEN;
-const EXCEL_FILE_PATH = './Stock_list.xlsx'; // 本地檔案路徑
+const EXCEL_FILE_PATH = './Stock_list.xlsx'; 
+const FINMIND_TOKEN = process.env.FINMIND_TOKEN || ''; // 若沒設定就留空
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-function getPastDates(daysCount = 5) {
-  const dates = [];
-  let d = new Date();
-  while (dates.length < daysCount) {
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) { // 排除週六日
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      dates.push(`${yyyy}-${mm}-${dd}`);
-    }
-    d.setDate(d.getDate() - 1);
-  }
-  return dates;
+// 安全地獲取近幾天的日期字串
+function getPastDateString(daysAgo = 4) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 async function run() {
@@ -64,22 +55,28 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史篩選股。`);
 
-    // 4. 呼叫 FinMind API 獲取最近幾天的法人籌碼
-    const datesToCheck = getPastDates(5);
-    const startDate = datesToCheck[datesToCheck.length - 1];
-    
+    // 4. 呼叫 FinMind API (縮短日期範圍至近 4 天，減少 400 錯誤機率)
+    const startDate = getPastDateString(4);
     console.log(`🌐 正在獲取 FinMind 法人買賣超資料 (自 ${startDate} 起)...`);
-    const fmUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${startDate}&token=${FINMIND_TOKEN}`;
+    
+    // 構建網址，若有 Token 則帶入，沒有則不帶（FinMind 支援無 Token 限制次數查詢）
+    let fmUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${startDate}`;
+    if (FINMIND_TOKEN) {
+      fmUrl += `&token=${FINMIND_TOKEN}`;
+    }
+    
     const fmRes = await axios.get(fmUrl);
     
     if (!fmRes.data || !fmRes.data.data || fmRes.data.data.length === 0) {
-      throw new Error("未能從 FinMind API 獲取有效數據。");
+      console.log("⚠️ API 回傳資料為空，可能是因為週末或非交易日尚未有新數據更新。");
+      return; 
     }
 
     const allData = fmRes.data.data;
+    
     // 找出數據裡最新的實際交易日
     const latestDate = allData.reduce((max, item) => item.date > max ? item.date : max, allData[0].date);
-    console.log(`📅 最新偵測交易日: ${latestDate}`);
+    console.log(`📅 最新偵測到的實際交易日: ${latestDate}`);
 
     // 過濾出最新交易日的資料
     const latestData = allData.filter(item => item.date === latestDate);
@@ -90,7 +87,7 @@ async function run() {
 
     targetInvestors.forEach(investor => {
       // 篩選特定法人
-      const invData = latestData.filter(item => item.name.toLowerCase().includes(investor.toLowerCase()));
+      const invData = latestData.filter(item => item.name && item.name.toLowerCase().includes(investor.toLowerCase()));
 
       // 聚合相同股票（如自營商拆成避險與自行買賣）
       const stockGroup = {};
@@ -121,22 +118,31 @@ async function run() {
 
     console.log(`✨ 今日比對完成！新增了 ${newlyFoundStocksMap.size} 檔不在核心名單內的新股票。`);
 
-    // 6. 寫回 Excel 檔案
-    const finalNewList = [...currentNewRows, ...Array.from(newlyFoundStocksMap.values())];
-    const newSheetWS = XLSX.utils.json_to_sheet(finalNewList);
+    // 6. 如果有新股票，才需要重寫 Excel 檔案
+    if (newlyFoundStocksMap.size > 0) {
+      const finalNewList = [...currentNewRows, ...Array.from(newlyFoundStocksMap.values())];
+      const newSheetWS = XLSX.utils.json_to_sheet(finalNewList);
 
-    if (workbook.SheetNames.includes('NEW')) {
-      workbook.Sheets['NEW'] = newSheetWS;
+      if (workbook.SheetNames.includes('NEW')) {
+        workbook.Sheets['NEW'] = newSheetWS;
+      } else {
+        XLSX.utils.book_append_sheet(workbook, newSheetWS, 'NEW');
+      }
+
+      // 將異動存回本地 Stock_list.xlsx 檔案
+      XLSX.writeFile(workbook, EXCEL_FILE_PATH);
+      console.log(`💾 成功將最新名單寫入 ${EXCEL_FILE_PATH} 的 'NEW' 分頁！`);
     } else {
-      XLSX.utils.book_append_sheet(workbook, newSheetWS, 'NEW');
+      console.log("重疊度高或無最新法人股，Excel 未做任何變更。");
     }
 
-    // 將異動存回本地 Stock_list.xlsx 檔案
-    XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-    console.log(`💾 成功將最新名單寫入 ${EXCEL_FILE_PATH} 的 'NEW' 分頁！`);
-
   } catch (error) {
-    console.error("❌ 執行發生錯誤:", error.message);
+    if (error.response) {
+      console.error(`❌ API 錯誤狀態碼: ${error.response.status}`);
+      console.error("❌ 錯誤詳情:", error.response.data);
+    } else {
+      console.error("❌ 執行發生錯誤:", error.message);
+    }
     process.exit(1);
   }
 }
