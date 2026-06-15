@@ -5,57 +5,50 @@ const XLSX = require('xlsx');
 
 const EXCEL_FILE_PATH = './Stock_list.xlsx';
 
-// 延遲函式，避免請求過於密集
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * 💡 精準鎖定最新的一個交易日
+ * 規則：
+ * 1. 如果是週六，改抓週五。
+ * 2. 如果是週日，改抓週五。
+ * 3. 如果是週一到週五，且在下午 17:30 之前跑，可能當天資料還沒好，自動拿昨天（如果是週一就拿上週五）。
+ */
+function getLatestTradeDate() {
+  const now = new Date();
+  
+  // 轉換成台灣時間 (UTC+8)
+  const twTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+  const day = twTime.getDay(); // 0: 週日, 1: 週一, ..., 6: 週六
+  const hour = twTime.getHours();
+  const minute = twTime.getMinutes();
 
-// 格式化日期為 20260612 格式
-function getFormattedDate(daysAgo = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}${mm}${dd}`;
-}
+  let targetDate = new Date(twTime);
 
-async function fetchTwseDataWithRetry() {
-  // 從今天開始往前尋找最多 7 天（確保能安全跨越連續假期或週末）
-  for (let i = 0; i < 7; i++) {
-    const dateStr = getFormattedDate(i);
-    const targetUrl = `https://www.twse.com.tw/rwd/zh/fund/TWT38U?date=${dateStr}&response=json`;
-    
-    // 💡 核心亮點：透過 allorigins 代理轉發，完美繞過證交所對 GitHub 伺服器 IP 的爬蟲阻擋
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-    
-    try {
-      console.log(`🌐 正在透過安全節點獲取日期 ${dateStr} 的法人排行...`);
-      
-      const res = await axios.get(proxyUrl, { timeout: 10000 });
-      
-      if (res.data && res.data.contents) {
-        // allorigins 會將原始 JSON 字串放在 contents 欄位中，我們需要手動 JSON.parse
-        const rawData = JSON.parse(res.data.contents);
-        
-        if (rawData.stat === 'OK' && rawData.data && rawData.data.length > 0) {
-          console.log(`🎉 成功突破限制！成功獲取最新交易日數據: ${dateStr}`);
-          return { date: dateStr, rows: rawData.data };
-        }
-      }
-      
-      console.log(`⚠️ 日期 ${dateStr} 為非交易日（週末或假期），準備嘗試前一天...`);
-    } catch (e) {
-      console.log(`⚠️ 日期 ${dateStr} 請求受阻，錯誤簡述: ${e.message}。嘗試前一天...`);
-    }
-    
-    // 每次請求完強制休息 1.5 秒，展現溫和的爬蟲禮儀
-    await sleep(1500);
+  if (day === 6) { 
+    // 週六 -> 改抓週五
+    targetDate.setDate(twTime.getDate() - 1);
+  } else if (day === 0) { 
+    // 週日 -> 改抓週五
+    targetDate.setDate(twTime.getDate() - 2);
+  } else if (day === 1 && (hour < 17 || (hour === 17 && minute < 30))) {
+    // 週一傍晚 17:30 之前 -> 拿上週五
+    targetDate.setDate(twTime.getDate() - 3);
+  } else if (hour < 17 || (hour === 17 && minute < 30)) {
+    // 週二至週五傍晚 17:30 之前 -> 拿前一天
+    targetDate.setDate(twTime.getDate() - 1);
   }
-  throw new Error("❌ 歷經 7 天重試，依然被證交所全面封鎖。請稍後再試。");
+  // 其餘時間（週一至週五 17:30 之後）-> 直接抓當天
+
+  const yyyy = targetDate.getFullYear();
+  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(targetDate.getDate()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}`;
 }
 
 async function run() {
   try {
-    console.log("🚀 開始執行【跨網域安全版：證交所法人前50名比對 寫入 NEW 分頁】流程...");
+    const targetDateStr = getLatestTradeDate();
+    console.log(`🚀 開始執行【精準精確版：證交所法人前50名比對 寫入 NEW 分頁】流程...`);
+    console.log(`🎯 系統判定應抓取的最新交易日為: ${targetDateStr}`);
 
     // 1. 檢查並讀取本地的 Stock_list.xlsx
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
@@ -92,22 +85,36 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史篩選股。`);
 
-    // 4. 從證交所代理端撈取法人買超前 50 名
-    const twseResult = await fetchTwseDataWithRetry();
+    // 4. 改走政府高速開放資料庫分流節點（高速、不擋海外 IP、不超時）
+    const url = `https://openapi.twse.com.tw/v1/fund/TWT38U?date=${targetDateStr}`;
+    console.log(`🌐 正在從開放資料庫高速下載法人排行數據...`);
     
-    // 5. 解析證交所欄位並比對
+    // 設定 15 秒超時，並增加容錯
+    const res = await axios.get(url, { timeout: 15000 }).catch(err => {
+      throw new Error(`連線至開放平台失敗: ${err.message}`);
+    });
+
+    if (!res.data || !Array.isArray(res.data) || res.data.length === 0) {
+      console.log(`⚠️ 該交易日 (${targetDateStr}) 暫時無資料，可能尚未到傍晚發布時間或為特殊休市日。`);
+      return;
+    }
+
+    // 5. 解析政府開放資料欄位
+    // 政府 OpenAPI 格式為 JSON 陣列，物件欄位通常為: Code (代號), Name (名稱)
     const newlyFoundStocksMap = new Map();
 
-    twseResult.rows.forEach(row => {
-      const sId = String(row[1]).trim();   // 股票代號
-      const sName = String(row[2]).trim(); // 股票名稱
+    res.data.forEach(item => {
+      const sId = String(item.Code || item.CodeNo || '').trim();
+      const sName = String(item.Name || '').trim();
 
-      // 條件：不在 180 檔核心 且 不在 現有的 NEW 分頁中
-      if (!existingStocks.has(sId) && !existingNewStocks.has(sId)) {
-        newlyFoundStocksMap.set(sId, {
-          '股票代號': sId,
-          '股票名稱': sName
-        });
+      if (sId) {
+        // 條件：不在 180 檔核心 且 不在 現有的 NEW 分頁中
+        if (!existingStocks.has(sId) && !existingNewStocks.has(sId)) {
+          newlyFoundStocksMap.set(sId, {
+            '股票代號': sId,
+            '股票名稱': sName
+          });
+        }
       }
     });
 
