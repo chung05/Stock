@@ -33,7 +33,7 @@ function getLatestTradeDateStr() {
 async function run() {
   try {
     const tradeDate = getLatestTradeDateStr();
-    console.log(`🧪 【進入人工驗證模式】全市場三大法人各自前 50 名不比對直接寫入...`);
+    console.log(`🧪 【進入人工驗證模式】拋棄所有比對邏輯，直接全量下載全市場前 50 名...`);
     console.log(`🎯 當前鎖定全市場交易日: ${tradeDate}`);
 
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
@@ -41,7 +41,7 @@ async function run() {
     }
     const workbook = XLSX.readFile(EXCEL_FILE_PATH);
 
-    // 直連證交所 CSV 排行大表
+    // 直連證交所官方 CSV 下載通道
     const csvUrl = `https://www.twse.com.tw/zh/fund/BFAM85U?date=${tradeDate}&response=csv`;
     console.log(`🌐 正在下載全市場法人排行 CSV 報表...`);
 
@@ -56,60 +56,50 @@ async function run() {
       return;
     }
 
+    // 💡 印出前 500 個字元，確認我們到底從證交所下載到了什麼，徹底透明化！
+    console.log("--------------------------------------------------");
+    console.log("🔍 [CSV 頂部前瞻預覽]：");
+    console.log(res.data.substring(0, 500));
+    console.log("--------------------------------------------------");
+
     const lines = res.data.split('\n');
-    
-    // 用一個 Map 收集所有上榜個股，並記錄它是被誰買進的
-    const verificationMap = new Map();
+    const allInsertedStocks = [];
 
-    lines.forEach(line => {
-      const cleanLine = line.replace(/"/g, '').trim();
-      const columns = cleanLine.split(',');
+    // 💡 強力正則表達式：精準捕捉 CSV 行中包含的四位數字台股股票代號 (例: "2330","台積電")
+    // 這可以完美繞過所有中文字說明的干擾
+    const stockRegex = /"(\d{4})"\s*,\s*"([^"]+)"/g;
 
-      const rank = parseInt(columns[0], 10);
-      // 只要排名在 1 到 50 之間，就是我們要的頂級籌碼股
-      if (!isNaN(rank) && rank >= 1 && rank <= 50) {
+    lines.forEach((line) => {
+      let match;
+      // 逐行掃描，只要發現符合 (代號, 名稱) 結構的，一網打盡！
+      while ((match = stockRegex.exec(line)) !== null) {
+        const sId = match[1].trim();
+        const sName = match[2].trim();
         
-        // 1. 外資買超前 50
-        const fkId = columns[1] ? columns[1].trim() : '';
-        const fkName = columns[2] ? columns[2].trim() : '';
-        
-        // 2. 投信買超前 50
-        const itId = columns[5] ? columns[5].trim() : '';
-        const itName = columns[6] ? columns[6].trim() : '';
-        
-        // 3. 自營商買超前 50
-        const dId = columns[9] ? columns[9].trim() : '';
-        const dName = columns[10] ? columns[10].trim() : '';
-
-        const addToMap = (id, name, investorName) => {
-          if (id && id.length >= 4) {
-            if (!verificationMap.has(id)) {
-              verificationMap.set(id, { '股票代號': id, '股票名稱': name, '來源法人': [] });
-            }
-            const item = verificationMap.get(id);
-            if (!item['來源法人'].includes(investorName)) {
-              item['來源法人'].push(investorName);
-            }
-          }
-        };
-
-        addToMap(fkId, fkName, '外資');
-        addToMap(itId, itName, '投信');
-        addToMap(dId, dName, '自營商');
+        // 排除非個股的純數字雜質
+        if (sId && sId.length === 4) {
+          allInsertedStocks.push({
+            '股票代號': sId,
+            '股票名稱': sName,
+            '紀錄說明': '全市場三大法人前50名原始提取'
+          });
+        }
       }
     });
 
-    console.log(`📥 掃描完畢！全市場扣除重複後，三大法人共同堆疊出共 ${verificationMap.size} 檔個股。`);
+    console.log(`📥 掃描完畢！成功從證交所原始 CSV 報表中，強行提取出 ${allInsertedStocks.length} 筆排行紀錄。`);
 
-    // 將資料格式化為準備寫入 Excel 的型態
-    const finalVerificationList = Array.from(verificationMap.values()).map(item => ({
-      '股票代號': item['股票代號'],
-      '股票名稱': item['股票名稱'],
-      '來源法人': item['來源法人'].join(' + ') // 例如：外資 + 投信
-    }));
+    // 去除重複的股票代號，確保寫入 Excel 時乾淨漂亮
+    const uniqueMap = new Map();
+    allInsertedStocks.forEach(item => {
+      uniqueMap.set(item['股票代號'], item);
+    });
+    const finalWriteList = Array.from(uniqueMap.values());
+    
+    console.log(`📊 去除重複上榜股票後，共有 ${finalWriteList.length} 檔不重複的個股準備寫入。`);
 
-    // 💡 暴力覆蓋 'NEW' 分頁，不做任何與 180 檔的比對限制
-    const newSheetWS = XLSX.utils.json_to_sheet(finalVerificationList);
+    // 💡 暴力直接覆蓋 'NEW' 分頁，不做任何與 180 檔的核心比對！
+    const newSheetWS = XLSX.utils.json_to_sheet(finalWriteList);
     
     if (workbook.SheetNames.includes('NEW')) {
       workbook.Sheets['NEW'] = newSheetWS;
@@ -118,7 +108,7 @@ async function run() {
     }
 
     XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-    console.log(`💾 【驗證完成】已將無過濾的 ${finalVerificationList.length} 檔法人名單全數強行寫入 'NEW' 分頁！`);
+    console.log(`💾 【驗證存檔】已將這 ${finalWriteList.length} 檔全市場法人最愛，全數塞入 'NEW' 分頁！`);
 
   } catch (error) {
     console.error("❌ 執行發生錯誤:", error.message);
