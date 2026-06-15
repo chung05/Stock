@@ -33,7 +33,7 @@ function getLatestTradeDateStr() {
 async function run() {
   try {
     const tradeDate = getLatestTradeDateStr();
-    console.log(`🚀 【150檔全量驗證模式】證交所 T86 全市場數據下載與對照標記流程啟動...`);
+    console.log(`🚀 【正式自動化更新版】全市場法人前 50 名比對流程啟動...`);
     console.log(`🎯 當前鎖定交易日: ${tradeDate}`);
 
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
@@ -41,7 +41,7 @@ async function run() {
     }
     const workbook = XLSX.readFile(EXCEL_FILE_PATH);
 
-    // 1. 蒐集目前的核心 180 檔母名單 (用來判斷是否重複)
+    // 1. 蒐集目前的核心 180 檔母名單
     const coreSheets = ['TW50', 'TW100', 'MSCI'];
     const existingStocksSet = new Set();
     coreSheets.forEach(sheetName => {
@@ -54,11 +54,24 @@ async function run() {
         });
       }
     });
-    console.log(`📊 您定義的核心 180 檔母名單共有: ${existingStocksSet.size} 檔股票。`);
+    console.log(`📊 您定義的核心 180 檔母名單庫共有: ${existingStocksSet.size} 檔股票。`);
 
-    // 2. 直連證交所下載全市場 T86 數據
+    // 2. 讀取現有 'NEW' 分頁裡的歷史股票（💡 僅用來增量追加時「防止完全同代號重複寫入」）
+    const historicalNewStocksSet = new Set();
+    let currentNewRows = [];
+    if (workbook.SheetNames.includes('NEW')) {
+      const newSheet = workbook.Sheets['NEW'];
+      currentNewRows = XLSX.utils.sheet_to_json(newSheet);
+      currentNewRows.forEach(row => {
+        const sId = String(row['股票代號'] || row['代號'] || '').trim();
+        if (sId) historicalNewStocksSet.add(sId);
+      });
+    }
+    console.log(`📂 目前 'NEW' 分頁中已累積了 ${historicalNewStocksSet.size} 檔歷史篩選股。`);
+
+    // 3. 直連下載證交所 T86 全市場大表
     const url = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${tradeDate}&selectType=ALL&response=json`;
-    console.log(`🌐 正在從證交所下載全市場法人日報大表...`);
+    console.log(`🌐 正在直連證交所下載全市場大表...`);
 
     const res = await axios.get(url, {
       timeout: 15000,
@@ -70,17 +83,16 @@ async function run() {
     });
 
     if (!res.data || res.data.stat !== 'OK' || !res.data.data || res.data.data.length === 0) {
-      console.log(`⚠️ 提示：該日期 (${tradeDate}) 證交所尚未釋出有效開盤數據。`);
+      console.log(`⚠️ 提示：該日期 (${tradeDate}) 證交所尚未釋出資料或今日休市。`);
       return;
     }
 
-    // 3. 過濾 ETF 與權證，僅保留 4 位數純個股
+    // 4. 洗淨過濾：僅保留 4 位數純個股
     const pureStocksPool = [];
     res.data.data.forEach(row => {
       const sId = String(row[0]).trim();
       const sName = String(row[1]).trim();
 
-      // 嚴格濾網：代號必須剛好是 4 位純數字
       if (/^\d{4}$/.test(sId)) {
         const parseNetVolume = (val) => {
           if (!val) return 0;
@@ -90,69 +102,94 @@ async function run() {
         pureStocksPool.push({
           stock_id: sId,
           stock_name: sName,
-          foreign_net: parseNetVolume(row[4]),  // 外資買賣超
-          trust_net: parseNetVolume(row[9]),    // 投信買賣超
-          dealer_net: parseNetVolume(row[10])   // 自營商買賣超
+          foreign_net: parseNetVolume(row[4]),
+          trust_net: parseNetVolume(row[9]),
+          dealer_net: parseNetVolume(row[10])
         });
       }
     });
-    console.log(`洗淨完畢！全市場共篩選出 ${pureStocksPool.length} 檔純本土個股。`);
 
-    // 4. 【全市場大排序】各自精準挑出前 50 名個股
+    // 5. 【全市場純個股大排序】各自挑出前 50 名
     const top50Foreign = [...pureStocksPool].sort((a, b) => b.foreign_net - a.foreign_net).slice(0, 50);
     const top50Trust = [...pureStocksPool].sort((a, b) => b.trust_net - a.trust_net).slice(0, 50);
     const top50Dealer = [...pureStocksPool].sort((a, b) => b.dealer_net - a.dealer_net).slice(0, 50);
 
-    // 5. 彙整這 150 檔資料，並進行核心 180 檔的比對與標記備註
-    const final150Rows = [];
+    // 6. 彙整今天上榜的所有法人最愛個股（在記憶體中先進行「今日代號去重」）
+    // key: 股票代號, value: 股票資訊
+    const todayCandidateMap = new Map();
 
-    const processAndTag = (top50List, investorName) => {
-      top50List.forEach((stock, index) => {
+    const collectMarketTop50 = (top50List, investorName) => {
+      top50List.forEach((stock) => {
         const sId = stock.stock_id;
         
-        // 判定購買張數
         let volume = 0;
         if (investorName === '外資') volume = stock.foreign_net;
         if (investorName === '投信') volume = stock.trust_net;
         if (investorName === '自營商') volume = stock.dealer_net;
 
-        // 💡 核心比對機制：檢查是否出現在原本的 180 檔母名單中
-        const remark = existingStocksSet.has(sId) ? "重複的" : "新發現個股";
-
-        final150Rows.push({
-          '股票代號': sId,
-          '股票名稱': stock.stock_name,
-          '購買張數': volume,
-          '來源法人': investorName,
-          '法人內排名': index + 1,
-          '比對備註': remark,
-          '交易日期': tradeDate
-        });
+        // 必須是有實質買超的股票
+        if (volume > 0) {
+          if (!todayCandidateMap.has(sId)) {
+            todayCandidateMap.set(sId, {
+              '股票代號': sId,
+              '股票名稱': stock.stock_name,
+              '主要買超法人': investorName,
+              '當日買超張數': volume
+            });
+          } else {
+            // 如果同時被多個法人買超，更新說明標記
+            const existItem = todayCandidateMap.get(sId);
+            if (!existItem['主要買超法人'].includes(investorName)) {
+              existItem['主要買超法人'] += ` + ${investorName}`;
+              // 張數累加
+              existItem['當日買超張數'] += volume;
+            }
+          }
+        }
       });
     };
 
-    // 依序全量灌入，不做任何刪減
-    processAndTag(top50Foreign, '外資');
-    processAndTag(top50Trust, '投信');
-    processAndTag(top50Dealer, '自營商');
+    collectMarketTop50(top50Foreign, '外資');
+    collectMarketTop50(top50Trust, '投信');
+    collectMarketTop50(top50Dealer, '自營商');
 
-    console.log(`📊 150 檔法人最愛個股資料已全部處理完畢！`);
-    
-    // 計算一下統計數據印在 Log 上給您看
-    const duplicateCount = final150Rows.filter(x => x['比對備註'] === '重複的').length;
-    console.log(`💡 數據前瞻：這 150 筆紀錄中，有 ${duplicateCount} 筆與您的 180 檔重疊，有 ${150 - duplicateCount} 筆是核心外的新個股。`);
+    // 7. 核心交叉比對：必須不在 180 檔內，且「今天這批新發現」以前在 NEW 分頁沒被記錄過
+    const newlyFoundStocksList = [];
 
-    // 6. 暴力直接覆蓋 Excel 的 'NEW' 分頁，不保留歷史，專供您此時人工核對
-    const newSheetWS = XLSX.utils.json_to_sheet(final150Rows);
-    
-    if (workbook.SheetNames.includes('NEW')) {
-      workbook.Sheets['NEW'] = newSheetWS;
+    todayCandidateMap.forEach((stock, sId) => {
+      // 💡 ✅ 修正Bug：只跟核心 180 檔比對！如果不在 180 檔內，且歷史 NEW 分頁也還沒記錄過，才是真正的今日新股！
+      if (!existingStocksSet.has(sId) && !historicalNewStocksSet.has(sId)) {
+        newlyFoundStocksList.push({
+          '股票代號': sId,
+          '股票名稱': stock['股票名稱'],
+          '主要買超法人': stock['主要買超法人'],
+          '當日買超張數': stock['當日買超張數'],
+          '偵測日期': tradeDate
+        });
+      }
+    });
+
+    console.log(`✨ 比對完成！今日全市場法人最愛中，精準篩選出 ${newlyFoundStocksList.length} 檔全新黑馬股！`);
+
+    // 8. 增量追加寫入 Excel 檔案
+    if (newlyFoundStocksList.length > 0) {
+      console.log("📋 準備追加寫入 NEW 分頁的新股有：", newlyFoundStocksList.map(x => `${x.股票代號} ${x.股票名稱}`).join(', '));
+
+      // 追加在舊歷史紀錄之後
+      const finalNewList = [...currentNewRows, ...newlyFoundStocksList];
+      const newSheetWS = XLSX.utils.json_to_sheet(finalNewList);
+
+      if (workbook.SheetNames.includes('NEW')) {
+        workbook.Sheets['NEW'] = newSheetWS;
+      } else {
+        XLSX.utils.book_append_sheet(workbook, newSheetWS, 'NEW');
+      }
+
+      XLSX.writeFile(workbook, EXCEL_FILE_PATH);
+      console.log(`💾 成功！已將這 ${newlyFoundStocksList.length} 檔不重複的全新股票追加至 'NEW' 分頁！`);
     } else {
-      XLSX.utils.book_append_sheet(workbook, newSheetWS, 'NEW');
+      console.log("ℹ️ 今日三大法人買超前 50 名經去重與 180 檔比對後，皆已在您的核心清單或歷史 NEW 紀錄中，未作任何變更。");
     }
-
-    XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-    console.log(`💾 【全量對照表已就緒】150 行原始排行資料已寫入 ${EXCEL_FILE_PATH} 的 'NEW' 分頁！`);
 
   } catch (error) {
     console.error("❌ 執行發生嚴重錯誤:", error.message);
