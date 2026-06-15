@@ -5,43 +5,9 @@ const XLSX = require('xlsx');
 
 const EXCEL_FILE_PATH = './Stock_list.xlsx';
 
-/**
- * 自動判定最新交易日
- * 週末或假期自動回溯至上週五（例如 6/12）
- */
-function getLatestTradeDateStr() {
-  const now = new Date();
-  // 轉成台灣時區 (UTC+8)
-  const twTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
-  const day = twTime.getDay();
-  const hour = twTime.getHours();
-  const minute = twTime.getMinutes();
-
-  let targetDate = new Date(twTime);
-
-  if (day === 6) { // 週六 -> 拿週五
-    targetDate.setDate(twTime.getDate() - 1);
-  } else if (day === 0) { // 週日 -> 拿週五
-    targetDate.setDate(twTime.getDate() - 2);
-  } else if (day === 1 && (hour < 17 || (hour === 17 && minute < 30))) {
-    // 週一傍晚 17:30 前執行 -> 拿上週五
-    targetDate.setDate(twTime.getDate() - 3);
-  } else if (hour < 17 || (hour === 17 && minute < 30)) {
-    // 週二至週五傍晚 17:30 前 -> 拿前一天
-    targetDate.setDate(twTime.getDate() - 1);
-  }
-
-  const yyyy = targetDate.getFullYear();
-  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-  const dd = String(targetDate.getDate()).padStart(2, '0');
-  return `${yyyy}${mm}${dd}`;
-}
-
 async function run() {
   try {
-    const tradeDate = getLatestTradeDateStr();
-    console.log(`🚀 開始執行【三大法人各自前50名比對】流程...`);
-    console.log(`🎯 系統鎖定抓取交易日: ${tradeDate} (若在週末或週一白天執行，會自動鎖定上週五 6/12)`);
+    console.log(`🚀 開始執行【FinMind 正統回歸版：三大法人各自前50名比對】流程...`);
 
     // 1. 檢查並讀取本地的 Stock_list.xlsx
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
@@ -77,65 +43,71 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史篩選股。`);
 
-    // 4. 連線證交所：三大法人各自買賣超前 50 名日報表 (BFAM85U)
-    const targetUrl = `https://www.twse.com.tw/rwd/zh/fund/BFAM85U?date=${tradeDate}&response=json`;
+    // 4. 呼叫 FinMind 籌碼 API
+    // 💡 注意：對齊 sync-data.js 成功模式，故意不帶任何 token，走純免費額度通道，防止 400/403 阻擋
+    // 鎖定 2026-06-12 (上週五)
+    const targetDate = "2026-06-12";
+    console.log(`🌐 正在從 FinMind 免費分流接口下載 ${targetDate} 的法人籌碼數據...`);
     
-    // 💡 使用高級公開分流代理，避免海外 IP 被證交所直接防火牆 Timeout 阻擋
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-    
-    console.log(`🌐 正在透過高速分流下載 ${tradeDate} 的三大法人各自排行數據...`);
-    const res = await axios.get(proxyUrl, { timeout: 15000 });
+    const fmUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${targetDate}&end_date=${targetDate}`;
+    const res = await axios.get(fmUrl);
 
-    if (!res.data || res.data.stat !== 'OK') {
-      console.log(`⚠️ 證交所未回傳有效數據，原因: ${res.data ? res.data.stat : '網路無回應'}`);
+    if (!res.data || !res.data.data || res.data.data.length === 0) {
+      console.log(`⚠️ FinMind 未回傳任何數據，可能該日期無交易或額度受限。`);
       return;
     }
 
+    console.log(`📥 成功取得 FinMind 籌碼資料，總計 ${res.data.data.length} 筆原始記錄。`);
+
+    // 5. 將資料按【外資、投信、自營商】分開計算各自的「淨買超 = 買進 - 賣出」
+    const investors = {
+      'Foreign_Investor': {}, // 外資
+      'Investment_Trust': {}, // 投信
+      'Dealer_Trading': {}    // 自營商
+    };
+
+    res.data.data.forEach(item => {
+      const name = item.name;
+      const sId = String(item.stock_id).trim();
+      const sName = item.stock_name;
+      const netBuy = item.buy - item.sell; // 淨買超張數/股數
+
+      // 分類歸檔
+      Object.keys(investors).forEach(invType => {
+        if (name && name.toLowerCase().includes(invType.toLowerCase())) {
+          if (!investors[invType][sId]) {
+            investors[invType][sId] = { stock_id: sId, stock_name: sName, net_buy: 0 };
+          }
+          investors[invType][sId].net_buy += netBuy;
+        }
+      });
+    });
+
+    // 提取三大法人各自前 50 名，並放入比對池中
     const newlyFoundStocksMap = new Map();
 
-    // 5. 解析數據
-    // 證交所 BFAM85U 的資料格式：
-    // 外資買超前50名、外資賣超前50名、投信買超前50名... 依序排列
-    // 欄位結構：[排名, 外資買超代號, 名稱, 外資賣超代號, 名稱, 投信買超代號, 名稱...]
-    // 這裡我們精確捕捉：外資買超(欄位1)、投信買超(欄位5)、自營商買超(欄位9)
-    
-    if (res.data.data && res.data.data.length > 0) {
-      console.log(`📥 成功取得原始日報表，正在提取三大法人買超各前 50 名股票...`);
-      
-      res.data.data.forEach(row => {
-        // 欄位 1: 外資買超代號, 欄位 2: 外資買超名稱
-        const fkId = row[1] ? String(row[1]).trim() : '';
-        const fkName = row[2] ? String(row[2]).trim() : '';
+    Object.keys(investors).forEach(invType => {
+      const sortedTop50 = Object.values(investors[invType])
+        .sort((a, b) => b.net_buy - a.net_buy)
+        .slice(0, 50);
 
-        // 欄位 5: 投信買超代號, 欄位 6: 投信買超名稱
-        const itId = row[5] ? String(row[5]).trim() : '';
-        const itName = row[6] ? String(row[6]).trim() : '';
-
-        // 欄位 9: 自營商買超代號, 欄位 10: 自營商買超名稱
-        const dId = row[9] ? String(row[9]).trim() : '';
-        const dName = row[10] ? String(row[10]).trim() : '';
-
-        // 彙整處理函式
-        const checkAndAdd = (sId, sName) => {
-          if (sId && sId.length >= 4 && !/^\s*$/.test(sId)) {
-            // 核心比對：必須不在 180 檔，且目前 NEW 分頁也還沒記錄過
-            if (!existingStocks.has(sId) && !existingNewStocks.has(sId)) {
-              newlyFoundStocksMap.set(sId, { '股票代號': sId, '股票名稱': sName });
-            }
-          }
-        };
-
-        checkAndAdd(fkId, fkName);
-        checkAndAdd(itId, itName);
-        checkAndAdd(dId, dName);
+      sortedTop50.forEach(stock => {
+        const sId = stock.stock_id;
+        // 核心比對條件：不在核心 180 檔，且目前的 NEW 分頁也沒有過
+        if (!existingStocks.has(sId) && !existingNewStocks.has(sId)) {
+          newlyFoundStocksMap.set(sId, {
+            '股票代號': sId,
+            '股票名稱': stock.stock_name
+          });
+        }
       });
-    }
+    });
 
-    console.log(`✨ 比對完成！自三大法人各自買超前 50 名中，共篩選出 ${newlyFoundStocksMap.size} 檔全新黑馬股。`);
+    console.log(`✨ 比對完成！三大法人各自前 50 名（總計最多150檔池子）比對後，共有 ${newlyFoundStocksMap.size} 檔新股票。`);
 
     // 6. 寫入 Excel 檔案
     if (newlyFoundStocksMap.size > 0) {
-      console.log("📋 準備加入 NEW 分頁的新股票有：", Array.from(newlyFoundStocksMap.values()).map(x => `${x.股票代號} ${x.股票名稱}`).join(', '));
+      console.log("📋 準備追加到 NEW 分頁的新股票：", Array.from(newlyFoundStocksMap.values()).map(x => `${x.股票代號} ${x.股票名稱}`).join(', '));
 
       const finalNewList = [...currentNewRows, ...Array.from(newlyFoundStocksMap.values())];
       const newSheetWS = XLSX.utils.json_to_sheet(finalNewList);
@@ -147,9 +119,9 @@ async function run() {
       }
 
       XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-      console.log(`💾 成功將新發現的股票追加寫入 ${EXCEL_FILE_PATH} 的 'NEW' 分頁中！`);
+      console.log(`💾 成功將最新股票寫入 ${EXCEL_FILE_PATH} 的 'NEW' 分頁！`);
     } else {
-      console.log("ℹ️ 三大法人各自買超前 50 名（扣除重複）皆已包含在您的核心清單中，故 Excel 未作變更。");
+      console.log("ℹ️ 三大法人各自買超前 50 名經去重與比對後，皆已在您的核心名單中，Excel 未做任何變更。");
     }
 
   } catch (error) {
