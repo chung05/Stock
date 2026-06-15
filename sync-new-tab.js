@@ -37,8 +37,8 @@ function getLatestTradeDateStr() {
 async function run() {
   try {
     const tradeDate = getLatestTradeDateStr();
-    console.log(`🚀 開始執行【證交所原生流：三大法人各自前50名比對】流程...`);
-    console.log(`🎯 系統精準鎖定最新交易日: ${tradeDate}`);
+    console.log(`🚀 開始執行【全市場三大法人各自前 50 名 $\rightarrow$ 交叉比對 180 檔】流程...`);
+    console.log(`🎯 當前鎖定全市場交易日: ${tradeDate}`);
 
     // 1. 檢查並讀取本地的 Stock_list.xlsx
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
@@ -46,7 +46,7 @@ async function run() {
     }
     const workbook = XLSX.readFile(EXCEL_FILE_PATH);
 
-    // 2. 蒐集目前的核心 180 檔母名單
+    // 2. 蒐集您目前定義的核心 180 檔母名單
     const coreSheets = ['TW50', 'TW100', 'MSCI'];
     const existingStocks = new Set();
     coreSheets.forEach(sheetName => {
@@ -59,9 +59,9 @@ async function run() {
         });
       }
     });
-    console.log(`📊 目前核心名單共有 ${existingStocks.size} 檔股票。`);
+    console.log(`📊 您定義的核心母名單共有 ${existingStocks.size} 檔股票。`);
 
-    // 3. 讀取現有 'NEW' 分頁裡的股票
+    // 3. 讀取現有 'NEW' 分頁裡的股票（避免日後重複塞入）
     const existingNewStocks = new Set();
     let currentNewRows = [];
     if (workbook.SheetNames.includes('NEW')) {
@@ -74,62 +74,73 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史篩選股。`);
 
-    // 4. 連線證交所：三大法人各自買賣超前 50 名日報表
-    const url = `https://www.twse.com.tw/rwd/zh/fund/BFAM85U?date=${tradeDate}&response=json`;
-    console.log(`🌐 正在使用標準瀏覽器特徵直連證交所下載數據...`);
+    // 4. 直連證交所官方不設防 CSV 下載節點（三大法人各自買超前 50 名大表）
+    const csvUrl = `https://www.twse.com.tw/zh/fund/BFAM85U?date=${tradeDate}&response=csv`;
+    console.log(`🌐 正在從證交所高速分流節點下載全市場法人排行 CSV 報表...`);
 
-    // 💡 關鍵亮點：完美模擬 Chrome 瀏覽器標頭，徹底解決 403 Forbidden 與 Timeout 阻擋！
-    const res = await axios.get(url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Referer': 'https://www.twse.com.tw/zh/page/trading/fund/BFAM85U.html',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
+    const res = await axios.get(csvUrl, {
+      responseType: 'text',
+      timeout: 15000,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
     });
 
-    if (!res.data || res.data.stat !== 'OK' || !res.data.data || res.data.data.length === 0) {
-      console.log(`⚠️ 證交所節點回傳無交易資料，原因說明: ${res.data ? res.data.stat : '伺服器無響應'}`);
+    if (!res.data || res.data.includes("錯誤") || res.data.length < 500) {
+      console.log(`⚠️ 該日期 (${tradeDate}) 證交所尚未釋出 CSV 報表，或今日為非交易日。`);
       return;
     }
 
-    console.log(`📥 數據成功下載！共計取得 ${res.data.data.length} 行法人排行交叉紀錄。`);
+    // 5. 解析 CSV 內容，精準提取「全市場」外資、投信、自營商買超前 50 名
+    const lines = res.data.split('\n');
+    const allMarketTop150Map = new Map(); // 用來存放全市場篩選出的法人最愛股票
 
-    // 5. 分離並提取外資、投信、自營商各自買超前 50 名
-    const newlyFoundStocksMap = new Map();
+    console.log(`📥 成功下載 CSV，正在掃描全市場三大法人各自前 50 名...`);
 
-    res.data.data.forEach(row => {
-      // 欄位 1,2: 外資買超 | 欄位 5,6: 投信買超 | 欄位 9,10: 自營商買超
-      const fkId = row[1] ? String(row[1]).trim() : '';
-      const fkName = row[2] ? String(row[2]).trim() : '';
+    lines.forEach(line => {
+      // 移除引號並切分欄位
+      const cleanLine = line.replace(/"/g, '');
+      const columns = cleanLine.split(',');
 
-      const itId = row[5] ? String(row[5]).trim() : '';
-      const itName = row[6] ? String(row[6]).trim() : '';
+      // 證交所 CSV 排行榜行數規則：前面有排名的才是我們要的個股數據
+      const rank = parseInt(columns[0], 10);
+      if (!isNaN(rank) && rank >= 1 && rank <= 50) {
+        
+        // 欄位 1, 2: 外資買超前50名個股代號與名稱
+        const fkId = columns[1] ? columns[1].trim() : '';
+        const fkName = columns[2] ? columns[2].trim() : '';
 
-      const dId = row[9] ? String(row[9]).trim() : '';
-      const dName = row[10] ? String(row[10]).trim() : '';
+        // 欄位 5, 6: 投信買超前50名個股代號與名稱
+        const itId = columns[5] ? columns[5].trim() : '';
+        const itName = columns[6] ? columns[6].trim() : '';
 
-      const checkAndPush = (id, name) => {
-        if (id && id.length >= 4 && !/^\s*$/.test(id)) {
-          // 比對：既不在 180 檔核心母名單，也從未出現在 NEW 分頁中
-          if (!existingStocks.has(id) && !existingNewStocks.has(id)) {
-            newlyFoundStocksMap.set(id, { '股票代號': id, '股票名稱': name });
-          }
-        }
-      };
+        // 欄位 9, 10: 自營商買超前50名個股代號與名稱
+        const dId = columns[9] ? columns[9].trim() : '';
+        const dName = columns[10] ? columns[10].trim() : '';
 
-      checkAndPush(fkId, fkName);
-      checkAndPush(itId, itName);
-      checkAndPush(dId, dName);
+        if (fkId && fkId.length >= 4) allMarketTop150Map.set(fkId, fkName);
+        if (itId && itId.length >= 4) allMarketTop150Map.set(itId, itName);
+        if (dId && dId.length >= 4) allMarketTop150Map.set(dId, dName);
+      }
     });
 
-    console.log(`✨ 比對完成！自三大法人三大管道 (最多150檔池子) 中，篩選出 ${newlyFoundStocksMap.size} 檔新股票。`);
+    console.log(`🎯 成功從全市場中撈出三大法人各自前 50 名，去重後共計 ${allMarketTop150Map.size} 檔股票。`);
 
-    // 6. 寫入 Excel 檔案
+    // 6. 核心比對：如果這 150 檔池子裡的股票「不在您的 180 檔核心母名單內」，且「NEW分頁沒記錄過」，就抓出來！
+    const newlyFoundStocksMap = new Map();
+
+    allMarketTop150Map.forEach((sName, sId) => {
+      if (!existingStocks.has(sId) && !existingNewStocks.has(sId)) {
+        newlyFoundStocksMap.set(sId, {
+          '股票代號': sId,
+          '股票名稱': sName
+        });
+      }
+    });
+
+    console.log(`✨ 比對完成！全市場法人最愛中，共有 ${newlyFoundStocksMap.size} 檔股票不在您的 180 檔核心名單內！`);
+
+    // 7. 寫入 Excel 的 NEW 分頁
     if (newlyFoundStocksMap.size > 0) {
-      console.log("📋 準備追加到 NEW 分頁的新股票有：", Array.from(newlyFoundStocksMap.values()).map(x => `${x.股票代號} ${x.股票名稱}`).join(', '));
+      console.log("📋 抓到符合條件的新股票：", Array.from(newlyFoundStocksMap.values()).map(x => `${x.股票代號} ${x.股票名稱}`).join(', '));
 
       const finalNewList = [...currentNewRows, ...Array.from(newlyFoundStocksMap.values())];
       const newSheetWS = XLSX.utils.json_to_sheet(finalNewList);
@@ -141,9 +152,9 @@ async function run() {
       }
 
       XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-      console.log(`💾 成功將最新股票追加更新至 ${EXCEL_FILE_PATH} 的 'NEW' 分頁！`);
+      console.log(`💾 成功將全新法人股追加寫入 ${EXCEL_FILE_PATH} 的 'NEW' 分頁中！`);
     } else {
-      console.log("ℹ️ 今日三大法人買超前 50 名皆已存在於您的核心名單或 NEW 分頁中，未做任何變更。");
+      console.log("ℹ️ 全市場三大法人買超前 50 名的個股，早已全部包含在您的 180 檔核心名單中，故未作任何變更。");
     }
 
   } catch (error) {
