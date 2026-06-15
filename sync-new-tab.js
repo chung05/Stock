@@ -6,7 +6,7 @@ const XLSX = require('xlsx');
 const EXCEL_FILE_PATH = './Stock_list.xlsx';
 const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
 
-// 自動計算最新交易日 (若週末或傍晚前執行自動拿上週五 6/12)
+// 自動計算最新交易日
 function getLatestTradeDateStr() {
   const now = new Date();
   const twTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
@@ -43,7 +43,7 @@ async function run() {
     }
     const workbook = XLSX.readFile(EXCEL_FILE_PATH);
 
-    // 1. 蒐集您目前定義的核心 180 檔母名單 (TW50, TW100, MSCI)
+    // 1. 蒐集目前的核心 180 檔母名單 (TW50, TW100, MSCI)
     const coreSheets = ['TW50', 'TW100', 'MSCI'];
     const existingStocks = new Set();
     coreSheets.forEach(sheetName => {
@@ -58,7 +58,7 @@ async function run() {
     });
     console.log(`📊 您定義的核心 180 檔母名單共收集到: ${existingStocks.size} 檔股票。`);
 
-    // 2. 讀取現有 'NEW' 分頁裡的股票（保留歷史紀錄，避免日後重複更新追加）
+    // 2. 讀取現有 'NEW' 分頁裡的股票
     const existingNewStocks = new Set();
     let currentNewRows = [];
     if (workbook.SheetNames.includes('NEW')) {
@@ -71,20 +71,23 @@ async function run() {
     }
     console.log(`📂 目前 'NEW' 分頁中已有 ${existingNewStocks.size} 檔歷史過濾股票。`);
 
-    // 3. 呼叫您翻出來的官方唯一正解：TaiwanStockInstitutionalInvestorsBuySellWide 寬表接口
-    const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySellWide&start_date=${tradeDate}&end_date=${tradeDate}&token=${FINMIND_TOKEN}`;
+    // 3. 呼叫寬表接口
+    // 💡 ✅ 終極修正：Wide 寬表接口依法不帶 end_date 參數，否則必噴 400 錯誤！
+    const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySellWide&start_date=${tradeDate}&token=${FINMIND_TOKEN}`;
     
     console.log(`🌐 正在透過您的 Token 直連 FinMind 寬表數據分流接口...`);
-    const res = await axios.get(url);
+    const res = await axios.get(url, {
+      headers: { 'accept': 'application/json' }
+    });
 
     if (!res.data || !res.data.data || res.data.data.length === 0) {
-      console.log(`⚠️ 提示：該日期 (${tradeDate}) 寬表接口未回傳數據，可能尚未到傍晚更新時間或為非交易日。`);
+      console.log(`⚠️ 提示：該日期 (${tradeDate}) 寬表接口未回傳數據。`);
       return;
     }
 
     console.log(`📥 成功下載全市場寬表！總計收到 ${res.data.data.length} 檔全市場股票的整合籌碼紀錄。`);
 
-    // 4. 在記憶體中，針對全市場的所有個股，分別依據外資、投信、自營商計算「淨買超 = 買進 - 賣出」
+    // 4. 針對全市場的所有個股，分別依據外資、投信、自營商計算「淨買超 = 買進 - 賣出」
     const marketStocks = res.data.data.map(item => {
       const sId = String(item.stock_id).trim();
       return {
@@ -97,7 +100,7 @@ async function run() {
       };
     }).filter(x => x.stock_id.length === 4); // 僅保留 4 位數標準個股
 
-    // 5. 【真正全市場排序】各自精準挑出前 50 名
+    // 5. 【真正全市場大排序】各自精準挑出前 50 名
     const top50Foreign = [...marketStocks].sort((a, b) => b.foreign_net - a.foreign_net).slice(0, 50);
     const top50Trust = [...marketStocks].sort((a, b) => b.trust_net - a.trust_net).slice(0, 50);
     const top50Dealer = [...marketStocks].sort((a, b) => b.dealer_net - a.dealer_net).slice(0, 50);
@@ -128,7 +131,6 @@ async function run() {
     if (newlyFoundStocksMap.size > 0) {
       console.log("📋 準備追加寫入 NEW 分頁的新個股：", Array.from(newlyFoundStocksMap.values()).map(x => `${x.股票代號} ${x.股票名稱}`).join(', '));
 
-      // 將原本 NEW 分頁的舊資料，與今天剛發現的新資料進行 Concatenate
       const finalNewList = [...currentNewRows, ...Array.from(newlyFoundStocksMap.values())];
       const newSheetWS = XLSX.utils.json_to_sheet(finalNewList);
 
@@ -141,7 +143,7 @@ async function run() {
       XLSX.writeFile(workbook, EXCEL_FILE_PATH);
       console.log(`💾 成功！已將最新比對出的新股票增量追加更新至 ${EXCEL_FILE_PATH} 的 'NEW' 分頁。`);
     } else {
-      console.log("ℹ️ 今日全市場三大法人買超前 50 名已全部包含在您的 180 檔或 NEW 分頁中，Excel 未作任何變更。");
+      console.log("ℹ️ 今日全市場三大法人買超前 50名已全部包含在您的 180 檔或 NEW 分頁中，Excel 未作任何變更。");
     }
 
   } catch (error) {
