@@ -3,7 +3,7 @@ name: 智慧選股籌碼天天自動化同步排程
 on:
   schedule:
     - cron: '30 8 * * 1-5' # 每天台股盤後 16:30 自動執行 (UTC 8:30)
-  workflow_dispatch: # 🎯 核心保留：這行允許您在 GitHub Actions 後台手動點擊「Run workflow」按鈕觸發執行！
+  workflow_dispatch: # 准許您在 GitHub Actions 後台手動點擊「Run workflow」按鈕強制觸發執行
 
 permissions:
   contents: write
@@ -15,7 +15,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  # ==========================================================
+  # 🧱 階段一：負責所有的籌碼資料下載、技術指標計算與網頁打包
+  # ==========================================================
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: 檢查並拉取專案程式碼
@@ -24,13 +27,12 @@ jobs:
       - name: 設定標準 Node.js 18 環境
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # 🟢 智慧除錯：已徹底拔除 cache: 'npm' 設定，徹底根除找不到 lock file 的報錯死結！
+          node-version: 18
 
       - name: 自動安裝解析所需的基礎依賴套件
         run: |
           npm install @supabase/supabase-js dotenv axios xlsx
 
-      # 🧠 步驟 1：常規更新核心 180 檔的金級大帳本（從 2026/01/02 累積至今）
       - name: 執行每日核心 180 檔智慧籌碼增量同步
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -39,7 +41,6 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node sync-data.js
 
-      # 🧠 步驟 2：獨立執行新星池全量洗淨與 41 天指標暖身加載
       - name: ⚡ 執行當日 NEW 分頁強勢股 41 天指標全量加載
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -48,11 +49,21 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node sync-new-daily.js
 
-      # 🧠 步驟 3：唯一的網頁封裝與發布放最後，永不相撞
       - name: 🎯 打包前端網頁靜態資源
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
+  # ==========================================================
+  # 🚀 階段二：專職負責將打包好的網頁，在受信任的環境下安全發布上線
+  # ==========================================================
+  deploy:
+    environment:
+      name: github-pages # 🎯 核心修復點：硬性宣告受信任的 Pages 環境，徹底解除伺服器 400 拒絕連線死結！
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build # 確保階段一的資料與指標完全算完寫入資料庫後，才放行此階段執行發布
+    steps:
       - name: 🚀 部署至 GitHub Pages 網址
+        id: deployment
         uses: actions/deploy-pages@v5
