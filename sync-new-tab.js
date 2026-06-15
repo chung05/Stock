@@ -5,102 +5,89 @@ const XLSX = require('xlsx');
 
 const EXCEL_FILE_PATH = './Stock_list.xlsx';
 
-function getLatestTradeDateStr() {
-  const now = new Date();
-  const twTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
-  const day = twTime.getDay();
-  const hour = twTime.getHours();
-  const minute = twTime.getMinutes();
+// 💡 您的專屬 FinMind Token
+const FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiQ2h1bmcwNSIsImVtYWlsIjoiY2hpdTYuY2h1bmcwNUBnbWFpbC5jb20iLCJ0b2tlbl92ZXJzaW9uIjowfQ.Jsmprys2d_Vz8x5eeXnLZRn9_MjWpNH7kp77gL3qRz0";
 
-  let targetDate = new Date(twTime);
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  if (day === 6) { 
-    targetDate.setDate(twTime.getDate() - 1);
-  } else if (day === 0) { 
-    targetDate.setDate(twTime.getDate() - 2);
-  } else if (day === 1 && (hour < 17 || (hour === 17 && minute < 30))) {
-    targetDate.setDate(twTime.getDate() - 3);
-  } else if (hour < 17 || (hour === 17 && minute < 30)) {
-    targetDate.setDate(twTime.getDate() - 1);
+async function fetchInvestorTop50(dataset, date, dataId) {
+  // 💡 完美的對齊您查到的正統參數：透過 data_id 直擊全市場單一法人
+  const url = `https://api.finmindtrade.com/api/v4/data?dataset=${dataset}&start_date=${date}&end_date=${date}&data_id=${dataId}&token=${FINMIND_TOKEN}`;
+  
+  console.log(`🌐 正在從 FinMind 獲取全市場 [${dataId}] 的當日數據...`);
+  const res = await axios.get(url);
+  
+  if (!res.data || !res.data.data || res.data.data.length === 0) {
+    console.log(`⚠️ 提示：[${dataId}] 未能取得數據。`);
+    return [];
   }
 
-  const yyyy = targetDate.getFullYear();
-  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-  const dd = String(targetDate.getDate()).padStart(2, '0');
-  return `${yyyy}${mm}${dd}`;
+  // 計算淨買超並排序
+  const processed = res.data.data.map(item => {
+    // 某些個股可能有多筆紀錄（如自營商拆開），進行基本格式化
+    return {
+      stock_id: String(item.stock_id).trim(),
+      stock_name: item.stock_name ? item.stock_name.trim() : '未知',
+      net_buy: (item.buy || 0) - (item.sell || 0) // 淨買超 = 買進 - 賣出
+    };
+  });
+
+  // 按聚合邏輯，避免同股票拆多筆
+  const groupMap = new Map();
+  processed.forEach(x => {
+    if (!groupMap.has(x.stock_id)) {
+      groupMap.set(x.stock_id, { stock_id: x.stock_id, stock_name: x.stock_name, net_buy: 0 });
+    }
+    groupMap.get(x.stock_id).net_buy += x.net_buy;
+  });
+
+  // 排除權證與非4位數的代號，並由大到小排序取前 50 名
+  return Object.values(Object.fromEntries(groupMap))
+    .filter(x => x.stock_id.length === 4)
+    .sort((a, b) => b.net_buy - a.net_buy)
+    .slice(0, 50);
 }
 
 async function run() {
   try {
-    const tradeDate = getLatestTradeDateStr();
-    console.log(`🧪 【進入人工驗證模式】拋棄所有比對邏輯，直接全量下載全市場前 50 名...`);
-    console.log(`🎯 當前鎖定全市場交易日: ${tradeDate}`);
+    // 鎖定上週五 6/12 進行全量數據驗證
+    const targetDate = "2026-06-12"; 
+    console.log(`🚀 【FinMind 正確參數進化版】開始提取全市場三大法人各自前 50 名...`);
 
     if (!fs.existsSync(EXCEL_FILE_PATH)) {
-      throw new Error(`找不到檔案: ${EXCEL_FILE_PATH}`);
+      throw new Error(`找不到 Excel 檔案: ${EXCEL_FILE_PATH}`);
     }
     const workbook = XLSX.readFile(EXCEL_FILE_PATH);
 
-    // 直連證交所官方 CSV 下載通道
-    const csvUrl = `https://www.twse.com.tw/zh/fund/BFAM85U?date=${tradeDate}&response=csv`;
-    console.log(`🌐 正在下載全市場法人排行 CSV 報表...`);
-
-    const res = await axios.get(csvUrl, {
-      responseType: 'text',
-      timeout: 15000,
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-
-    if (!res.data || res.data.includes("錯誤") || res.data.length < 500) {
-      console.log(`⚠️ 報表未釋出或今日非交易日。`);
-      return;
-    }
-
-    // 💡 印出前 500 個字元，確認我們到底從證交所下載到了什麼，徹底透明化！
-    console.log("--------------------------------------------------");
-    console.log("🔍 [CSV 頂部前瞻預覽]：");
-    console.log(res.data.substring(0, 500));
-    console.log("--------------------------------------------------");
-
-    const lines = res.data.split('\n');
-    const allInsertedStocks = [];
-
-    // 💡 強力正則表達式：精準捕捉 CSV 行中包含的四位數字台股股票代號 (例: "2330","台積電")
-    // 這可以完美繞過所有中文字說明的干擾
-    const stockRegex = /"(\d{4})"\s*,\s*"([^"]+)"/g;
-
-    lines.forEach((line) => {
-      let match;
-      // 逐行掃描，只要發現符合 (代號, 名稱) 結構的，一網打盡！
-      while ((match = stockRegex.exec(line)) !== null) {
-        const sId = match[1].trim();
-        const sName = match[2].trim();
-        
-        // 排除非個股的純數字雜質
-        if (sId && sId.length === 4) {
-          allInsertedStocks.push({
-            '股票代號': sId,
-            '股票名稱': sName,
-            '紀錄說明': '全市場三大法人前50名原始提取'
-          });
-        }
-      }
-    });
-
-    console.log(`📥 掃描完畢！成功從證交所原始 CSV 報表中，強行提取出 ${allInsertedStocks.length} 筆排行紀錄。`);
-
-    // 去除重複的股票代號，確保寫入 Excel 時乾淨漂亮
-    const uniqueMap = new Map();
-    allInsertedStocks.forEach(item => {
-      uniqueMap.set(item['股票代號'], item);
-    });
-    const finalWriteList = Array.from(uniqueMap.values());
+    // 1. 下載三大法人全市場大數據
+    const dataset = "TaiwanStockInstitutionalInvestorsBuySell"; // 或者是您貼的 InstitutionalInvestorsBuySell
     
-    console.log(`📊 去除重複上榜股票後，共有 ${finalWriteList.length} 檔不重複的個股準備寫入。`);
+    // 依序抓取外資、投信、自營商
+    const foreignTop50 = await fetchInvestorTop50(dataset, targetDate, "Foreign_Investor");
+    await sleep(200); // 禮貌延遲
+    const trustTop50 = await fetchInvestorTop50(dataset, targetDate, "Investment_Trust");
+    await sleep(200);
+    const dealerTop50 = await fetchInvestorTop50(dataset, targetDate, "Dealer_Trading");
 
-    // 💡 暴力直接覆蓋 'NEW' 分頁，不做任何與 180 檔的核心比對！
-    const newSheetWS = XLSX.utils.json_to_sheet(finalWriteList);
-    
+    console.log(`📥 撈取排序完成！外資：${foreignTop50.length}檔，投信：${trustTop50.length}檔，自營商：${dealerTop50.length}檔。`);
+
+    // 2. 彙整資料（💡 應您的要求：完全不跟 180 檔比對，全量塞入，方便您人工核對）
+    const finalRowsForExcel = [];
+
+    foreignTop50.forEach((x, idx) => {
+      finalRowsForExcel.push({ '股票代號': x.stock_id, '股票名稱': x.stock_name, '淨買超(股/張)': x.net_buy, '來源法人': '外資', '法人內排名': idx + 1 });
+    });
+    trustTop50.forEach((x, idx) => {
+      finalRowsForExcel.push({ '股票代號': x.stock_id, '股票名稱': x.stock_name, '淨買超(股/張)': x.net_buy, '來源法人': '投信', '法人內排名': idx + 1 });
+    });
+    dealerTop50.forEach((x, idx) => {
+      finalRowsForExcel.push({ '股票代號': x.stock_id, '股票名稱': x.stock_name, '淨買超(股/張)': x.net_buy, '來源法人': '自營商', '法人內排名': idx + 1 });
+    });
+
+    console.log(`📊 準備將這 ${finalRowsForExcel.length} 筆原始排行資料強行寫入 NEW 分頁...`);
+
+    // 3. 覆蓋寫入 Excel
+    const newSheetWS = XLSX.utils.json_to_sheet(finalRowsForExcel);
     if (workbook.SheetNames.includes('NEW')) {
       workbook.Sheets['NEW'] = newSheetWS;
     } else {
@@ -108,10 +95,10 @@ async function run() {
     }
 
     XLSX.writeFile(workbook, EXCEL_FILE_PATH);
-    console.log(`💾 【驗證存檔】已將這 ${finalWriteList.length} 檔全市場法人最愛，全數塞入 'NEW' 分頁！`);
+    console.log(`💾 【人工確認就緒】全市場真實的三大法人各自前 50 名已成功寫入 'NEW' 分頁！`);
 
   } catch (error) {
-    console.error("❌ 執行發生錯誤:", error.message);
+    console.error("❌ 執行發生嚴重錯誤:", error.message);
     process.exit(1);
   }
 }
