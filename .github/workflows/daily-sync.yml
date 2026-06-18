@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true # 🟢 智慧防護：如果前一次手動執行還沒跑完，直接撤銷舊的，永不相撞！
 
 jobs:
   build-and-sync:
@@ -31,7 +31,7 @@ jobs:
       - name: 自動安裝解析所需的基礎依賴套件
         run: npm install axios xlsx @supabase/supabase-js dotenv
 
-      - name: 執行資料庫同步腳本 (已指向全新直連母名單引擎)
+      - name: 執行資料庫同步腳本
         run: node backend-sync-mainstock.js
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -39,10 +39,12 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
 
-      - name: 打包前端網頁靜態資源
+      - name: 🎯 打包前端網頁靜態資源
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+          # 🟢 智慧除錯：硬性指定如果雲端有重複的打包檔，直接覆蓋更新，徹底根除 Multiple artifacts 報錯！
+          overwrite: true 
 
   deploy-pages:
     environment:
