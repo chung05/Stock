@@ -1,6 +1,15 @@
 // tool-clean-corrupted-data.js
 const axios = require('axios');
 const XLSX = require('xlsx');
+
+// ==========================================================
+// 🛡️ 終極環境防護罩：在引入 Supabase 之前，先餵給它一個假的全域 WebSocket 宣告
+// 完美破解 Supabase v2 在 Node.js 20 環境下強行初始化 Realtime 導致的閃退死結！
+// ==========================================================
+if (!global.WebSocket) {
+  global.WebSocket = class {}; 
+}
+
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
@@ -8,15 +17,14 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 const EXCEL_SOURCE_URL = "https://raw.githubusercontent.com/" + process.env.GITHUB_REPOSITORY + "/main/Stock_list.xlsx"; 
 
-// 🎯 已精準加上 isRealtimeEnabled: false 繞過原生 WebSocket 環境檢查死結
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
-  realtime: { global: false, isRealtimeEnabled: false }
+  realtime: { global: false }
 });
 
 async function run() {
   try {
-    console.log("🧹 啟動【主力大帳本髒資料物理清洗與健檢工具】...");
+    console.log(" Clean-up: 啟動【主力大帳本髒資料物理清洗與健檢工具】...");
 
     console.log("📥 正在從 GitHub 下載最新版 Stock_list.xlsx 名單基準...");
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
