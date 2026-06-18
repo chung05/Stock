@@ -8,22 +8,21 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 const EXCEL_SOURCE_URL = "https://raw.githubusercontent.com/" + process.env.GITHUB_REPOSITORY + "/main/Stock_list.xlsx"; 
 
+// 🎯 已精準加上 isRealtimeEnabled: false 繞過原生 WebSocket 環境檢查死結
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
-  realtime: { global: false }
+  realtime: { global: false, isRealtimeEnabled: false }
 });
 
 async function run() {
   try {
     console.log("🧹 啟動【主力大帳本髒資料物理清洗與健檢工具】...");
 
-    // 1. 下載並讀取最新標準的 Excel 母名單
     console.log("📥 正在從 GitHub 下載最新版 Stock_list.xlsx 名單基準...");
     const response = await axios.get(EXCEL_SOURCE_URL, { responseType: 'arraybuffer' });
     const workbook = XLSX.read(response.data, { type: 'buffer' });
     const coreStockIds = new Set();
     
-    // 🧱 絕對防禦邊界：只認這三個核心主力分頁
     const allowedCoreSheets = ['TW50', 'TW100', 'MSCI'];
 
     allowedCoreSheets.forEach(name => {
@@ -43,28 +42,23 @@ async function run() {
       return;
     }
 
-    // 2. 撈取資料庫目前到底記錄了哪些股票，抓出潛在的污染流星股
     console.log("🔍 正在連線 Supabase 盤查大帳本 (stock_chips_daily) 現存個股清單...");
     
-    // 透過 rpc 或是分批 select 盤查現狀
     const { data: allDbStocks, error: fetchErr } = await supabase
       .from('stock_chips_daily')
       .select('stock_id');
 
     if (fetchErr) throw fetchErr;
 
-    // 將所有重複的 stock_id 去重
     const uniqueDbStocks = Array.from(new Set(allDbStocks.map(item => String(item.stock_id).trim())));
     console.log(`📊 目前資料庫大帳本中，實際上存有資料的股票總數: ${uniqueDbStocks.length} 檔。`);
 
-    // 3. 比對找出哪些股票是「不在 Excel 核心名單內」的髒資料
     const corruptedStocks = uniqueDbStocks.filter(id => !coreStockIds.has(id));
     console.log(`🚨 經交叉比對，抓到非主力成分股（遭受污染的陌生流星股）共計: ${corruptedStocks.length} 檔！`);
     if (corruptedStocks.length > 0) {
       console.log(`📋 遭污染個股清單為: [ ${corruptedStocks.join(', ')} ]`);
     }
 
-    // 4. 開始執行物理清除
     if (corruptedStocks.length === 0) {
       console.log("✨ 健檢完畢！您的核心大帳本非常純淨，0 陌生個股污染，不需要進行任何刪除動作！");
       return;
@@ -72,7 +66,6 @@ async function run() {
 
     console.log(`🔥 啟動軍事級物理剃除程序，準備從 stock_chips_daily 中撤銷這 ${corruptedStocks.length} 檔流星股...`);
     
-    // 為了安全與效率，我們分批將這些非核心股票從大帳本中全量抹除
     const { error: deleteErr } = await supabase
       .from('stock_chips_daily')
       .delete()
@@ -80,8 +73,8 @@ async function run() {
 
     if (deleteErr) throw deleteErr;
 
-    console.log(`✅ [清洗成功] 已將此 ${corruptedStocks.length} 檔污染股票的所有歷史天數數據完全蒸發，大帳本已回覆純淨機制！`);
-    console.log(`🌟 目前大帳本 stock_chips_daily 中已 100% 僅保留合法的主力個股資料。`);
+    console.log(`✅ [清洗成功] 已將此 ${corruptedStocks.length} 檔污染股票的所有歷史天數數據完全蒸發，大帳本已回復純淨機制！`);
+    console.log("🌟 目前大帳本 stock_chips_daily 中已 100% 僅保留合法的主力個股資料。");
 
   } catch (error) {
     console.error("💥 清洗髒資料流程發生嚴重致命錯誤:", error.message);
