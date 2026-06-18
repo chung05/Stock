@@ -1,18 +1,25 @@
 name: 🚀 工具箱：手動執行大帳本髒資料物理清洗排毒
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch: # 准許在 GitHub Actions 後台手動點擊按鈕觸發執行
 
 jobs:
   clean-database:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: 檢查並拉取專案程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定標準 Node.js 20 環境
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - run: npm install @supabase/supabase-js axios xlsx
-      - name: 🎯 啟動物理清洗
+          node-version: '20' # 🟢 智慧除錯：全面升級至 Node.js 20，消除 Supabase 官方版本警告！
+
+      - name: 自動安裝清洗所需的基礎依賴套件
+        # 🟢 智慧除錯：在 npm install 後方實打實補上 dotenv 套件，徹底根除 MODULE_NOT_FOUND 報錯死結！
+        run: npm install @supabase/supabase-js axios xlsx dotenv
+
+      - name: 🎯 啟動主力大帳本物理清洗
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
