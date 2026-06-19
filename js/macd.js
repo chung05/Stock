@@ -111,7 +111,8 @@ function bindBiDirectionalScrollLinkage() {
   };
 }
 
-export async function openCombinedModal(stockId, stockName) {
+// 🎯 核心修正點：不再將整個視窗開啟函數封死在 await 新聞連線中
+export function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
@@ -150,7 +151,14 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // ====== 新聞非同步極速連線與原生 XML 解析區塊 ======
+  // 🛠️ 隔離防線：新聞交給獨立次級執行緒非同步默默下載，100% 斬斷對全網頁大帳本資料流的干擾
+  fetchStockNewsAsync(stockId, stockName);
+}
+
+// 🧱 獨立封裝新聞非同步背景獲取晶片 (完美保護主體大帳本安全)
+async function fetchStockNewsAsync(stockId, stockName) {
+  if (!stockId) return;
+  
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
     debugBox.classList.remove("hidden");
@@ -163,54 +171,50 @@ export async function openCombinedModal(stockId, stockName) {
   const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
   try {
-    if(debugBox) debugBox.innerHTML += `[網路對接] 正在發送高安全性跨網解鎖代理請求...\n`;
     const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error(`HTTP 錯誤: ${res.status}`);
     
-    if (res.ok) {
-      const resJson = await res.json();
-      const xmlString = resJson.contents;
+    const resJson = await res.json();
+    const xmlString = resJson.contents;
+    if (!xmlString) throw new Error("代理未傳回有效 contents 節點");
 
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-      const items = xmlDoc.getElementsByTagName("item");
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+    const items = xmlDoc.getElementsByTagName("item");
 
-      if (items && items.length > 0) {
-        let listHtml = "";
-        const maxNewsCount = Math.min(items.length, 10);
+    if (items && items.length > 0) {
+      let listHtml = "";
+      const maxNewsCount = Math.min(items.length, 10);
 
-        for (let idx = 0; idx < maxNewsCount; idx++) {
-          const item = items[idx];
-          const title = item.getElementsByTagName("title")[0]?.textContent || "財經頭條新聞";
-          const link = item.getElementsByTagName("link")[0]?.textContent || "#";
-          const rawPubDate = item.getElementsByTagName("pubDate")[0]?.textContent;
-          const source = item.getElementsByTagName("source")[0]?.textContent || "財經媒體";
+      for (let idx = 0; idx < maxNewsCount; idx++) {
+        const item = items[idx];
+        const title = item.getElementsByTagName("title")[0]?.textContent || "財經頭條新聞";
+        const link = item.getElementsByTagName("link")[0]?.textContent || "#";
+        const rawPubDate = item.getElementsByTagName("pubDate")[0]?.textContent;
+        const source = item.getElementsByTagName("source")[0]?.textContent || "財經媒體";
 
-          let dateStr = "近期新聞";
-          if (rawPubDate) {
-            const pubDate = new Date(rawPubDate);
-            if (!isNaN(pubDate.getTime())) {
-              dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
-            }
+        let dateStr = "近期新聞";
+        if (rawPubDate) {
+          const pubDate = new Date(rawPubDate);
+          if (!isNaN(pubDate.getTime())) {
+            dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
           }
-
-          listHtml += `
-            <a href="${link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
-              <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-                <span>📅 ${dateStr}</span>
-                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${source}</span>
-              </div>
-              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${title}</h4>
-            </a>`;
         }
 
-        if(listZone) listZone.innerHTML = listHtml;
-        if(debugBox) debugBox.classList.add("hidden"); 
-        
-      } else {
-        if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`;
+        listHtml += `
+          <a href="${link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
+            <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+              <span>📅 ${dateStr}</span>
+              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${source}</span>
+            </div>
+            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${title}</h4>
+          </a>`;
       }
+
+      if(listZone) listZone.innerHTML = listHtml;
+      if(debugBox) debugBox.classList.add("hidden"); 
     } else {
-      throw new Error(`伺富器回應狀態碼: ${res.status}`);
+      if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`;
     }
   } catch (fetchErr) {
     console.error("💥 新聞獲取失敗:", fetchErr);
@@ -381,14 +385,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
-  
-  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
-  if(barChartEl) barChartEl.innerHTML = barChartHtml;
-
-  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
-  if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
-
   if (kPoints.length > 0 || dPoints.length > 0) {
     kdChartHtml += `
       <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;">
@@ -397,6 +393,15 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         ${kdCirclesHtml}
       </svg>`;
   }
+
+  if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
+  
+  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
+  if(barChartEl) barChartEl.innerHTML = barChartHtml;
+
+  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
+  if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
+
   if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
   if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
