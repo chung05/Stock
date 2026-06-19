@@ -151,11 +151,11 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 🛠️ 將新聞隔離至背景非同步函式，100% 斬斷對主數據加載的任何阻斷與影響
+  // 🛠️ 將新聞模組「解耦」至獨立背景函式，100% 異步下載，絕對不卡死、不拖累主畫面
   fetchStockNewsBackground(stockId, stockName);
 }
 
-// 📰 萬能免費代理新聞引擎 (0秒打通跨網限制，完美解決新聞卡死)
+// 📰 獨立新聞晶片 (採用高穩定、不限次數的萬能 AllOrigins 免費代理)
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
@@ -174,7 +174,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
     
     const resJson = await res.json();
     const xmlString = resJson.contents;
-    if (!xmlString) throw new Error("代理未傳回有效內容");
+    if (!xmlString) throw new Error("代理伺服器傳回內容空殼");
 
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -300,7 +300,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
-  // 🎯 智慧相容升級：利用 getValIgnoreCase 穿透大小寫阻斷，完美對齊 stock_chips_daily 新欄位！
+  // 🎯 核心真理修正點：利用 getValIgnoreCase 穿透大小寫，完美相容 Supabase 資料庫中的小寫欄位！
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
