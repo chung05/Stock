@@ -1,21 +1,20 @@
 // js/macd.js
-import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
 
-if (!state.visibleLines) {
-  state.visibleLines = { ma5: true, ma10: false, ma20: true };
-}
+// 🎯 核心真理：完全移除頂端所有對 config.js / ui.js / api.js 的 Import 宣告！
+// 徹底解除瀏覽器的非同步加載循環死鎖，讓 index.html 的分批下載流程重新復活！
 
 export function closeNewsModal() { 
   document.getElementById("newsModal").classList.add("hidden"); 
 }
 
 export function toggleLine(lineKey, isChecked) {
-  if (state.visibleLines) {
-    state.visibleLines[lineKey] = isChecked;
+  // 透過 window.state 全域穿透存取，安全不鎖死
+  if (window.state && window.state.visibleLines) {
+    window.state.visibleLines[lineKey] = isChecked;
   }
-  if (state.currentActiveStockId) {
-    const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-    const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+  if (window.state && window.state.currentActiveStockId) {
+    const myChipsRaw = window.state.globalChipCache.filter(c => String(c.stock_id).trim() === String(window.state.currentActiveStockId).trim());
+    const localTrendDates = [...window.state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
     renderPriceTrendLineChart(localTrendDates, myChipsRaw);
   }
 }
@@ -41,15 +40,15 @@ export function switchModalTab(tabMode) {
   });
   
   setTimeout(() => {
-    if (state.currentActiveStockId) {
-      const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-      const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+    if (window.state && window.state.currentActiveStockId) {
+      const myChipsRaw = window.state.globalChipCache.filter(c => String(c.stock_id).trim() === String(window.state.currentActiveStockId).trim());
+      const localTrendDates = [...window.state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
       if (tabMode === 'macd') {
         renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
       } else if (tabMode === 'trend') {
-        if (document.getElementById("toggleMA5")) document.getElementById("toggleMA5").checked = state.visibleLines.ma5;
-        if (document.getElementById("toggleMA10")) document.getElementById("toggleMA10").checked = state.visibleLines.ma10;
-        if (document.getElementById("toggleMA20")) document.getElementById("toggleMA20").checked = state.visibleLines.ma20;
+        if (document.getElementById("toggleMA5")) document.getElementById("toggleMA5").checked = window.state.visibleLines.ma5;
+        if (document.getElementById("toggleMA10")) document.getElementById("toggleMA10").checked = window.state.visibleLines.ma10;
+        if (document.getElementById("toggleMA20")) document.getElementById("toggleMA20").checked = window.state.visibleLines.ma20;
         
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
@@ -61,7 +60,7 @@ export function switchModalTab(tabMode) {
 }
 
 export function switchChipSubTab(subKey) {
-  state.currentChipSubTab = subKey;
+  if (window.state) window.state.currentChipSubTab = subKey;
   const tabs = { f: 'subTabF', it: 'subTabIT', ds: 'subTabDS' };
   Object.keys(tabs).forEach(k => {
     const btn = document.getElementById(tabs[k]);
@@ -112,12 +111,12 @@ function bindBiDirectionalScrollLinkage() {
 }
 
 export async function openCombinedModal(stockId, stockName) {
-  state.currentActiveStockId = stockId; 
+  if (window.state) window.state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
   
-  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
+  const myChipsRaw = window.state.globalChipCache.filter(c => String(c.stock_id).trim() === String(stockId).trim());
+  const localTrendDates = [...window.state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
   setTimeout(() => {
     switchModalTab('trend');
@@ -129,8 +128,8 @@ export async function openCombinedModal(stockId, stockName) {
     scrollToLatestTrend('trend');
   }, 35);
 
-  if (state.recentDates.length > 0) {
-    const latestDayData = myChipsRaw.find(c => String(c.date) === state.recentDates[0]);
+  if (window.state && window.state.recentDates.length > 0) {
+    const latestDayData = myChipsRaw.find(c => String(c.date) === window.state.recentDates[0]);
     if (latestDayData) {
       document.getElementById("modalInfoPrice").innerText = latestDayData.price || '--';
       const cv = latestDayData.change_value || 0;
@@ -141,7 +140,11 @@ export async function openCombinedModal(stockId, stockName) {
       document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
       document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
       
-      const rawMacd = getValIgnoreCase(latestDayData, 'macd_osc');
+      // 動態判定型態
+      let rawMacd = null;
+      if (latestDayData.macd_osc !== undefined) rawMacd = latestDayData.macd_osc;
+      else if (latestDayData.MACD_Osc !== undefined) rawMacd = latestDayData.MACD_Osc;
+      
       if (rawMacd !== null && rawMacd !== undefined) {
         if (rawMacd > 0) document.getElementById("modalInfoMACD").innerHTML = `<span class="text-rose-600 font-bold">▲${rawMacd}</span>`;
         else if (rawMacd < 0) document.getElementById("modalInfoMACD").innerHTML = `<span class="text-emerald-600 font-bold">▼${Math.abs(rawMacd)}</span>`;
@@ -150,6 +153,11 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
+  // 🛠️ 新聞背景隔離下載流：100% 異步，改用萬能解鎖代理，永久免除 rss2json 次數硬傷限制！
+  fetchStockNewsDataBackground(stockId, stockName);
+}
+
+async function fetchStockNewsDataBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
     debugBox.classList.remove("hidden");
@@ -159,28 +167,57 @@ export async function openCombinedModal(stockId, stockName) {
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
+  const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
-  let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
-  while (currentRetry < maxRetries && !successFetch) {
-    currentRetry++;
-    try {
-      const res = await fetch(apiUrl);
-      if (res.ok) { const json = await res.json(); if (json.status === 'ok') { resJson = json; successFetch = true; break; } }
-    } catch (fetchErr) { console.error(fetchErr); }
-  }
+  try {
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error(`HTTP: ${res.status}`);
+    const resJson = await res.json();
+    const xmlString = resJson.contents;
 
-  if (successFetch && resJson) {
-    const fetchedItems = resJson.items || [];
-    if (fetchedItems.length > 0) {
+    if (!xmlString) throw new Error("代理未回傳有效內容");
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+    const items = xmlDoc.getElementsByTagName("item");
+
+    if (items && items.length > 0) {
       let listHtml = "";
-      fetchedItems.slice(0, 10).forEach(item => {
-        const pubDate = new Date(item.pubDate), dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
-        listHtml += `<a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item"><div class="text-xs text-slate-400 font-bold flex items-center gap-2"><span>📅 ${dateStr}</span><span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div><h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4></a>`;
-      });
-      if(listZone) listZone.innerHTML = listHtml; if(debugBox) debugBox.classList.add("hidden");
-    } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`; }
-  } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
+      const maxNewsCount = Math.min(items.length, 10);
+
+      for (let idx = 0; idx < maxNewsCount; idx++) {
+        const item = items[idx];
+        const title = item.getElementsByTagName("title")[0]?.textContent || "財經頭條新聞";
+        const link = item.getElementsByTagName("link")[0]?.textContent || "#";
+        const rawPubDate = item.getElementsByTagName("pubDate")[0]?.textContent;
+        const source = item.getElementsByTagName("source")[0]?.textContent || "財經媒體";
+
+        let dateStr = "近期新聞";
+        if (rawPubDate) {
+          const pubDate = new Date(rawPubDate);
+          if (!isNaN(pubDate.getTime())) {
+            dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
+          }
+        }
+
+        listHtml += `
+          <a href="${link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
+            <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
+              <span>📅 ${dateStr}</span>
+              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${source}</span>
+            </div>
+            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${title}</h4>
+          </a>`;
+      }
+      if(listZone) listZone.innerHTML = listHtml;
+      if(debugBox) debugBox.classList.add("hidden");
+    } else {
+      if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`;
+    }
+  } catch (fetchErr) {
+    console.error("💥 新聞連線異常:", fetchErr);
+    if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載，請稍候再試。</div>`;
+  }
 }
 
 export function renderPriceTrendLineChart(dates, chips) {
@@ -196,9 +233,9 @@ export function renderPriceTrendLineChart(dates, chips) {
   let ma20Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma20 !== undefined && day.ma20 !== null) ? day.ma20 : null; });
 
   let checkPool = [...pricePoints];
-  if (state.visibleLines.ma5) checkPool.push(...ma5Points);
-  if (state.visibleLines.ma10) checkPool.push(...ma10Points);
-  if (state.visibleLines.ma20) checkPool.push(...ma20Points);
+  if (window.state.visibleLines.ma5) checkPool.push(...ma5Points);
+  if (window.state.visibleLines.ma10) checkPool.push(...ma10Points);
+  if (window.state.visibleLines.ma20) checkPool.push(...ma20Points);
 
   let allValidValues = checkPool.filter(v => v !== null && !isNaN(v));
   if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; priceDatesEl.innerHTML = ""; return; }
@@ -225,17 +262,17 @@ export function renderPriceTrendLineChart(dates, chips) {
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
     
-    if (ma5 !== null && state.visibleLines.ma5) {
+    if (ma5 !== null && window.state.visibleLines.ma5) {
       let yPercent = ((ma5 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA5.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#581c87" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
     }
-    if (ma10 !== null && state.visibleLines.ma10) {
+    if (ma10 !== null && window.state.visibleLines.ma10) {
       let yPercent = ((ma10 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA10.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
-    if (ma20 !== null && state.visibleLines.ma20) {
+    if (ma20 !== null && window.state.visibleLines.ma20) {
       let yPercent = ((ma20 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA20.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
@@ -268,11 +305,11 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     const row = chips.find(c => String(c.date) === d); 
     return { 
       date: d, 
-      dif: row ? getValIgnoreCase(row, 'macd_dif') : null, 
-      sig: row ? getValIgnoreCase(row, 'macd_signal') : null, 
-      osc: row ? getValIgnoreCase(row, 'macd_osc') : null,
-      kd_k: row ? getValIgnoreCase(row, 'kd_k') : null,
-      kd_d: row ? getValIgnoreCase(row, 'kd_d') : null
+      dif: row ? (row.macd_dif !== undefined ? row.macd_dif : row.MACD_Dif) : null, 
+      sig: row ? (row.macd_signal !== undefined ? row.macd_signal : row.MACD_Signal) : null, 
+      osc: row ? (row.macd_osc !== undefined ? row.macd_osc : row.MACD_Osc) : null,
+      kd_k: row ? row.kd_k : null,
+      kd_d: row ? row.kd_d : null
     }; 
   });
 
@@ -367,28 +404,14 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
   if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  const currentSignalCode = decodeMacdSignal(chips);
-  const titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
-  let descText = "", condText = "", bg = "";
+  // 使用 window 全域跨檔案安全調用，解開加載鎖
+  const currentSignalCode = window.decodeMacdSignal ? window.decodeMacdSignal(chips) : "1";
+  const titleText = (window.MACD_SIGNALS && window.MACD_SIGNALS[currentSignalCode]) ? window.MACD_SIGNALS[currentSignalCode] : "型態分析中";
+  let bg = "bg-rose-600 text-rose-600";
   
-  if (currentSignalCode === "1") { descText = "多頭趨勢強勁，上漲速度持續增加，屬於全市場最強勢的攻擊主升段。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續變長"; bg = "bg-rose-600 text-rose-600"; }
-  if (currentSignalCode === "2") { descText = "股價仍偏多，上漲趨勢未變，但買盤推升力道開始出現減弱，需防洗盤。"; condText = "DIF > DEA 且 DIF > 0 且 DEA > 0 且 紅柱(OSC)持續縮短"; bg = "bg-orange-500 text-orange-600"; }
-  if (currentSignalCode === "3") { descText = "多頭結構尚未破壞，短期出現正常的獲利了結回檔，屬於良性波段修正。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-amber-500 text-amber-600"; }
-  if (currentSignalCode === "4") { descText = "回檔整理結束，多頭重新掌控盤勢，常見於主升段行情的中繼再噴發。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF > 0 且 DEA > 0"; bg = "bg-red-600 text-red-600"; }
-  if (currentSignalCode === "5") { descText = "空頭趨勢強勁，下跌速度持續增加，屬於窒息的多殺多主跌爆跌段。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續變長"; bg = "bg-emerald-600 text-emerald-600"; }
-  if (currentSignalCode === "6") { descText = "股價仍偏空，下跌慣性未變，低檔實質賣壓與恐慌盤已開始減弱。"; condText = "DIF < DEA 且 DIF < 0 且 DEA < 0 且 綠柱(OSC)持續縮短"; bg = "bg-cyan-600 text-cyan-600"; }
-  if (currentSignalCode === "7") { descText = "空頭波段中的短線深幅反彈，非正式翻多，需密切觀察是否能站上零軸。"; condText = "DIF 突破 DEA (黃金交叉) 且 DIF < 0 且 DEA < 0"; bg = "bg-blue-600 text-blue-600"; }
-  if (currentSignalCode === "8") { descText = "跌深反彈遭遇解套壓力宣告失敗，空頭重新主導大局，下跌趨勢延續。"; condText = "DIF 跌破 DEA (死亡交叉) 且 DIF < 0 且 DEA < 0"; bg = "bg-slate-700 text-slate-800"; }
-  if (currentSignalCode === "9") { descText = "下跌動能持續減弱，市場賣壓枯竭開始尋找底部支撐，為反轉重要前兆。"; condText = "綠柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成黃金交叉"; bg = "bg-teal-600 text-teal-600"; }
-  if (currentSignalCode === "10") { descText = "空頭架構正式終結，中期多頭結構開始形成，為極具波段價值的翻多訊號。"; condText = "DIF黃金交叉DEA 且 柱狀圖由綠轉紅 (可伴隨底背離特徵)"; bg = "bg-indigo-600 text-indigo-600"; }
-  if (currentSignalCode === "11") { descText = "上漲高檔動能開始流失，追價意願顯著下降，主力籌碼分批撤離。"; condText = "紅柱(OSC)持續縮短 且 DIF向DEA靠近 且 尚未形成死亡交叉"; bg = "bg-fuchsia-600 text-fuchsia-600"; }
-  if (currentSignalCode === "12") { descText = "多頭波段正式結束，空頭派對開始形成，中期趨勢反轉向下確立。"; bg = "bg-purple-600 text-purple-600"; }
-  
-  setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
-    // 💡 終極修正點：利用 window.showSignalInfoDialog() 進行純 HTML 穿透式全域onclick綁定，徹底免疫任何非同步重繪沖刷！
     boardTitleEl.innerHTML = `
-      <span class="${bg.split(' ')[1]} font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
+      <span class="text-blue-600 font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
       <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
     `;
   }
@@ -396,17 +419,17 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
-  if (!chipChartEl || !state.currentActiveStockId) return;
+  if (!chipChartEl || !window.state || !window.state.currentActiveStockId) return;
 
-  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
+  const myChipsRaw = window.state.globalChipCache.filter(c => String(c.stock_id).trim() === String(window.state.currentActiveStockId).trim());
+  const localTrendDates = [...window.state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
   const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
-  const cfg = subTabConfigs[state.currentChipSubTab];
+  const cfg = subTabConfigs[window.state.currentChipSubTab || 'f'];
   
   let nets = localTrendDates.map(d => { 
     const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; 
-    if (state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
+    if (window.state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
     return Math.round((row[cfg.bKey] || 0) / 1000) - Math.round((row[cfg.sKey] || 0) / 1000); 
   });
 
