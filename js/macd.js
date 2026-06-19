@@ -150,12 +150,6 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 🛠️ 隔離解耦防線：新聞完全獨立異步加載，絕對不拖累或阻斷網頁的主體量化資料流
-  fetchStockNewsDataBackground(stockId, stockName);
-}
-
-// 🧱 獨立新聞背景高速載入模組 (完全沿用舊版排毒結構 + 萬能解鎖代理)
-async function fetchStockNewsDataBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
     debugBox.classList.remove("hidden");
@@ -165,64 +159,30 @@ async function fetchStockNewsDataBackground(stockId, stockName) {
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  
-  // ⚡ 核心修正點：使用免費高穩定、前端免註冊的 AllOrigins CORS Proxy (徹底取代 rss2json 的收費限制)
-  const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
 
-  try {
-    const res = await fetch(apiUrl);
-    if (!res.ok) throw new Error(`代理伺服器回應失敗: ${res.status}`);
-    
-    const resJson = await res.json();
-    const xmlString = resJson.contents; // 提取內容 XML
-    if (!xmlString) throw new Error("無效的 RSS 代理內容");
-
-    // 瀏覽器原生 DOMParser XML 極速解析
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-    const items = xmlDoc.getElementsByTagName("item");
-
-    if (items && items.length > 0) {
-      let listHtml = "";
-      const maxNewsCount = Math.min(items.length, 10);
-
-      for (let idx = 0; idx < maxNewsCount; idx++) {
-        const item = items[idx];
-        const title = item.getElementsByTagName("title")[0]?.textContent || "財經頭條新聞";
-        const link = item.getElementsByTagName("link")[0]?.textContent || "#";
-        const rawPubDate = item.getElementsByTagName("pubDate")[0]?.textContent;
-        const source = item.getElementsByTagName("source")[0]?.textContent || "財經媒體";
-
-        let dateStr = "近期新聞";
-        if (rawPubDate) {
-          const pubDate = new Date(rawPubDate);
-          if (!isNaN(pubDate.getTime())) {
-            dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
-          }
-        }
-
-        listHtml += `
-          <a href="${link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
-            <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-              <span>📅 ${dateStr}</span>
-              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${source}</span>
-            </div>
-            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${title}</h4>
-          </a>`;
-      }
-
-      if(listZone) listZone.innerHTML = listHtml;
-      if(debugBox) debugBox.classList.add("hidden"); // 成功後隱藏診斷盒
-    } else {
-      if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`;
-    }
-  } catch (fetchErr) {
-    console.error("💥 新聞獲取流發生異常:", fetchErr);
-    if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載，請稍後再試。</div>`;
+  let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
+  while (currentRetry < maxRetries && !successFetch) {
+    currentRetry++;
+    try {
+      const res = await fetch(apiUrl);
+      if (res.ok) { const json = await res.json(); if (json.status === 'ok') { resJson = json; successFetch = true; break; } }
+    } catch (fetchErr) { console.error(fetchErr); }
   }
+
+  if (successFetch && resJson) {
+    const fetchedItems = resJson.items || [];
+    if (fetchedItems.length > 0) {
+      let listHtml = "";
+      fetchedItems.slice(0, 10).forEach(item => {
+        const pubDate = new Date(item.pubDate), dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth()+1).padStart(2,'0')}-${String(pubDate.getDate()).padStart(2,'0')}`;
+        listHtml += `<a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item"><div class="text-xs text-slate-400 font-bold flex items-center gap-2"><span>📅 ${dateStr}</span><span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div><h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4></a>`;
+      });
+      if(listZone) listZone.innerHTML = listHtml; if(debugBox) debugBox.classList.add("hidden");
+    } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`; }
+  } else { if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`; }
 }
 
-// 📈 100% 恢復您原版完好無缺的股價K線走勢圖渲染函數
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   const priceDatesEl = document.getElementById("trendPriceDates");
@@ -295,7 +255,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceDatesEl.innerHTML = dateHtml;
 }
 
-// 📈 100% 恢復您原版完好無缺的 MACD/KD 分離圖表與橫軸日期對齊函數
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -334,7 +293,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   `;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 🎯 核心恢復：完好填入原版的 lineDateHtml 連續推導，打通首頁大底座資料流！
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
@@ -428,6 +386,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   setSignalDetail(titleText, descText, condText);
   if(boardTitleEl) {
+    // 💡 終極修正點：利用 window.showSignalInfoDialog() 進行純 HTML 穿透式全域onclick綁定，徹底免疫任何非同步重繪沖刷！
     boardTitleEl.innerHTML = `
       <span class="${bg.split(' ')[1]} font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
       <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
@@ -435,7 +394,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
-// 📈 100% 恢復您原版完好無缺的籌碼柱狀圖渲染函數
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
