@@ -20,11 +20,11 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 啟動【當日強勢股動態註冊 + 20天指標完全體寫入引擎】...");
+    console.log("🚀 啟動【當日強勢股母名單統一對齊 + 20天純數據完全體隔離引擎】...");
 
     const today = new Date();
     const endDateStr = formatDateToString(today);
-    const startDateStr = "2026-01-02"; // 固定對齊 2026/01/02 開局
+    const startDateStr = "2026-01-02"; // 完美對齊開局時間點，確保暖身天數
 
     const commonHeaders = { 'accept': 'application/json', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
     
@@ -54,16 +54,16 @@ async function run() {
           break;
         }
       } catch (e) {
-        // 忽略單次失敗繼續往前找
+        // 忽略單次失敗，往過去繼續追查
       }
     }
 
     if (!rawT86Rows) {
-      throw new Error("❌ 嚴重錯誤：連續盤查過去 7 天均無法取得證交所 T86 大表，終止流程。");
+      throw new Error("❌ 嚴重錯誤：無法取得證交所 T86 大表，終止流程。");
     }
 
-    // 3. 洗滌 stock_targets 母名單 'NEW' 標籤
-    console.log("🧹 正在動態洗滌 stock_targets 中的舊 'NEW' 標籤...");
+    // 3. 統一管理：洗滌 stock_targets 母名單中的舊 'NEW' 標籤
+    console.log("🧹 正在動態洗滌唯一管理表 stock_targets 中的舊 'NEW' 標籤...");
     const { data: allTargets, error: targetFetchErr } = await supabase.from('stock_targets').select('*');
     if (targetFetchErr) throw targetFetchErr;
 
@@ -80,8 +80,8 @@ async function run() {
       }
     }
 
-    // 4. 開局全量清空強勢股暫存大帳本
-    console.log("🧹 正在物理洗淨清空 stock_chips_new_daily 資料表...");
+    // 4. 開局全量清空強勢股暫存大帳本 (純數據個股表)
+    console.log("🧹 正在物理洗淨清空個股純數據表 stock_chips_new_daily...");
     await supabase.from('stock_chips_new_daily').delete().neq('stock_id', 'RESET_POOL');
 
     const foreignRank = []; const itRank = []; const dealerRank = [];
@@ -111,7 +111,8 @@ async function run() {
     const newStockIds = Array.from(new Set([...topForeign, ...topIt, ...topDealer]));
     console.log(`🎯 聯集去重完畢，今日最終篩選出 ${newStockIds.length} 檔強勢個股。`);
 
-    // 動態註冊回 stock_targets 母名單
+    // 🎯 核心需求對齊：將股票代號、名稱與分類標籤【統一儲存管理於 stock_targets】
+    console.log("📝 正在將新股註冊對齊至母名單管理表 stock_targets...");
     const { data: refreshedTargets } = await supabase.from('stock_targets').select('*');
     const targetMapSnapshot = new Map(refreshedTargets.map(t => [t.stock_id, t]));
 
@@ -128,9 +129,9 @@ async function run() {
         await supabase.from('stock_targets').insert({ stock_id: stockId, stock_name: currentStockName, sheet_tags: ["NEW"] });
       }
     }
-    console.log("📝 stock_targets 飆股動態註冊更新完畢！");
+    console.log("✅ 飆股代號與名稱已統一在 stock_targets 完成靜態註冊！");
 
-    // 5. 核心修復點：逐檔對接 FinMind 下載，並實打實儲存寫入資料庫
+    // 5. 逐檔下載歷史基本面籌碼與價量，重算技術指標
     for (let i = 0; i < newStockIds.length; i++) {
       const stockId = newStockIds[i];
       const currentStockName = stockNameMap.get(stockId) || "未知股名";
@@ -149,7 +150,7 @@ async function run() {
             const d = row.date;
             if (!dateMap[d]) {
               dateMap[d] = { 
-                stock_id: stockId, stock_name: currentStockName, date: d, price: null, change_value: 0, 
+                stock_id: stockId, date: d, price: null, change_value: 0, 
                 f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0,
                 open:0, max:0, min:0, trading_volume:0 
               };
@@ -169,7 +170,7 @@ async function run() {
             const d = pRow.date;
             if (!dateMap[d]) {
               dateMap[d] = { 
-                stock_id: stockId, stock_name: currentStockName, date: d, price: null, change_value: 0, 
+                stock_id: stockId, date: d, price: null, change_value: 0, 
                 f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0,
                 open:0, max:0, min:0, trading_volume:0 
               };
@@ -183,7 +184,6 @@ async function run() {
           });
         }
 
-        // 歷史時間軸由遠到近排序
         let sortedDays = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
         if (sortedDays.length === 0) continue;
 
@@ -191,7 +191,7 @@ async function run() {
         const computedPool = [];
         let prevEma12 = null, prevEma26 = null, prevMacd9 = null; const difHistory = []; let prevK = 50.0; let prevD = 50.0;
 
-        // (C) 遞迴推算 KD / MACD
+        // (C) 遞迴推算技術指標
         for (let j = 0; j < totalLen; j++) {
           const targetDay = sortedDays[j];
           const subPool = sortedDays.slice(0, j + 1);
@@ -237,8 +237,9 @@ async function run() {
             }
           }
 
+          // 🎯 核心修正點：純數據個股物件，不多不少剛好完美對齊現存的 27 個欄位，100% 不寫入任何 stock_name 字樣！
           computedPool.push({
-            stock_id: stockId, stock_name: currentStockName, date: targetDay.date,
+            stock_id: stockId, date: targetDay.date,
             price: targetDay.price, open: targetDay.open, max: targetDay.max, min: targetDay.min,
             trading_volume: targetDay.trading_volume, change_value: targetDay.change_value,
             f_buy: targetDay.f_buy, f_sell: targetDay.f_sell, fd_buy: targetDay.fd_buy, fd_sell: targetDay.fd_sell,
@@ -249,24 +250,23 @@ async function run() {
           });
         }
 
-        // 🧱 自適應切片：精準取出最新連續 20 天的完全體成果
+        // 自適應切片，精準切出最新連續 20 天黃金輸出
         const finalRowsToUpsert = computedPool.slice(-20);
 
-        // 🎯 實打實寫入資料庫防線
         if (finalRowsToUpsert.length > 0) {
           const { error: upsertErr } = await supabase.from('stock_chips_new_daily').upsert(finalRowsToUpsert);
           if (upsertErr) {
-            console.error(`❌ 資料庫寫入失敗 [${stockId}]:`, upsertErr.message);
+            console.error(`❌ 個股純數據資料庫寫入失敗 [${stockId}]:`, upsertErr.message);
           } else {
-            console.log(`✅ [寫入成功] ${stockId} 共 20 天數據已順利入庫。`);
+            console.log(`✅ [純數據入庫成功] ${stockId} 最近 20 天指標已順利進入 stock_chips_new_daily 表。`);
           }
         }
 
-      } catch (err) { console.error(`❌ 處理 ${stockId} 失敗:`, err.message); }
+      } catch (err) { console.error(`❌ 處理 ${stockId} 發生未知異常:`, err.message); }
       await sleep(120); 
     }
 
-    console.log("🎉 【NEW強勢個股流水池】完全體對接，全量寫入順暢通車！");
+    console.log("🎉 【母名單唯一管理化 + 強勢股自適應 20 天】完美大通車！");
   } catch (error) { console.error("💥 致命流程錯誤:", error.message); process.exit(1); }
 }
 
