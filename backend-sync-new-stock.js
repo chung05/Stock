@@ -20,10 +20,10 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 啟動【當日純個股強勢流星股 (NEW) 28欄位完全體引擎】...");
+    console.log("🚀 啟動【當日證交所 T86 直連 + 純個股強勢流星股 (NEW) 45天全指標引擎】...");
 
     // 🧱 需求 1：開局物理清空暫存池，保證資料純淨
-    console.log("🧹 正在清空 stock_chips_new_daily 資料表...");
+    console.log("🧹 正在物理清空 stock_chips_new_daily 資料表...");
     const { error: truncateErr } = await supabase
       .from('stock_chips_new_daily')
       .delete()
@@ -33,64 +33,80 @@ async function run() {
 
     const today = new Date();
     const endDateStr = formatDateToString(today);
-    // 🧱 需求 3：大範圍回推 90 天日曆天，確保能安全切出 45 個不開盤交易日斷層
+    // 🧱 需求 3：大範圍回推 90 天日曆天，確保過年等長假也能安全切出 45 個實體交易日
     const past90Days = new Date();
     past90Days.setDate(today.getDate() - 90); 
     const startDateStr = formatDateToString(past90Days);
 
-    const commonHeaders = { 'accept': 'application/json', 'user-agent': 'Mozilla/5.0' };
+    const commonHeaders = { 'accept': 'application/json', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
     
-    // 智能定位市場最新開盤交易日
+    // 1. 智能定位市場最新開盤交易日 (藉由台積電基本K線確認最新有資料的日期)
     const checkUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=2330&start_date=${formatDateToString(new Date(today.getTime() - 10*24*60*60*1000))}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
     const checkRes = await axios.get(checkUrl, { headers: commonHeaders });
     let latestMarketDate = endDateStr;
     if (checkRes.data.status === 200 && Array.isArray(checkRes.data.data) && checkRes.data.data.length > 0) {
       latestMarketDate = checkRes.data.data[checkRes.data.data.length - 1].date;
     }
-    console.log(`📅 市場最新有法人籌碼的交易日為: ${latestMarketDate}`);
+    console.log(`📅 經智能定位，市場最新實體交易日為: ${latestMarketDate}`);
 
-    // 下載當天全市場 T86 法人表
-    const t86Url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${latestMarketDate}&end_date=${latestMarketDate}&token=${process.env.FINMIND_TOKEN}`;
-    const t86Res = await axios.get(t86Url, { headers: commonHeaders });
-    if (t86Res.data.status !== 200 || !Array.isArray(t86Res.data.data)) throw new Error("無法取得法人大表");
+    // 2. 直連台灣證券交易所 (TWSE) 官方大表，硬性鎖定 ALLBUT0999 剔除所有權證雜質
+    const twseDateParam = latestMarketDate.replace(/-/g, ''); // 轉換為 YYYYMMDD 格式
+    const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?response=json&date=${twseDateParam}&selectType=ALLBUT0999`;
+    
+    console.log(`📥 正在從台灣證券交易所下載原始全市場大表...`);
+    const twseRes = await axios.get(twseUrl, { headers: commonHeaders });
+    
+    if (!twseRes.data || twseRes.data.stat !== 'OK' || !Array.isArray(twseRes.data.data)) {
+      throw new Error(`證交所當日大表尚未公布或 API 連線被拒絕: ${twseRes.data ? twseRes.data.stat : '無回應'}`);
+    }
+
+    const rawT86Rows = twseRes.data.data;
+    console.log(`✅ 成功下載證交所法人原始紀錄共 ${rawT86Rows.length} 筆，開始進行純個股排行篩選...`);
 
     const foreignRank = []; const itRank = []; const dealerRank = [];
 
-    t86Res.data.data.forEach(row => {
-      const sId = String(row.stock_id).trim();
+    rawT86Rows.forEach(row => {
+      const sId = String(row[0]).trim(); // 證券代號
       
-      // 🧱 需求 2：硬核過濾邊界（只拿 4 碼純個股，全面封殺 0050 等 ETF、權證與 TDR）
+      // 🧱 需求 2：硬核純個股過濾防線（只拿 4 碼純個股，全面封殺 0050 等原型/高股息 ETF、受益證券、TDR）
       if (sId.length !== 4) return;
       if (sId.startsWith('00') || sId.startsWith('01') || sId.startsWith('91')) return;
 
-      const netBuy = row.buy - row.sell;
-      if (netBuy <= 0) return;
+      // 證交所原始字串帶有千分位逗號，必須清除後轉為整數數字以利進行量化數學排序
+      const fNet = parseInt(String(row[4]).replace(/,/g, '')) || 0;  // 外陸資買買超股數
+      const itNet = parseInt(String(row[10]).replace(/,/g, '')) || 0; // 投信買賣超股數
+      const dNet = parseInt(String(row[14]).replace(/,/g, '')) || 0;  // 自營商買賣超股數(自行買賣)
 
-      if (row.name === 'Foreign_Investor') foreignRank.push({ sId, netBuy });
-      else if (row.name === 'Investment_Trust') itRank.push({ sId, netBuy });
-      else if (row.name === 'Dealer_self') dealerRank.push({ sId, netBuy });
+      if (fNet > 0) foreignRank.push({ sId, netBuy: fNet });
+      if (itNet > 0) itRank.push({ sId, netBuy: itNet });
+      if (dNet > 0) dealerRank.push({ sId, netBuy: dNet });
     });
 
-    // 各取三大法人買超前 50 名純個股
+    // 進行純個股排行演算，精準取出各法人的前 50 名
     const topForeign = foreignRank.sort((a, b) => b.netBuy - a.netBuy).slice(0, 50).map(x => x.sId);
     const topIt = itRank.sort((a, b) => b.netBuy - a.netBuy).slice(0, 50).map(x => x.sId);
     const topDealer = dealerRank.sort((a, b) => b.netBuy - a.netBuy).slice(0, 50).map(x => x.sId);
 
-    // 聯集去重，且不與固定 180 檔排擠
+    // 聯集去重（不與固定的 180 檔排擠）
     const newStockIds = Array.from(new Set([...topForeign, ...topIt, ...topDealer]));
-    console.log(`🎯 經過濾 ETF/權證，三大法人 Top 50 純個股聯集共計: ${newStockIds.length} 檔。`);
+    console.log(`🎯 證交所純個股前 50 名交叉聯集完畢！最終入選 NEW 流星池之強勢股共計: ${newStockIds.length} 檔。`);
 
-    // 逐檔抓取 90 日曆天，並切出 45 開盤日進行重算
+    if (newStockIds.length === 0) return;
+
+    // 3. 逐檔向 FinMind 免費抓取指定 ID 的 90 日歷史，並在記憶體切出飽滿 45 天交易日重算指標
     for (let i = 0; i < newStockIds.length; i++) {
       const stockId = newStockIds[i];
-      if (i > 0 && i % 12 === 0) { await sleep(10000); }
+      if (i > 0 && i % 12 === 0) { 
+        console.log(`⏳ 已處理 ${i} 檔，保護 API 流量強制休息 10 秒...`);
+        await sleep(10000); 
+      }
 
-      console.log(`[新星歷史回溯重算] (${i + 1}/${newStockIds.length}) ${stockId}`);
+      console.log(`[強勢股 45天全指標遞迴重算] (${i + 1}/${newStockIds.length}) ${stockId}`);
 
       try {
         const dateMap = {};
 
-        // 抓籌碼
+        // (A) 指定 data_id 抓取該個股 90 日曆天籌碼 (免費帳號專屬流暢管道，不吃付費額度)
         const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stockId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
         const cRes = await axios.get(chipUrl, { headers: commonHeaders });
         if (cRes.data.status === 200 && Array.isArray(cRes.data.data)) {
@@ -104,7 +120,7 @@ async function run() {
           });
         }
 
-        // 抓價格
+        // (B) 指定 data_id 抓取該個股 90 日曆天價格
         const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stockId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
         const pRes = await axios.get(priceUrl, { headers: commonHeaders });
         if (pRes.data.status === 200 && Array.isArray(pRes.data.data)) {
@@ -116,7 +132,7 @@ async function run() {
           });
         }
 
-        // 🧱 需求 3 核心實作：將回抓的所有天數排序，並切出最近連續 45 個實體交易日
+        // 🧱 需求 3 核心實作：將大範圍日曆天去蕪存菁，精準裁切出最近連續 45 個不開盤交易日
         let sortedDays = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
         if (sortedDays.length > 45) {
           sortedDays = sortedDays.slice(-45);
@@ -126,6 +142,7 @@ async function run() {
         const rowUpdates = [];
         let prevEma12 = null, prevEma26 = null, prevMacd9 = null; const difHistory = []; let prevK = 50.0; let prevD = 50.0;
 
+        // (C) 指標雪球遞迴大腦
         for (let j = 0; j < totalLen; j++) {
           const targetDay = sortedDays[j];
           const subPool = sortedDays.slice(0, j + 1);
@@ -171,8 +188,8 @@ async function run() {
             }
           }
 
-          // 只保留在後台要連續產出 20 天 MA20 的實體行數
-          if (subLen >= 20) {
+          // 🧱 需求 3 落地：唯有當 subLen 滿足 20 天以上（代表前面有 20 天飽滿暖身），才獲准塞入最後產出的連續 20 天大表
+          if (subLen >= 25) {
             rowUpdates.push({
               stock_id: stockId, date: targetDay.date,
               price: targetDay.price, open: targetDay.open, max: targetDay.max, min: targetDay.min,
@@ -187,15 +204,17 @@ async function run() {
         }
 
         if (rowUpdates.length > 0) {
-          await supabase.from('stock_chips_new_daily').upsert(rowUpdates);
+          // 🎯 安全寫入：100% 寫入強勢流星股獨立資料表
+          const { error: upsertErr } = await supabase.from('stock_chips_new_daily').upsert(rowUpdates);
+          if (upsertErr) throw upsertErr;
         }
 
-      } catch (err) { console.error(`❌ 處理新星 ${stockId} 失敗:`, err.message); }
-      await sleep(150); 
+      } catch (err) { console.error(`❌ 處理新星個股 ${stockId} 失敗:`, err.message); }
+      await sleep(120); 
     }
 
-    console.log("🎉 【NEW 強勢個股流星池】28欄位完全體運算全數完工！");
-  } catch (error) { console.error("💥 致命錯誤:", error.message); process.exit(1); }
+    console.log("🎉 【NEW 強勢個股流星池】證交所直連全量運算成功收官！");
+  } catch (error) { console.error("💥 致命流程錯誤:", error.message); process.exit(1); }
 }
 
 run();
