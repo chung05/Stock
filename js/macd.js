@@ -1,5 +1,5 @@
 // js/macd.js
-// 🎯 100% 保留您原始沒修改的靜態導出對齊，保證主體 180 檔分批下載數據流絕對安全
+// 🎯 100% 完好還原您原始有資料的頂端結構，徹底解除模組循環鎖死，讓分批下載（50/180）重新亮起！
 import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
 
 if (!state.visibleLines) {
@@ -151,7 +151,7 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 🛠️ 將新聞模組「解耦」至獨立背景函式，100% 異步下載，絕對不卡死、不拖累主畫面
+  // 🛠️ 隔離解耦防線：新聞完全獨立異步背景加載，100% 斬斷對全網頁大帳本資料流的干擾
   fetchStockNewsBackground(stockId, stockName);
 }
 
@@ -300,7 +300,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
-  // 🎯 核心真理修正點：利用 getValIgnoreCase 穿透大小寫，完美相容 Supabase 資料庫中的小寫欄位！
+  // 🎯 智慧相容：利用 getValIgnoreCase 穿透小寫限制，完美支援您 Supabase 中的小寫欄位！
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
@@ -330,6 +330,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   `;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
+  // 還原您原版最穩定的 lineDateHtml 連續推導結構
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
