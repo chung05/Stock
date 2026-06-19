@@ -1,0 +1,31 @@
+name: 當日強勢流星股大帳本天天獨立自動同步
+
+on:
+  schedule:
+    - cron: '30 11 * * 1-5'  # 每天台灣時間 19:30 自動執行
+  workflow_dispatch: 
+
+permissions:
+  contents: write
+
+jobs:
+  sync-new-pool:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 檢查並拉取專案程式碼
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 設定標準 Node.js 20 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 安裝運行所需的基礎套件
+        run: npm install axios @supabase/supabase-js dotenv
+
+      - name: 🎯 執行純個股篩選與 45 天全量指標暖身
+        run: node backend-sync-new-stock.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
