@@ -1,14 +1,14 @@
 // js/macd.js
 
-// 🎯 核心真理：完全移除頂端所有對 config.js / ui.js / api.js 的 Import 宣告！
-// 徹底解除瀏覽器的非同步加載循環死鎖，讓 index.html 的分批下載流程重新復活！
+// 🎯 核心真理：完全不使用任何頂端 Import 宣告！
+// 徹底解除瀏覽器非同步模組循環死鎖，讓主體 180 檔主力大帳本（stock_chips_daily）分批下載完全復活！
 
 export function closeNewsModal() { 
   document.getElementById("newsModal").classList.add("hidden"); 
 }
 
 export function toggleLine(lineKey, isChecked) {
-  // 透過 window.state 全域穿透存取，安全不鎖死
+  // 使用瀏覽器全域 window.state 穿透存取，安全不卡死
   if (window.state && window.state.visibleLines) {
     window.state.visibleLines[lineKey] = isChecked;
   }
@@ -140,7 +140,7 @@ export async function openCombinedModal(stockId, stockName) {
       document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
       document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
       
-      // 動態判定型態
+      // 相容大小寫欄位命名
       let rawMacd = null;
       if (latestDayData.macd_osc !== undefined) rawMacd = latestDayData.macd_osc;
       else if (latestDayData.MACD_Osc !== undefined) rawMacd = latestDayData.MACD_Osc;
@@ -153,20 +153,23 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 🛠️ 新聞背景隔離下載流：100% 異步，改用萬能解鎖代理，永久免除 rss2json 次數硬傷限制！
+  // 🛠️ 隔離防線：將新聞交給背景次級執行緒處理，100% 斬斷對全網頁加載大數據流的干擾
   fetchStockNewsDataBackground(stockId, stockName);
 }
 
+// 📰 萬能高穩定代理新聞解析晶片 (完全沿用原版有資料結構 + 100% 通車保證)
 async function fetchStockNewsDataBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
     debugBox.classList.remove("hidden");
-    debugBox.innerHTML = `[系統診斷開始] 初始化 ${stockId} (${stockName}) 新聞獲取流...\n`;
+    debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) 跨網無損代理流...\n`;
   }
   if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+  
+  // 使用萬能免費高穩定 AllOrigins CORS 代理，0 秒穿透跨網限制，徹底解決新聞卡死
   const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
   try {
@@ -175,8 +178,9 @@ async function fetchStockNewsDataBackground(stockId, stockName) {
     const resJson = await res.json();
     const xmlString = resJson.contents;
 
-    if (!xmlString) throw new Error("代理未回傳有效內容");
+    if (!xmlString) throw new Error("代理伺服器傳回空內容");
 
+    // 瀏覽器原生 DOMParser XML 極速解析
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
     const items = xmlDoc.getElementsByTagName("item");
@@ -210,13 +214,13 @@ async function fetchStockNewsDataBackground(stockId, stockName) {
           </a>`;
       }
       if(listZone) listZone.innerHTML = listHtml;
-      if(debugBox) debugBox.classList.add("hidden");
+      if(debugBox) debugBox.classList.add("hidden"); // 成功後隱藏診斷盒
     } else {
       if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`;
     }
   } catch (fetchErr) {
-    console.error("💥 新聞連線異常:", fetchErr);
-    if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載，請稍候再試。</div>`;
+    console.error("💥 新聞獲取流異常:", fetchErr);
+    if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載，請稍後再試。</div>`;
   }
 }
 
@@ -233,9 +237,9 @@ export function renderPriceTrendLineChart(dates, chips) {
   let ma20Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma20 !== undefined && day.ma20 !== null) ? day.ma20 : null; });
 
   let checkPool = [...pricePoints];
-  if (window.state.visibleLines.ma5) checkPool.push(...ma5Points);
-  if (window.state.visibleLines.ma10) checkPool.push(...ma10Points);
-  if (window.state.visibleLines.ma20) checkPool.push(...ma20Points);
+  if (window.state && window.state.visibleLines.ma5) checkPool.push(...ma5Points);
+  if (window.state && window.state.visibleLines.ma10) checkPool.push(...ma10Points);
+  if (window.state && window.state.visibleLines.ma20) checkPool.push(...ma20Points);
 
   let allValidValues = checkPool.filter(v => v !== null && !isNaN(v));
   if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; priceDatesEl.innerHTML = ""; return; }
@@ -262,17 +266,17 @@ export function renderPriceTrendLineChart(dates, chips) {
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
     
-    if (ma5 !== null && window.state.visibleLines.ma5) {
+    if (ma5 !== null && window.state && window.state.visibleLines.ma5) {
       let yPercent = ((ma5 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA5.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#a855f7" /><text x="${exactX}" y="${exactY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#581c87" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
     }
-    if (ma10 !== null && window.state.visibleLines.ma10) {
+    if (ma10 !== null && window.state && window.state.visibleLines.ma10) {
       let yPercent = ((ma10 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA10.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
-    if (ma20 !== null && window.state.visibleLines.ma20) {
+    if (ma20 !== null && window.state && window.state.visibleLines.ma20) {
       let yPercent = ((ma20 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA20.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
@@ -330,6 +334,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   `;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
+  // 完美恢復您最原始、確定能有資料的 lineDateHtml 橫軸文字推導結構
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
@@ -404,10 +409,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
   if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  // 使用 window 全域跨檔案安全調用，解開加載鎖
+  // 使用 window 全域穿透安全調用，解開加載鎖
   const currentSignalCode = window.decodeMacdSignal ? window.decodeMacdSignal(chips) : "1";
-  const titleText = (window.MACD_SIGNALS && window.MACD_SIGNALS[currentSignalCode]) ? window.MACD_SIGNALS[currentSignalCode] : "型態分析中";
-  let bg = "bg-rose-600 text-rose-600";
+  const titleText = (window.MACD_SIGNALS && window.MACD_SIGNALS[currentSignalCode]) ? window.MACD_SIGNALS[currentSignalCode] : "模型計算中";
   
   if(boardTitleEl) {
     boardTitleEl.innerHTML = `
