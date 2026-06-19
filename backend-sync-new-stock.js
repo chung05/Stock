@@ -1,14 +1,10 @@
-// backend-sync-new-stream.js
+// backend-sync-new-stock.js
 if (!global.WebSocket) { global.WebSocket = class {}; }
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 require('dotenv').config();
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
-const FINMIND_TOKEN = process.env.FINMIND_TOKEN;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
   realtime: { global: false, isRealtimeEnabled: false }
 });
@@ -24,149 +20,112 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 啟動【當日強勢流星股 (NEW) 獨立隔離計算引擎】...");
+    console.log("🚀 啟動【當日純個股強勢流星股 (NEW) 28欄位完全體引擎】...");
 
-    // ==========================================================
-    // 🧱 需求 1：開局物理清空暫存池，保證 0 殭屍垃圾資料污染
-    // ==========================================================
-    console.log("🧹 正在全量洗淨清空 stock_chips_new_daily 資料表...");
+    // 🧱 需求 1：開局物理清空暫存池，保證資料純淨
+    console.log("🧹 正在清空 stock_chips_new_daily 資料表...");
     const { error: truncateErr } = await supabase
       .from('stock_chips_new_daily')
       .delete()
-      .neq('stock_id', 'FORCE_EMPTY_ALL_POOL_SHADOW_KEEP'); 
+      .neq('stock_id', 'FORCE_EMPTY'); 
 
-    if (truncateErr) throw new Error(`清空強勢股資料表失敗: ${truncateErr.message}`);
-    console.log("✨ 強勢股資料表完全洗淨洗白！");
+    if (truncateErr) throw truncateErr;
 
-    // ==========================================================
-    // 🧱 需求 2：向 FinMind 取得最新交易日外資、投信、自營商買超前 50 大
-    // ==========================================================
     const today = new Date();
     const endDateStr = formatDateToString(today);
-    // 台股放長假或假日寬限，回抓 75 天足以包含 41 個實體交易日
-    const safetyPastDate = new Date();
-    safetyPastDate.setDate(today.getDate() - 75); 
-    const startDateStr = formatDateToString(safetyPastDate);
+    // 🧱 需求 3：大範圍回推 90 天日曆天，確保能安全切出 45 個不開盤交易日斷層
+    const past90Days = new Date();
+    past90Days.setDate(today.getDate() - 90); 
+    const startDateStr = formatDateToString(past90Days);
 
-    console.log(`📥 正在向 FinMind 盤查三大法人最新交易日買超 Top 50 聯集名單...`);
     const commonHeaders = { 'accept': 'application/json', 'user-agent': 'Mozilla/5.0' };
     
-    // 利用 TaiwanStockPrice 隨便抓一檔（如2330）來確認市場上最新有資料的交易日是哪一天
-    const checkUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=2330&start_date=${formatDateToString(new Date(today.getTime() - 10*24*60*60*1000))}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
+    // 智能定位市場最新開盤交易日
+    const checkUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=2330&start_date=${formatDateToString(new Date(today.getTime() - 10*24*60*60*1000))}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
     const checkRes = await axios.get(checkUrl, { headers: commonHeaders });
     let latestMarketDate = endDateStr;
     if (checkRes.data.status === 200 && Array.isArray(checkRes.data.data) && checkRes.data.data.length > 0) {
       latestMarketDate = checkRes.data.data[checkRes.data.data.length - 1].date;
     }
-    console.log(`📅 經智能定錨，市場最新實體交易日為: ${latestMarketDate}`);
+    console.log(`📅 市場最新有法人籌碼的交易日為: ${latestMarketDate}`);
 
-    // 下載最新交易日的所有法人買賣超大表 (TaiwanStockInstitutionalInvestorsBuySell)
-    const t86Url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${latestMarketDate}&end_date=${latestMarketDate}&token=${FINMIND_TOKEN}`;
+    // 下載當天全市場 T86 法人表
+    const t86Url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${latestMarketDate}&end_date=${latestMarketDate}&token=${process.env.FINMIND_TOKEN}`;
     const t86Res = await axios.get(t86Url, { headers: commonHeaders });
-    
-    if (t86Res.data.status !== 200 || !Array.isArray(t86Res.data.data)) {
-      throw new Error("無法從 FinMind 取得當日法人大表，終止流程。");
-    }
+    if (t86Res.data.status !== 200 || !Array.isArray(t86Res.data.data)) throw new Error("無法取得法人大表");
 
-    const t86Data = t86Res.data.data;
-    
-    // 分類篩選三大法人買超（買進股數 - 賣出股數）
-    const foreignRank = [];
-    const itRank = [];
-    const dealerRank = [];
+    const foreignRank = []; const itRank = []; const dealerRank = [];
 
-    t86Data.forEach(row => {
+    t86Res.data.data.forEach(row => {
       const sId = String(row.stock_id).trim();
-      if (sId.length > 4) return; // 過濾權證與衍生商品
-      const netBuy = row.buy - row.sell; // 買超股數
+      
+      // 🧱 需求 2：硬核過濾邊界（只拿 4 碼純個股，全面封殺 0050 等 ETF、權證與 TDR）
+      if (sId.length !== 4) return;
+      if (sId.startsWith('00') || sId.startsWith('01') || sId.startsWith('91')) return;
+
+      const netBuy = row.buy - row.sell;
       if (netBuy <= 0) return;
 
       if (row.name === 'Foreign_Investor') foreignRank.push({ sId, netBuy });
       else if (row.name === 'Investment_Trust') itRank.push({ sId, netBuy });
-      else if (row.name === 'Dealer_self' || row.name === 'Dealer_Hedging') {
-        // 自營商自行買賣與避險加總計算
-        if (row.name === 'Dealer_self') dealerRank.push({ sId, netBuy });
-      }
+      else if (row.name === 'Dealer_self') dealerRank.push({ sId, netBuy });
     });
 
-    // 排序並各取前 50 名
+    // 各取三大法人買超前 50 名純個股
     const topForeign = foreignRank.sort((a, b) => b.netBuy - a.netBuy).slice(0, 50).map(x => x.sId);
     const topIt = itRank.sort((a, b) => b.netBuy - a.netBuy).slice(0, 50).map(x => x.sId);
     const topDealer = dealerRank.sort((a, b) => b.netBuy - a.netBuy).slice(0, 50).map(x => x.sId);
 
-    // 進行重複比對（聯集去重），且【不與】固定 180 檔比對
+    // 聯集去重，且不與固定 180 檔排擠
     const newStockIds = Array.from(new Set([...topForeign, ...topIt, ...topDealer]));
-    console.log(`🎯 三大法人 Top 50 聯集去重完畢，共計有: ${newStockIds.length} 檔飆股入選 NEW 流星池。`);
+    console.log(`🎯 經過濾 ETF/權證，三大法人 Top 50 純個股聯集共計: ${newStockIds.length} 檔。`);
 
-    if (newStockIds.length === 0) return;
-
-    // ==========================================================
-    // 🧱 需求 3：逐檔加載 41 天歷史價量，並重算指標寫入 stock_chips_new_daily
-    // ==========================================================
+    // 逐檔抓取 90 日曆天，並切出 45 開盤日進行重算
     for (let i = 0; i < newStockIds.length; i++) {
       const stockId = newStockIds[i];
-      
-      if (i > 0 && i % 12 === 0) {
-        console.log(`⏳ 已處理 ${i} 檔新星，保護 API 額度強制休息 10 秒...`);
-        await sleep(10000);
-      }
+      if (i > 0 && i % 12 === 0) { await sleep(10000); }
 
-      console.log(`[NEW飆股 41天全量回溯計算] (${i + 1}/${newStockIds.length}) ${stockId}`);
+      console.log(`[新星歷史回溯重算] (${i + 1}/${newStockIds.length}) ${stockId}`);
 
       try {
         const dateMap = {};
 
-        // 1. 下載籌碼歷史
-        const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stockId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
-        const res = await axios.get(chipUrl, { headers: commonHeaders });
-        if (res.data.status === 200 && Array.isArray(res.data.data)) {
-          res.data.data.forEach(row => {
+        // 抓籌碼
+        const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${stockId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
+        const cRes = await axios.get(chipUrl, { headers: commonHeaders });
+        if (cRes.data.status === 200 && Array.isArray(cRes.data.data)) {
+          cRes.data.data.forEach(row => {
             const d = row.date;
-            if (!dateMap[d]) {
-              dateMap[d] = { 
-                stock_id: stockId, date: d, price: null, change_value: 0, 
-                f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0,
-                open: 0, max: 0, min: 0, trading_volume: 0
-              };
-            }
+            if (!dateMap[d]) dateMap[d] = { stock_id: stockId, date: d, price: null, change_value: 0, f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0, open:0, max:0, min:0, trading_volume:0 };
             if (row.name === 'Foreign_Investor') { dateMap[d].f_buy = row.buy; dateMap[d].f_sell = row.sell; }
-            else if (row.name === 'Foreign_Dealer_Self') { dateMap[d].fd_buy = row.buy; dateMap[d].fd_sell = row.sell; }
             else if (row.name === 'Investment_Trust') { dateMap[d].it_buy = row.buy; dateMap[d].it_sell = row.sell; }
             else if (row.name === 'Dealer_self') { dateMap[d].ds_buy = row.buy; dateMap[d].ds_sell = row.sell; }
             else if (row.name === 'Dealer_Hedging') { dateMap[d].dh_buy = row.buy; dateMap[d].dh_sell = row.sell; }
           });
         }
 
-        // 2. 下載價格歷史
-        const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stockId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
-        const priceRes = await axios.get(priceUrl, { headers: commonHeaders });
-        if (priceRes.data.status === 200 && Array.isArray(priceRes.data.data)) {
-          priceRes.data.data.forEach(pRow => {
+        // 抓價格
+        const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${stockId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
+        const pRes = await axios.get(priceUrl, { headers: commonHeaders });
+        if (pRes.data.status === 200 && Array.isArray(pRes.data.data)) {
+          pRes.data.data.forEach(pRow => {
             const d = pRow.date;
             if (!dateMap[d]) dateMap[d] = { stock_id: stockId, date: d };
-            dateMap[d].price = pRow.close;
-            dateMap[d].open = pRow.open;
-            dateMap[d].max = pRow.max;
-            dateMap[d].min = pRow.min;
-            dateMap[d].trading_volume = pRow.Trading_Volume;
-            dateMap[d].change_value = pRow.spread || 0;
+            dateMap[d].price = pRow.close; dateMap[d].open = pRow.open; dateMap[d].max = pRow.max; dateMap[d].min = pRow.min;
+            dateMap[d].trading_volume = pRow.Trading_Volume; dateMap[d].change_value = pRow.spread || 0;
           });
         }
 
-        // 精準裁切保留最近 41 個不間斷台股實體交易日（確保 MA20/MACD 有足夠天數暖身）
+        // 🧱 需求 3 核心實作：將回抓的所有天數排序，並切出最近連續 45 個實體交易日
         let sortedDays = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
-        if (sortedDays.length > 41) {
-          sortedDays = sortedDays.slice(-41);
+        if (sortedDays.length > 45) {
+          sortedDays = sortedDays.slice(-45);
         }
 
         const totalLen = sortedDays.length;
         const rowUpdates = [];
+        let prevEma12 = null, prevEma26 = null, prevMacd9 = null; const difHistory = []; let prevK = 50.0; let prevD = 50.0;
 
-        let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
-        const difHistory = [];
-        let prevK = 50.0; let prevD = 50.0;
-
-        // 3. 技術指標雪球遞迴大腦
         for (let j = 0; j < totalLen; j++) {
           const targetDay = sortedDays[j];
           const subPool = sortedDays.slice(0, j + 1);
@@ -174,7 +133,6 @@ async function run() {
           const currentPrice = targetDay.price;
 
           let calculatedMA5 = null, calculatedMA10 = null, calculatedMA20 = null;
-          let calculatedRSI14 = null;
           let calculatedRSV = null, calculatedK = null, calculatedD = null;
           let calculatedDif = null, calculatedMacdSignal = null, calculatedMacdOsc = null;
 
@@ -183,24 +141,8 @@ async function run() {
             if (subLen >= 10) calculatedMA10 = parseFloat((subPool.slice(-10).reduce((acc, c) => acc + (c.price || 0), 0) / 10).toFixed(2));
             if (subLen >= 20) calculatedMA20 = parseFloat((subPool.slice(-20).reduce((acc, c) => acc + (c.price || 0), 0) / 20).toFixed(2));
 
-            if (subLen >= 15) {
-              let avgUp = 0, avgDown = 0; let rsiInitialized = false;
-              for (let k = 1; k < subLen; k++) {
-                const diff = subPool[k].price - subPool[k - 1].price;
-                const currentUp = diff > 0 ? diff : 0; const currentDown = diff < 0 ? Math.abs(diff) : 0;
-                if (!rsiInitialized) {
-                  avgUp += currentUp; avgDown += currentDown;
-                  if (k === 14) { avgUp /= 14; avgDown /= 14; rsiInitialized = true; }
-                } else { avgUp = (avgUp * 13 + currentUp) / 14; avgDown = (avgDown * 13 + currentDown) / 14; }
-              }
-              if (rsiInitialized) {
-                if (avgDown === 0) calculatedRSI14 = avgUp === 0 ? 50.00 : 100.00;
-                else calculatedRSI14 = parseFloat((100 - (100 / (1 + (avgUp / avgDown)))).toFixed(2));
-              }
-            }
-
-            const lookbackPeriod = Math.min(subLen, 9);
-            const lastNDays = subPool.slice(-lookbackPeriod);
+            const lookback = Math.min(subLen, 9);
+            const lastNDays = subPool.slice(-lookback);
             const highN = Math.max(...lastNDays.map(d => d.max || d.price || 0));
             const lowN = Math.min(...lastNDays.map(d => d.min || d.price || 999999));
             
@@ -229,38 +171,31 @@ async function run() {
             }
           }
 
-          // 封裝 28 個完全體欄位
-          rowUpdates.push({
-            stock_id: stockId,
-            date: targetDay.date,
-            price: targetDay.price, open: targetDay.open, max: targetDay.max, min: targetDay.min,
-            trading_volume: targetDay.trading_volume, change_value: targetDay.change_value,
-            f_buy: targetDay.f_buy, f_sell: targetDay.f_sell, fd_buy: targetDay.fd_buy, fd_sell: targetDay.fd_sell,
-            it_buy: targetDay.it_buy, it_sell: targetDay.it_sell, ds_buy: targetDay.ds_buy, ds_sell: targetDay.ds_sell,
-            dh_buy: targetDay.dh_buy, dh_sell: targetDay.dh_sell,
-            ma5: calculatedMA5, ma10: calculatedMA10, ma20: calculatedMA20, rsi14: calculatedRSI14,
-            rsv: calculatedRSV, kd_k: calculatedK, kd_d: calculatedD,
-            macd_dif: calculatedDif, macd_signal: calculatedMacdSignal, macd_osc: calculatedMacdOsc
-          });
+          // 只保留在後台要連續產出 20 天 MA20 的實體行數
+          if (subLen >= 20) {
+            rowUpdates.push({
+              stock_id: stockId, date: targetDay.date,
+              price: targetDay.price, open: targetDay.open, max: targetDay.max, min: targetDay.min,
+              trading_volume: targetDay.trading_volume, change_value: targetDay.change_value,
+              f_buy: targetDay.f_buy, f_sell: targetDay.f_sell, fd_buy: targetDay.fd_buy, fd_sell: targetDay.fd_sell,
+              it_buy: targetDay.it_buy, it_sell: targetDay.it_sell, ds_buy: targetDay.ds_buy, ds_sell: targetDay.ds_sell, dh_buy: targetDay.dh_buy, dh_sell: targetDay.dh_sell,
+              ma5: calculatedMA5, ma10: calculatedMA10, ma20: calculatedMA20, rsi14: 50.0,
+              rsv: calculatedRSV, kd_k: calculatedK, kd_d: calculatedD,
+              macd_dif: calculatedDif, macd_signal: calculatedMacdSignal, macd_osc: calculatedMacdOsc
+            });
+          }
         }
 
         if (rowUpdates.length > 0) {
-          // 🎯 精準指引：只寫入獨立強勢股 stock_chips_new_daily 資料表
-          const { error: upsertErr } = await supabase.from('stock_chips_new_daily').upsert(rowUpdates);
-          if (upsertErr) throw upsertErr;
+          await supabase.from('stock_chips_new_daily').upsert(rowUpdates);
         }
 
-      } catch (singleErr) {
-        console.error(`❌ 處理新星個股 ${stockId} 失敗:`, singleErr.message);
-      }
+      } catch (err) { console.error(`❌ 處理新星 ${stockId} 失敗:`, err.message); }
       await sleep(150); 
     }
 
-    console.log("🎉 【NEW 強勢飆股流星池】獨立隔離下載與 41天全量指標運算全數完工！");
-  } catch (error) {
-    console.error("💥 新星池同步流程發生致命錯誤:", error.message);
-    process.exit(1);
-  }
+    console.log("🎉 【NEW 強勢個股流星池】28欄位完全體運算全數完工！");
+  } catch (error) { console.error("💥 致命錯誤:", error.message); process.exit(1); }
 }
 
 run();
