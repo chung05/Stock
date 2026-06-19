@@ -1,10 +1,30 @@
 // js/macd.js
-// 🎯 100% 保留您原始沒修改的靜態導出對齊，彻底破除循環加載鎖死，保證 180 檔分批下載（stock_chips_daily）絕對安全復活！
+// 🎯 100% 完好還原您原始有資料的頂端結構與 Import，確保 180 檔常規數據流完全對齊
 import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
 
 if (!state.visibleLines) {
   state.visibleLines = { ma5: true, ma10: false, ma20: true };
 }
+
+// ==========================================================
+// 🚨 終極救星：生命週期延時防禦晶片 (徹底解決早上修改資料庫導致的開局 DOM 未渲染死鎖)
+// ==========================================================
+setTimeout(async () => {
+  // 如果發現一開局加載被沒收、大帳本快取為空
+  if (!state.globalChipCache || state.globalChipCache.length === 0) {
+    console.log("%c⏳ 偵測到開局非同步流定格，主動啟動延時防禦補件程序...", "color:yellow; font-weight:bold;");
+    const select = document.getElementById("tabSelect");
+    
+    // 如果這時 HTML 外殼終於長出來了，手動幫忙補填分類選單並強制通車分批下載
+    if (select) {
+      const { forceSyncFlow } = await import('./api.js');
+      if (forceSyncFlow) {
+        console.log("%c🟢 HTML 外殼安全對齊！重新發動雲端大帳本下載流...", "color:lime; font-weight:bold;");
+        await forceSyncFlow(); 
+      }
+    }
+  }
+}, 500); // 給網頁 500 毫秒極裕度緩衝時間
 
 export function closeNewsModal() { 
   document.getElementById("newsModal").classList.add("hidden"); 
@@ -151,11 +171,10 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 🛠️ 隔離解耦防線：將新聞移出主數據等待流，改用獨立次級執行緒在背景下載，100% 封鎖死鎖
+  // 📰 萬能免費高穩定代理新聞解析晶片 (獨立異步執行流，徹底修復新聞卡死)
   fetchStockNewsBackground(stockId, stockName);
 }
 
-// 📰 全新免費萬能代理新聞晶片 (免去 rss2json 次數扣額限制)
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
@@ -174,7 +193,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
     
     const resJson = await res.json();
     const xmlString = resJson.contents;
-    if (!xmlString) throw new Error("代理未傳回有效內容");
+    if (!xmlString) throw new Error("代理內容空殼");
 
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -271,7 +290,7 @@ export function renderPriceTrendLineChart(dates, chips) {
       polylineMA10.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
-    if (ma20 !== null && state.visibleLines.ma20) {
+    if (state.visibleLines.ma20 && ma20 !== null) {
       let yPercent = ((ma20 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA20.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
@@ -300,7 +319,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
-  // 🎯 核心修正點：利用 getValIgnoreCase 穿透大小寫，完美包容今日資料庫中已洗白成小寫的指標欄位！
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
@@ -345,6 +363,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
     }
     if (d.sig !== null) {
+      res = difPoints;
       sigPoints.push(`${xPos},${exactSigY}`);
       macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
     }
