@@ -20,67 +20,79 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 啟動【當日強勢股母名單動態清洗註冊 + 60天指標無損大帳本引擎】...");
+    console.log("🚀 啟動【當日強勢股母名單動態註冊 + 智能回溯退回機制完全體引擎】...");
+
+    const today = new Date();
+    const endDateStr = formatDateToString(today);
+    // 🧱 完美對齊修復工具：起點硬性指定 2026-01-02，保證歷史天數飽滿
+    const startDateStr = "2026-01-02";
+
+    const commonHeaders = { 'accept': 'application/json', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
+    
+    // 1. 智能定位最新開盤日 (確認 FinMind 方面最新日期)
+    const checkUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=2330&start_date=${formatDateToString(new Date(today.getTime() - 10*24*60*60*1000))}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
+    const checkRes = await axios.get(checkUrl, { headers: commonHeaders });
+    let baseMarketDate = today;
+    if (checkRes.data.status === 200 && Array.isArray(checkRes.data.data) && checkRes.data.data.length > 0) {
+      baseMarketDate = new Date(checkRes.data.data[checkRes.data.data.length - 1].date);
+    }
 
     // ==========================================================
-    // 🧱 需求 2.3：最優先重要步驟 — 盤查並清理 stock_targets 中的舊 "NEW" 標籤
+    // 💡 核心除錯機制：若今日大表尚未公布，自動往過去遞減日期，直到抓到有資料的交易日為止！
+    // ==========================================================
+    let rawT86Rows = null;
+    let finalMarketDateStr = "";
+    
+    for (let dRetry = 0; dRetry < 7; dRetry++) {
+      const checkTargetDate = new Date(baseMarketDate.getTime() - dRetry * 24 * 60 * 60 * 1000);
+      const twseDateParam = formatDateToString(checkTargetDate).replace(/-/g, '');
+      const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?response=json&date=${twseDateParam}&selectType=ALLBUT0999`;
+
+      console.log(`📥 嘗試從證交所下載日期為 [ ${formatDateToString(checkTargetDate)} ] 的全市場大表...`);
+      try {
+        const twseRes = await axios.get(twseUrl, { headers: commonHeaders });
+        if (twseRes.data && twseRes.data.stat === 'OK' && Array.isArray(twseRes.data.data)) {
+          rawT86Rows = twseRes.data.data;
+          finalMarketDateStr = formatDateToString(checkTargetDate);
+          console.log(`🟢 [成功抓取] 成功鎖定實體大表日期為: ${finalMarketDateStr}，包含紀錄共 ${rawT86Rows.length} 筆！`);
+          break;
+        }
+      } catch (e) {
+        console.log(`⚠️ 日期 ${formatDateToString(checkTargetDate)} 證交所尚未公布或放假，繼續往昨日回溯...`);
+      }
+    }
+
+    if (!rawT86Rows) {
+      throw new Error("❌ 嚴重錯誤：連續盤查過去 7 天均無法取得證交所 T86 大表，終止流程。");
+    }
+
+    // ==========================================================
+    // 🧱 需求 2.3：確認有資料後，才安全清空 stock_targets 的 "NEW" 標籤與暫存大表
     // ==========================================================
     console.log("🧹 正在啟動 stock_targets 母名單 'NEW' 標籤動態洗滌程序...");
-    const { data: allTargets, error: targetFetchErr } = await supabase
-      .from('stock_targets')
-      .select('*');
-    
+    const { data: allTargets, error: targetFetchErr } = await supabase.from('stock_targets').select('*');
     if (targetFetchErr) throw targetFetchErr;
 
     const targetsList = allTargets || [];
     for (let t of targetsList) {
       let tags = Array.isArray(t.sheet_tags) ? t.sheet_tags : [];
       if (tags.includes("NEW")) {
-        // 如果標籤只有 NEW，則直接將該筆個股從母名單中物理刪除
         if (tags.length === 1) {
           await supabase.from('stock_targets').delete().eq('stock_id', t.stock_id);
         } else {
-          // 如果除了 NEW 還有其他標籤 (如 TW50)，則僅將 NEW 標籤移除並更新
           let newTags = tags.filter(tag => tag !== "NEW");
           await supabase.from('stock_targets').update({ sheet_tags: newTags }).eq('stock_id', t.stock_id);
         }
       }
     }
-    console.log("✨ 舊的 'NEW' 標籤與流星股已全數洗淨！母名單回歸純淨狀態。");
 
-    // 開局洗淨強勢股大帳本暫存池
-    console.log("🧹 正在清空 stock_chips_new_daily 資料表...");
-    const { error: truncateErr } = await supabase.from('stock_chips_new_daily').delete().neq('stock_id', 'RESET');
-    if (truncateErr) throw truncateErr;
-
-    const today = new Date();
-    const endDateStr = formatDateToString(today);
-    // 🧱 需求 1：歷史回溯拉大到 120 天日曆天，確保能精準切出 60 個實體開盤交易日
-    const past120Days = new Date();
-    past120Days.setDate(today.getDate() - 120); 
-    const startDateStr = formatDateToString(past120Days);
-
-    const commonHeaders = { 'accept': 'application/json', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
-    
-    // 智能定位開盤日
-    const checkUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=2330&start_date=${formatDateToString(new Date(today.getTime() - 10*24*60*60*1000))}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-    const checkRes = await axios.get(checkUrl, { headers: commonHeaders });
-    let latestMarketDate = endDateStr;
-    if (checkRes.data.status === 200 && Array.isArray(checkRes.data.data) && checkRes.data.data.length > 0) {
-      latestMarketDate = checkRes.data.data[checkRes.data.data.length - 1].date;
-    }
-    console.log(`📅 最新實體開盤交易日: ${latestMarketDate}`);
-
-    // 下載證交所大表
-    const twseDateParam = latestMarketDate.replace(/-/g, '');
-    const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?response=json&date=${twseDateParam}&selectType=ALLBUT0999`;
-    const twseRes = await axios.get(twseUrl, { headers: commonHeaders });
-    if (!twseRes.data || twseRes.data.stat !== 'OK' || !Array.isArray(twseRes.data.data)) throw new Error("證交所大表尚未公布。");
+    console.log("🧹 正在物理清空 stock_chips_new_daily 資料表...");
+    await supabase.from('stock_chips_new_daily').delete().neq('stock_id', 'RESET');
 
     const foreignRank = []; const itRank = []; const dealerRank = [];
     const stockNameMap = new Map();
 
-    twseRes.data.data.forEach(row => {
+    rawT86Rows.forEach(row => {
       const sId = String(row[0]).trim();
       const sName = String(row[1]).trim();
       if (sId.length !== 4) return;
@@ -88,9 +100,9 @@ async function run() {
 
       stockNameMap.set(sId, sName);
 
-      const fNet = parseInt(String(row[4]).replace(/,/g, '')) || 0; 
-      const itNet = parseInt(String(row[10]).replace(/,/g, '')) || 0;
-      const dNet = parseInt(String(row[14]).replace(/,/g, '')) || 0; 
+      const fNet = parseInt(String(row[4]).replace(/,/g, '')) || 0;  
+      const itNet = parseInt(String(row[10]).replace(/,/g, '')) || 0; 
+      const dNet = parseInt(String(row[14]).replace(/,/g, '')) || 0;  
 
       if (fNet > 0) foreignRank.push({ sId, netBuy: fNet });
       if (itNet > 0) itRank.push({ sId, netBuy: itNet });
@@ -102,21 +114,15 @@ async function run() {
     const topDealer = dealerRank.sort((a, b) => b.netBuy - a.netBuy).slice(0, 50).map(x => x.sId);
 
     const newStockIds = Array.from(new Set([...topForeign, ...topIt, ...topDealer]));
-    console.log(`🎯 證交所純個股前 50 聯集去重完畢，共計: ${newStockIds.length} 檔強勢股。`);
+    console.log(`🎯 純個股前 50 聯集去重完畢，共計: ${newStockIds.length} 檔強勢股。`);
 
-    // ==========================================================
-    // 🧱 需求 2.1 & 2.2：動態將今日入選的飆股分類註冊回 stock_targets 表
-    // ==========================================================
-    console.log("📝 開始執行今日飆股動態註冊、分類至 stock_targets 母名單表...");
-    // 重新撈取剛才被洗乾淨後的最新名單快照
+    // 動態將今日入選的飆股分類註冊回 stock_targets 表
     const { data: refreshedTargets } = await supabase.from('stock_targets').select('*');
     const targetMapSnapshot = new Map(refreshedTargets.map(t => [t.stock_id, t]));
 
     for (let stockId of newStockIds) {
       const currentStockName = stockNameMap.get(stockId) || "未知個股";
-      
       if (targetMapSnapshot.has(stockId)) {
-        // 1. 若是股票代號已經存在，僅需要在 "sheet_tags" 增加一個 "NEW"
         let existData = targetMapSnapshot.get(stockId);
         let tags = Array.isArray(existData.sheet_tags) ? existData.sheet_tags : [];
         if (!tags.includes("NEW")) {
@@ -124,23 +130,17 @@ async function run() {
           await supabase.from('stock_targets').update({ sheet_tags: tags }).eq('stock_id', stockId);
         }
       } else {
-        // 2. 若股票代號不存在，建立一筆新的資料，寫入 stock_id, stock_name, sheet_tags
-        await supabase.from('stock_targets').insert({
-          stock_id: stockId,
-          stock_name: currentStockName,
-          sheet_tags: ["NEW"]
-        });
+        await supabase.from('stock_targets').insert({ stock_id: stockId, stock_name: currentStockName, sheet_tags: ["NEW"] });
       }
     }
-    console.log("✅ stock_targets 母名單動態標籤增補與隔離註冊大功告成！");
 
-    // 3. 逐檔下載歷史並重算（精準抓取 60 開盤日）
+    // 3. 逐檔下載歷史並重算 (自適應切片，從 2026-01-02 開始全量深度推導)
     for (let i = 0; i < newStockIds.length; i++) {
       const stockId = newStockIds[i];
       const currentStockName = stockNameMap.get(stockId) || "未知股名";
 
       if (i > 0 && i % 12 === 0) { await sleep(10000); }
-      console.log(`[強勢股大帳本 60天計算] (${i + 1}/${newStockIds.length}) ${stockId} ${currentStockName}`);
+      console.log(`[強勢股分析中] (${i + 1}/${newStockIds.length}) ${stockId} ${currentStockName}`);
 
       try {
         const dateMap = {};
@@ -171,14 +171,11 @@ async function run() {
           });
         }
 
-        // 🧱 需求 1 核心落地：將天數切出最近連續 60 個開盤日 (暖身 40 天 + 實體輸出最近 20 天)
         let sortedDays = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
-        if (sortedDays.length > 60) {
-          sortedDays = sortedDays.slice(-60);
-        }
+        if (sortedDays.length === 0) continue;
 
         const totalLen = sortedDays.length;
-        const rowUpdates = [];
+        const computedPool = [];
         let prevEma12 = null, prevEma26 = null, prevMacd9 = null; const difHistory = []; let prevK = 50.0; let prevD = 50.0;
 
         for (let j = 0; j < totalLen; j++) {
@@ -226,30 +223,29 @@ async function run() {
             }
           }
 
-          // 🧱 需求 1 落地：扣除前 40 天的純暖身底座，只將後端網頁要顯示的「最近 20 天」黃金核心資料儲存送出
-          if (subLen > 40) {
-            rowUpdates.push({
-              stock_id: stockId, stock_name: currentStockName, date: targetDay.date,
-              price: targetDay.price, open: targetDay.open, max: targetDay.max, min: targetDay.min,
-              trading_volume: targetDay.trading_volume, change_value: targetDay.change_value,
-              f_buy: targetDay.f_buy, f_sell: targetDay.f_sell, fd_buy: targetDay.fd_buy, fd_sell: targetDay.fd_sell,
-              it_buy: targetDay.it_buy, it_sell: targetDay.it_sell, ds_buy: targetDay.ds_buy, ds_sell: targetDay.ds_sell, dh_buy: targetDay.dh_buy, dh_sell: targetDay.dh_sell,
-              ma5: calculatedMA5, ma10: calculatedMA10, ma20: calculatedMA20, rsi14: 50.0,
-              rsv: calculatedRSV, kd_k: calculatedK, kd_d: calculatedD,
-              macd_dif: calculatedDif, macd_signal: calculatedMacdSignal, macd_osc: calculatedMacdOsc
-            });
-          }
+          computedPool.push({
+            stock_id: stockId, stock_name: currentStockName, date: targetDay.date,
+            price: targetDay.price, open: targetDay.open, max: targetDay.max, min: targetDay.min,
+            trading_volume: targetDay.trading_volume, change_value: targetDay.change_value,
+            f_buy: targetDay.f_buy, f_sell: targetDay.f_sell, fd_buy: targetDay.fd_buy, fd_sell: targetDay.fd_sell,
+            it_buy: targetDay.it_buy, it_sell: targetDay.it_sell, ds_buy: targetDay.ds_buy, ds_sell: targetDay.ds_sell, dh_buy: targetDay.dh_buy, dh_sell: targetDay.dh_sell,
+            ma5: calculatedMA5, ma10: calculatedMA10, ma20: calculatedMA20, rsi14: 50.0,
+            rsv: calculatedRSV, kd_k: calculatedK, kd_d: calculatedD,
+            macd_dif: calculatedDif, macd_signal: calculatedMacdSignal, macd_osc: calculatedMacdOsc
+          });
         }
 
-        if (rowUpdates.length > 0) {
-          await supabase.from('stock_chips_new_daily').upsert(rowUpdates);
+        // 🧱 精準只保留最尾端 20 天黃金輸出塞入資料庫
+        const finalRowsToUpsert = computedPool.slice(-20);
+        if (finalRowsToUpsert.length > 0) {
+          await supabase.from('stock_chips_new_daily').upsert(finalRowsToUpsert);
         }
 
       } catch (err) { console.error(`❌ 處理 ${stockId} 失敗:`, err.message); }
       await sleep(120); 
     }
 
-    console.log("🎉 【NEW強勢股動態名單洗滌註冊 + 最近20天無損指標大帳本】全面完美通車！");
+    console.log("🎉 【NEW強勢個股流水池】智能時間定位 + 20天自適應大表完美解鎖通車！");
   } catch (error) { console.error("💥 致命流程錯誤:", error.message); process.exit(1); }
 }
 
