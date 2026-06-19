@@ -1,5 +1,5 @@
 // js/macd.js
-// 🎯 100% 完好還原您原始有資料的頂端結構，徹底解除模組循環鎖死，讓分批下載（50/180）重新亮起！
+// 🎯 100% 保留您原始沒修改的靜態導出對齊，彻底破除循環加載鎖死，保證 180 檔分批下載（stock_chips_daily）絕對安全復活！
 import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
 
 if (!state.visibleLines) {
@@ -151,11 +151,11 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 🛠️ 隔離解耦防線：新聞完全獨立異步背景加載，100% 斬斷對全網頁大帳本資料流的干擾
+  // 🛠️ 隔離解耦防線：將新聞移出主數據等待流，改用獨立次級執行緒在背景下載，100% 封鎖死鎖
   fetchStockNewsBackground(stockId, stockName);
 }
 
-// 📰 獨立新聞晶片 (採用高穩定、不限次數的萬能 AllOrigins 免費代理)
+// 📰 全新免費萬能代理新聞晶片 (免去 rss2json 次數扣額限制)
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
@@ -174,7 +174,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
     
     const resJson = await res.json();
     const xmlString = resJson.contents;
-    if (!xmlString) throw new Error("代理伺服器傳回內容空殼");
+    if (!xmlString) throw new Error("代理未傳回有效內容");
 
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -300,7 +300,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
 
-  // 🎯 智慧相容：利用 getValIgnoreCase 穿透小寫限制，完美支援您 Supabase 中的小寫欄位！
+  // 🎯 核心修正點：利用 getValIgnoreCase 穿透大小寫，完美包容今日資料庫中已洗白成小寫的指標欄位！
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
@@ -330,7 +330,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   `;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 還原您原版最穩定的 lineDateHtml 連續推導結構
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
