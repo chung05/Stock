@@ -1,14 +1,43 @@
 // js/macd.js
 
-// 🎯 核心真理：完全不使用任何頂端 Import 宣告！
-// 徹底解除瀏覽器非同步模組循環死鎖，讓主體 180 檔主力大帳本（stock_chips_daily）分批下載完全復活！
+// ==========================================================
+// 🚨 終極偵錯防線：全域主動攔截器 (一開局就監聽所有 JS 隱形崩潰)
+// ==========================================================
+window.addEventListener('error', function(e) {
+  console.log("%c🛑 [雷達偵測到錯誤]", "color:white; background:red; font-weight:bold;", e.message, "於", e.filename, "第", e.lineno, "行");
+  const detailEl = document.getElementById("loadingDetail");
+  if (detailEl) {
+    detailEl.innerHTML = `<span class="text-rose-500 font-black">💥 網頁發生語法或載入崩潰:<br>${e.message}</span>`;
+  }
+});
+
+console.log("%c⚡ [DEBUG 系統日誌] macd.js 模組已載入。開始進行 180 檔常規大帳本環境安全稽核...", "color:cyan; font-weight:bold;");
+
+// 💡 主動稽核全域狀態與資料庫快取
+setTimeout(() => {
+  if (!window.state) {
+    console.error("❌ [重大異常] 網頁全域 window.state 根本不存在！請檢查 config.js 是否載入失敗。");
+  } else {
+    console.log("📊 [快取狀態稽核] 當前狀態快取如下：", {
+      "180檔母名單行數": window.state.dbStockData ? window.state.dbStockData.length : 0,
+      "全球籌碼總緩存行數": window.state.globalChipCache ? window.state.globalChipCache.length : 0,
+      "當前選中標籤頁": window.state.currentSourceTab,
+      "最近實體交易日陣列": window.state.recentDates
+    });
+    
+    // 如果快取完全是空的，直接在進度條畫面上發出連線警告
+    if (!window.state.globalChipCache || window.state.globalChipCache.length === 0) {
+      const detailEl = document.getElementById("loadingDetail");
+      if (detailEl) detailEl.innerHTML = `<span class="text-amber-500 font-bold">⚠️ 偵測到雲端大帳本快取為 0 筆！<br>請確認 Supabase 的 stock_chips_daily 資料表內是否有 1/2 ~ 6/19 數據。</span>`;
+    }
+  }
+}, 1000);
 
 export function closeNewsModal() { 
   document.getElementById("newsModal").classList.add("hidden"); 
 }
 
 export function toggleLine(lineKey, isChecked) {
-  // 使用瀏覽器全域 window.state 穿透存取，安全不卡死
   if (window.state && window.state.visibleLines) {
     window.state.visibleLines[lineKey] = isChecked;
   }
@@ -140,7 +169,6 @@ export async function openCombinedModal(stockId, stockName) {
       document.getElementById("modalInfoMA20").innerText = (latestDayData.ma20 !== undefined && latestDayData.ma20 !== null) ? latestDayData.ma20 : '--';
       document.getElementById("modalInfoRSI14").innerText = (latestDayData.rsi14 !== undefined && latestDayData.rsi14 !== null) ? latestDayData.rsi14 : '--';
       
-      // 相容大小寫欄位命名
       let rawMacd = null;
       if (latestDayData.macd_osc !== undefined) rawMacd = latestDayData.macd_osc;
       else if (latestDayData.MACD_Osc !== undefined) rawMacd = latestDayData.MACD_Osc;
@@ -153,11 +181,10 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 🛠️ 隔離防線：將新聞交給背景次級執行緒處理，100% 斬斷對全網頁加載大數據流的干擾
+  // 🧱 新聞完全非同步背景獨立執行流
   fetchStockNewsDataBackground(stockId, stockName);
 }
 
-// 📰 萬能高穩定代理新聞解析晶片 (完全沿用原版有資料結構 + 100% 通車保證)
 async function fetchStockNewsDataBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone"), listZone = document.getElementById("newsListZone");
   if(debugBox) {
@@ -168,19 +195,16 @@ async function fetchStockNewsDataBackground(stockId, stockName) {
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  
-  // 使用萬能免費高穩定 AllOrigins CORS 代理，0 秒穿透跨網限制，徹底解決新聞卡死
   const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
   try {
     const res = await fetch(apiUrl);
-    if (!res.ok) throw new Error(`HTTP: ${res.status}`);
+    if (!res.ok) throw new Error(`HTTP 錯誤代碼: ${res.status}`);
     const resJson = await res.json();
     const xmlString = resJson.contents;
 
-    if (!xmlString) throw new Error("代理伺服器傳回空內容");
+    if (!xmlString) throw new Error("代理伺服器傳回空內容節點");
 
-    // 瀏覽器原生 DOMParser XML 極速解析
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
     const items = xmlDoc.getElementsByTagName("item");
@@ -214,13 +238,13 @@ async function fetchStockNewsDataBackground(stockId, stockName) {
           </a>`;
       }
       if(listZone) listZone.innerHTML = listHtml;
-      if(debugBox) debugBox.classList.add("hidden"); // 成功後隱藏診斷盒
+      if(debugBox) debugBox.classList.add("hidden");
     } else {
       if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`;
     }
   } catch (fetchErr) {
     console.error("💥 新聞獲取流異常:", fetchErr);
-    if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載，請稍後再試。</div>`;
+    if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載。</div>`;
   }
 }
 
@@ -334,7 +358,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   `;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 完美恢復您最原始、確定能有資料的 lineDateHtml 橫軸文字推導結構
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
@@ -409,7 +432,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
   if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  // 使用 window 全域穿透安全調用，解開加載鎖
   const currentSignalCode = window.decodeMacdSignal ? window.decodeMacdSignal(chips) : "1";
   const titleText = (window.MACD_SIGNALS && window.MACD_SIGNALS[currentSignalCode]) ? window.MACD_SIGNALS[currentSignalCode] : "模型計算中";
   
