@@ -52,7 +52,12 @@ export async function forceSyncFlow() {
     state.targetSheetsSet.clear();
     state.dbStockData.forEach(item => { 
       if (Array.isArray(item.sheet_tags)) {
-        item.sheet_tags.forEach(tag => state.targetSheetsSet.add(tag)); 
+        item.sheet_tags.forEach(tag => {
+          // 🔥 嚴格防禦：過濾掉空字串或可能殘留的不明標籤，確保下拉選單完美純淨
+          if (tag && String(tag).trim() !== "") {
+            state.targetSheetsSet.add(String(tag).trim());
+          }
+        }); 
       }
     });
         
@@ -101,7 +106,7 @@ export async function fetchAllChipsFromSupabase() {
     let retries = 3;
     let success = false;
 
-    // 🔥 修正安全機制：防止 Supabase 回傳異常時進入死鎖無窮迴圈
+    // 修正安全機制：防止 Supabase 回傳異常時進入死鎖無窮迴圈
     while (retries > 0 && !success) {
       try {
         const { data, error } = await supabaseClient
