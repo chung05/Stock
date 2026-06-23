@@ -1,0 +1,27 @@
+name: 🚀 工具箱：手動執行大帳本陌生髒資料物理清洗 (回歸180檔)
+
+on:
+  workflow_dispatch: # 准許在 GitHub Actions 後台手動點擊按鈕觸發執行
+
+jobs:
+  clean-corrupted-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 檢查並拉取專案程式碼
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 設定標準 Node.js 20 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 自動安裝清洗所需的基礎依賴套件
+        run: npm install @supabase/supabase-js axios xlsx dotenv
+
+      - name: 🎯 啟動主力大帳本全面解限物理清洗與健檢
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }} # 💡 極重要：此腳本需要推導 Excel 的線上網址，務必提供此環境變數
+        run: node tool-clean-corrupted-data.js
