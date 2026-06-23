@@ -12,13 +12,13 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function run() {
-  console.log("🌅 明晨專用：【180檔主力股自 2026/01/02 起全量重印洗白大工程】...");
+  console.log("🔥 🚨 【真・全量大洗白】全面啟動！正在將 180 檔主力股大帳本物理重建...");
 
   // 1. 取得乾淨的 180 檔母名單
   const { data: targets, error: tErr } = await supabase.from('stock_targets').select('stock_id');
   if (tErr) throw tErr;
   const stockList = targets || [];
-  console.log(`📊 雲端母名單讀取成功，共有: ${stockList.length} 檔主力股待洗白。`);
+  console.log(`📊 雲端母名單讀取成功，共有: ${stockList.length} 檔主力股。`);
 
   const commonHeaders = {
     'accept': 'application/json',
@@ -26,26 +26,41 @@ async function run() {
   };
 
   const startDateStr = "2026-01-02";
-  const endDateStr = "2026-06-22"; // 包含到最新交易日
+  const endDateStr = "2026-06-23"; // 包含到今天最新
 
-  // 2. 逐檔下載並運算
+  // 2. 逐檔進行「物理抹除」與「完全重建」
   for (let i = 0; i < stockList.length; i++) {
     const sId = String(stockList[i].stock_id).trim();
     
-    // 🛡️ 晨間最嚴格防火牆：每 6 檔就強制休息 15 秒！確保 100% 規避 600次/hr 與瞬間超頻限制
-    if (i > 0 && i % 6 === 0) {
-      console.log(`⏳ 安全機制：已處理 ${i} 檔，強制原地冷卻 15 秒保護 API 額度...`);
+    // 🛡️ 最嚴格的流量防火牆：每 5 檔就強制休息 15 秒，極致安全
+    if (i > 0 && i % 5 === 0) {
+      console.log(`⏳ 安全冷卻：已處理 ${i} 檔，強制休眠 15 秒，確保 FinMind API 絕對順暢...`);
       await sleep(15000);
     }
 
-    console.log(`🚀 [全量重刷] (${i + 1}/${stockList.length}) 個股: ${sId} (區間: ${startDateStr} ~ ${endDateStr})`);
+    console.log(`🧹 [1/2 物理清空] 正在抹除個股歷史資料: ${sId}`);
+    try {
+      // 💡 貫徹「重建」精神：先把這檔股票在該區間的舊資料在資料庫「連根拔起」刪除！
+      const { error: delErr } = await supabase
+        .from('stock_chips_daily')
+        .delete()
+        .eq('stock_id', sId)
+        .gte('date', startDateStr)
+        .lte('date', endDateStr);
+        
+      if (delErr) throw delErr;
+    } catch (dErr) {
+      console.error(`⚠️ 抹除 ${sId} 失敗:`, dErr.message);
+    }
+
+    console.log(`📥 [2/2 實體重建] 正在從 FinMind 重新下載並運算指標: ${sId}`);
 
     try {
       const dateMap = {};
 
       // (A) 下載完整籌碼
       let chipFetched = false;
-      let chipRetries = 2;
+      let chipRetries = 3;
       while (!chipFetched && chipRetries > 0) {
         try {
           const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
@@ -68,11 +83,11 @@ async function run() {
             });
             chipFetched = true;
           } else if (cRes.data.status === 429) {
-            console.log("🚨 觸發 FinMind 限制牆 (429)，自主休眠 30 秒後重試...");
+            console.log("🚨 觸發流量牆 (429)，集體休眠 30 秒...");
             await sleep(30000);
             chipRetries--;
           } else {
-            chipFetched = true; 
+            chipRetries--;
           }
         } catch (e) {
           chipRetries--;
@@ -80,11 +95,11 @@ async function run() {
         }
       }
 
-      await sleep(350); // 兩支 API 之間溫和停頓
+      await sleep(400); // API 之間的安全停頓
 
       // (B) 下載完整價格
       let priceFetched = false;
-      let priceRetries = 2;
+      let priceRetries = 3;
       while (!priceFetched && priceRetries > 0) {
         try {
           const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
@@ -105,11 +120,11 @@ async function run() {
             });
             priceFetched = true;
           } else if (pRes.data.status === 429) {
-            console.log("🚨 觸發 FinMind 限制牆 (429)，自主休眠 30 秒後重試...");
+            console.log("🚨 觸發流量牆 (429)，集體休眠 30 秒...");
             await sleep(30000);
             priceRetries--;
           } else {
-            priceFetched = true;
+            priceRetries--;
           }
         } catch (e) {
           priceRetries--;
@@ -117,10 +132,10 @@ async function run() {
         }
       }
 
-      // 3. 開始進行精密技術指標全量遞迴重算
+      // 3. 技術指標純淨計算
       let sortedDays = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
       if (sortedDays.length === 0) {
-        console.warn(`⚠️ 個股 ${sId} 未取得任何線上資料，跳過技術指標計算。`);
+        console.warn(`⚠️ 個股 ${sId} 歷史資料重建為空，跳過。`);
         continue;
       }
 
@@ -135,18 +150,13 @@ async function run() {
         const subLen = subPool.length;
         const currentPrice = targetDay.price;
 
-        // 清空格子防殘留
-        targetDay.ma5 = null; targetDay.ma10 = null; targetDay.ma20 = null;
-        targetDay.rsi14 = null; targetDay.rsv = null; targetDay.kd_k = null; targetDay.kd_d = null;
-        targetDay.macd_dif = null; targetDay.macd_signal = null; targetDay.macd_osc = null;
-
         if (currentPrice !== null && currentPrice !== undefined) {
           // MA 均線
           if (subLen >= 5) targetDay.ma5 = parseFloat((subPool.slice(-5).reduce((a, b) => a + (b.price || 0), 0) / 5).toFixed(2));
           if (subLen >= 10) targetDay.ma10 = parseFloat((subPool.slice(-10).reduce((a, b) => a + (b.price || 0), 0) / 10).toFixed(2));
           if (subLen >= 20) targetDay.ma20 = parseFloat((subPool.slice(-20).reduce((a, b) => a + (b.price || 0), 0) / 20).toFixed(2));
 
-          // 精準 RSI 14 平滑演算法
+          // RSI 14
           if (j > 0 && sortedDays[j - 1].price !== null) {
             const change = currentPrice - sortedDays[j - 1].price;
             const up = change > 0 ? change : 0;
@@ -195,20 +205,19 @@ async function run() {
         }
       }
 
-      // 4. 強制覆寫送進大帳本
-      const { error: upsertErr } = await supabase.from('stock_chips_daily').upsert(sortedDays);
-      if (upsertErr) throw upsertErr;
-      console.log(`✅ [洗白成功] ${sId} 已完美寫入全歷史 28 欄位資料。`);
+      // 4. 乾淨寫入（因為舊資料已被刪除，這裡會寫入最完美的 28 欄位）
+      const { error: insertErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
+      if (insertErr) throw insertErr;
+      console.log(`✨ [重建成功] 個股 ${sId} 已完美洗白。`);
 
     } catch (singleErr) {
-      console.error(`❌ 重刷個股 ${sId} 失敗:`, singleErr.message);
+      console.error(`❌ 重建個股 ${sId} 失敗:`, singleErr.message);
     }
     
-    // 檔與檔之間保留 350ms 的溫和間隔
-    await sleep(350);
+    await sleep(400);
   }
 
-  console.log("🎉 【明晨 180 檔全量漏洞洗白大工程】完美收官！祝您開盤順利！");
+  console.log("🎉 【真・全量物理洗白大工程】完美收官！");
 }
 
 run();
