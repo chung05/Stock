@@ -12,7 +12,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function run() {
-  console.log("🔥 🚨 【真・全量大洗白】全面啟動！正在將 180 檔主力股大帳本物理重建...");
+  console.log("🔥 🚨 【真・全量資料無損重建大工程】全面啟動...");
 
   // 1. 取得乾淨的 180 檔母名單
   const { data: targets, error: tErr } = await supabase.from('stock_targets').select('stock_id');
@@ -26,39 +26,24 @@ async function run() {
   };
 
   const startDateStr = "2026-01-02";
-  const endDateStr = "2026-06-23"; // 包含到今天最新
+  const endDateStr = "2026-06-23"; 
 
-  // 2. 逐檔進行「物理抹除」與「完全重建」
+  // 2. 逐檔進行物理清空與強制完整性下載
   for (let i = 0; i < stockList.length; i++) {
     const sId = String(stockList[i].stock_id).trim();
     
-    // 🛡️ 最嚴格的流量防火牆：每 5 檔就強制休息 15 秒，極致安全
-    if (i > 0 && i % 5 === 0) {
-      console.log(`⏳ 安全冷卻：已處理 ${i} 檔，強制休眠 15 秒，確保 FinMind API 絕對順暢...`);
+    // 🛡️ 升級版安全防火牆：每 4 檔就強制休息 15 秒，並拉長個股間隔，從根本杜絕 429 封鎖
+    if (i > 0 && i % 4 === 0) {
+      console.log(`⏳ [流量自我保護] 已處理 ${i} 檔，強制原地冷卻 15 秒...`);
       await sleep(15000);
     }
 
-    console.log(`🧹 [1/2 物理清空] 正在抹除個股歷史資料: ${sId}`);
-    try {
-      // 💡 貫徹「重建」精神：先把這檔股票在該區間的舊資料在資料庫「連根拔起」刪除！
-      const { error: delErr } = await supabase
-        .from('stock_chips_daily')
-        .delete()
-        .eq('stock_id', sId)
-        .gte('date', startDateStr)
-        .lte('date', endDateStr);
-        
-      if (delErr) throw delErr;
-    } catch (dErr) {
-      console.error(`⚠️ 抹除 ${sId} 失敗:`, dErr.message);
-    }
-
-    console.log(`📥 [2/2 實體重建] 正在從 FinMind 重新下載並運算指標: ${sId}`);
+    console.log(`\n🔄 [進度 ${i + 1}/${stockList.length}] 正在全量重建個股: ${sId}`);
 
     try {
       const dateMap = {};
 
-      // (A) 下載完整籌碼
+      // === (A) 下載完整籌碼 ===
       let chipFetched = false;
       let chipRetries = 3;
       while (!chipFetched && chipRetries > 0) {
@@ -82,22 +67,27 @@ async function run() {
               else if (row.name === 'Dealer_Hedging') { dateMap[d].dh_buy = row.buy; dateMap[d].dh_sell = row.sell; }
             });
             chipFetched = true;
-          } else if (cRes.data.status === 429) {
-            console.log("🚨 觸發流量牆 (429)，集體休眠 30 秒...");
-            await sleep(30000);
-            chipRetries--;
           } else {
+            console.log(`⚠️ 籌碼 API 回傳非預期狀態 (${cRes.data.status})，10秒後進行第 ${4 - chipRetries} 次重試...`);
+            await sleep(10000);
             chipRetries--;
           }
         } catch (e) {
+          console.log(`💥 籌碼連線異常，10秒後重試: ${e.message}`);
+          await sleep(10000);
           chipRetries--;
-          await sleep(2000);
         }
       }
 
-      await sleep(400); // API 之間的安全停頓
+      // 🚨 核心防禦：如果籌碼下載失敗，直接跳過本檔，絕不拿殘缺資料去覆蓋資料庫！
+      if (!chipFetched) {
+        console.error(`❌ [嚴重錯誤] 個股 ${sId} 籌碼歷史資料取得失敗，安全跳過，避免破壞結構。`);
+        continue;
+      }
 
-      // (B) 下載完整價格
+      await sleep(600); // 延長 API 間隔，細水長流
+
+      // === (B) 下載完整價格 ===
       let priceFetched = false;
       let priceRetries = 3;
       while (!priceFetched && priceRetries > 0) {
@@ -108,6 +98,7 @@ async function run() {
           if (pRes.data.status === 200 && Array.isArray(pRes.data.data)) {
             pRes.data.data.forEach(pRow => {
               const d = pRow.date;
+              // 確保跟籌碼時間流同步
               if (!dateMap[d]) {
                 dateMap[d] = { stock_id: sId, date: d, f_buy:0, f_sell:0, fd_buy:0, fd_sell:0, it_buy:0, it_sell:0, ds_buy:0, ds_sell:0, dh_buy:0, dh_sell:0 };
               }
@@ -119,26 +110,41 @@ async function run() {
               dateMap[d].change_value = pRow.spread || 0;
             });
             priceFetched = true;
-          } else if (pRes.data.status === 429) {
-            console.log("🚨 觸發流量牆 (429)，集體休眠 30 秒...");
-            await sleep(30000);
-            priceRetries--;
           } else {
+            console.log(`⚠️ 價格 API 回傳非預期狀態 (${pRes.data.status})，10秒後進行第 ${4 - priceRetries} 次重試...`);
+            await sleep(10000);
             priceRetries--;
           }
         } catch (e) {
+          console.log(`💥 價格連線異常，10秒後重試: ${e.message}`);
+          await sleep(10000);
           priceRetries--;
-          await sleep(2000);
         }
       }
 
-      // 3. 技術指標純淨計算
-      let sortedDays = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
-      if (sortedDays.length === 0) {
-        console.warn(`⚠️ 個股 ${sId} 歷史資料重建為空，跳過。`);
+      if (!priceFetched) {
+        console.error(`❌ [嚴重錯誤] 個股 ${sId} 價格歷史資料取得失敗，安全跳過。`);
         continue;
       }
 
+      // === (C) 物理清除舊帳本並精準計算寫入 ===
+      let sortedDays = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+      // 確保至少同時擁有價格與籌碼，才允許進行物理抹除與重建
+      if (sortedDays.length === 0 || !sortedDays[sortedDays.length - 1].price) {
+        console.warn(`⚠️ 個股 ${sId} 驗證歷史天數嚴重不足，取消洗白程序。`);
+        continue;
+      }
+
+      console.log(`🧹 [物理清空] 正在將資料庫中 ${sId} 舊歷史連根拔起...`);
+      const { error: delErr } = await supabase
+        .from('stock_chips_daily')
+        .delete()
+        .eq('stock_id', sId)
+        .gte('date', startDateStr)
+        .lte('date', endDateStr);
+      if (delErr) throw delErr;
+
+      // 技術指標精純計算核心
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
       const difHistory = [];
       let prevK = 50.0; let prevD = 50.0;
@@ -205,19 +211,19 @@ async function run() {
         }
       }
 
-      // 4. 乾淨寫入（因為舊資料已被刪除，這裡會寫入最完美的 28 欄位）
+      // 5. 乾淨寫入新大帳本
       const { error: insertErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
       if (insertErr) throw insertErr;
-      console.log(`✨ [重建成功] 個股 ${sId} 已完美洗白。`);
+      console.log(`✨ [真・重建成功] 個股 ${sId} 全時段 28 欄位完美入庫。`);
 
     } catch (singleErr) {
-      console.error(`❌ 重建個股 ${sId} 失敗:`, singleErr.message);
+      console.error(`❌ 重建個股 ${sId} 失敗，已自動跳過:`, singleErr.message);
     }
     
-    await sleep(400);
+    await sleep(500); // 每次穩健停頓半秒鐘
   }
 
-  console.log("🎉 【真・全量物理洗白大工程】完美收官！");
+  console.log("\n🎉 【真・全量無損重建大工程】完美收官！");
 }
 
 run();
