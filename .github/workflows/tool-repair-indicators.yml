@@ -1,4 +1,4 @@
-name: 🚀 工具箱：手動執行主力股全量漏洞修復與指標強行洗白
+name: 🚀 工具箱：手動執行主力股180檔全量漏洞修復與指標強行洗白
 
 on:
   workflow_dispatch: # 准許在 GitHub Actions 後台手動點擊按鈕觸發執行
