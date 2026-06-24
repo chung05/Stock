@@ -32,7 +32,7 @@ async function run() {
   for (let i = 0; i < stockList.length; i++) {
     const sId = String(stockList[i].stock_id).trim();
     
-    // 🛡️ 流量防火牆：每 3 檔就強制休息 15 秒，極速降低觸發 FinMind 空殼回傳的機率
+    // 🛡️ 流量防護：每 3 檔就強制休息 15 秒，極速降低觸發 FinMind 空殼或頻率限制的機率
     if (i > 0 && i % 3 === 0) {
       console.log(`⏳ [安全防禦] 已處理 ${i} 檔，強制原地冷卻 15 秒...`);
       await sleep(15000);
@@ -41,10 +41,10 @@ async function run() {
     console.log(`\n🔄 [進度 ${i + 1}/${stockList.length}] 正在全驗證重建個股: ${sId}`);
 
     try {
-      // 💡 宣告一個乾淨的真理交易日名單，只有通過審查的日子才能進入此對照表
+      // 💡 宣告一個真理交易日對照表，只有通過價格審查的日子才能留存
       const tradingDayMap = {};
 
-      // === (A) 核心關卡：優先下載完整「價格」原始資料 ===
+      // === (A) 核心關卡一：優先下載完整「價格」資料 ===
       let priceFetched = false;
       let priceRetries = 3;
       while (!priceFetched && priceRetries > 0) {
@@ -56,12 +56,12 @@ async function run() {
             pRes.data.data.forEach(pRow => {
               const d = pRow.date;
               
-              // 🚫 【硬性判定】如果 close（收盤價）不存在、為 0 或是 NULL，代表當天根本沒開盤交易！
+              // 🚫 【硬性判定】如果收盤價不存在、為 0 或是 NULL，代表當天台股休市！
               if (!pRow.close || pRow.close === null || pRow.close === 0) {
-                return; // 徹底掠過，不留痕跡，絕不建立任何基礎結構！
+                return; // 徹底掠過，絕不在記憶體中建立這天的 Row 外殼
               }
 
-              // 🌟 只有實打實開市交易的日子，才准許在記憶體中「正式建立」這天的資料列
+              // 🌟 只有實打實有成交價的日子，才准許建立初始結構
               tradingDayMap[d] = { 
                 stock_id: sId, date: d, 
                 price: pRow.close, open: pRow.open || pRow.close, max: pRow.max || pRow.close, min: pRow.min || pRow.close, 
@@ -71,26 +71,25 @@ async function run() {
             });
             priceFetched = true;
           } else {
-            console.log(`⚠️ 價格 API 回傳空殼或異常 (Status: ${pRes.data.status})，15秒後重試...`);
+            console.log(`⚠️ 價格 API 回傳空殼 (Status: ${pRes.data.status})，15秒後重試...`);
             await sleep(15000);
             priceRetries--;
           }
         } catch (e) {
-          console.log(`💥 價格連線發出警報，15秒後重試: ${e.message}`);
+          console.log(`💥 價格連線異常，15秒後重試: ${e.message}`);
           await sleep(15000);
           priceRetries--;
         }
       }
 
-      // 🚨 熔斷保護：如果拿不到實體價格資料，直接放生這檔股票，絕不往下走，保護資料庫
       if (!priceFetched || Object.keys(tradingDayMap).length === 0) {
-        console.error(`❌ [安全熔斷] 個股 ${sId} 無法取得任何有效的開市歷史價格，跳過此個股。`);
+        console.error(`❌ [安全熔斷] 個股 ${sId} 無法取得任何開市價格，跳過此個股。`);
         continue;
       }
 
-      await sleep(600); // 拉長安全停頓
+      await sleep(600); // 延長 API 間隔
 
-      // === (B) 下載完整籌碼，並與開市日對齊 ===
+      // === (B) 核心關卡二：下載完整籌碼，並與開市日強行對齊 ===
       let chipFetched = false;
       let chipRetries = 3;
       while (!chipFetched && chipRetries > 0) {
@@ -102,12 +101,12 @@ async function run() {
             cRes.data.data.forEach(row => {
               const d = row.date;
               
-              // 🚫 【硬性判定】如果這個籌碼日期，在上面的「開市真理表」裡找不到，表示當天休市！
+              // 🚫 【硬性判定】如果這個籌碼日期在「開市真理表」裡找不到，表示當天台股放假！
               if (!tradingDayMap[d]) {
-                return; // 直接扔掉休市日的籌碼髒資料，絕不允許建立空的 Row
+                return; // 直接扔掉休市日的籌碼髒資料
               }
 
-              // 只有確定開市的日子，才填入法人籌碼
+              // 確定當天有開市，才填入法人籌碼
               if (row.name === 'Foreign_Investor') { tradingDayMap[d].f_buy = row.buy; tradingDayMap[d].f_sell = row.sell; }
               else if (row.name === 'Foreign_Dealer_Self') { tradingDayMap[d].fd_buy = row.buy; tradingDayMap[d].fd_sell = row.sell; }
               else if (row.name === 'Investment_Trust') { tradingDayMap[d].it_buy = row.buy; tradingDayMap[d].it_sell = row.sell; }
@@ -116,41 +115,31 @@ async function run() {
             });
             chipFetched = true;
           } else {
-            console.log(`⚠️ 籌碼 API 回傳空殼或異常 (Status: ${cRes.data.status})，15秒後重試...`);
+            console.log(`⚠️ 籌碼 API 回傳空殼 (Status: ${cRes.data.status})，15秒後重試...`);
             await sleep(15000);
             chipRetries--;
           }
         } catch (e) {
-          console.log(`💥 籌碼連線發出警報，15秒後重試: ${e.message}`);
+          console.log(`💥 籌碼連線異常，15秒後重試: ${e.message}`);
           await sleep(15000);
           chipRetries--;
         }
       }
 
       if (!chipFetched) {
-        console.error(`❌ [安全熔斷] 個股 ${sId} 無法取得歷史籌碼原始資料，跳過此個股。`);
+        console.error(`❌ [安全熔斷] 個股 ${sId} 無法取得歷史籌碼，跳過此個股。`);
         continue;
       }
 
-      // === (C) 物理清除舊帳本並執行無損計算 ===
+      // === (C) 執行無損技術指標遞迴計算 ===
       let sortedDays = Object.values(tradingDayMap).sort((a, b) => a.date.localeCompare(b.date));
-      
-      // 終極防禦：如果最後連 10 天開市紀錄都沒有，拒絕寫入
       if (sortedDays.length < 10) {
         console.warn(`⚠️ [驗證失敗] 個股 ${sId} 的實體開市天數嚴重不足，拒絕入庫。`);
         continue;
       }
 
-      console.log(`🧹 [物理清空] 交易日鏈 100% 滿格，已安全掠過所有休市日！正在清空 ${sId} 舊大帳本...`);
-      const { error: delErr } = await supabase
-        .from('stock_chips_daily')
-        .delete()
-        .eq('stock_id', sId)
-        .gte('date', startDateStr)
-        .lte('date', endDateStr);
-      if (delErr) throw delErr;
+      // 由於第一階段已經用 TRUNCATE 手動清空了，這裡不需要再執行個別刪除，直接進行精密計算
 
-      // 技術指標計算大腦 (時間軸完全連續，已無放假日的空殼干擾)
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
       const difHistory = [];
       let prevK = 50.0; let prevD = 50.0;
@@ -162,14 +151,13 @@ async function run() {
         const subLen = subPool.length;
         const currentPrice = targetDay.price;
 
-        // 既然是開市日，價格必定大於 0
         if (currentPrice && currentPrice > 0) {
-          // MA 均線
+          // MA 均線 (5, 10, 20)
           if (subLen >= 5) targetDay.ma5 = parseFloat((subPool.slice(-5).reduce((a, b) => a + (b.price || 0), 0) / 5).toFixed(2));
           if (subLen >= 10) targetDay.ma10 = parseFloat((subPool.slice(-10).reduce((a, b) => a + (b.price || 0), 0) / 10).toFixed(2));
           if (subLen >= 20) targetDay.ma20 = parseFloat((subPool.slice(-20).reduce((a, b) => a + (b.price || 0), 0) / 20).toFixed(2));
 
-          // RSI 14
+          // RSI 14 (時間軸純淨連續，無休市斷代問題)
           if (j > 0 && sortedDays[j - 1].price > 0) {
             const change = currentPrice - sortedDays[j - 1].price;
             const up = change > 0 ? change : 0;
@@ -218,7 +206,7 @@ async function run() {
         }
       }
 
-      // 5. 乾淨整批寫入
+      // === (D) 整批乾淨寫入大帳本 ===
       const { error: insertErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
       if (insertErr) throw insertErr;
       console.log(`✨ [重建成功] 個股 ${sId} 歷史大帳本物理重建完畢（已完全移除 6/19 等放假日）。`);
@@ -227,7 +215,7 @@ async function run() {
       console.error(`❌ 重建個股 ${sId} 失敗:`, singleErr.message);
     }
     
-    await sleep(600); 
+    await sleep(600); // 穩健停頓，避免超頻
   }
 
   console.log("\n🎉 【真・全量放假日掠過與指標重建大工程】完美收官！");
