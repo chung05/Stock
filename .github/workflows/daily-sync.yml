@@ -1,9 +1,7 @@
 name: 主力固定成分股大帳本天天自動同步
 
 on:
-  schedule:
-    - cron: '0 13 * * *'  # 每天台灣時間 21:00 自動執行
-    - cron: '0 14 * * *'  # 每天台灣時間 22:00 執行備援
+  # 🟢 已移除自動排程 (cron)，此處僅保留手動觸發按鈕，永不自動執行！
   workflow_dispatch: 
 
 permissions:
