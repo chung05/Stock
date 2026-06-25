@@ -12,7 +12,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function run() {
-  // 🎯 這裡直接硬性指定您想要單獨補齊的股票代號名單
+  // 🎯 這裡直接硬性指定您想要單獨補齊的股票代號名單（未來若發現其他股票有缺，也可以直接改這裡）
   const targetStockIds = ["2301", "6446"]; 
   console.log(`🎯 啟動【特定個股特種部隊補件程序】，目標標的: ${targetStockIds.join(", ")}`);
 
@@ -107,7 +107,7 @@ async function run() {
       // === (C) 指標計算與寫入 ===
       let sortedDays = Object.values(tradingDayMap).sort((a, b) => a.date.localeCompare(b.date));
       
-      // 刪除此股舊檔（保險防禦）
+      // 💡 貫徹重建精神：先物理刪除此股在資料庫的殘留舊帳本（確保洗白歸零）
       await supabase.from('stock_chips_daily').delete().eq('stock_id', sId).gte('date', startDateStr).lte('date', endDateStr);
 
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
@@ -176,6 +176,6 @@ async function run() {
     }
     await sleep(1000);
   }
-  console.log("🎉 補件任務結束。");
+  console.log("🎉 所有補件任務全數結束！");
 }
 run();
