@@ -1,0 +1,27 @@
+name: 🚀 工具箱：手動精準靶向增補特定個股 (修復2301、6446)
+
+on:
+  # 🟢 僅保留手動觸發按鈕，絕不自動亂跑，保障 API 安全與流量
+  workflow_dispatch: 
+
+jobs:
+  repair-targets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 檢查並拉取專案最新程式碼
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 設定標準 Node.js 20 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 自動安裝修復所需的基礎依賴套件
+        run: npm install @supabase/supabase-js axios xlsx dotenv
+
+      - name: 🎯 啟動特種補件程序強行攻破數據牆
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: node tool-repair-target-stocks.js
