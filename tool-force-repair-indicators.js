@@ -1,4 +1,4 @@
-// tool-force-repair-indicators.js
+// tool-repair-target-stocks.js
 if (!global.WebSocket) { global.WebSocket = class {}; }
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -12,13 +12,9 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function run() {
-  console.log("🔥 🚨 【真・休市日絕對掠過版】全量物理重建大工程啟動...");
-
-  // 1. 取得乾淨的 180 檔母名單
-  const { data: targets, error: tErr } = await supabase.from('stock_targets').select('stock_id');
-  if (tErr) throw tErr;
-  const stockList = targets || [];
-  console.log(`📊 雲端母名單讀取成功，共有: ${stockList.length} 檔主力股。`);
+  // 🎯 這裡直接硬性指定您想要單獨補齊的股票代號名單
+  const targetStockIds = ["2301", "6446"]; 
+  console.log(`🎯 啟動【特定個股特種部隊補件程序】，目標標的: ${targetStockIds.join(", ")}`);
 
   const commonHeaders = {
     'accept': 'application/json',
@@ -26,87 +22,85 @@ async function run() {
   };
 
   const startDateStr = "2026-01-02";
-  const endDateStr = "2026-06-24"; // 包含到今天最新交易日
+  const endDateStr = "2026-06-24"; 
+  const finmindApiUrl = "https://api.finmindtrade.com/api/v4/data";
 
-  // 2. 逐檔進行完整性校驗與實體重建
-  for (let i = 0; i < stockList.length; i++) {
-    const sId = String(stockList[i].stock_id).trim();
-    
-    // 🛡️ 流量防護：每 3 檔就強制休息 15 秒，極速降低觸發 FinMind 空殼或頻率限制的機率
-    if (i > 0 && i % 3 === 0) {
-      console.log(`⏳ [安全防禦] 已處理 ${i} 檔，強制原地冷卻 15 秒...`);
-      await sleep(15000);
-    }
-
-    console.log(`\n🔄 [進度 ${i + 1}/${stockList.length}] 正在全驗證重建個股: ${sId}`);
+  for (let i = 0; i < targetStockIds.length; i++) {
+    const sId = targetStockIds[i];
+    console.log(`\n🚀 正在強力重構個股: ${sId} (歷史全量)`);
 
     try {
-      // 💡 宣告一個真理交易日對照表，只有通過價格審查的日子才能留存
       const tradingDayMap = {};
 
-      // === (A) 核心關卡一：優先下載完整「價格」資料 ===
+      // === (A) 價格下載 (修正：改為 POST 傳遞 Token + 欄位大小寫防禦) ===
       let priceFetched = false;
-      let priceRetries = 3;
+      let priceRetries = 5;
       while (!priceFetched && priceRetries > 0) {
         try {
-          const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-          const pRes = await axios.get(priceUrl, { headers: commonHeaders });
+          const pRes = await axios.post(finmindApiUrl, new URLSearchParams({
+            dataset: 'TaiwanStockPrice',
+            data_id: sId,
+            start_date: startDateStr,
+            end_date: endDateStr,
+            token: process.env.FINMIND_TOKEN || ''
+          }), { headers: commonHeaders });
           
           if (pRes.data.status === 200 && Array.isArray(pRes.data.data) && pRes.data.data.length > 0) {
             pRes.data.data.forEach(pRow => {
               const d = pRow.date;
-              
-              // 🚫 【硬性判定】如果收盤價不存在、為 0 或是 NULL，代表當天台股休市！
-              if (!pRow.close || pRow.close === null || pRow.close === 0) {
-                return; // 徹底掠過，絕不在記憶體中建立這天的 Row 外殼
-              }
+              if (!pRow.close || pRow.close === 0) return;
 
-              // 🌟 只有實打實有成交價的日子，才准許建立初始結構
+              // 🔥 核心修正：全大小寫相容性防禦，確保 2301 與 6446 不漏失任何價量欄位
+              const vol = pRow.Trading_Volume !== undefined ? pRow.Trading_Volume : (pRow.trading_volume || 0);
+              const high = pRow.max !== undefined ? pRow.max : (pRow.Max !== undefined ? pRow.Max : pRow.close);
+              const low = pRow.min !== undefined ? pRow.min : (pRow.Min !== undefined ? pRow.Min : pRow.close);
+              const openPrice = pRow.open !== undefined ? pRow.open : pRow.close;
+              const spreadVal = pRow.spread !== undefined ? pRow.spread : (pRow.change_value || 0);
+
               tradingDayMap[d] = { 
                 stock_id: sId, date: d, 
-                price: pRow.close, open: pRow.open || pRow.close, max: pRow.max || pRow.close, min: pRow.min || pRow.close, 
-                trading_volume: pRow.Trading_Volume || 0, change_value: pRow.spread || 0,
+                price: pRow.close, open: openPrice, max: high, min: low, 
+                trading_volume: vol, change_value: spreadVal,
                 f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 
               };
             });
             priceFetched = true;
           } else {
-            console.log(`⚠️ 價格 API 回傳空殼 (Status: ${pRes.data.status})，15秒後重試...`);
+            console.log(`⚠️ 價格 API 空殼(Status: ${pRes.data.status})，耐力等待 15 秒後進行重試...`);
             await sleep(15000);
             priceRetries--;
           }
         } catch (e) {
-          console.log(`💥 價格連線異常，15秒後重試: ${e.message}`);
+          console.log(`💥 價格連線異常，15 秒後重試: ${e.message}`);
           await sleep(15000);
           priceRetries--;
         }
       }
 
       if (!priceFetched || Object.keys(tradingDayMap).length === 0) {
-        console.error(`❌ [安全熔斷] 個股 ${sId} 無法取得任何開市價格，跳過此個股。`);
+        console.error(`❌ 個股 ${sId} 價格下載徹底失敗，跳過。`);
         continue;
       }
 
-      await sleep(600); // 延長 API 間隔
+      await sleep(1000);
 
-      // === (B) 核心關卡二：下載完整籌碼，並與開市日強行對齊 ===
+      // === (B) 籌碼下載 (修正：改為 POST 傳遞 Token) ===
       let chipFetched = false;
-      let chipRetries = 3;
+      let chipRetries = 5;
       while (!chipFetched && chipRetries > 0) {
         try {
-          const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-          const cRes = await axios.get(chipUrl, { headers: commonHeaders });
+          const cRes = await axios.post(finmindApiUrl, new URLSearchParams({
+            dataset: 'TaiwanStockInstitutionalInvestorsBuySell',
+            data_id: sId,
+            start_date: startDateStr,
+            end_date: endDateStr,
+            token: process.env.FINMIND_TOKEN || ''
+          }), { headers: commonHeaders });
           
           if (cRes.data.status === 200 && Array.isArray(cRes.data.data) && cRes.data.data.length > 0) {
             cRes.data.data.forEach(row => {
               const d = row.date;
-              
-              // 🚫 【硬性判定】如果這個籌碼日期在「開市真理表」裡找不到，表示當天台股放假！
-              if (!tradingDayMap[d]) {
-                return; // 直接扔掉休市日的籌碼髒資料
-              }
-
-              // 確定當天有開市，才填入法人籌碼
+              if (!tradingDayMap[d]) return;
               if (row.name === 'Foreign_Investor') { tradingDayMap[d].f_buy = row.buy; tradingDayMap[d].f_sell = row.sell; }
               else if (row.name === 'Foreign_Dealer_Self') { tradingDayMap[d].fd_buy = row.buy; tradingDayMap[d].fd_sell = row.sell; }
               else if (row.name === 'Investment_Trust') { tradingDayMap[d].it_buy = row.buy; tradingDayMap[d].it_sell = row.sell; }
@@ -115,30 +109,27 @@ async function run() {
             });
             chipFetched = true;
           } else {
-            console.log(`⚠️ 籌碼 API 回傳空殼 (Status: ${cRes.data.status})，15秒後重試...`);
+            console.log(`⚠️ 籌碼 API 空殼(Status: ${cRes.data.status})，耐力等待 15 秒後進行重試...`);
             await sleep(15000);
             chipRetries--;
           }
         } catch (e) {
-          console.log(`💥 籌碼連線異常，15秒後重試: ${e.message}`);
+          console.log(`💥 籌碼連線異常，15 秒後重試: ${e.message}`);
           await sleep(15000);
           chipRetries--;
         }
       }
 
       if (!chipFetched) {
-        console.error(`❌ [安全熔斷] 個股 ${sId} 無法取得歷史籌碼，跳過此個股。`);
+        console.error(`❌ 個股 ${sId} 籌碼下載徹底失敗，跳過。`);
         continue;
       }
 
-      // === (C) 執行無損技術指標遞迴計算 ===
+      // === (C) 指標計算與寫入 ===
       let sortedDays = Object.values(tradingDayMap).sort((a, b) => a.date.localeCompare(b.date));
-      if (sortedDays.length < 10) {
-        console.warn(`⚠️ [驗證失敗] 個股 ${sId} 的實體開市天數嚴重不足，拒絕入庫。`);
-        continue;
-      }
-
-      // 由於第一階段已經用 TRUNCATE 手動清空了，這裡不需要再執行個別刪除，直接進行精密計算
+      
+      // 💡 貫徹重建精神：先物理刪除此股在資料庫的殘留舊帳本（確保洗白歸零）
+      await supabase.from('stock_chips_daily').delete().eq('stock_id', sId).gte('date', startDateStr).lte('date', endDateStr);
 
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
       const difHistory = [];
@@ -152,16 +143,13 @@ async function run() {
         const currentPrice = targetDay.price;
 
         if (currentPrice && currentPrice > 0) {
-          // MA 均線 (5, 10, 20)
           if (subLen >= 5) targetDay.ma5 = parseFloat((subPool.slice(-5).reduce((a, b) => a + (b.price || 0), 0) / 5).toFixed(2));
           if (subLen >= 10) targetDay.ma10 = parseFloat((subPool.slice(-10).reduce((a, b) => a + (b.price || 0), 0) / 10).toFixed(2));
           if (subLen >= 20) targetDay.ma20 = parseFloat((subPool.slice(-20).reduce((a, b) => a + (b.price || 0), 0) / 20).toFixed(2));
 
-          // RSI 14 (時間軸純淨連續，無休市斷代問題)
           if (j > 0 && sortedDays[j - 1].price > 0) {
             const change = currentPrice - sortedDays[j - 1].price;
-            const up = change > 0 ? change : 0;
-            const down = change < 0 ? Math.abs(change) : 0;
+            const up = change > 0 ? change : 0; const down = change < 0 ? Math.abs(change) : 0;
             if (subLen <= 15) {
               avgUp += up; avgDown += down;
               if (subLen === 15) { avgUp /= 14; avgDown /= 14; targetDay.rsi14 = avgDown === 0 ? 100 : parseFloat((100 - (100 / (1 + avgUp / avgDown))).toFixed(2)); }
@@ -171,23 +159,21 @@ async function run() {
             }
           }
 
-          // KD 指標
+          // 🔥 修正防禦：當 highN - lowN === 0 或出現異常 NaN 時，強行給予安全預設值 50，防止整個物件損毀
           const lookback = Math.min(subLen, 9);
           const lastNDays = subPool.slice(-lookback);
           const highN = Math.max(...lastNDays.map(d => d.max || d.price || 0));
           const lowN = Math.min(...lastNDays.map(d => d.min || d.price || 999999));
-          let rsv = highN - lowN !== 0 ? ((currentPrice - lowN) / (highN - lowN)) * 100 : 50;
-          let currentK = (prevK * (2/3)) + (rsv * (1/3));
+          let rsv = (highN - lowN !== 0 && !isNaN(highN) && !isNaN(lowN)) ? ((currentPrice - lowN) / (highN - lowN)) * 100 : 50;
+          
+          let currentK = (prevK * (2/3)) + (rsv * (1/3)); 
           let currentD = (prevD * (2/3)) + (currentK * (1/3));
           prevK = currentK; prevD = currentD;
 
           if (targetDay.date >= "2026-02-02") {
-            targetDay.rsv = parseFloat(rsv.toFixed(2));
-            targetDay.kd_k = parseFloat(currentK.toFixed(2));
-            targetDay.kd_d = parseFloat(currentD.toFixed(2));
+            targetDay.rsv = parseFloat(rsv.toFixed(2)); targetDay.kd_k = parseFloat(currentK.toFixed(2)); targetDay.kd_d = parseFloat(currentD.toFixed(2));
           }
 
-          // MACD 指標
           if (subLen === 12) prevEma12 = subPool.reduce((a, b) => a + (b.price || 0), 0) / 12;
           else if (subLen > 12) prevEma12 = (currentPrice * (2/13)) + (prevEma12 * (11/13));
           if (subLen === 26) prevEma26 = subPool.reduce((a, b) => a + (b.price || 0), 0) / 26;
@@ -199,26 +185,21 @@ async function run() {
             else if (difHistory.length > 9) prevMacd9 = (dif * (2/10)) + (prevMacd9 * (8/10));
             targetDay.macd_dif = parseFloat(dif.toFixed(4));
             if (prevMacd9 !== null) {
-              targetDay.macd_signal = parseFloat(prevMacd9.toFixed(4));
-              targetDay.macd_osc = parseFloat((dif - prevMacd9).toFixed(4));
+              targetDay.macd_signal = parseFloat(prevMacd9.toFixed(4)); targetDay.macd_osc = parseFloat((dif - prevMacd9).toFixed(4));
             }
           }
         }
       }
 
-      // === (D) 整批乾淨寫入大帳本 ===
-      const { error: insertErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
-      if (insertErr) throw insertErr;
-      console.log(`✨ [重建成功] 個股 ${sId} 歷史大帳本物理重建完畢（已完全移除 6/19 等放假日）。`);
+      const { error: insErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
+      if (insErr) throw insErr;
+      console.log(`✨ [特種補件成功] 個股 ${sId} 已完美獨立補齊！`);
 
-    } catch (singleErr) {
-      console.error(`❌ 重建個股 ${sId} 失敗:`, singleErr.message);
+    } catch (err) {
+      console.error(`❌ 補件個股 ${sId} 失敗:`, err.message);
     }
-    
-    await sleep(600); // 穩健停頓，避免超頻
+    await sleep(1000);
   }
-
-  console.log("\n🎉 【真・全量放假日掠過與指標重建大工程】完美收官！");
+  console.log("🎉 所有補件任務全數結束！");
 }
-
 run();
