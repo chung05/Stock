@@ -10,12 +10,10 @@ if (!state.visibleLines) {
 // 🚨 終極救星：生命週期延時防禦晶片 (徹底解決早上修改資料庫導致的開局 DOM 未渲染死鎖)
 // ==========================================================
 setTimeout(async () => {
-  // 如果發現一開局加載被沒收、大帳本快取為空
   if (!state.globalChipCache || state.globalChipCache.length === 0) {
     console.log("%c⏳ 偵測到開局非同步流定格，主動啟動延時防禦補件程序...", "color:yellow; font-weight:bold;");
     const select = document.getElementById("tabSelect");
     
-    // 如果這時 HTML 外殼終於長出來了，手動幫忙補填分類選單並強制通車分批下載
     if (select) {
       const { forceSyncFlow } = await import('./api.js');
       if (forceSyncFlow) {
@@ -24,7 +22,7 @@ setTimeout(async () => {
       }
     }
   }
-}, 500); // 給網頁 500 毫秒極裕度緩衝時間
+}, 500);
 
 export function closeNewsModal() { 
   document.getElementById("newsModal").classList.add("hidden"); 
@@ -126,7 +124,7 @@ function bindBiDirectionalScrollLinkage() {
   cWrapper.onscroll = () => {
     if (!isSyncingPriceScroll) {
       isSyncingChipScroll = true;
-      pWrapper.scrollLeft = cWrapper.scrollLeft;
+      pWrapper.scrollLeft = pWrapper.scrollLeft;
     }
     isSyncingPriceScroll = false;
   };
@@ -183,7 +181,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
   }
   if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在即時連線抓取最新財經新聞...</div>`;
 
-  const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
+  const rawSearchKeyword = `${stockId} ${stockName}`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
   const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
@@ -230,11 +228,29 @@ async function fetchStockNewsBackground(stockId, stockName) {
       if(listZone) listZone.innerHTML = listHtml;
       if(debugBox) debugBox.classList.add("hidden"); 
     } else {
-      if(listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞</div>`;
+      throw new Error("無新聞項目");
     }
   } catch (fetchErr) {
-    console.error("💥 新聞載入異常:", fetchErr);
-    if(listZone) listZone.innerHTML = `<div class="text-xs text-rose-500 font-medium py-8 text-center">新聞連線過載，請稍後再試。</div>`;
+    console.warn("💥 新聞雲端代理過載，啟動在地智慧降級晶片:", fetchErr);
+    if(debugBox) debugBox.classList.add("hidden");
+    
+    // 🧠 降級晶片啟動：連線失敗時直接顯示大廠直通按鈕，完美解決卡死狀態
+    if(listZone) {
+      listZone.innerHTML = `
+        <div class="p-4 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
+          <div class="text-sm font-bold text-amber-800">⚠️ 雲端新聞同步流量過載</div>
+          <p class="text-xs text-amber-600 leading-relaxed">由於公共跨網代理伺服器尖峰限制，已為您自動接通「${stockName}」專屬即時財經傳送門：</p>
+          <div class="flex flex-wrap gap-2.5 justify-center mt-1">
+            <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black rounded-lg shadow-sm transition-all">
+              🔮 Yahoo 股市個股新聞
+            </a>
+            <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-black rounded-lg shadow-sm transition-all">
+              🦊 Anue 鉅亨網即時新聞
+            </a>
+          </div>
+        </div>
+      `;
+    }
   }
 }
 
@@ -353,6 +369,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
     let xPos = idx * stepX + (stepX / 2);
     
+    // 💡 校準高度比例尺，完美對齊外層 112px (h-28) 畫布高度
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
@@ -363,7 +380,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
     }
     if (d.sig !== null) {
-      res = difPoints;
       sigPoints.push(`${xPos},${exactSigY}`);
       macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
     }
@@ -404,7 +420,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
+  // 💡 關鍵修復點：在 SVG 上顯式注入 height: 112px;，確保在點擊 MACD/KD 分頁時折線與畫布能完美浮現
+  if (difPoints.length > 0 || sigPoints.length > 0) {
+    lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
+  }
   
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
   if(barChartEl) barChartEl.innerHTML = barChartHtml;
@@ -414,7 +433,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   if (kPoints.length > 0 || dPoints.length > 0) {
     kdChartHtml += `
-      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px;">
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;">
         <polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         <polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         ${kdCirclesHtml}
