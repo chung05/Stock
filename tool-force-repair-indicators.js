@@ -39,7 +39,7 @@ async function run() {
   };
 
   const startDateStr = "2026-01-02";
-  const endDateStr = "2026-06-24"; 
+  const endDateStr = "2026-06-26"; 
   const finmindApiUrl = "https://api.finmindtrade.com/api/v4/data";
   const token = process.env.FINMIND_TOKEN || '';
 
