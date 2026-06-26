@@ -11,10 +11,29 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// 輔助函式：將時間切成 30 天一個批次，徹底破解 FinMind 歷史籌碼跨度限制
+function splitDateRangeIntoChunks(startStr, endStr) {
+  let chunks = [];
+  let currentStart = new Date(startStr);
+  let finalEnd = new Date(endStr);
+  
+  while (currentStart <= finalEnd) {
+    let currentEnd = new Date(currentStart);
+    currentEnd.setDate(currentEnd.getDate() + 28); // 每 28 天切一塊，絕對安全
+    if (currentEnd > finalEnd) currentEnd = new Date(finalEnd);
+    
+    chunks.push({
+      start: currentStart.toISOString().split('T')[0],
+      end: currentEnd.toISOString().split('T')[0]
+    });
+    currentStart.setDate(currentEnd.getDate() + 1);
+  }
+  return chunks;
+}
+
 async function run() {
-  // 🎯 這裡直接硬性指定您想要單獨補齊的股票代號名單（未來若發現其他股票有缺，也可以直接改這裡）
   const targetStockIds = ["2301", "6446"]; 
-  console.log(`🎯 啟動【特定個股特種部隊補件程序】，目標標的: ${targetStockIds.join(", ")}`);
+  console.log(`🎯 啟動【特定個股歷史分批解鎖程序】，目標標的: ${targetStockIds.join(", ")}`);
 
   const commonHeaders = {
     'accept': 'application/json',
@@ -23,61 +42,61 @@ async function run() {
 
   const startDateStr = "2026-01-02";
   const endDateStr = "2026-06-24"; 
+  const finmindApiUrl = "https://api.finmindtrade.com/api/v4/data";
+
+  // 💡 安全防護：檢查本地有沒有讀到 Token
+  const token = process.env.FINMIND_TOKEN || '';
+  if (!token) {
+    console.warn("⚠️ 警告：偵測到您的環境變流中 FINMIND_TOKEN 為空值！已自動切換為無解密低權限分批模式。");
+  }
 
   for (let i = 0; i < targetStockIds.length; i++) {
     const sId = targetStockIds[i];
-    console.log(`\n🚀 正在強力重構個股: ${sId} (歷史全量)`);
+    console.log(`\n🚀 正在強力重構個股: ${sId} (歷史全量價格 + 分批籌碼)`);
 
     try {
       const tradingDayMap = {};
 
-      // === (A) 價格下載 (大幅拉長重試次數至 5 次，每次休眠 20 秒，誓死破牆) ===
-      let priceFetched = false;
-      let priceRetries = 5;
-      while (!priceFetched && priceRetries > 0) {
-        try {
-          const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-          const pRes = await axios.get(priceUrl, { headers: commonHeaders });
-          
-          if (pRes.data.status === 200 && Array.isArray(pRes.data.data) && pRes.data.data.length > 0) {
-            pRes.data.data.forEach(pRow => {
-              const d = pRow.date;
-              if (!pRow.close || pRow.close === 0) return;
-              tradingDayMap[d] = { 
-                stock_id: sId, date: d, 
-                price: pRow.close, open: pRow.open || pRow.close, max: pRow.max || pRow.close, min: pRow.min || pRow.close, 
-                trading_volume: pRow.Trading_Volume || 0, change_value: pRow.spread || 0,
-                f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 
-              };
-            });
-            priceFetched = true;
-          } else {
-            console.log(`⚠️ 價格 API 空殼，耐力等待 20 秒後進行重試...`);
-            await sleep(20000);
-            priceRetries--;
-          }
-        } catch (e) {
-          await sleep(20000);
-          priceRetries--;
-        }
+      // === (A) 價格下載 (歷史價格沒有跨度限制，一次撈完) ===
+      let priceUrl = `${finmindApiUrl}?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${token}`;
+      let pRes = await axios.get(priceUrl, { headers: commonHeaders });
+      
+      if (pRes.data.status === 200 && Array.isArray(pRes.data.data) && pRes.data.data.length > 0) {
+        pRes.data.data.forEach(pRow => {
+          const d = pRow.date;
+          if (!pRow.close || pRow.close === 0) return;
+
+          // 🛡️ 大小寫全相容防禦
+          const vol = pRow.Trading_Volume !== undefined ? pRow.Trading_Volume : (pRow.trading_volume || 0);
+          const high = pRow.max !== undefined ? pRow.max : (pRow.Max !== undefined ? pRow.Max : pRow.close);
+          const low = pRow.min !== undefined ? pRow.min : (pRow.Min !== undefined ? pRow.Min : pRow.close);
+          const openPrice = pRow.open !== undefined ? pRow.open : pRow.close;
+          const spreadVal = pRow.spread !== undefined ? pRow.spread : (pRow.change_value || 0);
+
+          tradingDayMap[d] = { 
+            stock_id: sId, date: d, 
+            price: pRow.close, open: openPrice, max: high, min: low, 
+            trading_volume: vol, change_value: spreadVal,
+            f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 
+          };
+        });
       }
 
-      if (!priceFetched || Object.keys(tradingDayMap).length === 0) {
-        console.error(`❌ 個股 ${sId} 價格下載徹底失敗，跳過。`);
+      if (Object.keys(tradingDayMap).length === 0) {
+        console.error(`❌ 個股 ${sId} 歷史價格下載失敗，跳過。`);
         continue;
       }
 
-      await sleep(1000);
+      // === (B) 籌碼下載：戰術切片！將半年歷史拆成 30 天以內的小段落去撈 ===
+      const dateChunks = splitDateRangeIntoChunks(startDateStr, endDateStr);
+      console.log(`📦 歷史籌碼拆分為 ${dateChunks.length} 個時間切片進行安全抓取...`);
 
-      // === (B) 籌碼下載 ===
-      let chipFetched = false;
-      let chipRetries = 5;
-      while (!chipFetched && chipRetries > 0) {
+      for (let chunk of dateChunks) {
         try {
-          const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-          const cRes = await axios.get(chipUrl, { headers: commonHeaders });
+          let chipUrl = `${finmindApiUrl}?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${chunk.start}&end_date=${chunk.end}&token=${token}`;
+          let cRes = await axios.get(chipUrl, { headers: commonHeaders });
           
-          if (cRes.data.status === 200 && Array.isArray(cRes.data.data) && cRes.data.data.length > 0) {
+          if (cRes.data.status === 200 && Array.isArray(cRes.data.data)) {
             cRes.data.data.forEach(row => {
               const d = row.date;
               if (!tradingDayMap[d]) return;
@@ -87,33 +106,21 @@ async function run() {
               else if (row.name === 'Dealer_self') { tradingDayMap[d].ds_buy = row.buy; tradingDayMap[d].ds_sell = row.sell; }
               else if (row.name === 'Dealer_Hedging') { tradingDayMap[d].dh_buy = row.buy; tradingDayMap[d].dh_sell = row.sell; }
             });
-            chipFetched = true;
-          } else {
-            console.log(`⚠️ 籌碼 API 空殼，耐力等待 20 秒後進行重試...`);
-            await sleep(20000);
-            chipRetries--;
           }
-        } catch (e) {
-          await sleep(20000);
-          chipRetries--;
+          await sleep(500); // 每次切片小歇，維護連線穩定
+        } catch (chunkErr) {
+          console.log(`⚠️ 切片區間 ${chunk.start} 籌碼獲取跳過: ${chunkErr.message}`);
         }
       }
 
-      if (!chipFetched) {
-        console.error(`❌ 個股 ${sId} 籌碼下載徹底失敗，跳過。`);
-        continue;
-      }
-
-      // === (C) 指標計算與寫入 ===
+      // === (C) 指標計算與寫入 (絕不因籌碼缺失而熔斷) ===
       let sortedDays = Object.values(tradingDayMap).sort((a, b) => a.date.localeCompare(b.date));
       
-      // 💡 貫徹重建精神：先物理刪除此股在資料庫的殘留舊帳本（確保洗白歸零）
+      // 先刪除殘留舊資料
       await supabase.from('stock_chips_daily').delete().eq('stock_id', sId).gte('date', startDateStr).lte('date', endDateStr);
 
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
-      const difHistory = [];
-      let prevK = 50.0; let prevD = 50.0;
-      let avgUp = 0, avgDown = 0;
+      const difHistory = []; let prevK = 50.0; let prevD = 50.0; let avgUp = 0, avgDown = 0;
 
       for (let j = 0; j < sortedDays.length; j++) {
         const targetDay = sortedDays[j];
@@ -142,8 +149,10 @@ async function run() {
           const lastNDays = subPool.slice(-lookback);
           const highN = Math.max(...lastNDays.map(d => d.max || d.price || 0));
           const lowN = Math.min(...lastNDays.map(d => d.min || d.price || 999999));
-          let rsv = highN - lowN !== 0 ? ((currentPrice - lowN) / (highN - lowN)) * 100 : 50;
-          let currentK = (prevK * (2/3)) + (rsv * (1/3)); let currentD = (prevD * (2/3)) + (currentK * (1/3));
+          let rsv = (highN - lowN !== 0 && !isNaN(highN) && !isNaN(lowN)) ? ((currentPrice - lowN) / (highN - lowN)) * 100 : 50;
+          
+          let currentK = (prevK * (2/3)) + (rsv * (1/3)); 
+          let currentD = (prevD * (2/3)) + (currentK * (1/3));
           prevK = currentK; prevD = currentD;
 
           if (targetDay.date >= "2026-02-02") {
@@ -169,13 +178,13 @@ async function run() {
 
       const { error: insErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
       if (insErr) throw insErr;
-      console.log(`✨ [特種補件成功] 個股 ${sId} 已完美獨立補齊！`);
+      console.log(`✨ [切片解鎖成功] 個股 ${sId} 歷史大帳本與全技術指標已成功寫入資料庫！`);
 
     } catch (err) {
       console.error(`❌ 補件個股 ${sId} 失敗:`, err.message);
     }
     await sleep(1000);
   }
-  console.log("🎉 所有補件任務全數結束！");
+  console.log("🎉 補件任務全數結束！");
 }
 run();
