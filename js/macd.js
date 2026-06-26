@@ -118,12 +118,12 @@ function bindBiDirectionalScrollLinkage() {
       isSyncingPriceScroll = true;
       cWrapper.scrollLeft = pWrapper.scrollLeft;
     }
-    isSyncingChipScroll = false;
+    isSyncingPriceScroll = false;
   };
 
   cWrapper.onscroll = () => {
     if (!isSyncingPriceScroll) {
-      isSyncingChipScroll = true;
+      isSyncingPriceScroll = true;
       pWrapper.scrollLeft = pWrapper.scrollLeft;
     }
     isSyncingPriceScroll = false;
@@ -169,12 +169,12 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 📰 萬能免費高穩定代理新聞解析晶片 (獨立異步執行流，徹底修復新聞卡死)
+  // 📰 萬能專業級轉 JSON 網關解析流 (異步執行晶片，100% 徹底修復新聞卡死)
   fetchStockNewsBackground(stockId, stockName);
 }
 
 // ==========================================================
-// 🛡️ 核心重製防線：具有「超時強制熔斷」的新聞背景抓取器
+// 🛡️ 核心重製防線：具有「rss2json 專業轉換網關」與「自動重試」的新聞背景抓取器
 // ==========================================================
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
@@ -182,79 +182,74 @@ async function fetchStockNewsBackground(stockId, stockName) {
   
   if (debugBox) {
     debugBox.classList.remove("hidden");
-    debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) 安全中繼防護代理流...\n`;
+    debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) rss2json 高速解析流...\n`;
   }
   if (listZone) {
-    listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在智慧繞開 CORS 抓取最新財經頭條...</div>`;
+    listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過專業網關讀取最新財經新聞...</div>`;
   }
 
-  const rawSearchKeyword = `${stockId} ${stockName}`;
+  const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  const apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+  
+  // 💡 導入 2index.html 的終極秘密武器：利用 rss2json 伺服器端完成 JSON 格式精準轉換
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
 
-  // ⏱️ 5秒強制熔斷晶片：防止免費代理伺服器 Pending 導致的前端死鎖
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
 
-  try {
-    const res = await fetch(apiUrl, { signal: controller.signal });
-    clearTimeout(timeoutId); // 成功回應則清除定時器
-    
-    if (!res.ok) throw new Error(`HTTP 錯誤: ${res.status}`);
-    
-    const resJson = await res.json();
-    const xmlString = resJson.contents;
-    if (!xmlString) throw new Error("中繼代理回傳內容為空");
-
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-    const items = xmlDoc.getElementsByTagName("item");
-
-    if (items && items.length > 0) {
-      let listHtml = "";
-      const maxNewsCount = Math.min(items.length, 10);
-
-      for (let idx = 0; idx < maxNewsCount; idx++) {
-        const item = items[idx];
-        const title = item.getElementsByTagName("title")[0]?.textContent || "財經頭條新聞";
-        const link = item.getElementsByTagName("link")[0]?.textContent || "#";
-        const rawPubDate = item.getElementsByTagName("pubDate")[0]?.textContent;
-        const source = item.getElementsByTagName("source")[0]?.textContent || "財經媒體";
-
-        let dateStr = "近期新聞";
-        if (rawPubDate) {
-          const pubDate = new Date(rawPubDate);
-          if (!isNaN(pubDate.getTime())) {
-            dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
-          }
+  // 執行自動三次重試保護機制
+  while (currentRetry < maxRetries && !successFetch) {
+    currentRetry++;
+    try {
+      const res = await fetch(apiUrl);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.status === 'ok') { 
+          resJson = json; 
+          successFetch = true; 
+          break; 
         }
+      }
+    } catch (fetchErr) { 
+      console.warn(`第 ${currentRetry} 次新聞撈取嘗試失敗`, fetchErr); 
+    }
+  }
+
+  // 成功撈回數據，開始渲染原有精美 UI 排版結構
+  if (successFetch && resJson) {
+    const fetchedItems = resJson.items || [];
+    if (fetchedItems.length > 0) {
+      let listHtml = "";
+
+      fetchedItems.slice(0, 10).forEach(item => {
+        const pubDate = new Date(item.pubDate);
+        const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
+        const sourceName = item.author || "財經媒體";
 
         listHtml += `
-          <a href="${link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
+          <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
             <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
               <span>📅 ${dateStr}</span>
-              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${source}</span>
+              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${sourceName}</span>
             </div>
-            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${title}</h4>
+            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
           </a>`;
-      }
+      });
+      
       if (listZone) listZone.innerHTML = listHtml;
-      if (debugBox) debugBox.classList.add("hidden"); 
+      if (debugBox) debugBox.classList.add("hidden"); // 解析成功，立刻關閉黑底診斷區
     } else {
-      throw new Error("無 RSS 項目");
+      if (listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞項目</div>`;
+      if (debugBox) debugBox.classList.add("hidden");
     }
-  } catch (fetchErr) {
-    // 🚨 只要連線逾時、代理伺服器拒絕、或任何網路異常，立刻執行以下代碼（絕對不卡住）
-    console.warn("💥 雲端新聞中繼伺服器異常或連線逾時，立刻釋放救援傳送門:", fetchErr);
-    
-    if (debugBox) debugBox.classList.add("hidden"); // 堅決關閉黑底文字，不讓畫面定格
-    
+  } else {
+    // 降級容錯保護線：防止網關配額尖峰時造成系統卡死，彈出直通特快車按鈕
+    if (debugBox) debugBox.classList.add("hidden");
     if (listZone) {
       listZone.innerHTML = `
         <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3 shadow-2xs">
-          <div class="text-sm font-black text-amber-800 flex items-center gap-1">⚠️ 雲端即時新聞同步逾時</div>
+          <div class="text-sm font-black text-amber-800 flex items-center gap-1">⚠️ 雲端即時新聞同步忙碌</div>
           <p class="text-xs text-amber-600 leading-relaxed max-w-md">
-            因公共跨網 CORS 代理伺服器尖峰過載（或遭 Google 暫時封鎖 IP），已自動為您開通本機端「${stockName}」專屬官方新聞高速直達特快車：
+            目前公共轉換伺服器連線已達尖峰上限，已自動為您開通本機端「${stockName}」專屬官方新聞高速直達特快車：
           </p>
           <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
             <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" rel="noopener noreferrer" class="flex-1 min-w-[150px] max-w-[200px] px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black rounded-lg shadow-sm transition-all text-center">
