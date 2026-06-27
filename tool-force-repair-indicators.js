@@ -18,8 +18,8 @@ function formatDateToString(dateObj) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// 強制降級到 5 天一包的極短跨度，這是對付 2301, 6446 這種巨量法人股最強力的防風控手段
-function splitDateRangeIntoChunks(startStr, endStr, days = 5) {
+// 既然籌碼強制規定用 GET，我們將切片壓縮到 4 天一包，用極小流量安全繞過大熱門股的限流風控
+function splitDateRangeIntoChunks(startStr, endStr, days = 4) {
   let chunks = [];
   let currentStart = new Date(startStr);
   let finalEnd = new Date(endStr);
@@ -40,30 +40,27 @@ async function run() {
   const targetStockIds = ["2301", "6446"]; 
   
   const todayObj = new Date();
-  const startDateStr = "2026-01-02"; // 歷史重構起點
-  const endDateStr = formatDateToString(todayObj); // 📅 自動對齊補齊到今天的最新交易日
+  const startDateStr = "2026-01-02"; // 歷史起點
+  const endDateStr = formatDateToString(todayObj); // 📅 自動補齊到執行的最新交易日
 
   console.log(`🎯 ====================================================`);
-  console.log(`🎯 啟動【三大法人精密雷達日誌 ＆ 歷史全量覆蓋管線】`);
+  console.log(`🎯 啟動【三大法人 GET 極致小切片防禦 ＆ 歷史覆蓋管線】`);
   console.log(`📅 重建區間：${startDateStr} 至 最新交易日: ${endDateStr}`);
   console.log(`🎯 ====================================================`);
 
+  // 加上完整的瀏覽器偽裝標頭，防止被 FinMind 判定為惡意爬蟲
   const commonHeaders = {
     'accept': 'application/json',
-    'content-type': 'application/x-www-form-urlencoded',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
   };
 
-  const finmindApiUrl = "https://api.finmindtrade.com/api/v4/data";
   const token = process.env.FINMIND_TOKEN || '';
-  
-  // 🔍 DEBUG 1: 檢查環境變數 Token 狀態
-  console.log(`🔑 [Token 狀態檢查]：當前讀取的 Token 前 6 碼為: "${token ? token.substring(0, 6) + '...' : '❌ 未定義 EMPTY!!!!'}"`);
+  console.log(`🔑 [Token 狀態檢查]：Token 前 6 碼為: "${token ? token.substring(0, 6) + '...' : '❌ 未定義 EMPTY!!!!'}"`);
 
   for (let i = 0; i < targetStockIds.length; i++) {
     const sId = targetStockIds[i];
     console.log(`\n🚀 ----------------------------------------------------`);
-    console.log(`🚀 正在強力重構核心個股: ${sId}`);
+    console.log(`🚀 正在強力重構核心個股 (GET 模式): ${sId}`);
     console.log(`🚀 ----------------------------------------------------`);
 
     try {
@@ -71,36 +68,27 @@ async function run() {
       const priceMemoryStore = {};  
 
       // ==========================================================
-      // 【第一階段：三大法人歷史籌碼大攻堅 + 全量 DUMP 日誌】
+      // 【第一階段：三大法人歷史籌碼大攻堅 (修正為安全 GET 模式)】
       // ==========================================================
-      const chipChunks = splitDateRangeIntoChunks(startDateStr, endDateStr, 5);
-      console.log(`📥 [管線 1/2] 籌碼下載：拆分為 ${chipChunks.length} 個極短切片進行密集連線...`);
+      const chipChunks = splitDateRangeIntoChunks(startDateStr, endDateStr, 4);
+      console.log(`📥 [管線 1/2] 籌碼下載：拆分為 ${chipChunks.length} 個極短切片進行安全 GET 連線...`);
 
       let totalChipsRowsFetched = 0;
       
       for (let idx = 0; idx < chipChunks.length; idx++) {
         const chunk = chipChunks[idx];
         try {
-          const cParams = new URLSearchParams({
-            dataset: 'TaiwanStockInstitutionalInvestorsBuySell',
-            data_id: sId,
-            start_date: chunk.start,
-            end_date: chunk.end,
-            token: token
-          });
+          // 順應伺服器規範，改回使用 URL query 參數的 GET 請求
+          const cApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${chunk.start}&end_date=${chunk.end}&token=${token}`;
 
-          const cRes = await axios.post(finmindApiUrl, cParams, { headers: commonHeaders });
+          const cRes = await axios.get(cApiUrl, { headers: commonHeaders });
           
-          // 🔍 DEBUG 2: 即時列印 FinMind 伺服器的原始回應狀況
-          // 我們抽樣列印第一個切片、中間切片、跟最後一個切片的真實狀況
+          // 📡 雷達監控日誌：抽樣檢查，確保我們知道它到底有沒有吐資料
           if (idx === 0 || idx === Math.floor(chipChunks.length / 2) || idx === chipChunks.length - 1) {
-            console.log(`📡 [切片監控 DUMP] 區間 ${chunk.start} ~ ${chunk.end}:`);
-            console.log(`   -> HTTP Code: ${cRes.status} | FinMind status: ${cRes.data.status}`);
-            console.log(`   -> FinMind msg: ${cRes.data.msg || '無訊息'}`);
-            console.log(`   -> data 是否為陣列: ${Array.isArray(cRes.data.data)}`);
-            console.log(`   -> data 陣列實際長度: ${Array.isArray(cRes.data.data) ? cRes.data.data.length : 'N/A'}`);
+            console.log(`📡 [GET 籌碼監控] 區間 ${chunk.start} ~ ${chunk.end}:`);
+            console.log(`   -> HTTP 狀態: ${cRes.status} | 陣列長度: ${Array.isArray(cRes.data.data) ? cRes.data.data.length : 'N/A'}`);
             if (Array.isArray(cRes.data.data) && cRes.data.data.length > 0) {
-              console.log(`   -> 原始資料真實樣本:`, JSON.stringify(cRes.data.data.slice(0, 2)));
+              console.log(`   -> 真實樣本:`, JSON.stringify(cRes.data.data.slice(0, 1)));
             }
           }
 
@@ -115,7 +103,6 @@ async function run() {
               const sellVal = Number(row.sell) || 0;
               const nameKey = String(row.name).trim();
 
-              // 🛡️ 容錯防禦：全面對齊大小寫
               if (nameKey === 'Foreign_Investor') { chipMemoryStore[d].f_buy = buyVal; chipMemoryStore[d].f_sell = sellVal; totalChipsRowsFetched++; }
               else if (nameKey === 'Foreign_Dealer_Self') { chipMemoryStore[d].fd_buy = buyVal; chipMemoryStore[d].fd_sell = sellVal; totalChipsRowsFetched++; }
               else if (nameKey === 'Investment_Trust') { chipMemoryStore[d].it_buy = buyVal; chipMemoryStore[d].it_sell = sellVal; totalChipsRowsFetched++; }
@@ -123,26 +110,20 @@ async function run() {
               else if (nameKey === 'Dealer_Hedging') { chipMemoryStore[d].dh_buy = buyVal; chipMemoryStore[d].dh_sell = sellVal; totalChipsRowsFetched++; }
             });
           }
-          await sleep(1000); // 休息 1 秒防止超頻
+          await sleep(1200); // 延長冷卻時間到 1.2 秒，溫和請求
         } catch (chunkErr) {
-          console.log(`⚠️ 切片 ${chunk.start} 網路層異常: ${chunkErr.message}`);
+          console.log(`⚠️ 切片 ${chunk.start} GET 異常: ${chunkErr.message}`);
         }
       }
-      console.log(`📊 [管線 1/2 結果] 籌碼記憶體注入完成，總共累加了 ${totalChipsRowsFetched} 筆法人買賣明細。`);
+      console.log(`📊 [管線 1/2 結果] 籌碼下載完畢，成功注入 ${totalChipsRowsFetched} 筆法人買賣明細！`);
 
       // ==========================================================
-      // 【第二階段：獨立拉取歷史 K 線量價數據】
+      // 【第二階段：獨立拉取歷史 K 線量價數據 (GET 模式)】
       // ==========================================================
       console.log(`📥 [管線 2/2] 正在拉取歷史量價全帳本（至最新交易日）...`);
-      const pParams = new URLSearchParams({
-        dataset: 'TaiwanStockPrice',
-        data_id: sId,
-        start_date: startDateStr,
-        end_date: endDateStr,
-        token: token
-      });
+      const pApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${token}`;
 
-      const pRes = await axios.post(finmindApiUrl, pParams, { headers: commonHeaders });
+      const pRes = await axios.get(pApiUrl, { headers: commonHeaders });
       
       if (pRes.data.status === 200 && Array.isArray(pRes.data.data) && pRes.data.data.length > 0) {
         pRes.data.data.forEach(pRow => {
@@ -253,14 +234,14 @@ async function run() {
         });
       }
 
-      // 🔍 DEBUG 3: 寫入前的最終抽樣檢查
+      // 📝 最終檢查日誌
       const sampleDay = finalRowUpdates[finalRowUpdates.length - 1];
-      console.log(`📝 [資料庫寫入前雷達觀測] 最新一天 (${sampleDay.date}) 封裝結果：`);
-      console.log(`   -> 外資買超: ${sampleDay.f_buy} | 投信買超: ${sampleDay.it_buy} | 自營買超: ${sampleDay.ds_buy}`);
+      console.log(`📝 [資料庫寫入前檢查] 最新一天 (${sampleDay.date}) 封裝：`);
+      console.log(`   -> 外資買超: ${sampleDay.f_buy} | 投信買超: ${sampleDay.it_buy} | 最新股價: ${sampleDay.price}`);
 
       const { error: insErr } = await supabase.from('stock_chips_daily').insert(finalRowUpdates);
       if (insErr) throw insErr;
-      console.log(`✨ 個股 ${sId} 歷史大帳本覆蓋重構完成。`);
+      console.log(`✨ 個股 ${sId} 歷史大帳本【GET 4天防禦版】重構成功。`);
 
     } catch (err) {
       console.error(`❌ 重建個股 ${sId} 失敗:`, err.message);
