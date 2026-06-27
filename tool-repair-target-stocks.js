@@ -11,6 +11,15 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// 💡 新增：自動取得動態日期的輔助函式 (格式：YYYY-MM-DD)
+function getTodayStr() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 async function run() {
   console.log("🔥 🚨 【真・休市日絕對掠過版】全量物理重建大工程啟動...");
 
@@ -26,7 +35,8 @@ async function run() {
   };
 
   const startDateStr = "2026-01-02";
-  const endDateStr = "2026-06-26"; // 調整為最新的有效交易日 (2026-06-26)
+  const endDateStr = getTodayStr(); // 🌟 改為動態自動取得當天日期
+  console.log(`📅 資料抓取時間範圍：${startDateStr} 至 ${endDateStr}`);
 
   // 2. 逐檔進行完整性校驗與實體重建
   for (let i = 0; i < stockList.length; i++) {
@@ -207,13 +217,13 @@ async function run() {
       // === (D) 整批乾淨寫入大帳本 ===
       const { error: insertErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
       if (insertErr) throw insertErr;
-      console.log(`✨ [重建成功] 個股 ${sId} 歷史大帳本物理重建完畢（已完全移除 6/19 等放假日）。`);
+      console.log(`✨ [重建成功] 個股 ${sId} 歷史大帳本物理重建完畢。`);
 
     } catch (singleErr) {
       console.error(`❌ 重建個股 ${sId} 失敗:`, singleErr.message);
     }
     
-    await sleep(600); // 穩健停頓，避免超頻
+    await sleep(600);
   }
 
   console.log("\n🎉 【真・全量放假日掠過與指標重建大工程】完美收官！");
