@@ -1,4 +1,4 @@
-// tool-repair-target-stocks.js
+// tool-force-repair-indicators.js
 if (!global.WebSocket) { global.WebSocket = class {}; }
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -11,7 +11,6 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// 輔助函式：格式化日期為 YYYY-MM-DD
 function formatDateToString(dateObj) {
   const yyyy = dateObj.getFullYear();
   const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -19,8 +18,8 @@ function formatDateToString(dateObj) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// 輔助函式：切成 14 天一個短區間，用最安全、穩健的步伐向 FinMind 討歷史籌碼
-function splitDateRangeIntoChunks(startStr, endStr, days = 14) {
+// 徹底降級到 7 天一包短切片，確保 2301, 6446 這類巨量法人的熱門股絕不觸發流量限制
+function splitDateRangeIntoChunks(startStr, endStr, days = 7) {
   let chunks = [];
   let currentStart = new Date(startStr);
   let finalEnd = new Date(endStr);
@@ -38,15 +37,17 @@ function splitDateRangeIntoChunks(startStr, endStr, days = 14) {
 }
 
 async function run() {
+  // 🎯 精準鎖定這兩檔有問題的核心標的
   const targetStockIds = ["2301", "6446"]; 
   
-  // 📅 🔥 動態核心機制：嚴格改為執行程式的那一天
   const todayObj = new Date();
   const startDateStr = "2026-01-02"; // 歷史起點保持不變
-  const endDateStr = formatDateToString(todayObj); // 自動變更為執行當天 (例: 2026-06-26)
+  const endDateStr = formatDateToString(todayObj); // 自動變更為執行程式當天的日期
 
-  console.log(`🎯 啟動【動態日期雙管分流重建程序】`);
+  console.log(`🎯 ====================================================`);
+  console.log(`🎯 啟動【 tool-force-repair-indicators.js 強力重構修復版】`);
   console.log(`📅 追蹤區間：${startDateStr} 至 當前執行日: ${endDateStr}`);
+  console.log(`🎯 ====================================================`);
 
   const commonHeaders = {
     'accept': 'application/json',
@@ -59,17 +60,17 @@ async function run() {
 
   for (let i = 0; i < targetStockIds.length; i++) {
     const sId = targetStockIds[i];
-    console.log(`\n========================================\n🚀 啟動動態重構個股: ${sId}`);
+    console.log(`\n🚀 [目標覆蓋重構] 正在強力攻堅個股: ${sId}`);
 
     try {
       const chipMemoryStore = {};   
       const priceMemoryStore = {};  
 
       // ==========================================================
-      // 【第一次取得：獨立攻堅三大法人歷史籌碼大帳本】
+      // 【第一階段：使用 POST ＋ 7天切片 攻堅歷史三大法人】
       // ==========================================================
-      const chipChunks = splitDateRangeIntoChunks(startDateStr, endDateStr, 14);
-      console.log(`📥 [管線 1/2] 歷史籌碼啟動，拆分為 ${chipChunks.length} 個安全區間分批 POST 獲取...`);
+      const chipChunks = splitDateRangeIntoChunks(startDateStr, endDateStr, 7);
+      console.log(`📥 [管線 1/2] 歷史籌碼下載中... 共拆分為 ${chipChunks.length} 個超短切片進攻...`);
 
       let totalChipsRowsFetched = 0;
       for (let chunk of chipChunks) {
@@ -90,25 +91,27 @@ async function run() {
               if (!chipMemoryStore[d]) {
                 chipMemoryStore[d] = { f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 };
               }
-              if (row.name === 'Foreign_Investor') { chipMemoryStore[d].f_buy = row.buy || 0; chipMemoryStore[d].f_sell = row.sell || 0; totalChipsRowsFetched++; }
-              else if (row.name === 'Foreign_Dealer_Self') { chipMemoryStore[d].fd_buy = row.buy || 0; chipMemoryStore[d].fd_sell = row.sell || 0; totalChipsRowsFetched++; }
-              else if (row.name === 'Investment_Trust') { chipMemoryStore[d].it_buy = row.buy || 0; chipMemoryStore[d].it_sell = row.sell || 0; totalChipsRowsFetched++; }
-              else if (row.name === 'Dealer_self') { chipMemoryStore[d].ds_buy = row.buy || 0; chipMemoryStore[d].ds_sell = row.sell || 0; totalChipsRowsFetched++; }
-              else if (row.name === 'Dealer_Hedging') { chipMemoryStore[d].dh_buy = row.buy || 0; chipMemoryStore[d].dh_sell = row.sell || 0; totalChipsRowsFetched++; }
+              const buyVal = Number(row.buy) || 0;
+              const sellVal = Number(row.sell) || 0;
+
+              if (row.name === 'Foreign_Investor') { chipMemoryStore[d].f_buy = buyVal; chipMemoryStore[d].f_sell = sellVal; totalChipsRowsFetched++; }
+              else if (row.name === 'Foreign_Dealer_Self') { chipMemoryStore[d].fd_buy = buyVal; chipMemoryStore[d].fd_sell = sellVal; totalChipsRowsFetched++; }
+              else if (row.name === 'Investment_Trust') { chipMemoryStore[d].it_buy = buyVal; chipMemoryStore[d].it_sell = sellVal; totalChipsRowsFetched++; }
+              else if (row.name === 'Dealer_self') { chipMemoryStore[d].ds_buy = buyVal; chipMemoryStore[d].ds_sell = sellVal; totalChipsRowsFetched++; }
+              else if (row.name === 'Dealer_Hedging') { chipMemoryStore[d].dh_buy = buyVal; chipMemoryStore[d].dh_sell = sellVal; totalChipsRowsFetched++; }
             });
           }
-          await sleep(600); 
+          await sleep(1000); // 每次拉取休息 1 秒，優雅繞過頻率限制
         } catch (chunkErr) {
-          console.log(`⚠️ 籌碼切片 ${chunk.start} 下載跳過: ${chunkErr.message}`);
+          console.log(`⚠️ 切片 ${chunk.start} 籌碼獲取跳過: ${chunkErr.message}`);
         }
       }
-      console.log(`📊 [管線 1/2 完成] 成功擷取到 ${totalChipsRowsFetched} 筆法人籌碼明細數據。`);
-
+      console.log(`📊 [管線 1/2 完成] 籌碼記憶體拼圖完工，共累計 ${totalChipsRowsFetched} 筆詳細法人明細。`);
 
       // ==========================================================
-      // 【第二次取得：獨立拉取歷史 K 線價格、成交量與計算指標】
+      // 【第二階段：獨立一次性拉取歷史量價 K 線數據】
       // ==========================================================
-      console.log(`📥 [管線 2/2] 啟動拉取動態區間 K 線全帳本...`);
+      console.log(`📥 [管線 2/2] 正在拉取歷史量價全帳本...`);
       const pParams = new URLSearchParams({
         dataset: 'TaiwanStockPrice',
         data_id: sId,
@@ -145,18 +148,16 @@ async function run() {
       }
       console.log(`📈 [管線 2/2 完成] 歷史量價下載完畢，共計 ${sortedPriceDays.length} 個交易日。`);
 
-
       // ==========================================================
       // 【第三階段：記憶體交叉匯流融合 ＆ 精密遞迴計算技術指標】
       // ==========================================================
-      console.log(`⚙️  [階段 3] 啟動記憶體交叉融合，清空並重新對齊 28 欄位...`);
+      console.log(`⚙️  [階段 3] 啟動記憶體對齊，清空並重新精算 28 個指定欄位...`);
       
-      // 動態清洗 Supabase 到執行當天為止的舊殘留，完美防重複
+      // 安全機制：確認全部資料在記憶體備妥後，才清空資料庫舊的「0」殘留數據，完美防重複與髒資料
       await supabase.from('stock_chips_daily').delete().eq('stock_id', sId).gte('date', startDateStr).lte('date', endDateStr);
 
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
       const difHistory = []; let prevK = 50.0; let prevD = 50.0; let avgUp = 0, avgDown = 0;
-      
       const finalRowUpdates = [];
 
       for (let j = 0; j < sortedPriceDays.length; j++) {
@@ -166,6 +167,7 @@ async function run() {
         const currentPrice = targetDay.price;
         const d = targetDay.date;
 
+        // 從剛剛 7 天切片中拼湊出來的晶片庫房撈數據
         const cData = chipMemoryStore[d] || { f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 };
 
         let calculatedMA5 = null; let calculatedMA10 = null; let calculatedMA20 = null;
@@ -218,8 +220,7 @@ async function run() {
         }
 
         finalRowUpdates.push({
-          stock_id: sId,
-          date: d,
+          stock_id: sId, date: d,
           price: targetDay.price, open: targetDay.open, max: targetDay.max, min: targetDay.min,
           trading_volume: targetDay.trading_volume, change_value: targetDay.change_value,
           f_buy: cData.f_buy, f_sell: cData.f_sell, fd_buy: cData.fd_buy, fd_sell: cData.fd_sell,
@@ -236,13 +237,13 @@ async function run() {
       // ==========================================================
       const { error: insErr } = await supabase.from('stock_chips_daily').insert(finalRowUpdates);
       if (insErr) throw insErr;
-      console.log(`✨ [動態分流大修復成功] 個股 ${sId} 到今日為止的歷史紀錄已完美還原入庫！`);
+      console.log(`✨ [覆蓋修復成功] 個股 ${sId} 到今日為止包含三大法人的所有歷史紀錄已完美更新歸檔！`);
 
     } catch (err) {
-      console.error(`❌ 補件個股 ${sId} 遭遇核心層級錯誤:`, err.message);
+      console.error(`❌ 修復個股 ${sId} 失敗:`, err.message);
     }
     await sleep(2000); 
   }
-  console.log("🎉 特定個股自動化動態歷史重構全數結束！");
+  console.log("🎉 特定個股歷史重構覆蓋修復作業全部結束！");
 }
 run();
