@@ -18,8 +18,8 @@ function formatDateToString(dateObj) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// 徹底降級到 7 天一包短切片，確保 2301, 6446 這類巨量法人的熱門股絕不觸發流量限制
-function splitDateRangeIntoChunks(startStr, endStr, days = 7) {
+// 強制降級到 5 天一包的極短跨度，這是對付 2301, 6446 這種巨量法人股最強力的防風控手段
+function splitDateRangeIntoChunks(startStr, endStr, days = 5) {
   let chunks = [];
   let currentStart = new Date(startStr);
   let finalEnd = new Date(endStr);
@@ -37,16 +37,15 @@ function splitDateRangeIntoChunks(startStr, endStr, days = 7) {
 }
 
 async function run() {
-  // 🎯 精準鎖定這兩檔有問題的核心標的
   const targetStockIds = ["2301", "6446"]; 
   
   const todayObj = new Date();
-  const startDateStr = "2026-01-02"; // 歷史起點保持不變
-  const endDateStr = formatDateToString(todayObj); // 自動變更為執行程式當天的日期
+  const startDateStr = "2026-01-02"; // 歷史重構起點
+  const endDateStr = formatDateToString(todayObj); // 📅 自動對齊補齊到今天的最新交易日
 
   console.log(`🎯 ====================================================`);
-  console.log(`🎯 啟動【 tool-force-repair-indicators.js 強力重構修復版】`);
-  console.log(`📅 追蹤區間：${startDateStr} 至 當前執行日: ${endDateStr}`);
+  console.log(`🎯 啟動【三大法人精密雷達日誌 ＆ 歷史全量覆蓋管線】`);
+  console.log(`📅 重建區間：${startDateStr} 至 最新交易日: ${endDateStr}`);
   console.log(`🎯 ====================================================`);
 
   const commonHeaders = {
@@ -57,23 +56,30 @@ async function run() {
 
   const finmindApiUrl = "https://api.finmindtrade.com/api/v4/data";
   const token = process.env.FINMIND_TOKEN || '';
+  
+  // 🔍 DEBUG 1: 檢查環境變數 Token 狀態
+  console.log(`🔑 [Token 狀態檢查]：當前讀取的 Token 前 6 碼為: "${token ? token.substring(0, 6) + '...' : '❌ 未定義 EMPTY!!!!'}"`);
 
   for (let i = 0; i < targetStockIds.length; i++) {
     const sId = targetStockIds[i];
-    console.log(`\n🚀 [目標覆蓋重構] 正在強力攻堅個股: ${sId}`);
+    console.log(`\n🚀 ----------------------------------------------------`);
+    console.log(`🚀 正在強力重構核心個股: ${sId}`);
+    console.log(`🚀 ----------------------------------------------------`);
 
     try {
       const chipMemoryStore = {};   
       const priceMemoryStore = {};  
 
       // ==========================================================
-      // 【第一階段：使用 POST ＋ 7天切片 攻堅歷史三大法人】
+      // 【第一階段：三大法人歷史籌碼大攻堅 + 全量 DUMP 日誌】
       // ==========================================================
-      const chipChunks = splitDateRangeIntoChunks(startDateStr, endDateStr, 7);
-      console.log(`📥 [管線 1/2] 歷史籌碼下載中... 共拆分為 ${chipChunks.length} 個超短切片進攻...`);
+      const chipChunks = splitDateRangeIntoChunks(startDateStr, endDateStr, 5);
+      console.log(`📥 [管線 1/2] 籌碼下載：拆分為 ${chipChunks.length} 個極短切片進行密集連線...`);
 
       let totalChipsRowsFetched = 0;
-      for (let chunk of chipChunks) {
+      
+      for (let idx = 0; idx < chipChunks.length; idx++) {
+        const chunk = chipChunks[idx];
         try {
           const cParams = new URLSearchParams({
             dataset: 'TaiwanStockInstitutionalInvestorsBuySell',
@@ -85,33 +91,49 @@ async function run() {
 
           const cRes = await axios.post(finmindApiUrl, cParams, { headers: commonHeaders });
           
+          // 🔍 DEBUG 2: 即時列印 FinMind 伺服器的原始回應狀況
+          // 我們抽樣列印第一個切片、中間切片、跟最後一個切片的真實狀況
+          if (idx === 0 || idx === Math.floor(chipChunks.length / 2) || idx === chipChunks.length - 1) {
+            console.log(`📡 [切片監控 DUMP] 區間 ${chunk.start} ~ ${chunk.end}:`);
+            console.log(`   -> HTTP Code: ${cRes.status} | FinMind status: ${cRes.data.status}`);
+            console.log(`   -> FinMind msg: ${cRes.data.msg || '無訊息'}`);
+            console.log(`   -> data 是否為陣列: ${Array.isArray(cRes.data.data)}`);
+            console.log(`   -> data 陣列實際長度: ${Array.isArray(cRes.data.data) ? cRes.data.data.length : 'N/A'}`);
+            if (Array.isArray(cRes.data.data) && cRes.data.data.length > 0) {
+              console.log(`   -> 原始資料真實樣本:`, JSON.stringify(cRes.data.data.slice(0, 2)));
+            }
+          }
+
           if (cRes.data.status === 200 && Array.isArray(cRes.data.data) && cRes.data.data.length > 0) {
             cRes.data.data.forEach(row => {
               const d = row.date;
               if (!chipMemoryStore[d]) {
                 chipMemoryStore[d] = { f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 };
               }
+              
               const buyVal = Number(row.buy) || 0;
               const sellVal = Number(row.sell) || 0;
+              const nameKey = String(row.name).trim();
 
-              if (row.name === 'Foreign_Investor') { chipMemoryStore[d].f_buy = buyVal; chipMemoryStore[d].f_sell = sellVal; totalChipsRowsFetched++; }
-              else if (row.name === 'Foreign_Dealer_Self') { chipMemoryStore[d].fd_buy = buyVal; chipMemoryStore[d].fd_sell = sellVal; totalChipsRowsFetched++; }
-              else if (row.name === 'Investment_Trust') { chipMemoryStore[d].it_buy = buyVal; chipMemoryStore[d].it_sell = sellVal; totalChipsRowsFetched++; }
-              else if (row.name === 'Dealer_self') { chipMemoryStore[d].ds_buy = buyVal; chipMemoryStore[d].ds_sell = sellVal; totalChipsRowsFetched++; }
-              else if (row.name === 'Dealer_Hedging') { chipMemoryStore[d].dh_buy = buyVal; chipMemoryStore[d].dh_sell = sellVal; totalChipsRowsFetched++; }
+              // 🛡️ 容錯防禦：全面對齊大小寫
+              if (nameKey === 'Foreign_Investor') { chipMemoryStore[d].f_buy = buyVal; chipMemoryStore[d].f_sell = sellVal; totalChipsRowsFetched++; }
+              else if (nameKey === 'Foreign_Dealer_Self') { chipMemoryStore[d].fd_buy = buyVal; chipMemoryStore[d].fd_sell = sellVal; totalChipsRowsFetched++; }
+              else if (nameKey === 'Investment_Trust') { chipMemoryStore[d].it_buy = buyVal; chipMemoryStore[d].it_sell = sellVal; totalChipsRowsFetched++; }
+              else if (nameKey === 'Dealer_self') { chipMemoryStore[d].ds_buy = buyVal; chipMemoryStore[d].ds_sell = sellVal; totalChipsRowsFetched++; }
+              else if (nameKey === 'Dealer_Hedging') { chipMemoryStore[d].dh_buy = buyVal; chipMemoryStore[d].dh_sell = sellVal; totalChipsRowsFetched++; }
             });
           }
-          await sleep(1000); // 每次拉取休息 1 秒，優雅繞過頻率限制
+          await sleep(1000); // 休息 1 秒防止超頻
         } catch (chunkErr) {
-          console.log(`⚠️ 切片 ${chunk.start} 籌碼獲取跳過: ${chunkErr.message}`);
+          console.log(`⚠️ 切片 ${chunk.start} 網路層異常: ${chunkErr.message}`);
         }
       }
-      console.log(`📊 [管線 1/2 完成] 籌碼記憶體拼圖完工，共累計 ${totalChipsRowsFetched} 筆詳細法人明細。`);
+      console.log(`📊 [管線 1/2 結果] 籌碼記憶體注入完成，總共累加了 ${totalChipsRowsFetched} 筆法人買賣明細。`);
 
       // ==========================================================
-      // 【第二階段：獨立一次性拉取歷史量價 K 線數據】
+      // 【第二階段：獨立拉取歷史 K 線量價數據】
       // ==========================================================
-      console.log(`📥 [管線 2/2] 正在拉取歷史量價全帳本...`);
+      console.log(`📥 [管線 2/2] 正在拉取歷史量價全帳本（至最新交易日）...`);
       const pParams = new URLSearchParams({
         dataset: 'TaiwanStockPrice',
         data_id: sId,
@@ -146,14 +168,14 @@ async function run() {
         console.error(`❌ [管線 2/2 失敗] 找不到個股 ${sId} 的價格資料，跳過。`);
         continue;
       }
-      console.log(`📈 [管線 2/2 完成] 歷史量價下載完畢，共計 ${sortedPriceDays.length} 個交易日。`);
+      console.log(`📈 [管線 2/2 完成] 歷史量價下載完畢，最新日期到 ${sortedPriceDays[sortedPriceDays.length - 1].date}，共計 ${sortedPriceDays.length} 個交易日。`);
 
       // ==========================================================
-      // 【第三階段：記憶體交叉匯流融合 ＆ 精密遞迴計算技術指標】
+      // 【第三階段：記憶體融合 ＆ 技術指標重算】
       // ==========================================================
-      console.log(`⚙️  [階段 3] 啟動記憶體對齊，清空並重新精算 28 個指定欄位...`);
+      console.log(`⚙️  [階段 3] 進行記憶體融合與指標重組...`);
       
-      // 安全機制：確認全部資料在記憶體備妥後，才清空資料庫舊的「0」殘留數據，完美防重複與髒資料
+      // 清空舊數據
       await supabase.from('stock_chips_daily').delete().eq('stock_id', sId).gte('date', startDateStr).lte('date', endDateStr);
 
       let prevEma12 = null, prevEma26 = null, prevMacd9 = null;
@@ -167,7 +189,6 @@ async function run() {
         const currentPrice = targetDay.price;
         const d = targetDay.date;
 
-        // 從剛剛 7 天切片中拼湊出來的晶片庫房撈數據
         const cData = chipMemoryStore[d] || { f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 };
 
         let calculatedMA5 = null; let calculatedMA10 = null; let calculatedMA20 = null;
@@ -232,18 +253,19 @@ async function run() {
         });
       }
 
-      // ==========================================================
-      // 【第四階段：整批寫入 Supabase 資料庫】
-      // ==========================================================
+      // 🔍 DEBUG 3: 寫入前的最終抽樣檢查
+      const sampleDay = finalRowUpdates[finalRowUpdates.length - 1];
+      console.log(`📝 [資料庫寫入前雷達觀測] 最新一天 (${sampleDay.date}) 封裝結果：`);
+      console.log(`   -> 外資買超: ${sampleDay.f_buy} | 投信買超: ${sampleDay.it_buy} | 自營買超: ${sampleDay.ds_buy}`);
+
       const { error: insErr } = await supabase.from('stock_chips_daily').insert(finalRowUpdates);
       if (insErr) throw insErr;
-      console.log(`✨ [覆蓋修復成功] 個股 ${sId} 到今日為止包含三大法人的所有歷史紀錄已完美更新歸檔！`);
+      console.log(`✨ 個股 ${sId} 歷史大帳本覆蓋重構完成。`);
 
     } catch (err) {
-      console.error(`❌ 修復個股 ${sId} 失敗:`, err.message);
+      console.error(`❌ 重建個股 ${sId} 失敗:`, err.message);
     }
     await sleep(2000); 
   }
-  console.log("🎉 特定個股歷史重構覆蓋修復作業全部結束！");
 }
 run();
