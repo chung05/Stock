@@ -1,4 +1,4 @@
-// tool-force-repair-indicators.js
+// tool-repair-target-stocks.js
 if (!global.WebSocket) { global.WebSocket = class {}; }
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
