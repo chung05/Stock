@@ -1,11 +1,11 @@
 // test.js
 const CONFIG = {
-    // 💡 1. 已經幫您填上剛才測試成功的專屬 Cloudflare Worker 網址
+    // 💡 1. 您的專屬 Cloudflare Worker 網址
     workerUrl: "https://stock.chiu6-chung05.workers.dev", 
     
-    // 💡 2. 請把下方改為您實際的 GitHub 帳號與倉庫名稱
-    ghUser: "chiu6-chung05",  // ⬅️ 請確認這是您的 GitHub 帳號
-    ghRepo: "stock"          // ⬅️ 請確認這是您的專案倉庫名稱
+    // 💡 2. 根據您提供的真實網址，精準校正帳號與倉庫大小寫
+    ghUser: "chung05",  // ⬅️ 已修正為 chung05
+    ghRepo: "Stock"     // ⬅️ 已修正為大寫 S 的 Stock
 };
 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
@@ -28,10 +28,14 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         // 1. 命令 Worker 去抓官方資料並存到 GitHub 檔案庫
         const triggerWorker = await axios.get(`${CONFIG.workerUrl}/?date=${dateStr}`);
         
-        logEl.innerText = `📥 步驟 2: 雲端備份成功 (狀態: 201)！正在從 GitHub 載入全台大總表檔案...`;
+        logEl.innerText = `📥 步驟 2: 雲端備份成功！正在從 GitHub 載入全台大總表檔案...`;
 
-        // 2. 直接從 GitHub Raw 下載完全屬於您自己的總表，100% 支援 CORS，絕對不會失敗！
-        const githubRawUrl = `https://raw.githubusercontent.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/main/json/${dateStr}.json`;
+        // 💡 3. 【核心網址修正】：完全對齊您手動抓出的 GitHub 最新真實 Raw 網址結構
+        const githubRawUrl = `https://github.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/raw/refs/heads/main/json/${dateStr}.json`;
+        
+        console.log("🛠️ 程式目前正在讀取的真實網址為：", githubRawUrl);
+        
+        // 2. 發送請求讀取檔案
         const ghRes = await axios.get(githubRawUrl);
         
         const totalBook = ghRes.data;
@@ -50,11 +54,11 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
                 "股票代號": sId,
                 "股票名稱": foundRow[1].trim(),
                 "查詢日期": rawDate,
-                "資料來源": "臺灣證券交易所 (Worker+GitHub 雲端過濾)",
+                "資料來源": "臺灣證券交易所 (Worker+GitHub 最新網址架構)",
                 "外資買賣超股數(欄位4)": foundRow[4],
                 "投信買賣超股數(欄位7)": foundRow[7],
                 "自營商買賣超股數(欄位10)": foundRow[10],
-                "GitHub 總表檔案中該股的完整 Row 陣列": foundRow
+                "GitHub 總表檔案中該股的完整原始 Row 陣列": foundRow
             }, null, 2);
         } else {
             badgeEl.className = 'badge error';
@@ -68,6 +72,9 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         badgeEl.className = 'badge error';
         badgeEl.innerText = '管線中斷';
         logEl.innerText = `❌ 錯誤：無法透過雲端管線獲取數據。`;
-        resultEl.innerText = `可能原因排查：\n1. 請確認 test.js 裡面的 ghUser 與 ghRepo 名字是否有大小寫打錯。\n2. 您的 GitHub 預設分支是否不叫 main 而是叫 master？\n\n詳細除錯追蹤:\n${err.stack}`;
+        
+        // 再次建立一條動態除錯提示，方便您對比
+        const currentTryUrl = `https://github.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/raw/refs/heads/main/json/${dateStr}.json`;
+        resultEl.innerText = `【除錯對比資訊】\n您手動測試OK的網址：https://github.com/chung05/Stock/raw/refs/heads/main/json/20250625.json\n程式目前正在戳的網址：${currentTryUrl}\n\n詳細錯誤追蹤:\n${err.stack}`;
     }
 });
