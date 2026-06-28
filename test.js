@@ -1,4 +1,4 @@
-// test.js (西元對接修正版)
+// test.js (10大籌碼細緻過濾版)
 const CONFIG = {
     workerUrl: "https://stock.chiu6-chung05.workers.dev", 
     ghUser: "chung05",  
@@ -8,15 +8,12 @@ const CONFIG = {
 // 自動預設為最後一個開盤交易日 (西元格式)
 function initDefaultDate() {
     let targetDate = new Date();
-    // 💡 防呆：如果現在是下午 5 點前，先看昨天
     if (targetDate.getHours() < 17) targetDate.setDate(targetDate.getDate() - 1);
     
-    // 💡 防呆：遇週六或週日，自動退回週五
     while (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
         targetDate.setDate(targetDate.getDate() - 1);
     }
     
-    // 格式化為 YYYY-MM-DD
     const yyyy = targetDate.getFullYear();
     const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
     const dd = String(targetDate.getDate()).padStart(2, '0');
@@ -30,7 +27,6 @@ function initDefaultDate() {
     }
 }
 
-// 確保網頁所有標籤都好了再執行初始化
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initDefaultDate);
 } else {
@@ -39,7 +35,7 @@ if (document.readyState === 'loading') {
 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
     const sId = document.getElementById('stockId').value.trim();
-    const rawDate = document.getElementById('targetDate').value; // 抓到 "2026-06-26"
+    const rawDate = document.getElementById('targetDate').value; 
     
     const badgeEl = document.getElementById('resultBadge');
     const diagEl = document.getElementById('diagLogs');
@@ -47,7 +43,6 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
 
     if (!sId || !rawDate) return alert("請輸入完整股票代號與日期");
 
-    // 清洗格式：把 2026-06-26 變成純 8 碼西元 "20260626"
     const dateStr = rawDate.replace(/-/g, ''); 
 
     badgeEl.className = 'badge';
@@ -60,12 +55,11 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
     resultEl.innerText = `// 正在請求雲端處理，請稍候...`;
 
     try {
-        // 1. 觸發 Worker
+        // 1. 觸發 Worker 下載與落盤
         const triggerWorker = await axios.get(`${CONFIG.workerUrl}/?date=${dateStr}`);
         const wData = triggerWorker.data;
         
-        logHTML += `🟢 <b>[步驟 1 成功] Cloudflare Worker 已將證交所大檔存入 GitHub！</b><br>`;
-        logHTML += `• 原始證交所西元請求網址: <a href="${wData.calledTwseUrl}" target="_blank" style="color:#2ecc71; text-decoration:underline;">點此開啟官方 JSON 連結</a><br>`;
+        logHTML += `🟢 <b>[步驟 1 成功] Cloudflare Worker 已成功取得證交所原始西元大檔！</b><br>`;
         logHTML += `• ⏳ 索引緩衝 1.5 秒中...<br>`;
         diagEl.innerHTML = logHTML;
 
@@ -76,7 +70,6 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         const githubRawUrl = `https://raw.githubusercontent.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/refs/heads/main/json/${dateStr}.json?t=${timestamp}`;
         
         logHTML += `🚀 <b>[步驟 2/3] 正在自解鎖網域拉取專屬西元大檔...</b><br>`;
-        logHTML += `• 雲端路徑: <a href="${githubRawUrl}" target="_blank" style="color:#7fdbff">${githubRawUrl}</a><br>`;
         diagEl.innerHTML = logHTML;
 
         const ghRes = await axios.get(githubRawUrl);
@@ -102,24 +95,42 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         if (foundRow) {
             badgeEl.className = 'badge success';
             badgeEl.innerText = '分析完成';
-            logHTML += `🏆 <b>[全線完工] 籌碼篩選成功！</b>`;
+            logHTML += `🏆 <b>[全線完工] 10大細項籌碼篩選成功！</b>`;
             diagEl.innerHTML = logHTML;
             
+            // 💡 這裡精準對接 5 大機構的【買進】與【賣出】各欄位
             resultEl.innerText = JSON.stringify({
                 "股票代號": sId,
                 "股票名稱": foundRow[1].trim(),
-                "交易日期(西元)": rawDate,
-                "外資買賣超股數": foundRow[4],
-                "投信買賣超股數": foundRow[7],
-                "自營商買賣超股數": foundRow[10],
-                "GitHub 備份檔名": `${dateStr}.json`,
-                "證交所完整原始資料列": foundRow
+                "交易日期": rawDate,
+                "------------------": "以下為您要求的 10 種精細買賣超數據",
+                "外資及陸資": {
+                    "買進股數": foundRow[2],
+                    "賣出股數": foundRow[3]
+                },
+                "外資自營商": {
+                    "買進股數": foundRow[5],
+                    "賣出股數": foundRow[6]
+                },
+                "投信": {
+                    "買進股數": foundRow[8],
+                    "賣出股數": foundRow[9]
+                },
+                "自營商(自行買賣)": {
+                    "買進股數": foundRow[11],
+                    "賣出股數": foundRow[12]
+                },
+                "自營商(避險)": {
+                    "買進股數": foundRow[14],
+                    "賣出股數": foundRow[15]
+                }
             }, null, 2);
         } else {
             badgeEl.className = 'badge error';
             badgeEl.innerText = '無法人買賣';
             logHTML += `⚠️ <b>[全線完工] 大檔已備份，但個股無交易紀錄。</b>`;
             diagEl.innerHTML = logHTML;
+            resultEl.innerText = `股票代號 ${sId} 在當天沒有任何三大法人進出紀錄。`;
         }
 
     } catch (err) {
