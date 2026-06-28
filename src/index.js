@@ -1,3 +1,4 @@
+// src/index.js (Cloudflare Worker 修正版)
 export default {
   async fetch(request, env) {
     // 處理網頁端跨網域預檢 (CORS)
@@ -12,12 +13,23 @@ export default {
     }
 
     const url = new URL(request.url);
-    const date = url.searchParams.get("date"); // 接收 YYYYMMDD
+    const date = url.searchParams.get("date"); // 接收網頁傳來的西元格式，例如 "20250625"
 
-    if (!date) return new Response("Missing date param", { status: 400 });
+    if (!date || date.length !== 8) {
+      return new Response("Missing or invalid date param (should be YYYYMMDD)", { status: 400 });
+    }
 
-    // 1. 直連證交所下載總表 (偽裝標頭)
-    const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${date}&selectType=ALLBUT0999&response=json`;
+    // 💡 【核心邏輯修正】：將西元日期轉換為證交所 T86 接口指定的「民國日期」
+    const year = parseInt(date.substring(0, 4));
+    const month = date.substring(4, 6);
+    const day = date.substring(6, 8);
+    
+    const twYear = year - 1911; // 2025 - 1911 = 114
+    const twDateStr = `${twYear}/${month}/${day}`; // 轉換成 "114/06/25"
+
+    // 1. 直連證交所下載總表 (帶入正確的民國日期網址)
+    const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${encodeURIComponent(twDateStr)}&selectType=ALLBUT0999&response=json`;
+    
     const twseRes = await fetch(twseUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -27,14 +39,13 @@ export default {
     
     const totalBookJson = await twseRes.text();
 
-    // 2. 將大檔案推送到您的 GitHub 資料夾 (使用 GitHub API)
-    const ghUser = env.GH_USER;     // 您的 GitHub 帳號
-    const ghRepo = env.GH_REPO;     // 您的 Repository 名稱
-    const ghToken = env.GH_TOKEN;   // 您的 GitHub Access Token
+    // 2. 將大檔案推送到您的 GitHub 資料夾 (維持用西元命名，方便網頁讀取)
+    const ghUser = env.GH_USER;     
+    const ghRepo = env.GH_REPO;     
+    const ghToken = env.GH_TOKEN;   
     
     const commitUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/json/${date}.json`;
     
-    // 檢查 GitHub 上是否已經存在該檔案 (避免重複覆蓋產生衝突)
     let sha = null;
     try {
       const checkRes = await fetch(commitUrl, {
@@ -42,20 +53,18 @@ export default {
       });
       if (checkRes.status === 200) {
         const checkData = await checkRes.json();
-        sha = checkData.sha; // 如果檔案存在，拿到它的 sha 識別碼
+        sha = checkData.sha; 
       }
     } catch (e) {}
 
-    // 將資料轉為 Base64 編碼以符合 GitHub API 規範
     const b64Content = btoa(unescape(encodeURIComponent(totalBookJson))); 
     
     const bodyPayload = {
-      message: `📥 自動同步 ${date} 證交所總表大明細`,
+      message: `📥 自動同步 ${date} (民國 ${twDateStr}) 證交所總表`,
       content: b64Content
     };
-    if (sha) bodyPayload.sha = sha; // 如果檔案已存在，帶入 sha 進行更新
+    if (sha) bodyPayload.sha = sha; 
 
-    // 推送給 GitHub API 存檔
     const ghRes = await fetch(commitUrl, {
       method: "PUT",
       headers: {
@@ -66,7 +75,7 @@ export default {
       body: JSON.stringify(bodyPayload)
     });
 
-    return new Response(JSON.stringify({ success: ghRes.ok, status: ghRes.status }), {
+    return new Response(JSON.stringify({ success: ghRes.ok, status: ghRes.status, msg: `Converted to ${twDateStr}` }), {
       headers: { 
         "Access-Control-Allow-Origin": "*", 
         "Content-Type": "application/json" 
