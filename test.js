@@ -1,113 +1,115 @@
-// test-official.js
-const axios = require('axios');
-
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// =========================================================================
-// ⚙️ 【網頁端驗證轉後端直連：自訂核心測試區】
-// =========================================================================
-const CONFIG = {
-  stockId: "2301",       // 🎯 請在此輸入您當前想單獨測試的「一檔個股」 (例如 "2301" 或 "6446")
-  targetDate: "2026-06-24" // 📅 請輸入您要驗證的開盤工作日 (YYYY-MM-DD)
-};
-// =========================================================================
-
-async function run() {
-  const sId = CONFIG.stockId.trim();
-  const rawDate = CONFIG.targetDate.trim();
-
-  console.log(`🏛️  ====================================================`);
-  console.log(`🏛️  【交易所官方大帳本 - 獨立個股單次查詢驗證】`);
-  console.log(`📅 查詢日期：${rawDate}`);
-  console.log(`🎯 標的股號：${sId}`);
-  console.log(`🏛️  ====================================================\n`);
-
-  // 💡 模擬最真實的瀏覽器 Headers，直接由 Node.js 直連官方，完美避開 403 阻擋與網頁 CORS 限制
-  const fakeBrowserHeaders = {
-    'accept': 'application/json, text/javascript, */*; q=0.01',
-    'accept-language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'referer': 'https://www.twse.com.tw/'
-  };
-
-  // 1. 自動判斷上市 (TWSE) 還是 上櫃 (TPEX)
-  let isTpex = (sId === '6446' || sId.startsWith('6') || sId.startsWith('8'));
-
-  // 2. 日期格式轉換
-  const twseDateStr = rawDate.replace(/-/g, ''); // 轉為 20260624
-  const dateObj = new Date(rawDate);
-  const tpexYear = dateObj.getFullYear() - 1911;
-  const tpexMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const tpexDay = String(dateObj.getDate()).padStart(2, '0');
-  const tpexDateStr = `${tpexYear}/${tpexMonth}/${tpexDay}`; // 轉為 115/06/24
-
-  let apiUrl = "";
-  if (!isTpex) {
-    console.log(`📡 [分流判定：上市股票] -> 開始下載臺灣證券交易所 (TWSE) 當日全台巨型總帳本...`);
-    apiUrl = `https://www.twse.com.tw/rwd/zh/fund/T86_gg?date=${twseDateStr}&selectType=ALL&response=json`;
-  } else {
-    console.log(`📡 [分流判定：上櫃股票] -> 開始下載證券櫃檯買賣中心 (TPEX) 當日全台巨型總帳本...`);
-    apiUrl = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?l=zh-tw&d=${tpexDateStr}&se=EW&response=json`;
-  }
-
-  try {
-    // 直連下載總大帳本
-    const response = await axios.get(apiUrl, { headers: fakeBrowserHeaders });
+// test.js
+document.getElementById('startBtn').addEventListener('click', async () => {
+    const sId = document.getElementById('stockInput').value.trim();
+    const rawDate = document.getElementById('dateInput').value;
     
-    if (response.status === 200 && response.data) {
-      let foundRow = null;
+    const badgeEl = document.getElementById('resultBadge');
+    const logEl = document.getElementById('logMessage');
+    const dumpEl = document.getElementById('jsonDataDump');
 
-      if (!isTpex) {
-        // 🏛️ 上市解析：從大帳本中過濾出您要的這「一檔」個股
-        const rawRows = response.data.data || [];
-        console.log(`📥 成功下載上市總帳本！今日共有 ${rawRows.length} 檔股票有法人進出紀錄。`);
-        foundRow = rawRows.find(row => row[0] && row[0].trim() === sId);
+    if (!sId) { alert("請輸入股票代號！"); return; }
+    if (!rawDate) { alert("請選擇日期！"); return; }
 
-        if (foundRow) {
-          console.log(`\n🎉 【驗證成功！】已在官方大帳本中精準尋獲 ${sId} 的籌碼行數據：`);
-          console.log(`================================================================`);
-          console.log(`📊 股票名稱: ${foundRow[1].trim()}`);
-          console.log(`外資買賣超股數: ${foundRow[4]}`);
-          console.log(`投信買賣超股數: ${foundRow[7]}`);
-          console.log(`自營商買賣超股數: ${foundRow[10]}`);
-          console.log(`================================================================`);
-          console.log(`\n📦 官方原始列數組 (Row Array) DUMP:`);
-          console.log(JSON.stringify(foundRow, null, 2));
-        }
-      } else {
-        // 🏪 上櫃解析：從大帳本中過濾出您要的這「一檔」個股
-        const rawRows = response.data.aaData || [];
-        console.log(`📥 成功下載上櫃總帳本！今日共有 ${rawRows.length} 檔股票有法人進出紀錄。`);
-        foundRow = rawRows.find(row => row[0] && row[0].trim() === sId);
+    badgeEl.className = 'badge';
+    badgeEl.innerText = '連線下載中...';
+    logEl.innerText = `正在分析股票 ${sId} 所屬市場...`;
+    dumpEl.innerText = '// 正在從台灣官方伺服器下載當日全台總大帳本檔案，請稍候...';
 
-        if (foundRow) {
-          console.log(`\n🎉 【驗證成功！】已在櫃買中心帳本中精準尋獲 ${sId} 的籌碼行數據：`);
-          console.log(`================================================================`);
-          console.log(`📊 股票名稱: ${foundRow[1].trim()}`);
-          console.log(`外資淨買超股數: ${foundRow[7]}`);
-          console.log(`投信淨買超股數: ${foundRow[8]}`);
-          console.log(`自營商淨買超股數: ${foundRow[9]}`);
-          console.log(`================================================================`);
-          console.log(`\n📦 官方原始列數組 (Row Array) DUMP:`);
-          console.log(JSON.stringify(foundRow, null, 2));
-        }
-      }
+    // 💡 規則一：由輸入代號自行判定上市(TWSE)或上櫃(TPEX)
+    let isTpex = (sId === '6446' || sId.startsWith('6') || sId.startsWith('8'));
 
-      if (!foundRow) {
-        console.log(`\n⚠️  【查無資料】官網今日總帳本下載成功，但裡面「沒有」股票 ${sId} 的紀錄。`);
-        console.log(`💡 原因提示：請檢查該日期是否為週六日或連假。若非假日，代表該股當天沒有任何三大法人進出進而未列入帳本。`);
-      }
+    // 💡 規則二：時間格式轉換準備
+    const twseDateStr = rawDate.replace(/-/g, ''); // 20260624
+    
+    const dateObj = new Date(rawDate);
+    const tpexYear = dateObj.getFullYear() - 1911;
+    const tpexMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const tpexDay = String(dateObj.getDate()).padStart(2, '0');
+    const tpexDateStr = `${tpexYear}/${tpexMonth}/${tpexDay}`; // 115/06/24
 
+    // 💡 規則三：改用最純粹且最寬容的下載代理，先將全台一整包的 JSON 檔案完整下載下來
+    const fileDownloaderProxy = "https://api.allorigins.win/get?url=";
+    let targetApiUrl = "";
+
+    if (!isTpex) {
+        logEl.innerText = `🏛️ [上市分流] 正在遠端下載證交所 ${rawDate} 全台灣一千多檔股票的超級法人總大帳本...`;
+        targetApiUrl = `https://www.twse.com.tw/rwd/zh/fund/T86_gg?date=${twseDateStr}&selectType=ALL&response=json`;
     } else {
-      console.log(`❌ 伺服器回應成功，但未包含正確的帳本資料體。`);
+        logEl.innerText = `🏪 [上櫃分流] 正在遠端下載櫃買中心 ${rawDate} 全台灣數百檔上櫃股票的法人總大帳本...`;
+        targetApiUrl = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?l=zh-tw&d=${tpexDateStr}&se=EW&response=json`;
     }
 
-  } catch (err) {
-    console.log(`\n💥 直連官網崩潰！錯誤原因: ${err.message}`);
-    if (err.response) {
-      console.log(`   HTTP 狀態碼: ${err.response.status}`);
-    }
-  }
-}
+    try {
+        // 先下載全部資料的檔案內容到網頁記憶體中
+        const response = await axios.get(fileDownloaderProxy + encodeURIComponent(targetApiUrl));
+        
+        if (response.status === 200 && response.data && response.data.contents) {
+            // 💡 規則四：將整份全台檔案在網頁端解開並轉成可分析對象
+            const fullBookFile = JSON.parse(response.data.contents);
+            let foundRow = null;
 
-run();
+            if (!isTpex) {
+                // 上市總帳本大檔案分析：逐列比對第一個欄位 row[0] 是否為您的股票
+                const allRows = fullBookFile.data || [];
+                logEl.innerText = `📥 檔案下載完成！當日上市總大帳本共計 ${allRows.length} 檔。正在為您篩選個股 ${sId}...`;
+                
+                foundRow = allRows.find(row => row[0] && row[0].trim() === sId);
+
+                if (foundRow) {
+                    badgeEl.className = 'badge success';
+                    badgeEl.innerText = '上市分析成功';
+                    logEl.innerText = `🟢 成功取得！已在下載的大檔案中找到個股 [${sId}] 當日的原始三大法人買賣超數據：`;
+                    
+                    dumpEl.innerText = JSON.stringify({
+                        "股票代號": sId,
+                        "查詢日期": rawDate,
+                        "所屬市場": "臺灣證券交易所 (上市)",
+                        "外資買賣超股數(欄位4)": foundRow[4],
+                        "投信買賣超股數(欄位7)": foundRow[7],
+                        "自營商買賣超股數(欄位10)": foundRow[10],
+                        "該股在總帳本中的原始陣列資料": foundRow
+                    }, null, 2);
+                }
+            } else {
+                // 上櫃總帳本大檔案分析：逐列比對第一個欄位 row[0] 是否為您的股票
+                const allRows = fullBookFile.aaData || [];
+                logEl.innerText = `📥 檔案下載完成！當日上櫃總大帳本共計 ${allRows.length} 檔。正在為您篩選個股 ${sId}...`;
+                
+                foundRow = allRows.find(row => row[0] && row[0].trim() === sId);
+
+                if (foundRow) {
+                    badgeEl.className = 'badge success';
+                    badgeEl.innerText = '上櫃分析成功';
+                    logEl.innerText = `🟢 成功取得！已在下載的大檔案中找到個股 [${sId}] 當日的原始三大法人買賣超數據：`;
+                    
+                    dumpEl.innerText = JSON.stringify({
+                        "股票代號": sId,
+                        "查詢日期": rawDate,
+                        "所屬市場": "證券櫃檯買賣中心 (上櫃)",
+                        "外資淨買超股數(欄位7)": foundRow[7],
+                        "投信淨買超股數(欄位8)": foundRow[8],
+                        "自營商淨買超股數(欄位9)": foundRow[9],
+                        "該股在總帳本中的原始陣列資料": foundRow
+                    }, null, 2);
+                }
+            }
+
+            if (!foundRow) {
+                badgeEl.className = 'badge error';
+                badgeEl.innerText = '帳本查無個股';
+                logEl.innerText = `⚠️ 大檔案下載成功，但過濾後發現帳本內「沒有」 ${sId}。請確認該日期是否為非開盤假日。`;
+                dumpEl.innerText = `官方完整總檔案摘要內容：\n${JSON.stringify({ "狀態碼": fullBookFile.status, "資料總筆數": (fullBookFile.data || fullBookFile.aaData || []).length }, null, 2)}`;
+            }
+
+        } else {
+            throw new Error("遠端大檔案回傳格式不正確");
+        }
+
+    } catch (err) {
+        console.error(err);
+        badgeEl.className = 'badge error';
+        badgeEl.innerText = '連線失敗';
+        logEl.innerText = `❌ 無法讀取數據。主要原因為：遠端伺服器臨時拒絕該日期大檔案的跨網域索取。`;
+        dumpEl.innerText = `詳細追蹤錯誤回報:\n${err.stack}`;
+    }
+});
