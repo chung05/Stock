@@ -1,52 +1,61 @@
-// src/index.js (純淨西元 8 碼版 - 徹底拋棄民國年)
+// src/index.js (完全對齊瀏覽器西元 8 碼驗證版)
 export default {
   async fetch(request, env) {
-    // 建立標準 CORS 標頭，解鎖跨網域限制
+    // 統一 CORS 標頭，允許您本地網頁跨網域撈資料
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
-    // 處理瀏覽器 Axios 的預檢請求
+    // 處理瀏覽器的預檢請求 (OPTIONS)
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
 
     try {
       const url = new URL(request.url);
-      const date = url.searchParams.get("date"); // 前端傳過來的純 8 碼西元字串，例如 "20260626"
+      const date = url.searchParams.get("date"); // 接收前端傳來的純 8 碼西元，如 "20260626"
 
-      // 嚴格防呆：確保收到的日期一定是 8 位數純數字
+      // 嚴格檢查參數
       if (!date || date.length !== 8 || isNaN(date)) {
         return new Response(
-          JSON.stringify({ success: false, error: `Invalid date param: [${date}]. Must be YYYYMMDD format.` }), 
+          JSON.stringify({ success: false, error: `Invalid date: [${date}]. Must be YYYYMMDD.` }), 
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // 💡 1. 直接使用西元 8 碼去戳證交所官方大帳本 API (T86_gg 接口)
-      // 這就是您第一版測試成功、最原汁原味的官方西元網址結構
-      const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86_gg?date=${date}&selectType=ALLBUT0999&response=json`;
+      // 💡 【核心修改】：完全採用您驗證成功、一模一樣的西元 8 碼官方接口網址結構
+      const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${date}&selectType=ALLBUT0999&response=json`;
       
+      // 模擬頂級瀏覽器標頭，防止證交所對 Cloudflare 機房進行阻擋 (WAF 防禦)
       const twseRes = await fetch(twseUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://www.twse.com.tw/'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Referer': 'https://www.twse.com.tw/zh/page/trading/fund/T86.html',
+          'X-Requested-With': 'XMLHttpRequest'
         }
       });
       
-      // 擷取證交所吐回來的原始總表資料
       const totalBookJson = await twseRes.text();
 
-      // 2. 推送到您的 GitHub 專案資料夾 (維持西元 8 碼命名，例如 20260626.json)
+      // 安全檢查：如果證交所回傳的不是以 { 開頭，說明它噴了 HTML 錯誤（例如 Page Not Found），此時直接中斷避免污染 GitHub
+      if (!totalBookJson.trim().startsWith("{")) {
+        return new Response(
+          JSON.stringify({ success: false, error: "TWSE returned non-JSON data. Please check connection or date." }), 
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 2. 將此正確的 JSON 推送到您的 GitHub 倉庫 (檔名維持西元 8 碼)
       const ghUser = env.GH_USER;     
       const ghRepo = env.GH_REPO;     
       const ghToken = env.GH_TOKEN;   
       
       const commitUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/json/${date}.json`;
       
-      // 檢查該檔案是否已存在，用來獲取 sha 覆蓋檔案
       let sha = null;
       try {
         const checkRes = await fetch(commitUrl, {
@@ -58,11 +67,11 @@ export default {
         }
       } catch (e) {}
 
-      // Base64 安全編碼
+      // 安全進行 Base64 編碼
       const b64Content = btoa(unescape(encodeURIComponent(totalBookJson))); 
       
       const bodyPayload = {
-        message: `📥 自動落地備份西元總表：${date}.json`,
+        message: `📥 自動同步西元大帳本：${date}.json`,
         content: b64Content
       };
       if (sha) bodyPayload.sha = sha; 
@@ -78,11 +87,10 @@ export default {
         body: JSON.stringify(bodyPayload)
       });
 
-      // 3. 吐回完整的通訊參數給前端網頁列印
+      // 3. 回傳參數給前端，供日誌與調試使用
       return new Response(JSON.stringify({ 
         success: ghRes.ok, 
         status: ghRes.status, 
-        queriedWestDate: date,
         calledTwseUrl: twseUrl
       }), {
         status: 200,
