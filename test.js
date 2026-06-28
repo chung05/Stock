@@ -1,116 +1,90 @@
-// test.js
+// test.js (純淨西元對接版)
 const CONFIG = {
     workerUrl: "https://stock.chiu6-chung05.workers.dev", 
     ghUser: "chung05",  
     ghRepo: "Stock"     
 };
 
-function initDatePicker() {
-    const yearSelect = document.getElementById('twYear');
-    const monthSelect = document.getElementById('twMonth');
-    const daySelect = document.getElementById('twDay');
-
+// 自動預設為最後一個開盤交易日 (西元格式)
+function initDefaultDate() {
     let targetDate = new Date();
-    if (targetDate.getHours() < 17) { 
-        targetDate.setDate(targetDate.getDate() - 1); 
-    }
+    if (targetDate.getHours() < 17) targetDate.setDate(targetDate.getDate() - 1);
     while (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
         targetDate.setDate(targetDate.getDate() - 1);
     }
-
-    const defaultWestYear = targetDate.getFullYear();
-    const defaultTwYear = defaultWestYear - 1911;
-    const defaultMonth = String(targetDate.getMonth() + 1).padStart(2, '0');
-    const defaultDay = String(targetDate.getDate()).padStart(2, '0');
-
-    const currentTwYear = new Date().getFullYear() - 1911;
-    for (let y = currentTwYear; y >= 101; y--) {
-        let opt = new Option(`民國 ${y} 年 (${y + 1911})`, y);
-        if (y === defaultTwYear) opt.selected = true;
-        yearSelect.add(opt);
-    }
-    for (let m = 1; m <= 12; m++) {
-        let mStr = String(m).padStart(2, '0');
-        let opt = new Option(`${m} 月`, mStr);
-        if (mStr === defaultMonth) opt.selected = true;
-        monthSelect.add(opt);
-    }
-    for (let d = 1; d <= 31; d++) {
-        let dStr = String(d).padStart(2, '0');
-        let opt = new Option(`${d} 日`, dStr);
-        if (dStr === defaultDay) opt.selected = true;
-        daySelect.add(opt);
-    }
-
+    // 格式化為 YYYY-MM-DD 填入原生日曆
+    const yyyy = targetDate.getFullYear();
+    const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetDate.getDate()).padStart(2, '0');
+    
+    const dateInput = document.getElementById('targetDate');
+    if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
+    
     document.getElementById('resultBadge').innerText = '系統就緒';
-    document.getElementById('diagLogs').innerHTML = `📅 <b>[初始化成功]</b> 預設台股最後有效交易日：民國 ${defaultTwYear} 年 ${defaultMonth} 月 ${defaultDay} 日`;
+    document.getElementById('diagLogs').innerHTML = `📅 <b>[系統就緒]</b> 已自動預設台股最新交易日 (西元)：${yyyy}-${mm}-${dd}`;
 }
 
-initDatePicker();
+// 畫面載入完成後執行
+setTimeout(initDefaultDate, 100);
 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
     const sId = document.getElementById('stockId').value.trim();
-    const twY = document.getElementById('twYear').value;
-    const mm = document.getElementById('twMonth').value;
-    const dd = document.getElementById('twDay').value;
+    const rawDate = document.getElementById('targetDate').value; // 抓到 "2026-06-26"
     
     const badgeEl = document.getElementById('resultBadge');
     const diagEl = document.getElementById('diagLogs');
     const resultEl = document.getElementById('resultBlock');
 
-    if (!sId) return alert("請輸入股票代號");
+    if (!sId || !rawDate) return alert("請輸入完整股票代號與日期");
 
-    const westYear = parseInt(twY) + 1911;
-    const dateStr = `${westYear}${mm}${dd}`; 
-    const displayDate = `民國 ${twY}/${mm}/${dd}`;
+    // 💡 核心清洗：直接把 2026-06-26 裡面的橫線拿掉，變成純淨的西元 8 碼 "20260626"
+    const dateStr = rawDate.replace(/-/g, ''); 
 
     badgeEl.className = 'badge';
-    badgeEl.innerText = '連線中...';
+    badgeEl.innerText = '雲端同步中...';
     
-    let logHTML = `🚀 <b>[步驟 1/3] 開始觸發雲端管線...</b><br>`;
-    logHTML += `• 前端原始請求: <code>date=${dateStr}</code> (西元 8 碼標準格式)<br>`;
-    logHTML += `• 正在呼叫您的 Cloudflare Worker: <a href="${CONFIG.workerUrl}/?date=${dateStr}" target="_blank" style="color:#7fdbff">${CONFIG.workerUrl}/?date=${dateStr}</a><br>`;
+    let logHTML = `🚀 <b>[步驟 1/3] 正在發射西元管線...</b><br>`;
+    logHTML += `• 傳遞西元參數: <code>date=${dateStr}</code><br>`;
+    logHTML += `• 呼叫 Worker 網址: <a href="${CONFIG.workerUrl}/?date=${dateStr}" target="_blank" style="color:#7fdbff">${CONFIG.workerUrl}/?date=${dateStr}</a><br>`;
     diagEl.innerHTML = logHTML;
-    resultEl.innerText = `// 正在調用 Cloudflare Worker，請稍候...`;
+    resultEl.innerText = `// 正在請求雲端處理，請稍候...`;
 
     try {
-        // 1. 呼叫 Worker
+        // 1. 觸發 Worker
         const triggerWorker = await axios.get(`${CONFIG.workerUrl}/?date=${dateStr}`);
         const wData = triggerWorker.data;
         
-        logHTML += `🟢 <b>[步驟 1 成功] Cloudflare Worker 已成功向證交所索取資料並落盤！</b><br>`;
-        logHTML += `• 🔍 <b>Worker 內部向證交所索取參數對照：</b><br>`;
-        logHTML += `&nbsp;&nbsp;&nbsp;&nbsp;- 接收西元 8 碼: <code>${wData.inputDateWest}</code><br>`;
-        logHTML += `&nbsp;&nbsp;&nbsp;&nbsp;- 轉為民國 7 碼: <code>${wData.queryDateTw}</code><br>`;
-        logHTML += `&nbsp;&nbsp;&nbsp;&nbsp;- 證交所原始請求 URL: <a href="${wData.calledTwseUrl}" target="_blank" style="color:#2ecc71; text-decoration:underline;">點此新視窗檢視證交所原始 JSON</a><br>`;
-        logHTML += `• ⏳ 啟動防禦性索引緩衝 1.5 秒，排除快取干擾...<br>`;
+        logHTML += `🟢 <b>[步驟 1 成功] Cloudflare Worker 已將證交所大檔存入 GitHub！</b><br>`;
+        logHTML += `• 原始證交所西元請求網址: <a href="${wData.calledTwseUrl}" target="_blank" style="color:#2ecc71; text-decoration:underline;">點此開啟官方 JSON 連結</a><br>`;
+        logHTML += `• ⏳ 索引緩衝 1.5 秒中...<br>`;
         diagEl.innerHTML = logHTML;
 
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // 2. 準備讀取 GitHub 檔案 (加上時間戳防快取殘留)
+        // 2. 拉取 GitHub 檔案
         const timestamp = new Date().getTime();
         const githubRawUrl = `https://raw.githubusercontent.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/refs/heads/main/json/${dateStr}.json?t=${timestamp}`;
-        logHTML += `🚀 <b>[步驟 2/3] 正在拉取您專屬的雲端 JSON 總表 (已開啟防快取刷新)...</b><br>`;
+        
+        logHTML += `🚀 <b>[步驟 2/3] 正在自解鎖網域拉取專屬西元大檔...</b><br>`;
+        logHTML += `• 雲端路徑: <a href="${githubRawUrl}" target="_blank" style="color:#7fdbff">${githubRawUrl}</a><br>`;
         diagEl.innerHTML = logHTML;
 
         const ghRes = await axios.get(githubRawUrl);
         const totalBook = ghRes.data;
         
-        // 3. 檢查內容
+        // 3. 檢查證交所報表狀態
         if (totalBook.stat && (totalBook.stat.includes("請重新查詢") || totalBook.stat.includes("查無資料"))) {
             badgeEl.className = 'badge error';
-            badgeEl.innerText = '官方查無資料';
-            logHTML += `❌ <b>[管線中斷] 雖然下載成功，但該日期官方回傳空報表。</b><br>`;
-            logHTML += `• 證交所原因: <span style="color:#e74c3c; font-weight:bold;">${totalBook.stat}</span><br>`;
+            badgeEl.innerText = '官方無交易資料';
+            logHTML += `❌ <b>[管線中斷] 證交所判定該日期無資料。</b><br>`;
+            logHTML += `• 官方回報原因: <span style="color:#e74c3c">${totalBook.stat}</span><br>`;
             diagEl.innerHTML = logHTML;
-            resultEl.innerText = `提示：請確認該日期是否為台股開盤交易日。`;
+            resultEl.innerText = `💡 提示：請確認選擇的西元日期是否為週末或台股國定休市日。`;
             return;
         }
 
         const allRows = totalBook.data || [];
-        logHTML += `🚀 <b>[步驟 3/3] 檔案下載解碼完畢！</b><br>`;
-        logHTML += `• 總表個股總數: ${allRows.length} 檔。<br>`;
+        logHTML += `🚀 <b>[步驟 3/3] 檔案解析完畢，共計 ${allRows.length} 檔個股。</b><br>`;
         diagEl.innerHTML = logHTML;
         
         const foundRow = allRows.find(row => row[0] && row[0].trim() === sId);
@@ -118,31 +92,32 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         if (foundRow) {
             badgeEl.className = 'badge success';
             badgeEl.innerText = '分析完成';
-            logHTML += `🏆 <b>[全線完工] 個股數據篩選成功！</b>`;
+            logHTML += `🏆 <b>[全線完工] 籌碼篩選成功！</b>`;
             diagEl.innerHTML = logHTML;
             
             resultEl.innerText = JSON.stringify({
                 "股票代號": sId,
                 "股票名稱": foundRow[1].trim(),
-                "交易日期": displayDate,
+                "交易日期(西元)": rawDate,
                 "外資買賣超股數": foundRow[4],
                 "投信買賣超股數": foundRow[7],
                 "自營商買賣超股數": foundRow[10],
-                "原始資料列": foundRow
+                "GitHub 備份檔名": `${dateStr}.json`,
+                "證交所完整原始資料列": foundRow
             }, null, 2);
         } else {
             badgeEl.className = 'badge error';
-            badgeEl.innerText = '無法人進出';
-            logHTML += `⚠️ <b>[全線完工] 大檔已備份，但個股無數據。</b>`;
+            badgeEl.innerText = '無法人買賣';
+            logHTML += `⚠️ <b>[全線完工] 大檔已備份，但個股無交易紀錄。</b>`;
             diagEl.innerHTML = logHTML;
         }
 
     } catch (err) {
         console.error(err);
         badgeEl.className = 'badge error';
-        badgeEl.innerText = '管線異常';
-        logHTML += `❌ <b>[通訊崩潰] 傳輸中斷。</b><br>`;
+        badgeEl.innerText = '管線中斷';
+        logHTML += `❌ <b>[通訊異常] 連線中斷。</b>`;
         diagEl.innerHTML = logHTML;
-        resultEl.innerText = `錯誤追蹤:\n${err.stack}`;
+        resultEl.innerText = `詳細錯誤日誌:\n${err.stack}`;
     }
 });
