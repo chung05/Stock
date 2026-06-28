@@ -1,121 +1,113 @@
 // test.js
 document.getElementById('startBtn').addEventListener('click', async () => {
+    const sId = document.getElementById('stockInput').value.trim();
     const rawDate = document.getElementById('dateInput').value;
-    const rawStocks = document.getElementById('stocksInput').value;
     
-    if (!rawDate) { alert("請選擇日期！"); return; }
-    
-    const targetStocks = rawStocks.split(',').map(s => s.trim()).filter(s => s.length > 0);
-    const container = document.getElementById('panelsContainer');
-    container.innerHTML = ''; // 清空
+    const badgeEl = document.getElementById('resultBadge');
+    const logEl = document.getElementById('logMessage');
+    const dumpEl = document.getElementById('jsonDataDump');
 
-    // 日期格式轉換
-    // 證交所(TWSE)格式: YYYYMMDD (例如 20260624)
-    const twseDateStr = rawDate.replace(/-/g, ''); 
+    if (!sId) { alert("請輸入股票代號！"); return; }
+    if (!rawDate) { alert("請選擇日期！"); return; }
+
+    // 初始化網頁狀態
+    badgeEl.className = 'badge';
+    badgeEl.innerText = '連線中...';
+    logEl.innerText = `正在分析股票代號 ${sId}...`;
+    dumpEl.innerText = '// 正在發送跨網域網路請求...';
+
+    // 💡 核心判斷：由輸入的代號自行判斷上市 (TWSE) 還是 上櫃 (TPEX)
+    // 臺灣股市常規：6446 藥華藥、生技與多數 6/8 開頭股票為上櫃，其餘多為上市。我們以此進行精準分流
+    let isTpex = (sId === '6446' || sId.startsWith('6') || sId.startsWith('8'));
+
+    // 日期格式化處理
+    const twseDateStr = rawDate.replace(/-/g, ''); // 轉為 20260624 格式
     
-    // 櫃買中心(TPEX)格式: 民國年/MM/DD (例如 115/06/24)
     const dateObj = new Date(rawDate);
     const tpexYear = dateObj.getFullYear() - 1911;
     const tpexMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
     const tpexDay = String(dateObj.getDate()).padStart(2, '0');
-    const tpexDateStr = `${tpexYear}/${tpexMonth}/${tpexDay}`;
+    const tpexDateStr = `${tpexYear}/${tpexMonth}/${tpexDay}`; // 轉為 115/06/24 格式
 
-    // 先畫出基本面板
-    targetStocks.forEach(sId => {
-        container.insertAdjacentHTML('beforeend', `
-            <div class="panel" id="panel-${sId}">
-                <div class="title-bar">
-                    <h2>🎯 標的: ${sId}</h2>
-                    <span id="badge-${sId}" class="badge">排隊等待冷卻...</span>
-                </div>
-                <div id="log-${sId}" class="log">管線就緒，等待連線安全時間點...</div>
-                <pre id="dump-${sId}">// 官方數據將在此即時 Dump</pre>
-            </div>
-        `);
-    });
+    // 🌟 網頁直連官網的終極解法：透過公開的 CORS 代理伺服器轉發，徹底洗刷 403 與跨網域阻擋
+    const corsProxy = "https://api.allorigins.win/get?url=";
+    let targetApiUrl = "";
 
-    // 依序爬取官網
-    for (let sId of targetStocks) {
-        const logEl = document.getElementById(`log-${sId}`);
-        const badgeEl = document.getElementById(`badge-${sId}`);
-        const dumpEl = document.getElementById(`dump-${sId}`);
+    if (!isTpex) {
+        logEl.innerText = `🏛️ [偵測結果: 上市股票] 正在經由代理直衝臺灣證券交易所 (TWSE) 讀取 ${rawDate} 大帳本...`;
+        targetApiUrl = `https://www.twse.com.tw/rwd/zh/fund/T86_gg?date=${twseDateStr}&selectType=ALL&response=json`;
+    } else {
+        logEl.innerText = `🏪 [偵測結果: 上櫃股票] 正在經由代理直衝證券櫃檯買賣中心 (TPEX) 讀取 ${rawDate} 明細...`;
+        targetApiUrl = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?l=zh-tw&d=${tpexDateStr}&se=EW&response=json`;
+    }
 
-        badgeEl.className = 'badge';
-        badgeEl.innerText = '讀取官網中...';
-
-        // 💡 關鍵分流：判斷是上市(TWSE)還是上櫃(TPEX)
-        // 簡單規則：藥華藥 6446、或是4碼且非特定上市區段的多為上櫃。這裡我們用最標準的刺探行為
-        let isTpex = (sId === '6446' || sId.startsWith('6') || sId.startsWith('8')); 
+    try {
+        // 使用 allorigins 代理轉發請求，它會將官網的回應包裹在 response.data.contents 內
+        const response = await axios.get(corsProxy + encodeURIComponent(targetApiUrl));
         
-        let apiUrl = '';
-        if (!isTpex) {
-            logEl.innerText = `🏛️ [分流: 上市] 正在呼叫臺灣證券交易所 (TWSE) 當日所有法人大帳本，並從中精準篩選 ${sId}...`;
-            apiUrl = `https://cors-anywhere.herokuapp.com/https://www.twse.com.tw/rwd/zh/fund/T86_gg?date=${twseDateStr}&selectType=ALL&response=json`;
-        } else {
-            logEl.innerText = `🏪 [分流: 上櫃] 正在呼叫證券櫃檯買賣中心 (TPEX) 當日三大法人明細，個股對齊 ${sId}...`;
-            apiUrl = `https://cors-anywhere.herokuapp.com/https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?l=zh-tw&d=${tpexDateStr}&se=EW&response=json`;
-        }
+        if (response.status === 200 && response.data && response.data.contents) {
+            // 解析代理伺服器吐回來的原始官網 JSON 字串
+            const officialData = JSON.parse(response.data.contents);
+            let foundRow = null;
 
-        try {
-            // 注意：網頁端直連官網通常會有 CORS 跨網域限制，這裡加上代理或直連刺探
-            const res = await axios.get(apiUrl, { headers: { 'accept': 'application/json' } });
-            
-            if (res.status === 200 && res.data) {
-                let foundData = null;
+            if (!isTpex) {
+                // 🏛️ 上市(TWSE) 篩選個股邏輯：在 data 數組中比對 row[0] 是否等於輸入代號
+                const rawRows = officialData.data || [];
+                foundRow = rawRows.find(row => row[0] && row[0].trim() === sId);
 
-                if (!isTpex) {
-                    // TWSE 證交所解析邏輯
-                    const rawRows = res.data.data || [];
-                    // 證交所的個股代號通常在第一個欄位 row[0]
-                    foundData = rawRows.find(row => row[0].trim() === sId);
+                if (foundRow) {
+                    badgeEl.className = 'badge success';
+                    badgeEl.innerText = '上市抓取成功';
+                    logEl.innerText = `🟢 成功！已從證交所大帳本中篩選出個股 [ ${sId} ]！數據對齊完成：`;
                     
-                    if (foundData) {
-                        badgeEl.className = 'badge success';
-                        badgeEl.innerText = '上市官網成功';
-                        logEl.innerText = `🟢 成功在證交所大帳本中抓到 ${sId}！原始欄位對照：[2]=外資買進, [3]=外資賣出, [4]=外資買賣超...`;
-                        dumpEl.innerText = JSON.stringify({
-                            "股票代號": sId,
-                            "證交所完整列數據": foundData,
-                            "說明": "欄位順序依證交所官網 T86 報表為準"
-                        }, null, 2);
-                    }
-                } else {
-                    // TPEX 櫃買中心解析邏輯
-                    const rawRows = res.data.aaData || [];
-                    // 櫃買中心的個股代號通常在第一個欄位 row[0]
-                    foundData = rawRows.find(row => row[0].trim() === sId);
-
-                    if (foundData) {
-                        badgeEl.className = 'badge success';
-                        badgeEl.innerText = '上櫃官網成功';
-                        logEl.innerText = `🟢 成功在櫃買中心帳本中抓到 ${sId}！原始欄位對照：[7]=外資淨買賣超, [8]=投信淨買賣超...`;
-                        dumpEl.innerText = JSON.stringify({
-                            "股票代號": sId,
-                            "櫃買中心完整列數據": foundData,
-                            "說明": "欄位順序依櫃買中心官網三大法人買賣超日報為準"
-                        }, null, 2);
-                    }
+                    dumpEl.innerText = JSON.stringify({
+                        "股票代號": sId,
+                        "查詢日期": rawDate,
+                        "所屬市場": "臺灣證券交易所 (上市)",
+                        "外資買賣超股數(欄位4)": foundRow[4],
+                        "投信買賣超股數(欄位7)": foundRow[7],
+                        "自營商買賣超股數(欄位10)": foundRow[10],
+                        "官方原始完整列數據(Row)": foundRow
+                    }, null, 2);
                 }
-
-                if (!foundData) {
-                    badgeEl.className = 'badge error';
-                    badgeEl.innerText = '查無個股';
-                    logEl.innerText = `⚠️ 官網有回應，但該日大帳本中「找不到」股票 ${sId} 的紀錄。請確認該日是否休市，或代號是否正確。`;
-                    dumpEl.innerText = JSON.stringify(res.data, null, 2);
-                }
-
             } else {
-                throw new Error("官網拒絕或回傳非預期格式");
+                // 🏪 上櫃(TPEX) 篩選個股邏輯：在 aaData 數組中比對 row[0] 是否等於輸入代號
+                const rawRows = officialData.aaData || [];
+                foundRow = rawRows.find(row => row[0] && row[0].trim() === sId);
+
+                if (foundRow) {
+                    badgeEl.className = 'badge success';
+                    badgeEl.innerText = '上櫃抓取成功';
+                    logEl.innerText = `🟢 成功！已從櫃買中心帳本中篩選出個股 [ ${sId} ]！數據對齊完成：`;
+                    
+                    dumpEl.innerText = JSON.stringify({
+                        "股票代號": sId,
+                        "查詢日期": rawDate,
+                        "所屬市場": "證券櫃檯買賣中心 (上櫃)",
+                        "外資淨買超股數(欄位7)": foundRow[7],
+                        "投信淨買超股數(欄位8)": foundRow[8],
+                        "自營商淨買超股數(欄位9)": foundRow[9],
+                        "官方原始完整列數據(Row)": foundRow
+                    }, null, 2);
+                }
             }
-        } catch (err) {
-            badgeEl.className = 'badge error';
-            badgeEl.innerText = '直連失敗';
-            logEl.innerText = `💥 失敗原因: 官網防爬蟲阻擋或 CORS 限制。錯誤: ${err.message}`;
-            dumpEl.innerText = `提示：若出現 CORS 阻擋，代表您的瀏覽器目前不允許直連官網介面，必須在 Node.js 後端環境執行此邏輯才能徹底避開限制。`;
+
+            if (!foundRow) {
+                badgeEl.className = 'badge error';
+                badgeEl.innerText = '該日無此股';
+                logEl.innerText = `⚠️ 官方回傳成功，但在當天的大帳本中「找不到」股票代號 ${sId} 的資料。請確認該日期是否為週末休市、國定假日，或該股當天無法人交易。`;
+                dumpEl.innerText = JSON.stringify(officialData, null, 2);
+            }
+
+        } else {
+            throw new Error("跨網域代理伺服器未回傳有效內容");
         }
 
-        // 🌟 核心天條：每檔股票之間絕對要強制冷卻 4 秒鐘，保護您的 IP 不被交易所封鎖
-        logEl.innerText += `\n⏳ 啟動反封鎖安全防禦，強制進入 4 秒鐘冷卻時間...`;
-        await new Promise(r => setTimeout(r, 4000));
+    } catch (err) {
+        console.error(err);
+        badgeEl.className = 'badge error';
+        badgeEl.innerText = '抓取失敗';
+        logEl.innerText = `❌ 錯誤：無法透過網頁端讀取數據。原因: ${err.message}`;
+        dumpEl.innerText = `可能的防禦阻擋提示：\n1. 您選擇的日期可能未來時間，或該日尚未開盤。\n2. 代理伺服器暫時繁忙。\n\n詳細錯誤追蹤:\n${err.stack}`;
     }
 });
