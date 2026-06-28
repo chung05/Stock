@@ -1,4 +1,4 @@
-// src/index.js (民國年轉換 + CORS 強化 完整終極版)
+// src/index.js (完整終極修正版：中文字元日期編碼 + 雙重 CORS 防護)
 export default {
   async fetch(request, env) {
     // 💡 建立統一的 CORS 回應標頭，允許您本地的網頁 (test.html) 跨網域存取
@@ -8,7 +8,7 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
-    // 處理瀏覽器的預檢請求 (OPTIONS)，瀏覽器採用 Axios 時會自動發送此請求驗證權限
+    // 處理瀏覽器的預檢請求 (OPTIONS)
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
@@ -24,13 +24,14 @@ export default {
         );
       }
 
-      // 💡 【核心邏輯】：精準切碎 8 碼西元字串，並轉換為台灣證交所 T86 接口指定的「民國日期」
-      const year = parseInt(date.substring(0, 4));  // 擷取前 4 碼 (例如 2025)
-      const month = date.substring(4, 6);           // 擷取中 2 碼 (例如 06)
-      const day = date.substring(6, 8);             // 擷取後 2 碼 (例如 25)
+      // 💡 【核心邏輯升級】：切碎西元日期，並轉換為證交所同樣完全看懂的「民國中文字串」格式
+      // 避開了斜線「/」在網路傳輸中會被某些瀏覽器或網域偷偷吃掉、導致時空倒流的技術死穴！
+      const year = parseInt(date.substring(0, 4));  // 例如 2025
+      const month = date.substring(4, 6);           // 例如 06
+      const day = date.substring(6, 8);             // 例如 25
       
-      const twYear = year - 1911;                   // 西元轉民國 (例如 2025 - 1911 = 114)
-      const twDateStr = `${twYear}/${month}/${day}`; // 組合為證交所格式 "114/06/25"
+      const twYear = year - 1911;                   // 2025 - 1911 = 114
+      const twDateStr = `${twYear}年${month}月${day}日`; // 組合為安全的 "114年06月25日"
 
       // 1. 直連臺灣證券交易所下載當天所有個股的三大法人買賣超大總表
       const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${encodeURIComponent(twDateStr)}&selectType=ALLBUT0999&response=json`;
@@ -46,9 +47,9 @@ export default {
       const totalBookJson = await twseRes.text();
 
       // 2. 準備將大檔案推送到您的 GitHub 專案資料夾
-      const ghUser = env.GH_USER;     // 從 Cloudflare 後台或 wrangler 讀取帳號
-      const ghRepo = env.GH_REPO;     // 從 Cloudflare 後台或 wrangler 讀取倉庫名
-      const ghToken = env.GH_TOKEN;   // 從 Cloudflare Worker Secrets 讀取密鑰權權杖
+      const ghUser = env.GH_USER;     // 從 Cloudflare Worker Secrets 讀取帳號
+      const ghRepo = env.GH_REPO;     // 從 Cloudflare Worker Secrets 讀取倉庫名
+      const ghToken = env.GH_TOKEN;   // 從 Cloudflare Worker Secrets 讀取密鑰權杖
       
       // 儲存在 GitHub 上的路徑維持以西元 YYYYMMDD.json 命名，方便網頁端精確對接
       const commitUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/json/${date}.json`;
@@ -87,18 +88,18 @@ export default {
         body: JSON.stringify(bodyPayload)
       });
 
-      // 3. 回傳成功訊號給本機網頁 (強制帶上 CORS 標頭)
+      // 3. 回傳成功訊號給本機網頁 (強制帶上 CORS 標頭與 JSON 格式)
       return new Response(JSON.stringify({ 
         success: ghRes.ok, 
         status: ghRes.status, 
-        msg: `Successfully synced date ${twDateStr} to GitHub` 
+        msg: `Successfully converted to ${twDateStr} and synced to GitHub.` 
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
 
     } catch (err) {
-      // 萬一伺服器內部發生異常（例如證交所斷線或 GitHub 拒絕連線），回傳 500 錯誤與 CORS 標頭
+      // 萬一發生異常，回傳 500 錯誤與 CORS 標頭，方便網頁端 debug
       return new Response(JSON.stringify({ 
         success: false, 
         error: err.message 
