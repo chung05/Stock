@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>量化交易 - 籌碼觀測面板 (可視化診斷版)</title>
+    <title>量化交易 - 籌碼觀測面板 (西元純淨修正版)</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #f5f6fa; padding: 20px; color: #333; }
@@ -20,7 +20,6 @@
         .badge.success { background: #2ecc71; }
         .badge.error { background: #e74c3c; }
         
-        /* 診斷日誌專用樣式 */
         .diag-box { background: #222; color: #7fdbff; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 13px; margin-bottom: 15px; border-left: 5px solid #0074d9; line-height: 1.5; }
         .diag-title { color: #aaa; font-weight: bold; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
         
@@ -32,25 +31,19 @@
 <div class="container">
     <div class="header">
         <h1 style="margin:0; font-size: 24px;">🏛️ 臺灣證券交易所 - 三大法人籌碼落地觀測儀</h1>
-        <p style="margin:5px 0 0 0; opacity: 0.8;">已內嵌即時除錯日誌，方便追蹤每一秒的雲端通訊狀態</p>
+        <p style="margin:5px 0 0 0; opacity: 0.8;">全線回歸西元 8 碼極簡版（已修復日曆無法點選問題）</p>
         
         <div class="config-grid">
             <div class="config-group">
                 <label>股票代號</label>
                 <input type="text" id="stockId" value="2301" style="width: 100px;">
             </div>
+            
             <div class="config-group">
-                <label>交易年 (民國)</label>
-                <select id="twYear"></select>
+                <label>選擇交易日期</label>
+                <input type="date" id="targetDate">
             </div>
-            <div class="config-group">
-                <label>月份</label>
-                <select id="twMonth"></select>
-            </div>
-            <div class="config-group">
-                <label>日期</label>
-                <select id="twDay"></select>
-            </div>
+            
             <button class="btn" id="analyzeBtn">執行同步與分析</button>
         </div>
     </div>
@@ -58,12 +51,12 @@
     <div class="panel">
         <div class="title-bar">
             <h2>📡 雲端管線實時通訊日誌</h2>
-            <span id="resultBadge" class="badge">等待指令</span>
+            <span id="resultBadge" class="badge">初始化中...</span>
         </div>
         
         <div class="diag-title">▶ 核心通訊進度與追蹤參數</div>
         <div id="diagLogs" class="diag-box">
-            [系統引導] 請選擇上方日期，並點擊「執行同步與分析」按鈕。
+            正在計算台股最後一個有效交易日並載入日曆...
         </div>
 
         <div class="diag-title">▶ 局部過濾個股籌碼結果</div>
