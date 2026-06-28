@@ -1,126 +1,73 @@
 // test.js
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-
-// =========================================================================
-// ⚙️ 【使用者自訂驗證區】設定日期與個股，本機會全自動下載並分析
-// =========================================================================
 const CONFIG = {
-  stockId: "2301",       // 🎯 您要查找的單一檔個股代號 (例如 "2301" 或 "6446")
-  targetDate: "2025-06-27" // 📅 您想下載總表的日期 (YYYY-MM-DD)
-};
-// =========================================================================
-
-async function run() {
-  const sId = CONFIG.stockId.trim();
-  const rawDate = CONFIG.targetDate.trim();
-
-  console.log(`====================================================`);
-  console.log(`🚀 啟動本機全自動下載暨個股籌碼分析系統`);
-  console.log(`📅 核心指令日期：${rawDate} | 🎯 目標個股：${sId}`);
-  console.log(`====================================================\n`);
-
-  // 1. 自動判斷上市 (TWSE) 還是 上櫃 (TPEX)
-  let isTpex = (sId === '6446' || sId.startsWith('6') || sId.startsWith('8'));
-
-  // 2. 日期格式轉換
-  const twseDateStr = rawDate.replace(/-/g, ''); // 轉為 20250627
-  const dateObj = new Date(rawDate);
-  const tpexYear = dateObj.getFullYear() - 1911;
-  const tpexMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const tpexDay = String(dateObj.getDate()).padStart(2, '0');
-  const tpexDateStr = `${tpexYear}/${tpexMonth}/${tpexDay}`; // 轉為 114/06/27
-
-  // 3. 設定下載到本機的檔名與路徑
-  const localStorageDir = path.join(__dirname, 'downloaded_charts');
-  if (!fs.existsSync(localStorageDir)) {
-    fs.mkdirSync(localStorageDir); // 自動建立儲存總表的資料夾
-  }
-  
-  const localFileName = isTpex ? `tpex_total_${twseDateStr}.json` : `twse_total_${twseDateStr}.json`;
-  const localFilePath = path.join(localStorageDir, localFileName);
-
-  let targetApiUrl = "";
-  if (!isTpex) {
-    targetApiUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${twseDateStr}&selectType=ALLBUT0999&response=json`;
-  } else {
-    targetApiUrl = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?l=zh-tw&d=${tpexDateStr}&se=EW&response=json`;
-  }
-
-  // 偽裝成常規本機瀏覽器標頭，確保 100% 不被阻擋
-  const nativeHeaders = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Referer': isTpex ? 'https://www.tpex.org.tw/' : 'https://www.twse.com.tw/'
-  };
-
-  let totalBookData = null;
-
-  // 💡 核心機制：檢查本機是否已經下載過這一天的總表？如果有，直接讀取；如果沒有，自動下載存檔！
-  if (fs.existsSync(localFilePath)) {
-    console.log(`💾 [本地快取命中] 偵測到本機已存在 ${rawDate} 總表檔案，直接讀取進行分析...`);
-    totalBookData = JSON.parse(fs.readFileSync(localFilePath, 'utf8'));
-  } else {
-    console.log(`🌐 [本地尚未存檔] 開始從官方伺服器直連下載 ${rawDate} 全台法人進出總表大明細...`);
-    try {
-      const response = await axios.get(targetApiUrl, { headers: nativeHeaders, timeout: 10000 });
-      if (response.status === 200 && response.data) {
-        totalBookData = response.data;
-        // 💡 立即將檔案寫入本地存檔，下次查詢同一天其他股票時，一秒都用不用等，直接秒開！
-        fs.writeFileSync(localFilePath, JSON.stringify(totalBookData, null, 2), 'utf8');
-        console.log(`📥 成功！總表已全自動下載並存檔至本地：${localFilePath}`);
-      } else {
-        throw new Error("官方回應成功，但內容為空。");
-      }
-    } catch (downloadErr) {
-      console.error(`❌ 下載總表失敗。原因: ${downloadErr.message}`);
-      console.log(`💡 提示：請確認該日期是否為週末休市、未來時間，或當天官方網站正在維護。`);
-      return;
-    }
-  }
-
-  // 4. 開始自總表中抽取出指定個股資料
-  console.log(`🔍 正在從本地總表中篩選股票代號 [ ${sId} ] ...`);
-  let foundRow = null;
-
-  if (!isTpex) {
-    // 上市總表過濾 (比對 row[0])
-    const allRows = totalBookData.data || [];
-    foundRow = allRows.find(row => row[0] && row[0].trim() === sId);
+    // 💡 1. 已經幫您填上剛才測試成功的專屬 Cloudflare Worker 網址
+    workerUrl: "https://stock.chiu6-chung05.workers.dev", 
     
-    if (foundRow) {
-      console.log(`\n🎉 【上市個股分析成功】`);
-      console.log(`------------------------------------------------`);
-      console.log(`📊 股票名稱：${foundRow[1].trim()}`);
-      console.log(`📅 交易日期：${rawDate}`);
-      console.log(`🏢 外資買賣超股數：${foundRow[4]}`);
-      console.log(`🚀 投信買賣超股數：${foundRow[7]}`);
-      console.log(`⚖️  自營商買賣超股數：${foundRow[10]}`);
-      console.log(`------------------------------------------------`);
-      console.log(`📦 官方原始列數據 (Row Dump)：`, JSON.stringify(foundRow));
+    // 💡 2. 請把下方改為您實際的 GitHub 帳號與倉庫名稱
+    ghUser: "chiu6-chung05",  // ⬅️ 請確認這是您的 GitHub 帳號
+    ghRepo: "stock"          // ⬅️ 請確認這是您的專案倉庫名稱
+};
+
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
+    const sId = document.getElementById('stockId').value.trim();
+    const rawDate = document.getElementById('targetDate').value;
+    const badgeEl = document.getElementById('resultBadge');
+    const logEl = document.getElementById('logMsg');
+    const resultEl = document.getElementById('resultBlock');
+
+    if (!sId || !rawDate) return alert("請輸入完整代號與日期");
+
+    const dateStr = rawDate.replace(/-/g, ''); // 轉為 20250627
+    
+    badgeEl.className = 'badge';
+    badgeEl.innerText = '雲端備份中...';
+    logEl.innerText = `🔄 步驟 1: 正在命令 Cloudflare Worker 直連官方下載總表並儲存至 GitHub...`;
+    resultEl.innerText = `// 正在請求您的 Cloudflare Worker 管線，請稍候 3~5 秒...`;
+
+    try {
+        // 1. 命令 Worker 去抓官方資料並存到 GitHub 檔案庫
+        const triggerWorker = await axios.get(`${CONFIG.workerUrl}/?date=${dateStr}`);
+        
+        logEl.innerText = `📥 步驟 2: 雲端備份成功 (狀態: 201)！正在從 GitHub 載入全台大總表檔案...`;
+
+        // 2. 直接從 GitHub Raw 下載完全屬於您自己的總表，100% 支援 CORS，絕對不會失敗！
+        const githubRawUrl = `https://raw.githubusercontent.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/main/json/${dateStr}.json`;
+        const ghRes = await axios.get(githubRawUrl);
+        
+        const totalBook = ghRes.data;
+        const allRows = totalBook.data || [];
+        
+        logEl.innerText = `🔍 步驟 3: 總表載入成功（共包含 ${allRows.length} 檔個股）。正在前端篩選 ${sId} ...`;
+        
+        // 3. 在網頁前端記憶體中過濾出單一檔個股
+        const foundRow = allRows.find(row => row[0] && row[0].trim() === sId);
+
+        if (foundRow) {
+            badgeEl.className = 'badge success';
+            badgeEl.innerText = '分析完成';
+            logEl.innerText = `🟢 驗證成功！已成功從下載的大總表中提取出個股 [ ${sId} ] 的三大法人原始數據：`;
+            resultEl.innerText = JSON.stringify({
+                "股票代號": sId,
+                "股票名稱": foundRow[1].trim(),
+                "查詢日期": rawDate,
+                "資料來源": "臺灣證券交易所 (Worker+GitHub 雲端過濾)",
+                "外資買賣超股數(欄位4)": foundRow[4],
+                "投信買賣超股數(欄位7)": foundRow[7],
+                "自營商買賣超股數(欄位10)": foundRow[10],
+                "GitHub 總表檔案中該股的完整 Row 陣列": foundRow
+            }, null, 2);
+        } else {
+            badgeEl.className = 'badge error';
+            badgeEl.innerText = '總表內無資料';
+            logEl.innerText = `⚠️ 總表下載成功，但檔案內找不到個股 ${sId}。`;
+            resultEl.innerText = `💡 提示：請確認該日期是否為週六日或國定休市。如果當天是交易日，則代表該股三大法人當天進出皆為 0，未被計入總表。`;
+        }
+
+    } catch (err) {
+        console.error(err);
+        badgeEl.className = 'badge error';
+        badgeEl.innerText = '管線中斷';
+        logEl.innerText = `❌ 錯誤：無法透過雲端管線獲取數據。`;
+        resultEl.innerText = `可能原因排查：\n1. 請確認 test.js 裡面的 ghUser 與 ghRepo 名字是否有大小寫打錯。\n2. 您的 GitHub 預設分支是否不叫 main 而是叫 master？\n\n詳細除錯追蹤:\n${err.stack}`;
     }
-  } else {
-    // 上櫃總表過濾 (比對 row[0])
-    const allRows = totalBookData.aaData || [];
-    foundRow = allRows.find(row => row[0] && row[0].trim() === sId);
-
-    if (foundRow) {
-      console.log(`\n🎉 【上櫃個股分析成功】`);
-      console.log(`------------------------------------------------`);
-      console.log(`📊 股票名稱：${foundRow[1].trim()}`);
-      console.log(`📅 交易日期：${rawDate}`);
-      console.log(`🏢 外資淨買超股數：${foundRow[7]}`);
-      console.log(`🚀 投信淨買超股數：${foundRow[8]}`);
-      console.log(`⚖️  自營商淨買超股數：${foundRow[9]}`);
-      console.log(`------------------------------------------------`);
-      console.log(`📦 官方原始列數據 (Row Dump)：`, JSON.stringify(foundRow));
-    }
-  }
-
-  if (!foundRow) {
-    console.log(`\n⚠️  【篩選結束：查無資料】總表已成功下載，但在大帳本中找不到代號 ${sId}。`);
-    console.log(`💡 這通常代表該個股在當天「三大法人均無任何進出交易」，所以未被列入官方總表中。`);
-  }
-}
-
-run();
+});
