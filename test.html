@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>量化交易 - 民國年籌碼分析面板</title>
+    <title>量化交易 - 籌碼觀測面板 (可視化診斷版)</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #f5f6fa; padding: 20px; color: #333; }
@@ -14,28 +14,31 @@
         select, input { padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; background: white; }
         .btn { background: #e74c3c; color: white; border: none; padding: 12px 30px; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; }
         .btn:hover { background: #c0392b; }
-        .panel { background: white; border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #e74c3c; }
+        .panel { background: white; border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #e74c3c; margin-bottom: 20px; }
         .title-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
         .badge { font-size: 13px; padding: 6px 14px; border-radius: 4px; background: #718093; color: white; font-weight: bold; }
         .badge.success { background: #2ecc71; }
         .badge.error { background: #e74c3c; }
-        .log { background: #e8f4fd; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 14px; color: #1d6fa5; margin-bottom: 15px; border-left: 4px solid #e74c3c; }
-        pre { background: #2f3542; color: #f1f2f6; padding: 18px; border-radius: 6px; font-size: 13px; max-height: 500px; overflow-y: auto; margin: 0; }
+        
+        /* 診斷日誌專用樣式 */
+        .diag-box { background: #222; color: #7fdbff; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 13px; margin-bottom: 15px; border-left: 5px solid #0074d9; line-height: 1.5; }
+        .diag-title { color: #aaa; font-weight: bold; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        pre { background: #2f3542; color: #f1f2f6; padding: 18px; border-radius: 6px; font-size: 13px; max-height: 400px; overflow-y: auto; margin: 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1 style="margin:0; font-size: 24px;">🏛️ 臺灣證券交易所 - 三大法人籌碼落地下載器</h1>
-        <p style="margin:5px 0 0 0; opacity: 0.8;">已修正民國年限制，支援自動預設最後交易日功能</p>
+        <h1 style="margin:0; font-size: 24px;">🏛️ 臺灣證券交易所 - 三大法人籌碼落地觀測儀</h1>
+        <p style="margin:5px 0 0 0; opacity: 0.8;">已內嵌即時除錯日誌，方便追蹤每一秒的雲端通訊狀態</p>
         
         <div class="config-grid">
             <div class="config-group">
                 <label>股票代號</label>
                 <input type="text" id="stockId" value="2301" style="width: 100px;">
             </div>
-            
             <div class="config-group">
                 <label>交易年 (民國)</label>
                 <select id="twYear"></select>
@@ -48,17 +51,22 @@
                 <label>日期</label>
                 <select id="twDay"></select>
             </div>
-            
             <button class="btn" id="analyzeBtn">執行同步與分析</button>
         </div>
     </div>
 
     <div class="panel">
         <div class="title-bar">
-            <h2>📊 局部數據篩選面板</h2>
-            <span id="resultBadge" class="badge">初始化中</span>
+            <h2>📡 雲端管線實時通訊日誌</h2>
+            <span id="resultBadge" class="badge">等待指令</span>
         </div>
-        <div id="logMsg" class="log">正在計算最後一個有效交易日...</div>
+        
+        <div class="diag-title">▶ 核心通訊進度與追蹤參數</div>
+        <div id="diagLogs" class="diag-box">
+            [系統引導] 請選擇上方日期，並點擊「執行同步與分析」按鈕。
+        </div>
+
+        <div class="diag-title">▶ 局部過濾個股籌碼結果</div>
         <pre id="resultBlock">// 數據將呈現在此</pre>
     </div>
 </div>
