@@ -1,52 +1,59 @@
-// src/index.js (CORS 強化終極版)
+// src/index.js (民國年轉換 + CORS 強化 完整終極版)
 export default {
   async fetch(request, env) {
-    // 💡 建立統一的 CORS 回應標頭
+    // 💡 建立統一的 CORS 回應標頭，允許您本地的網頁 (test.html) 跨網域存取
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
-    // 處理瀏覽器的預檢請求 (OPTIONS)，必須直接回傳 200 與 CORS 標頭
+    // 處理瀏覽器的預檢請求 (OPTIONS)，瀏覽器採用 Axios 時會自動發送此請求驗證權限
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
 
     try {
       const url = new URL(request.url);
-      const date = url.searchParams.get("date"); // 例如 "20260626"
+      const date = url.searchParams.get("date"); // 接收前端網頁傳來的 8 碼西元字串，例如 "20250625"
 
       if (!date || date.length !== 8) {
-        return new Response("Missing date", { status: 400, headers: corsHeaders });
+        return new Response(
+          JSON.stringify({ success: false, error: "Missing or invalid date param (should be YYYYMMDD)" }), 
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      // 1. 西元轉民國日期
-      const year = parseInt(date.substring(0, 4));
-      const month = date.substring(4, 6);
-      const day = date.substring(6, 8);
-      const twYear = year - 1911;
-      const twDateStr = `${twYear}/${month}/${day}`; // "115/06/26"
+      // 💡 【核心邏輯】：精準切碎 8 碼西元字串，並轉換為台灣證交所 T86 接口指定的「民國日期」
+      const year = parseInt(date.substring(0, 4));  // 擷取前 4 碼 (例如 2025)
+      const month = date.substring(4, 6);           // 擷取中 2 碼 (例如 06)
+      const day = date.substring(6, 8);             // 擷取後 2 碼 (例如 25)
+      
+      const twYear = year - 1911;                   // 西元轉民國 (例如 2025 - 1911 = 114)
+      const twDateStr = `${twYear}/${month}/${day}`; // 組合為證交所格式 "114/06/25"
 
-      // 2. 直連證交所下載總表
+      // 1. 直連臺灣證券交易所下載當天所有個股的三大法人買賣超大總表
       const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${encodeURIComponent(twDateStr)}&selectType=ALLBUT0999&response=json`;
       
       const twseRes = await fetch(twseUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Referer': 'https://www.twse.com.tw/'
         }
       });
       
+      // 讀取證交所回傳的原始文字檔 (JSON)
       const totalBookJson = await twseRes.text();
 
-      // 3. 推送到 GitHub
-      const ghUser = env.GH_USER;     
-      const ghRepo = env.GH_REPO;     
-      const ghToken = env.GH_TOKEN;   
+      // 2. 準備將大檔案推送到您的 GitHub 專案資料夾
+      const ghUser = env.GH_USER;     // 從 Cloudflare 後台或 wrangler 讀取帳號
+      const ghRepo = env.GH_REPO;     // 從 Cloudflare 後台或 wrangler 讀取倉庫名
+      const ghToken = env.GH_TOKEN;   // 從 Cloudflare Worker Secrets 讀取密鑰權權杖
       
+      // 儲存在 GitHub 上的路徑維持以西元 YYYYMMDD.json 命名，方便網頁端精確對接
       const commitUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/json/${date}.json`;
       
+      // 檢查該日期檔案是否在 GitHub 上已存在，若存在則必須取得對應的 sha 識別碼才能進行覆蓋更新
       let sha = null;
       try {
         const checkRes = await fetch(commitUrl, {
@@ -56,16 +63,20 @@ export default {
           const checkData = await checkRes.json();
           sha = checkData.sha; 
         }
-      } catch (e) {}
+      } catch (e) {
+        // 若檔案不存在，直接忽略錯誤，後續將以新創檔案處理
+      }
 
+      // 將證交所的 JSON 字串進行安全的 Base64 編碼，以符合 GitHub API 傳輸規範
       const b64Content = btoa(unescape(encodeURIComponent(totalBookJson))); 
       
       const bodyPayload = {
-        message: `📥 自動同步 ${date} 證交所總表`,
+        message: `📥 自動同步 ${date} (民國 ${twDateStr}) 證交所三大法人總表`,
         content: b64Content
       };
-      if (sha) bodyPayload.sha = sha; 
+      if (sha) bodyPayload.sha = sha; // 如果檔案已存在，帶入 sha 執行覆蓋
 
+      // 發送 PUT 請求給 GitHub API 執行寫入
       const ghRes = await fetch(commitUrl, {
         method: "PUT",
         headers: {
@@ -76,15 +87,22 @@ export default {
         body: JSON.stringify(bodyPayload)
       });
 
-      // 💡 成功回應，也必須強制帶上 corsHeaders！
-      return new Response(JSON.stringify({ success: ghRes.ok, status: ghRes.status }), {
+      // 3. 回傳成功訊號給本機網頁 (強制帶上 CORS 標頭)
+      return new Response(JSON.stringify({ 
+        success: ghRes.ok, 
+        status: ghRes.status, 
+        msg: `Successfully synced date ${twDateStr} to GitHub` 
+      }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
 
     } catch (err) {
-      // 💡 萬一發生錯誤，也要帶上 CORS 標頭，網頁端才看得到錯誤因
-      return new Response(JSON.stringify({ success: false, error: err.message }), {
+      // 萬一伺服器內部發生異常（例如證交所斷線或 GitHub 拒絕連線），回傳 500 錯誤與 CORS 標頭
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: err.message 
+      }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
