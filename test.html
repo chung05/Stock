@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinMind 籌碼 API 直連除錯刺探面板</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .token-area { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
+        .token-area input { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
+        .btn { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; }
+        .btn:hover { background: #c0392b; }
+        .panels-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .stock-panel { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #3498db; }
+        .stock-panel.6446 { border-top-color: #9b59b6; }
+        h2 { margin-top: 0; color: #2c3e50; display: flex; justify-content: space-between; align-items: center; }
+        .badge { font-size: 14px; padding: 4px 10px; border-radius: 12px; background: #eee; color: #666; }
+        .badge.success { background: #2ecc71; color: white; }
+        .badge.error { background: #e74c3c; color: white; }
+        pre { background: #272822; color: #f8f8f2; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 13px; max-height: 500px; line-height: 1.5; }
+        .log-msg { font-size: 14px; font-weight: bold; margin-bottom: 10px; padding: 8px; border-radius: 4px; background: #e8f4fd; color: #1d6fa5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1 style="margin:0; font-size: 24px;">🎯 FinMind 籌碼真實性前台直連探針</h1>
+        <p style="margin: 5px 0 0 0; opacity: 0.8;">刺探區間：2026-06-22 ~ 2026-06-25</p>
+        
+        <div class="token-area">
+            <input type="text" id="tokenInput" placeholder="請在此貼上您的 FINMIND_TOKEN（若留空則以免費模式請求）" value="">
+            <button class="btn" id="startBtn">啟動 API 刺探</button>
+        </div>
+    </div>
+
+    <div class="panels-grid">
+        <div class="stock-panel 2301">
+            <h2>
+                <span>2301 光寶科</span>
+                <span id="badge-2301" class="badge">未連線</span>
+            </h2>
+            <div id="log-2301" class="log-msg">等待啟動...</div>
+            <pre id="dump-2301">// 原始 JSON 資料將在此即時 Dump 出現</pre>
+        </div>
+
+        <div class="stock-panel 6446">
+            <h2>
+                <span>6446 藥華藥</span>
+                <span id="badge-6446" class="badge">未連線</span>
+            </h2>
+            <div id="log-6446" class="log-msg">等待啟動...</div>
+            <pre id="dump-6446">// 原始 JSON 資料將在此即時 Dump 出現</pre>
+        </div>
+    </div>
+</div>
+
+<script src="test.js"></script>
+</body>
+</html>
