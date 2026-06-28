@@ -1,4 +1,4 @@
-// src/index.js (證交所最新規格校正版)
+// src/index.js (加強日誌回傳版)
 export default {
   async fetch(request, env) {
     const corsHeaders = {
@@ -13,7 +13,7 @@ export default {
 
     try {
       const url = new URL(request.url);
-      const date = url.searchParams.get("date"); // 接收前端的 "20260626"
+      const date = url.searchParams.get("date"); // 接收 "20260626"
 
       if (!date || date.length !== 8) {
         return new Response(
@@ -22,18 +22,17 @@ export default {
         );
       }
 
-      // 💡 【規格校正】：精準轉換為證交所規定的 7 碼純數字民國年格式 (例如 1150626)
+      // 精準拆解
       const year = parseInt(date.substring(0, 4));  
       const month = date.substring(4, 6);           
       const day = date.substring(6, 8);             
-      
-      const twYear = year - 1911; // 115
-      
-      // 確保年份如果是兩位數 (如99年) 會自動補零，三位數 (115) 則維持正常
+      const twYear = year - 1911; 
       const twYearStr = String(twYear).padStart(3, '0'); 
-      const twDateStr = `${twYearStr}${month}${day}`; // 組合出完全標準的 "1150626"
+      
+      // 💡 證交所最新 7 碼民國規格
+      const twDateStr = `${twYearStr}${month}${day}`; 
 
-      // 1. 直連臺灣證券交易所 (使用最新 7 碼民國年規格)
+      // 1. 建立戳證交所的完整網址
       const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${twDateStr}&selectType=ALLBUT0999&response=json`;
       
       const twseRes = await fetch(twseUrl, {
@@ -81,10 +80,13 @@ export default {
         body: JSON.stringify(bodyPayload)
       });
 
+      // 💡 成功回應：回傳最完整的觀測參數給前端列印
       return new Response(JSON.stringify({ 
         success: ghRes.ok, 
         status: ghRes.status, 
-        msg: `Successfully queried TWSE with parameter [${twDateStr}] and synced.` 
+        inputDateWest: date,
+        queryDateTw: twDateStr,
+        calledTwseUrl: twseUrl
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
