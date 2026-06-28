@@ -3,9 +3,9 @@ const CONFIG = {
     // 💡 1. 您的專屬 Cloudflare Worker 網址
     workerUrl: "https://stock.chiu6-chung05.workers.dev", 
     
-    // 💡 2. 根據您提供的真實網址，精準校正帳號與倉庫大小寫
-    ghUser: "chung05",  // ⬅️ 已修正為 chung05
-    ghRepo: "Stock"     // ⬅️ 已修正為大寫 S 的 Stock
+    // 💡 2. 您的 GitHub 帳號與倉庫名稱 (維持大小寫精確對齊)
+    ghUser: "chung05",  
+    ghRepo: "Stock"     
 };
 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
@@ -17,7 +17,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
 
     if (!sId || !rawDate) return alert("請輸入完整代號與日期");
 
-    const dateStr = rawDate.replace(/-/g, ''); // 轉為 20250627
+    const dateStr = rawDate.replace(/-/g, ''); // 轉為 20250625
     
     badgeEl.className = 'badge';
     badgeEl.innerText = '雲端備份中...';
@@ -28,14 +28,15 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         // 1. 命令 Worker 去抓官方資料並存到 GitHub 檔案庫
         const triggerWorker = await axios.get(`${CONFIG.workerUrl}/?date=${dateStr}`);
         
-        logEl.innerText = `📥 步驟 2: 雲端備份成功！正在從 GitHub 載入全台大總表檔案...`;
+        logEl.innerText = `📥 步驟 2: 雲端備份成功！正在從解鎖 CORS 的 GitHub 專屬網域載入大總表檔案...`;
 
-        // 💡 3. 【核心網址修正】：完全對齊您手動抓出的 GitHub 最新真實 Raw 網址結構
-        const githubRawUrl = `https://github.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/raw/refs/heads/main/json/${dateStr}.json`;
+        // 💡 3. 【終極網址修正】：改用天生完美支援網頁端 CORS 的 raw.githubusercontent.com 網域
+        // 對齊您提供的路徑結構 /refs/heads/main/
+        const githubRawUrl = `https://raw.githubusercontent.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/refs/heads/main/json/${dateStr}.json`;
         
-        console.log("🛠️ 程式目前正在讀取的真實網址為：", githubRawUrl);
+        console.log("🛠️ 網頁端正在透過安全解鎖網域讀取：", githubRawUrl);
         
-        // 2. 發送請求讀取檔案
+        // 2. 發送請求讀取檔案 (這次絕對不會再因為 CORS 噴 Network Error 了)
         const ghRes = await axios.get(githubRawUrl);
         
         const totalBook = ghRes.data;
@@ -49,12 +50,12 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         if (foundRow) {
             badgeEl.className = 'badge success';
             badgeEl.innerText = '分析完成';
-            logEl.innerText = `🟢 驗證成功！已成功從下載的大總表中提取出個股 [ ${sId} ] 的三大法人原始數據：`;
+            logEl.innerText = `🟢 驗證成功！已成功從雲端總表中提取出個股 [ ${sId} ] 的三大法人原始數據：`;
             resultEl.innerText = JSON.stringify({
                 "股票代號": sId,
                 "股票名稱": foundRow[1].trim(),
                 "查詢日期": rawDate,
-                "資料來源": "臺灣證券交易所 (Worker+GitHub 最新網址架構)",
+                "資料來源": "臺灣證券交易所 (Worker+GitHub 完美通訊架構)",
                 "外資買賣超股數(欄位4)": foundRow[4],
                 "投信買賣超股數(欄位7)": foundRow[7],
                 "自營商買賣超股數(欄位10)": foundRow[10],
@@ -73,8 +74,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         badgeEl.innerText = '管線中斷';
         logEl.innerText = `❌ 錯誤：無法透過雲端管線獲取數據。`;
         
-        // 再次建立一條動態除錯提示，方便您對比
-        const currentTryUrl = `https://github.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/raw/refs/heads/main/json/${dateStr}.json`;
-        resultEl.innerText = `【除錯對比資訊】\n您手動測試OK的網址：https://github.com/chung05/Stock/raw/refs/heads/main/json/20250625.json\n程式目前正在戳的網址：${currentTryUrl}\n\n詳細錯誤追蹤:\n${err.stack}`;
+        const currentTryUrl = `https://raw.githubusercontent.com/${CONFIG.ghUser}/${CONFIG.ghRepo}/refs/heads/main/json/${dateStr}.json`;
+        resultEl.innerText = `【除錯對比資訊】\n網頁目前嘗試讀取的解鎖網域網址：\n${currentTryUrl}\n\n詳細錯誤追蹤:\n${err.stack}`;
     }
 });
