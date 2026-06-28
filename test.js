@@ -1,4 +1,4 @@
-// test.js (純淨西元對接版)
+// test.js (西元對接修正版)
 const CONFIG = {
     workerUrl: "https://stock.chiu6-chung05.workers.dev", 
     ghUser: "chung05",  
@@ -8,24 +8,34 @@ const CONFIG = {
 // 自動預設為最後一個開盤交易日 (西元格式)
 function initDefaultDate() {
     let targetDate = new Date();
+    // 💡 防呆：如果現在是下午 5 點前，先看昨天
     if (targetDate.getHours() < 17) targetDate.setDate(targetDate.getDate() - 1);
+    
+    // 💡 防呆：遇週六或週日，自動退回週五
     while (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
         targetDate.setDate(targetDate.getDate() - 1);
     }
-    // 格式化為 YYYY-MM-DD 填入原生日曆
+    
+    // 格式化為 YYYY-MM-DD
     const yyyy = targetDate.getFullYear();
     const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
     const dd = String(targetDate.getDate()).padStart(2, '0');
     
     const dateInput = document.getElementById('targetDate');
-    if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
-    
-    document.getElementById('resultBadge').innerText = '系統就緒';
-    document.getElementById('diagLogs').innerHTML = `📅 <b>[系統就緒]</b> 已自動預設台股最新交易日 (西元)：${yyyy}-${mm}-${dd}`;
+    if (dateInput) {
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        document.getElementById('resultBadge').innerText = '系統就緒';
+        document.getElementById('resultBadge').className = 'badge success';
+        document.getElementById('diagLogs').innerHTML = `📅 <b>[系統就緒]</b> 已自動為您鎖定台股最新有效交易日：<code>${yyyy}-${mm}-${dd}</code>`;
+    }
 }
 
-// 畫面載入完成後執行
-setTimeout(initDefaultDate, 100);
+// 確保網頁所有標籤都好了再執行初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDefaultDate);
+} else {
+    initDefaultDate();
+}
 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
     const sId = document.getElementById('stockId').value.trim();
@@ -37,7 +47,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
 
     if (!sId || !rawDate) return alert("請輸入完整股票代號與日期");
 
-    // 💡 核心清洗：直接把 2026-06-26 裡面的橫線拿掉，變成純淨的西元 8 碼 "20260626"
+    // 清洗格式：把 2026-06-26 變成純 8 碼西元 "20260626"
     const dateStr = rawDate.replace(/-/g, ''); 
 
     badgeEl.className = 'badge';
