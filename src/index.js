@@ -1,4 +1,4 @@
-// src/index.js (全西元 - 上市無斜線 + 上櫃帶斜線對齊版)
+// src/index.js (全西元 - 上市櫃獨立雙檔案落地版)
 export default {
   async fetch(request, env) {
     const corsHeaders = {
@@ -13,7 +13,7 @@ export default {
 
     try {
       const url = new URL(request.url);
-      const date = url.searchParams.get("date"); // 接收前端傳來的 "20260626"
+      const date = url.searchParams.get("date"); // 接收 "20260626"
 
       if (!date || date.length !== 8 || isNaN(date)) {
         return new Response(
@@ -26,8 +26,41 @@ export default {
       const month = date.substring(4, 6);
       const day = date.substring(6, 8);
 
+      const ghUser = env.GH_USER;     
+      const ghRepo = env.GH_REPO;     
+      const ghToken = env.GH_TOKEN;   
+
+      // 建立通用的 GitHub SHA 檢查與上傳邏輯函數
+      async function uploadToGithub(path, contentStr, commitMessage) {
+        const commitUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/${path}`;
+        let sha = null;
+        try {
+          const checkRes = await fetch(commitUrl, {
+            headers: { "Authorization": `token ${ghToken}`, "User-Agent": "Cloudflare-Worker" }
+          });
+          if (checkRes.status === 200) {
+            const checkData = await checkRes.json();
+            sha = checkData.sha; 
+          }
+        } catch (e) {}
+
+        const b64Content = btoa(unescape(encodeURIComponent(contentStr))); 
+        const bodyPayload = { message: commitMessage, content: b64Content };
+        if (sha) bodyPayload.sha = sha; 
+
+        return await fetch(commitUrl, {
+          method: "PUT",
+          headers: {
+            "Authorization": `token ${ghToken}`,
+            "User-Agent": "Cloudflare-Worker",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(bodyPayload)
+        });
+      }
+
       // ==========================================
-      // 📡 1. 下載上市 (TWSE) - 使用純 8 碼西元年 (無斜線)
+      // 📡 1. 下載並儲存 上市 (TWSE) 原始檔案
       // ==========================================
       const twseUrl = `https://www.twse.com.tw/rwd/zh/fund/T86?date=${date}&selectType=ALLBUT0999&response=json`;
       const twseRes = await fetch(twseUrl, {
@@ -37,12 +70,18 @@ export default {
         }
       });
       const twseJson = await twseRes.json();
+      
+      // 將上市原裝 JSON 上傳至 json/YYYYMMDD.json
+      const twseGhRes = await uploadToGithub(
+        `json/${date}.json`, 
+        JSON.stringify(twseJson), 
+        `📥 自動落地：上市大總表 ${date}.json`
+      );
 
       // ==========================================
-      // 📡 2. 下載上櫃 (TPEx) - 完全依照您提供的西元帶斜線格式 (YYYY/MM/DD)
+      // 📡 2. 下載並儲存 上櫃 (TPEx) 原始檔案
       // ==========================================
-      const tpexDateStr = `${year}/${month}/${day}`; // 組合成 "2026/06/26"
-      
+      const tpexDateStr = `${year}/${month}/${day}`; 
       const tpexUrl = `https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?l=zh-tw&d=${tpexDateStr}&se=EW&o=json`;
       const tpexRes = await fetch(tpexUrl, {
         headers: {
@@ -51,93 +90,22 @@ export default {
         }
       });
       const tpexJson = await tpexRes.json();
-
-      // ==========================================
-      // 🧽 3. 資料清洗、對齊與合併 (維持 17 欄架構)
-      // ==========================================
-      let mergedData = [];
-
-      // 匯入上市股票
-      if (twseJson && twseJson.data) {
-        mergedData = mergedData.concat(twseJson.data);
-      }
-
-      // 匯入上櫃股票
-      if (tpexJson && tpexJson.aaData) {
-        const cleanedTpexRows = tpexJson.aaData.map(row => {
-          return [
-            row[0] ? row[0].trim() : "", // 0. 股票代號
-            row[1] ? row[1].trim() : "", // 1. 股票名稱
-            row[2],  // 2. 外資買進股數
-            row[3],  // 3. 外資賣出股數
-            row[4],  // 4. 外資買賣超股數
-            row[5],  // 5. 外資自營商買進股數
-            row[6],  // 6. 外資自營商賣出股數
-            row[7],  // 7. 外資自營商買賣超股數
-            row[8],  // 8. 投信買進股數
-            row[9],  // 9. 投信賣出股數
-            row[10], // 10. 投信買賣超股數
-            row[11], // 11. 自營商(自行買賣)買進股數
-            row[12], // 12. 自營商(自行買賣)賣出股數
-            row[13], // 13. 自營商(自行買賣)買賣超股數
-            row[14], // 14. 自營商(避險)買進股數
-            row[15], // 15. 自營商(避險)賣出股數
-            row[16], // 16. 三大法人買賣超總計
-          ];
-        });
-        mergedData = mergedData.concat(cleanedTpexRows);
-      }
-
-      // 建立統整報表結構
-      const finalReport = {
-        stat: "TWSE: " + (twseJson.stat || "OK") + " / TPEx: " + (tpexJson.statis || "OK"),
-        date: date,
-        market: "TWSE + TPEx (Merged)",
-        data: mergedData
-      };
-
-      // ==========================================
-      // 📥 4. 推送至 GitHub (維持西元 8 碼檔名：20260626.json)
-      // ==========================================
-      const ghUser = env.GH_USER;     
-      const ghRepo = env.GH_REPO;     
-      const ghToken = env.GH_TOKEN;   
       
-      const commitUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/json/${date}.json`;
-      
-      let sha = null;
-      try {
-        const checkRes = await fetch(commitUrl, {
-          headers: { "Authorization": `token ${ghToken}`, "User-Agent": "Cloudflare-Worker" }
-        });
-        if (checkRes.status === 200) {
-          const checkData = await checkRes.json();
-          sha = checkData.sha; 
-        }
-      } catch (e) {}
+      // 將上櫃原裝 JSON 上傳至 json/YYYYMMDD_otc.json
+      const tpexGhRes = await uploadToGithub(
+        `json/${date}_otc.json`, 
+        JSON.stringify(tpexJson), 
+        `📥 自動落地：上櫃大總表 ${date}_otc.json`
+      );
 
-      const b64Content = btoa(unescape(encodeURIComponent(JSON.stringify(finalReport)))); 
-      
-      const bodyPayload = {
-        message: `📥 自動落地備份【全西元上市櫃】融合總表：${date}.json`,
-        content: b64Content
-      };
-      if (sha) bodyPayload.sha = sha; 
-
-      const ghRes = await fetch(commitUrl, {
-        method: "PUT",
-        headers: {
-          "Authorization": `token ${ghToken}`,
-          "User-Agent": "Cloudflare-Worker",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(bodyPayload)
-      });
-
+      // ==========================================
+      // 🏁 3. 回傳雙線處理結果給前端
+      // ==========================================
       return new Response(JSON.stringify({ 
-        success: ghRes.ok, 
-        status: ghRes.status, 
-        totalStocksSynced: mergedData.length
+        success: twseGhRes.ok && tpexGhRes.ok, 
+        twseStatus: twseGhRes.status,
+        tpexStatus: tpexGhRes.status,
+        message: "上市與上櫃原始檔案已分開獨立落盤成功！"
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
