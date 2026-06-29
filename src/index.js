@@ -1,4 +1,4 @@
-// src/index.js (全西元 - 上市櫃獨立雙檔案落地版)
+// src/index.js (全西元 - 上市櫃獨立雙檔案 - 函數順序修正防爆版)
 export default {
   async fetch(request, env) {
     const corsHeaders = {
@@ -30,8 +30,8 @@ export default {
       const ghRepo = env.GH_REPO;     
       const ghToken = env.GH_TOKEN;   
 
-      // 建立通用的 GitHub SHA 檢查與上傳邏輯函數
-      async function uploadToGithub(path, contentStr, commitMessage) {
+      // 💡 【關鍵修正】：必須先將 GitHub 落地函數定義好，後面第 64 行、81 行才能成功呼叫它！
+      const uploadToGithub = async (path, contentStr, commitMessage) => {
         const commitUrl = `https://api.github.com/repos/${ghUser}/${ghRepo}/contents/${path}`;
         let sha = null;
         try {
@@ -57,7 +57,7 @@ export default {
           },
           body: JSON.stringify(bodyPayload)
         });
-      }
+      };
 
       // ==========================================
       // 📡 1. 下載並儲存 上市 (TWSE) 原始檔案
@@ -105,7 +105,7 @@ export default {
         success: twseGhRes.ok && tpexGhRes.ok, 
         twseStatus: twseGhRes.status,
         tpexStatus: tpexGhRes.status,
-        message: "上市與上櫃原始檔案已分開獨立落盤成功！"
+        message: "雙大檔獨立落盤完全成功！"
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
