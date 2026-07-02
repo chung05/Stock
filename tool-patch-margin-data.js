@@ -20,7 +20,7 @@ function getTodayStr() {
 }
 
 async function run() {
-  console.log("🚀 【融資券歷史大補帖工程】啟動...");
+  console.log("🚀 【融資券歷史大補帖工程 - 融券欄位修正版】啟動...");
 
   // 1. 取得 180 檔母名單
   const { data: targets, error: tErr } = await supabase.from('stock_targets').select('stock_id');
@@ -104,16 +104,16 @@ async function run() {
         const d = row.date;
         if (!existingDaysSet.has(d)) continue; // 略過休市日
 
-        // 執行更新指定日期與代碼的 Row
+        // 🟢 修正：FinMind 的融券欄位關鍵字是 ShortRental 而非 ShortSale
         const { error: updateErr } = await supabase
           .from('stock_chips_daily')
           .update({
             margin_buy: row.MarginPurchaseBuy || 0,
             margin_sell: row.MarginPurchaseSell || 0,
             margin_balance: row.MarginPurchaseTodayBalance || 0,
-            short_buy: row.MarginShortSaleBuy || 0,
-            short_sell: row.MarginShortSaleSell || 0,
-            short_balance: row.MarginShortSaleTodayBalance || 0
+            short_buy: row.MarginShortRentalBuy || 0,        // 🌟 修正欄位名
+            short_sell: row.MarginShortRentalSell || 0,      // 🌟 修正欄位名
+            short_balance: row.MarginShortRentalTodayBalance // 🌟 修正欄位名
           })
           .eq('stock_id', sId)
           .eq('date', d);
@@ -125,7 +125,7 @@ async function run() {
         }
       }
 
-      console.log(`  ✨ 成功補齊 ${sId} 共 ${patchCount} 天的融資券水位資料。`);
+      console.log(`  ✨ 成功補齊 ${sId} 共 ${patchCount} 天的融資券與融券水位資料。`);
 
     } catch (singleErr) {
       console.error(`❌ 處理個股 ${sId} 時發生致命錯誤:`, singleErr.message);
