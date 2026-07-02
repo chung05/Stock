@@ -1,4 +1,4 @@
-// tool-patch-margin-data.js (診斷版)
+// tool-patch-margin-data.js (最終修正版)
 if (!global.WebSocket) { global.WebSocket = class {}; }
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -21,34 +21,62 @@ function getTodayStr() {
 }
 
 async function run() {
-  console.log("🔍 [診斷模式] 正在檢查 FinMind API 的欄位名稱...");
+  console.log("🚀 【融資券歷史大帳本 - 最終欄位修正版】啟動...");
 
-  const { data: targets } = await supabase.from('stock_targets').select('stock_id').limit(1);
-  const sId = String(targets[0].stock_id).trim();
-  const startDateStr = "2026-06-01";
+  const { data: targets, error: tErr } = await supabase.from('stock_targets').select('stock_id');
+  if (tErr) throw tErr;
+  const stockList = targets || [];
+
+  const startDateStr = "2026-01-02";
   const endDateStr = getTodayStr();
 
-  try {
-    const marginUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-    const res = await axios.get(marginUrl);
+  for (let i = 0; i < stockList.length; i++) {
+    const sId = String(stockList[i].stock_id).trim();
 
-    if (res.data.status === 200 && Array.isArray(res.data.data) && res.data.data.length > 0) {
-      console.log(`✅ API 成功回傳！正在診斷個股: ${sId}`);
-      const sample = res.data.data[0];
-      
-      console.log("-----------------------------------------");
-      console.log("✅ API 資料集內的完整欄位名稱如下 (請複製此清單給我)：");
-      console.log(JSON.stringify(Object.keys(sample), null, 2));
-      console.log("-----------------------------------------");
-      console.log("✅ 第一筆原始資料範例：");
-      console.log(JSON.stringify(sample, null, 2));
-      console.log("-----------------------------------------");
-    } else {
-      console.log("❌ API 回傳異常或無資料:", res.data);
+    if (i > 0 && i % 3 === 0) await sleep(12000);
+    console.log(`🔄 [進度 ${i + 1}/${stockList.length}] 更新: ${sId}`);
+
+    try {
+      const { data: existingRows } = await supabase
+        .from('stock_chips_daily')
+        .select('date')
+        .eq('stock_id', sId)
+        .gte('date', startDateStr);
+
+      if (!existingRows || existingRows.length === 0) continue;
+      const existingDaysSet = new Set(existingRows.map(r => r.date));
+
+      const marginUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
+      const res = await axios.get(marginUrl);
+      const marginData = res.data.data || [];
+
+      let patchCount = 0;
+      for (const row of marginData) {
+        if (!existingDaysSet.has(row.date)) continue;
+
+        // 🟢 根據你提供的真實 JSON 結構進行映射
+        const { error: updateErr } = await supabase
+          .from('stock_chips_daily')
+          .update({
+            margin_buy: row.MarginPurchaseBuy || 0,
+            margin_sell: row.MarginPurchaseSell || 0,
+            margin_balance: row.MarginPurchaseTodayBalance || 0,
+            short_buy: row.ShortSaleBuy || 0,          // 🌟 修正：移除 Margin 字首
+            short_sell: row.ShortSaleSell || 0,        // 🌟 修正：移除 Margin 字首
+            short_balance: row.ShortSaleTodayBalance || 0 // 🌟 修正：移除 Margin 字首
+          })
+          .eq('stock_id', sId)
+          .eq('date', row.date);
+        
+        if (!updateErr) patchCount++;
+      }
+      console.log(`  ✨ 成功補齊 ${patchCount} 天資料`);
+    } catch (e) {
+      console.error(`❌ 錯誤: ${e.message}`);
     }
-  } catch (e) {
-    console.log("💥 連線錯誤:", e.message);
+    await sleep(600);
   }
+  console.log("\n🎉 大補帖工程完美完工！");
 }
 
 run();
