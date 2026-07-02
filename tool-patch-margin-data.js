@@ -1,4 +1,4 @@
-// tool-patch-margin-data.js (診斷偵錯版)
+// tool-patch-margin-data.js (診斷版)
 if (!global.WebSocket) { global.WebSocket = class {}; }
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -9,36 +9,46 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
   realtime: { global: false, isRealtimeEnabled: false }
 });
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+function getTodayStr() {
+  const now = new Date();
+  const idn = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+  const yyyy = idn.getUTCFullYear();
+  const mm = String(idn.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(idn.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 async function run() {
-  console.log("🔍 [診斷模式] 開始診斷第一檔股票...");
-  
-  // 隨機取一檔測試
+  console.log("🔍 [診斷模式] 正在檢查 FinMind API 的欄位名稱...");
+
   const { data: targets } = await supabase.from('stock_targets').select('stock_id').limit(1);
   const sId = String(targets[0].stock_id).trim();
-  const startDate = "2026-06-01"; // 只抓近一個月方便觀察
-  const endDate = "2026-07-02";
+  const startDateStr = "2026-06-01";
+  const endDateStr = getTodayStr();
 
   try {
-    // 1. 抓取 API
-    const url = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${startDate}&end_date=${endDate}&token=${process.env.FINMIND_TOKEN}`;
-    const res = await axios.get(url);
+    const marginUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
+    const res = await axios.get(marginUrl);
 
-    if (res.data.data && res.data.data.length > 0) {
-      console.log(`✅ API 成功回傳！第一筆資料結構如下：`);
-      console.log(JSON.stringify(res.data.data[0], null, 2));
-      
-      // 2. 檢查是否有融券資料
+    if (res.data.status === 200 && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      console.log(`✅ API 成功回傳！正在診斷個股: ${sId}`);
       const sample = res.data.data[0];
-      console.log(`\n📋 檢查關鍵欄位是否存在：`);
-      console.log(`- MarginPurchaseBuy 存在? ${sample.hasOwnProperty('MarginPurchaseBuy')}`);
-      console.log(`- MarginShortRentalBuy 存在? ${sample.hasOwnProperty('MarginShortRentalBuy')}`);
-      console.log(`- MarginShortSaleBuy 存在? ${sample.hasOwnProperty('MarginShortSaleBuy')}`);
-      console.log(`- 融券欄位值: ${sample.MarginShortRentalBuy || sample.MarginShortSaleBuy || "未找到任何類似欄位"}`);
+      
+      console.log("-----------------------------------------");
+      console.log("✅ API 資料集內的完整欄位名稱如下 (請複製此清單給我)：");
+      console.log(JSON.stringify(Object.keys(sample), null, 2));
+      console.log("-----------------------------------------");
+      console.log("✅ 第一筆原始資料範例：");
+      console.log(JSON.stringify(sample, null, 2));
+      console.log("-----------------------------------------");
     } else {
-      console.log("❌ API 回傳為空，請檢查 data_id 或日期範圍");
+      console.log("❌ API 回傳異常或無資料:", res.data);
     }
   } catch (e) {
-    console.log("💥 錯誤:", e.message);
+    console.log("💥 連線錯誤:", e.message);
   }
 }
+
 run();
