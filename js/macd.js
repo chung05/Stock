@@ -1,6 +1,6 @@
 // js/macd.js
-// 🎯 100% 完好還原您原始有資料的頂端結構與 Import，確保 180 檔常規數據流完全對齊
-import { state, getValIgnoreCase, setSignalDetail, decodeMacdSignal, MACD_SIGNALS } from './config.js';
+// 🎯 智慧修正：頂部 Import 對齊新版 16 維度解碼晶片 `decodeMultiDimensionSignal`
+import { state, getValIgnoreCase, setSignalDetail, decodeMultiDimensionSignal, MACD_SIGNALS } from './config.js';
 
 if (!state.visibleLines) {
   state.visibleLines = { ma5: true, ma10: false, ma20: true };
@@ -169,13 +169,9 @@ export async function openCombinedModal(stockId, stockName) {
     }
   }
 
-  // 📰 萬能專業級轉 JSON 網關解析流 (異步執行晶片，100% 徹底修復新聞卡死)
   fetchStockNewsBackground(stockId, stockName);
 }
 
-// ==========================================================
-// 🛡️ 核心重製防線：具有「rss2json 專業轉換網關」與「自動重試」的新聞背景抓取器
-// ==========================================================
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
   const listZone = document.getElementById("newsListZone");
@@ -190,13 +186,10 @@ async function fetchStockNewsBackground(stockId, stockName) {
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  
-  // 💡 導入 2index.html 的終極秘密武器：利用 rss2json 伺服器端完成 JSON 格式精準轉換
   const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
 
   let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
 
-  // 執行自動三次重試保護機制
   while (currentRetry < maxRetries && !successFetch) {
     currentRetry++;
     try {
@@ -214,7 +207,6 @@ async function fetchStockNewsBackground(stockId, stockName) {
     }
   }
 
-  // 成功撈回數據，開始渲染原有精美 UI 排版結構
   if (successFetch && resJson) {
     const fetchedItems = resJson.items || [];
     if (fetchedItems.length > 0) {
@@ -236,13 +228,12 @@ async function fetchStockNewsBackground(stockId, stockName) {
       });
       
       if (listZone) listZone.innerHTML = listHtml;
-      if (debugBox) debugBox.classList.add("hidden"); // 解析成功，立刻關閉黑底診斷區
+      if (debugBox) debugBox.classList.add("hidden"); 
     } else {
       if (listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞項目</div>`;
       if (debugBox) debugBox.classList.add("hidden");
     }
   } else {
-    // 降級容錯保護線：防止網關配額尖峰時造成系統卡死，彈出直通特快車按鈕
     if (debugBox) debugBox.classList.add("hidden");
     if (listZone) {
       listZone.innerHTML = `
@@ -451,8 +442,18 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
   if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  const currentSignalCode = decodeMacdSignal(chips);
-  const titleText = MACD_SIGNALS[currentSignalCode] || "未定義狀態";
+  // 💡 智慧修正：呼叫新版多維度解碼晶片
+  const matchedCodes = decodeMultiDimensionSignal(chips);
+  let titleText = "正常盤整型態";
+  
+  if (matchedCodes && matchedCodes.length > 0) {
+    // 將所有命中的型態名稱提取出來，並用逗號或斜線串接
+    titleText = matchedCodes.map(code => {
+      const fullText = MACD_SIGNALS[code] || "";
+      // 擷取點後方的繁體中文名稱即可，避免標題過長
+      return fullText.includes("。") || fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText;
+    }).join(" + ");
+  }
   
   if(boardTitleEl) {
     boardTitleEl.innerHTML = `
