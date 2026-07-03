@@ -85,7 +85,7 @@ export function decodeMultiDimensionSignal(stockChips) {
   const t_minus_10 = dataset.slice(-10); // 近10日
   const t_minus_20 = dataset.slice(-20); // 近20日
 
-  // 1. 基礎指標提取 [cite: 1, 5, 6, 7]
+  // 1. 基礎指標提取
   const price = t_latest.price || 0;
   const max_price = t_latest.max || price;
   const min_price = t_latest.min || price;
@@ -109,7 +109,7 @@ export function decodeMultiDimensionSignal(stockChips) {
 
   const rsi14 = t_latest.rsi14 || 50;
 
-  // 籌碼提取 [cite: 1, 6, 7]
+  // 籌碼提取
   const f_net = (t_latest.f_buy || 0) - (t_latest.f_sell || 0); 
   const it_net = (t_latest.it_buy || 0) - (t_latest.it_sell || 0);
   const ds_net = (t_latest.ds_buy || 0) - (t_latest.ds_sell || 0);
