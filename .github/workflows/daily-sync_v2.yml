@@ -18,7 +18,8 @@ jobs:
       - uses: actions/checkout@v4.2.2
       - uses: actions/setup-node@v4
         with: 
-          node-version: '20'
+          # 💡 做法 A 智慧升級：由 '20' 改為 '22'，獲得原生 WebSocket 支援，根除 Supabase 报错！
+          node-version: '22'
       - run: npm install axios xlsx @supabase/supabase-js dotenv
       
       - name: 執行資料庫同步腳本
