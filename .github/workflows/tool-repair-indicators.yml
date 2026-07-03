@@ -1,14 +1,14 @@
 name: 🚀 工具箱：修復2301,6446個股資訊
 
 on:
-  workflow_dispatch: # 准許在 GitHub Actions 後台手動點擊按鈕觸發執行
+  workflow_dispatch: 
 
 jobs:
   force-repair:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 檢查並拉取專案程式碼
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: ⚙️ 設定標準 Node.js 20 環境
         uses: actions/setup-node@v4
