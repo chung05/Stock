@@ -1,7 +1,7 @@
 name: 🚀 工具箱：手動執行大帳本陌生髒資料物理清洗 (回歸180檔)
 
 on:
-  workflow_dispatch: # 准許在 GitHub Actions 後台手動點擊按鈕觸發執行
+  workflow_dispatch: 
 
 jobs:
   clean-corrupted-data:
@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: 📥 檢查並拉取專案程式碼
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: ⚙️ 設定標準 Node.js 20 環境
         uses: actions/setup-node@v4
@@ -23,5 +23,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          GITHUB_REPOSITORY: ${{ github.repository }} # 💡 極重要：此腳本需要推導 Excel 的線上網址，務必提供此環境變數
+          GITHUB_REPOSITORY: ${{ github.repository }} 
         run: node tool-clean-corrupted-data.js
