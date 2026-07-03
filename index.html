@@ -196,24 +196,30 @@
         </div>
         <div class="flex-1 sm:w-56 sm:flex-initial">
           <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
-            <option value="ALL">🌐 不指定型態</option>
-            <optgroup label="🟢 多頭掌控區 (0軸上)">
-              <option value="1">🔥 1. 強勢多頭加速（主升段）</option>
-              <option value="2">📈 2. 強勢多頭減速（動能下降）</option>
-              <option value="3">🚨 3. 多頭回檔（上漲後修正）</option>
-              <option value="4">🚀 4. 多頭再啟動（第二波上漲）</option>
+            <option value="ALL">🌐 不指定型態 (顯示全部個股)</option>
+            <optgroup label="🔥 價量與型態表態模組">
+              <option value="1">⚡ 1. 壓縮突破（均線糾結+放量+法人點火）</option>
+              <option value="3">🚀 3. 黑馬起飛（四線多頭+MACD紅柱擴大）</option>
+              <option value="6">📊 6. 價量表態（創20日新高價量+外資鎖碼）</option>
             </optgroup>
-            <optgroup label="🔴 空頭控盤區 (0軸下)">
-              <option value="5">🌊 5. 強勢空頭加速（主跌段）</option>
-              <option value="6">📉 6. 強勢空頭減速（賣壓下降）</option>
-              <option value="7">🔋 7. 空頭反彈（跌深反彈）</option>
-              <option value="8">💥 8. 空頭續跌（跌勢延續）</option>
+            <optgroup label="📈 動能與指標共振模組">
+              <option value="4">🎯 4. 慣性改變（突破月線壓制+投信大買）</option>
+              <option value="5">🧬 5. 動能共振（KD金叉+MACD綠柱翻紅）</option>
+              <option value="14">💎 14. 結構性大轉折（月金叉季線+MACD站上0軸）</option>
             </optgroup>
-            <optgroup label="⚖️ 底部與頂部轉折區">
-              <option value="9">🧱 9. 底部築底（空頭衰竭）</option>
-              <option value="10">⚡ 10. 底部翻多（反轉向上）</option>
-              <option value="11">💎 11. 頂部鈍化（多頭衰竭）</option>
-              <option value="12">⚠️ 12. 頂部翻空（反轉向上）</option>
+            <optgroup label="👑 法人與主力鎖碼模組">
+              <option value="7">🔮 7. 珍珠蒙塵（法人連3買+橫盤壓縮）</option>
+              <option value="9">🌱 9. 投信無中生有（投信打破清白首日爆買）</option>
+              <option value="10">🦅 10. 雙雄聯手（外資大買+投信爆買+MACD翻紅）</option>
+            </optgroup>
+            <optgroup label="⚡ 籌碼換手與資券結構轉折">
+              <option value="2">🌅 2. 黎明曙光（季線下低檔+KD金叉+融資減）</option>
+              <option value="8">🤝 8. 籌碼換手（融資大退+法人神救援+守月線）</option>
+              <option value="11">🪜 11. 致命軋空（融券3日暴增+股價收最高）</option>
+              <option value="12">🐜 12. 權證螞蟻雄兵（自營商避險爆量+股價大漲）</option>
+              <option value="13">🏳️ 13. 主力投降（資券同減+KD金叉+收復5MA）</option>
+              <option value="15">🔄 15. 外資回頭（連5賣後首日認錯大買）</option>
+              <option value="16">🛡️ 16. 國家隊護盤（官股自行買賣逆勢大買+長下影線）</option>
             </optgroup>
           </select>
         </div>
@@ -281,7 +287,6 @@
       document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
       document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
 
-      // 💡 語法雜質徹底洗淨，這次絕對安全、流暢地全自動請求 Supabase 數據！
       await forceSyncFlow();
     });
   </script>
