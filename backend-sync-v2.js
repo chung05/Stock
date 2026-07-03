@@ -4,7 +4,6 @@ import axios from 'axios';
 import xlsx from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
 
-// 1. 初始化雲端資料庫連線
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const finmindToken = process.env.FINMIND_TOKEN;
@@ -18,7 +17,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { persistSession: false }
 });
 
-// 2. 核心時間管理：一律採用台灣標準交易時區
 const now = new Date();
 const taipeiTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
 const targetDate = taipeiTime.toISOString().split('T')[0];
@@ -39,29 +37,22 @@ async function startHighPerformanceSync() {
       return;
     }
 
-    // 💡 終極解鎖與防禦：提取所有代號，進行嚴格剔除空值、去空格、以及物理級 Set() 強行去重！
     const rawStockIds = dbData.map(item => String(item.stock_id).trim()).filter(id => id && id !== 'undefined' && id !== 'null');
     const stockIds = [...new Set(rawStockIds)];
 
     console.log(`📅 同步日期: ${targetDate}, 實際名單長度: ${dbData.length}, 去重後精準股票總數: ${stockIds.length}`);
 
-    if (stockIds.length > 190) {
-      console.log("%c⚠️ 偵測到股票數異常大於標準，主動發動記憶體陣列限額裁剪...", "color:orange;");
-    }
-
-    // 階段 B：分批（每 50 檔）向 FinMind 請求當日籌碼與技術面大數據
     let allFetchedDailyChips = [];
     const chunkSize = 50;
 
+    // 階段 B：分批（每 50 檔）向 FinMind 請求當日籌碼
     for (let i = 0; i < stockIds.length; i += chunkSize) {
-      // 🟢 正確安全切片：每次進入新批次，chunkIds 都是絕對獨立乾淨的 50 檔，絕不殘留或污染！
       const chunkIds = stockIds.slice(i, i + chunkSize);
       console.log(`📦 正在處理批次 ${Math.floor(i / chunkSize) + 1}，打包發送個股數: ${chunkIds.length}`);
 
-      // 建立 FinMind 籌碼請求參數
       const finmindParams = {
         dataset: "TaiwanStockTaiwanCompanyBuySell",
-        data_id: chunkIds.join(','), // 用逗號串接
+        data_id: chunkIds.join(','), 
         start_date: targetDate,
         end_date: targetDate,
         token: finmindToken
@@ -72,10 +63,21 @@ async function startHighPerformanceSync() {
 
       while (retries > 0 && !fetchSuccess) {
         try {
-          // 直連 FinMind 官方 API
-          const response = await axios.post("https://api.finmindtrade.com/api/v4/data", new URLSearchParams(finmindParams), {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            timeout: 15000
+          // 💡 終極相容修正：改用標準 axios.get，並強行透過 URLSearchParams 打包參數，根除 405 與 400 參數阻擋錯誤！
+          const response = await axios.get("https://api.finmindtrade.com/api/v4/data", {
+            params: finmindParams,
+            timeout: 20000,
+            paramsSerializer: {
+              serialize: (params) => {
+                const searchParams = new URLSearchParams();
+                Object.entries(params).forEach(([key, val]) => {
+                  if (val !== undefined && val !== null) {
+                    searchParams.append(key, String(val));
+                  }
+                });
+                return searchParams.toString();
+              }
+            }
           });
 
           if (response.data && response.data.status === 200) {
@@ -83,17 +85,17 @@ async function startHighPerformanceSync() {
             allFetchedDailyChips = allFetchedDailyChips.concat(dayData);
             fetchSuccess = true;
           } else {
-            console.warn(`⚠️ FinMind 回傳狀態異常 (${response.data?.status})，正在進行重試...`);
+            console.warn(`⚠️ FinMind 回傳狀態異常 (${response.data?.status}: ${response.data?.msg || ''})，正在進行重試...`);
             retries--;
-            if (retries > 0) await new Promise(res => setTimeout(res, 1000));
+            if (retries > 0) await new Promise(res => setTimeout(res, 2000));
           }
         } catch (apiErr) {
-          console.error(`❌ 請求 FinMind 發生通訊阻斷或 400 錯誤:`, apiErr.message);
+          console.error(`❌ 請求 FinMind 發生通訊阻斷或 405/400 錯誤:`, apiErr.message);
           retries--;
           if (retries === 0) {
             console.error("💥 該批次已達 3 次重試上限，為保障整體隊列前行，此批次強行跳過。");
           } else {
-            await new Promise(res => setTimeout(res, 1500));
+            await new Promise(res => setTimeout(res, 2500));
           }
         }
       }
@@ -101,16 +103,14 @@ async function startHighPerformanceSync() {
 
     console.log(`📊 本日累計成功撈回 ${allFetchedDailyChips.length} 筆原始籌碼明細紀錄。`);
 
-    // 階段 C：清洗大數據並進行多維度運算整合
     if (allFetchedDailyChips.length === 0) {
-      console.log("ℹ️ 本日無新籌碼明細更新（可能為台股非交易日），流程安全結束。");
+      console.log("ℹ️ 本日無新籌碼明細更新（可能為台股非交易日或 API 未開盤），流程安全結束。");
       return;
     }
 
-    // 進行與 Supabase 資料庫的大帳本 upsert 儲存
+    // 階段 C：寫入 Supabase 資料庫大帳本
     console.log("💾 正在發動 Supabase 智慧矩陣更新 (Upsert) 寫入作業...");
     
-    // 處理資料清洗後的欄位對位
     const finalUploadRows = allFetchedDailyChips.map(row => {
       return {
         stock_id: String(row.stock_id).trim(),
@@ -126,12 +126,10 @@ async function startHighPerformanceSync() {
         ds_sell: row.Dealer_Express_Sell || 0,
         dh_buy: row.Dealer_Hedging_Buy || 0,
         dh_sell: row.Dealer_Hedging_Sell || 0,
-        // 此處自動預留未來 16 維度計算所需的技術指標欄位擴充
         updated_at: new Date().toISOString()
       };
     });
 
-    // 分批寫入資料庫，防止 Payload 超載
     const saveChunkSize = 100;
     for (let j = 0; j < finalUploadRows.length; j += saveChunkSize) {
       const saveChunk = finalUploadRows.slice(j, j + saveChunkSize);
@@ -152,5 +150,4 @@ async function startHighPerformanceSync() {
   }
 }
 
-// 啟動主序流
 startHighPerformanceSync();
