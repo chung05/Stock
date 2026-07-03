@@ -24,7 +24,8 @@ jobs:
       - name: 設定 Node.js 環境
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 💡 智慧對齊升級：同步由 '20' 改為 '22'，讓手動版也獲得原生 WebSocket 支援，防止 Supabase 連線報錯！
+          node-version: '22'
 
       - name: 自動安裝解析所需的基礎依賴套件
         run: npm install axios xlsx @supabase/supabase-js dotenv
