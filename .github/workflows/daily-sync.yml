@@ -19,12 +19,12 @@ jobs:
 
     steps:
       - name: 檢查專案程式碼
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2 # 💡 升級安全小版本
 
       - name: 設定 Node.js 環境
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20' # 鎖定穩定 Node 20
 
       - name: 自動安裝解析所需的基礎依賴套件
         run: npm install axios xlsx @supabase/supabase-js dotenv
@@ -39,7 +39,7 @@ jobs:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
 
       - name: 🎯 打包前端網頁靜態資源
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v3.0.1 # 💡 升級打包核心版本
         with:
           path: '.'
           # 🟢 智慧除錯：硬性指定如果雲端有重複的打包檔，直接覆蓋更新，徹底根除 Multiple artifacts 報錯！
@@ -52,4 +52,4 @@ jobs:
     needs: build-and-sync
     steps:
       - name: 🚀 部署至 GitHub Pages 網址
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4.0.5 # 💡 智慧修正：鎖定 v4.0.5 版本，繞開官方 v5 内部的 punycode 廢棄死結！
