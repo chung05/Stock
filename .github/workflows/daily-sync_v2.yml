@@ -31,7 +31,7 @@ jobs:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
 
       - name: 🎯 打包前端網頁靜態資源
-        uses: actions/upload-pages-artifact@v3.0.1 # 💡 升級打包核心組件，根除強制執行失敗
+        uses: actions/upload-pages-artifact@v3.0.1 # 💡 確保打包核心組件版本最新
         with:
           path: '.'
           overwrite: true 
@@ -41,4 +41,5 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-sync
     steps:
-      - uses: actions/deploy-pages@v4.0.5 # 💡 對齊官方穩定部署版本
+      - name: 🚀 部署至 GitHub Pages
+        uses: actions/deploy-pages@v4.0.5 # 💡 鎖定 v4.0.5，防範 v5 的 punycode 模組與 Node 24 衝突
