@@ -1,7 +1,6 @@
 name: 🚀 工具箱：手動重建178檔資料
 
 on:
-  # 🟢 僅保留手動觸發按鈕，絕不自動亂跑，保障 API 安全與流量
   workflow_dispatch: 
 
 jobs:
@@ -9,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 檢查並拉取專案最新程式碼
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: ⚙️ 設定標準 Node.js 20 環境
         uses: actions/setup-node@v4
