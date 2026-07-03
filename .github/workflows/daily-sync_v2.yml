@@ -15,9 +15,10 @@ jobs:
   build-and-sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2 # 💡 升級到最新小版本，完美相容 Node 24 容器
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+        with: 
+          node-version: '20' # 鎖定專案環境為穩定版 Node 20
       - run: npm install axios xlsx @supabase/supabase-js dotenv
       
       - name: 執行資料庫同步腳本
@@ -30,7 +31,7 @@ jobs:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
 
       - name: 🎯 打包前端網頁靜態資源
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v3.0.1 # 💡 升級打包核心組件，根除強制執行失敗
         with:
           path: '.'
           overwrite: true 
@@ -40,4 +41,4 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-sync
     steps:
-      - uses: actions/deploy-pages@v5
+      - uses: actions/deploy-pages@v4.0.5 # 💡 對齊官方穩定部署版本
