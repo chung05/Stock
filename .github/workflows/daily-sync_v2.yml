@@ -15,23 +15,23 @@ jobs:
   build-and-sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2 # 💡 升級到最新小版本，完美相容 Node 24 容器
+      - uses: actions/checkout@v4.2.2
       - uses: actions/setup-node@v4
         with: 
-          node-version: '20' # 鎖定專案環境為穩定版 Node 20
+          node-version: '20'
       - run: npm install axios xlsx @supabase/supabase-js dotenv
       
       - name: 執行資料庫同步腳本
         run: node backend-sync-v2.js
         env:
-          TZ: Asia/Taipei # 🟢 環境時區校準
+          TZ: Asia/Taipei
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
 
       - name: 🎯 打包前端網頁靜態資源
-        uses: actions/upload-pages-artifact@v3.0.1 # 💡 確保打包核心組件版本最新
+        uses: actions/upload-pages-artifact@v3.0.1
         with:
           path: '.'
           overwrite: true 
@@ -42,4 +42,7 @@ jobs:
     needs: build-and-sync
     steps:
       - name: 🚀 部署至 GitHub Pages
-        uses: actions/deploy-pages@v4.0.5 # 💡 鎖定 v4.0.5，防範 v5 的 punycode 模組與 Node 24 衝突
+        uses: actions/deploy-pages@v4.0.5
+        env:
+          # 💡 終極解鎖變數：強行叫 Node.js 閉嘴，無視 punycode 的過期警告，讓部署順利通過
+          NODE_OPTIONS: "--no-deprecation"
