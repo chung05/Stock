@@ -50,35 +50,17 @@ async function startHighPerformanceSync() {
       const chunkIds = stockIds.slice(i, i + chunkSize);
       console.log(`📦 正在處理批次 ${Math.floor(i / chunkSize) + 1}，打包發送個股數: ${chunkIds.length}`);
 
-      const finmindParams = {
-        dataset: "TaiwanStockTaiwanCompanyBuySell",
-        data_id: chunkIds.join(','), 
-        start_date: targetDate,
-        end_date: targetDate,
-        token: finmindToken
-      };
+      // 💡 智慧破防晶片：避開所有自動序列化套件，手動拼接出 FinMind 伺服器唯一接受的「純原始逗號」網址
+      const rawIdsString = chunkIds.join(',');
+      const finalApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockTaiwanCompanyBuySell&data_id=${rawIdsString}&start_date=${targetDate}&end_date=${targetDate}&token=${finmindToken || ''}`;
 
       let retries = 3;
       let fetchSuccess = false;
 
       while (retries > 0 && !fetchSuccess) {
         try {
-          // 💡 終極相容修正：改用標準 axios.get，並強行透過 URLSearchParams 打包參數，根除 405 與 400 參數阻擋錯誤！
-          const response = await axios.get("https://api.finmindtrade.com/api/v4/data", {
-            params: finmindParams,
-            timeout: 20000,
-            paramsSerializer: {
-              serialize: (params) => {
-                const searchParams = new URLSearchParams();
-                Object.entries(params).forEach(([key, val]) => {
-                  if (val !== undefined && val !== null) {
-                    searchParams.append(key, String(val));
-                  }
-                });
-                return searchParams.toString();
-              }
-            }
-          });
+          // 用最直接、乾淨、無添加編碼的完整 URL 進行 GET 請求
+          const response = await axios.get(finalApiUrl, { timeout: 25000 });
 
           if (response.data && response.data.status === 200) {
             const dayData = response.data.data || [];
@@ -90,7 +72,7 @@ async function startHighPerformanceSync() {
             if (retries > 0) await new Promise(res => setTimeout(res, 2000));
           }
         } catch (apiErr) {
-          console.error(`❌ 請求 FinMind 發生通訊阻斷或 405/400 錯誤:`, apiErr.message);
+          console.error(`❌ 請求 FinMind 發生通訊阻斷或 400 錯誤:`, apiErr.message);
           retries--;
           if (retries === 0) {
             console.error("💥 該批次已達 3 次重試上限，為保障整體隊列前行，此批次強行跳過。");
