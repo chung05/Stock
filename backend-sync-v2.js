@@ -23,7 +23,7 @@ function formatDateToString(dateObj) {
 
 async function run() {
   try {
-    console.log("🚀 啟動【主力成分股 v2 - 核心去重雙 API + 28欄位核心指標大腦】同步程序...");
+    console.log("🚀 啟動【主力成分股 v2 - 核心去重三大 API + 28欄位核心指標大腦】終極同步程序...");
 
     // 1. 直接從唯一真理母名單 stock_targets 讀取股票並進行嚴格去重
     console.log("📥 正在從雲端 stock_targets 表載入核心主力成分股名單...");
@@ -33,7 +33,6 @@ async function run() {
           
     if (targetError) throw targetError;
     
-    // 💡 物理級 Set() 強行去重，確保名單永遠維持精準的 180 檔
     const rawStockIds = (targetsData || []).map(item => String(item.stock_id).trim()).filter(id => id && id !== 'undefined' && id !== 'null');
     const stockIds = [...new Set(rawStockIds)];
     console.log(`📊 成功獲取核心去重名單總計: ${stockIds.length} 檔。`);
@@ -83,17 +82,18 @@ async function run() {
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    // 4. 逐檔增量同步核心
+    // 4. 逐檔增量同步核心（三大 API 深度融合，包含籌碼、股價、融資券）
     if (startDate <= endDate) {
       for (let i = 0; i < stockIds.length; i++) {
         const sId = stockIds[i];
         
-        if (i > 0 && i % 15 === 0) {
+        // 頻率控制：每 12 檔休息 10 秒，完美保護 API 配額
+        if (i > 0 && i % 12 === 0) {
           console.log(`⏳ 已同步 ${i} 檔，保護 API 流量強制休息 10 秒...`);
           await sleep(10000);
         }
 
-        console.log(`[下載籌碼與K線] (${i + 1}/${stockIds.length}) ${sId}`);
+        console.log(`[全量下載大數據] (${i + 1}/${stockIds.length}) 標的: ${sId}`);
 
         try {
           const dateMap = {};
@@ -109,6 +109,7 @@ async function run() {
                 dateMap[d] = { 
                   stock_id: sId, date: d, price: null, change_value: 0, 
                   f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0,
+                  margin_buy: 0, margin_sell: 0, margin_balance: 0, short_buy: 0, short_sell: 0, short_balance: 0,
                   open: 0, max: 0, min: 0, trading_volume: 0
                 };
               }
@@ -131,16 +132,34 @@ async function run() {
                 dateMap[d] = { 
                   stock_id: sId, date: d, price: null, change_value: 0, 
                   f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0,
+                  margin_buy: 0, margin_sell: 0, margin_balance: 0, short_buy: 0, short_sell: 0, short_balance: 0,
                   open: 0, max: 0, min: 0, trading_volume: 0
                 };
               }
-              
               dateMap[d].price = pRow.close;
               dateMap[d].open = pRow.open;
               dateMap[d].max = pRow.max;
               dateMap[d].min = pRow.min;
               dateMap[d].trading_volume = pRow.Trading_Volume;
               dateMap[d].change_value = pRow.spread || 0;
+            });
+          }
+
+          // (C) 🌟 完美補齊：整合 tool-patch-margin-data.js 的融資券接口，一次撈回資券明細！
+          const marginApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
+          const marginRes = await axios.get(marginApiUrl, { headers: commonHeaders, timeout: 15000 });
+          
+          if (marginRes.data.status === 200 && Array.isArray(marginRes.data.data)) {
+            marginRes.data.data.forEach(mRow => {
+              const d = mRow.date;
+              if (dateMap[d]) {
+                dateMap[d].margin_buy = mRow.MarginPurchaseBuy || 0;
+                dateMap[d].margin_sell = mRow.MarginPurchaseSell || 0;
+                dateMap[d].margin_balance = mRow.MarginPurchaseTodayBalance || 0;
+                dateMap[d].short_buy = mRow.ShortSaleBuy || 0;
+                dateMap[d].short_sell = mRow.ShortSaleSell || 0;
+                dateMap[d].short_balance = mRow.ShortSaleTodayBalance || 0;
+              }
             });
           }
 
@@ -157,7 +176,7 @@ async function run() {
       }
     }
 
-    // 💡 5. 【王者歸來】啟動全歷史 28 欄位技術指標遞迴重算大腦，把 MA5, MA20, RSI, MACD 算好補滿！
+    // 5. 啟動全歷史 28 欄位技術指標遞迴重算大腦，計算 MA5, MA20, RSI, MACD
     console.log("💡 [第二步] 啟動全歷史 28 欄位技術指標遞迴重算大腦...");
     await calculateAndWriteBackIndicators(stockIds);
 
@@ -168,7 +187,6 @@ async function run() {
   }
 }
 
-// 🎯 原創技術指標遞迴重算核心核心函式，完全保留 28 欄位對位寫入
 async function calculateAndWriteBackIndicators(stockList) {
   for (let i = 0; i < stockList.length; i++) {
     const sId = String(stockList[i]).trim();
@@ -257,7 +275,6 @@ async function calculateAndWriteBackIndicators(stockList) {
           }
         }
 
-        // 精準無誤地寫回 28 欄位對齊陣列
         rowUpdates.push({
           stock_id: sId,
           date: targetDay.date,
@@ -266,7 +283,8 @@ async function calculateAndWriteBackIndicators(stockList) {
           f_buy: targetDay.f_buy, f_sell: targetDay.f_sell, fd_buy: targetDay.fd_buy, fd_sell: targetDay.fd_sell,
           it_buy: targetDay.it_buy, it_sell: targetDay.it_sell, ds_buy: targetDay.ds_buy, ds_sell: targetDay.ds_sell,
           dh_buy: targetDay.dh_buy, dh_sell: targetDay.dh_sell,
-          // 這些原本漏掉的欄位這次 100% 補齊！
+          margin_buy: targetDay.margin_buy, margin_sell: targetDay.margin_sell, margin_balance: targetDay.margin_balance,
+          short_buy: targetDay.short_buy, short_sell: targetDay.short_sell, short_balance: targetDay.short_balance,
           ma5: calculatedMA5, ma10: calculatedMA10, ma20: calculatedMA20, rsi14: calculatedRSI14,
           rsv: calculatedRSV, kd_k: calculatedK, kd_d: calculatedD,
           macd_dif: calculatedDif, macd_signal: calculatedMacdSignal, macd_osc: calculatedMacdOsc
@@ -275,7 +293,7 @@ async function calculateAndWriteBackIndicators(stockList) {
 
       if (rowUpdates.length > 0) {
         await supabase.from('stock_chips_daily').upsert(rowUpdates, { onConflict: 'stock_id,date' });
-        console.log(`[主力股核心指標重新演算完畢] ${sId}`);
+        console.log(`[主力股核心指標與資券全量演算完畢] ${sId}`);
       }
 
     } catch (singleErr) {
