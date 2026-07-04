@@ -7,7 +7,7 @@ if (!state.visibleLines) {
 }
 
 // ==========================================================
-// 🚨 終極救星：生命週期延時防禦晶片 (徹底解決早上修改資料庫導致的開局 DOM 未渲染死鎖)
+// 🚨 終極救星：生命週期延時防禦晶片 (徹底解決開局 DOM 未渲染死鎖)
 // ==========================================================
 setTimeout(async () => {
   if (!state.globalChipCache || state.globalChipCache.length === 0) {
@@ -72,7 +72,7 @@ export function switchModalTab(tabMode) {
         
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
-        renderMarginTrendChart(); // 啟動最新治本純 SVG 圖表
+        renderMarginTrendChart(); 
         bindBiDirectionalScrollLinkage();
       }
       scrollToLatestTrend(tabMode);
@@ -226,8 +226,8 @@ async function fetchStockNewsBackground(stockId, stockName) {
       <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
         <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
         <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市個股新聞</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網即時新聞</a>
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg">Yahoo 股市新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg">Anue 鉅亨網新聞</a>
         </div>
       </div>`;
   }
@@ -327,7 +327,14 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
-  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>`;
+  let kdChartHtml = `
+    <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
+    <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
+    <div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>
+    <div class="absolute left-1 font-black text-[7px] text-rose-400 pointer-events-none" style="top: calc(20% - 4px);">80 超買</div>
+    <div class="absolute left-1 font-bold text-[7px] text-slate-400 pointer-events-none" style="top: calc(50% - 4px);">50 中軸</div>
+    <div class="absolute left-1 font-black text-[7px] text-emerald-500 pointer-events-none" style="top: calc(80% - 4px);">20 超賣</div>
+  `;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
   dataset.forEach((d, idx) => {
@@ -402,7 +409,7 @@ export function renderChipTrendChart() {
 }
 
 // =========================================================================
-// 🌟 終極完美修正版：全 SVG 純幾何圖表架構（融資增減基準線錨定 + 數值強制顯示 + 雙層底置日期）
+// 🌟 核心修正版：純 SVG 雙圖表左右並列/上下分流大腦 (解決 Unexpected end of input 錯誤)
 // =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -428,10 +435,7 @@ export function renderMarginTrendChart() {
   const count = localTrendDates.length;
   const stepX = containerWidth / count;
 
-  // 1. 上圖：純 SVG 融資增減雙向對稱平衡圖 (基準線定格 Y=48，正值往上，負值往下)
-  let upperSvgHtml = `<line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#94a3b8" stroke-width="1.5" />`; // 實體基準線
-  
-  // 2. 下圖：純 SVG 融資餘額累積水柱圖
+  let upperSvgHtml = `<line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#94a3b8" stroke-width="1.5" />`; 
   let lowerSvgHtml = "";
 
   localTrendDates.forEach((d, idx) => {
@@ -439,46 +443,41 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    let exactX = idx * stepX + (stepX / 2); // 當前交易日的 X 軸核心中線
+    let exactX = idx * stepX + (stepX / 2); 
     
-    // --- 上圖 SVG 幾何編譯 ---
+    // --- 上圖 SVG 增減 ---
     if (netVal !== 0) {
-      // 縮放配比高度（最高佔單側 34px，留出 14px 寫字空間）
       let barHeight = (Math.abs(netVal) / maxNet) * 32;
-      let barWidth = Math.min(stepX * 0.45, 14); // 柱體寬度
+      let barWidth = Math.min(stepX * 0.45, 14); 
       let barX = exactX - (barWidth / 2);
       
       if (netVal > 0) {
-        // 融資增：由基準線 48 往上拉伸，Y 軸起點為 48 - barHeight
         let barY = 48 - barHeight;
         upperSvgHtml += `
           <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#e11d48" rx="1" />
           <text x="${exactX}" y="${barY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">+${netVal}</text>
         `;
       } else {
-        // 融資減：由基準線 48 往下拉伸，Y 軸起點為 48 直接向下延伸
         upperSvgHtml += `
           <rect x="${barX}" y="48" width="${barWidth}" height="${barHeight}" fill="#065f46" rx="1" />
           <text x="${exactX}" y="${48 + barHeight + 11}" text-anchor="middle" font-weight="900" font-size="10" fill="#065f46" font-family="sans-serif">${netVal}</text>
         `;
       }
     } else {
-      // 0 軸標示
       upperSvgHtml += `<text x="${exactX}" y="45" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
     }
-    // 上層獨立圖表底置日期刻度（放置在 Y=93 基準線最下方）
     upperSvgHtml += `<text x="${exactX}" y="93" text-anchor="middle" font-weight="black" font-size="10" fill="#64748b">${datePart}</text>`;
 
-    // --- 下圖 SVG 幾何編譯 ---
-    let balHeight = (balVal / maxBal) * 64; // 最高佔 64px，留出 14px 寫字
+    // --- 下圖 SVG 餘額 ---
+    let balHeight = (balVal / maxBal) * 64; 
     let balWidth = Math.min(stepX * 0.55, 18);
     let balX = exactX - (balWidth / 2);
-    let balY = 82 - balHeight; // 基底定格在 Y=82 處往上長
+    let balY = 82 - balHeight; 
     
     lowerSvgHtml += `
       <rect x="${balX}" y="${balY}" width="${balWidth}" height="${balHeight}" fill="#1e40af" rx="1.5" />
       <text x="${exactX}" y="${balY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e40af" font-family="sans-serif">${balVal}</text>
-      <text x="${exactX}" y="94" text-anchor="middle" font-weight="black" font-size="10" fill="#64748b">${datePart}</text>
+      <text x="${exactX}" y="${94}" text-anchor="middle" font-weight="black" font-size="10" fill="#64748b">${datePart}</text>
     `;
   });
 
