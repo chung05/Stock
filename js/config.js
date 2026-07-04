@@ -73,12 +73,13 @@ export function getValIgnoreCase(obj, targetKey) {
 
 // 🧠 16維度立體解碼晶片：依據「價量 + 動能指標 + 主力籌碼 + 資券結構」進行交叉驗證
 export function decodeMultiDimensionSignal(stockChips) {
-  if (!stockChips || stockChips.length < 20) return []; // 至少需要20天數據計算區間最大值
+  if (!stockChips || stockChips.length < 20) return []; 
   
   // 依日期由舊到新排序
   const dataset = [...stockChips].sort((a, b) => a.date.localeCompare(b.date));
   const count = dataset.length;
 
+  // 🟢 頂級修正：將所有數據抓取標的，由原來的混亂 stockChips 一律修正為已排序的 dataset！
   const t_latest = dataset[count - 1];   // 今日 (T)
   const t_minus_1 = dataset[count - 2];  // 昨日 (T-1)
   const t_minus_5 = dataset.slice(-5);   // 近5日
@@ -120,7 +121,6 @@ export function decodeMultiDimensionSignal(stockChips) {
   const short_bal = t_latest.short_balance || 0;
   const p_short_bal = t_minus_1.short_balance || 0;
 
-  // 儲存此股票符合的所有模型代號
   const matchedSignals = [];
 
   // ==================== 16 套多維模型交叉篩選邏輯 ====================
@@ -170,7 +170,7 @@ export function decodeMultiDimensionSignal(stockChips) {
     matchedSignals.push("7");
   }
 
-  // 模型 8：籌碼換手 (法人反客為主)
+  // 模型 8：籌碼換手
   const margin_3_days_ago = t_minus_5[0].margin_balance || margin_bal;
   const margin_drop_pct = (margin_3_days_ago - margin_bal) / margin_3_days_ago;
   if (margin_drop_pct >= 0.05 && price >= ma20) {
