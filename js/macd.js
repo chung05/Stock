@@ -398,4 +398,103 @@ export function renderChipTrendChart() {
     return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${datePart}</span></div></div>`; 
   }).join('');
 
-  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center">
+  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+}
+
+// =========================================================================
+// 🌟 終極修正版：融資上下拆分雙獨立比例尺（數值100%全實體化標出 + 雙層獨立日期時間軸）
+// =========================================================================
+export function renderMarginTrendChart() {
+  const marginChartEl = document.getElementById("trendMarginChart");
+  if (!marginChartEl || !state.currentActiveStockId) return;
+
+  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
+  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+
+  let marginNetPoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    return row ? ((getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0)) : 0;
+  });
+
+  let marginBalancePoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    return row ? (getValIgnoreCase(row, 'margin_balance') || 0) : 0;
+  });
+
+  let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
+  let maxBal = Math.max(...marginBalancePoints, 1);
+
+  // 1. 上層獨立圖表核心：每日融資增減雙向對稱圖（加蓋上層獨立專屬日期軸與實體數值標示）
+  let upperNetBarsHtml = localTrendDates.map((d, i) => {
+    const netVal = marginNetPoints[i];
+    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 62), 62); // 調整至 62% 留出字體安全邊際
+    const isNetPositive = netVal >= 0;
+    
+    const netColorClass = isNetPositive ? "bg-rose-600" : "bg-emerald-800";
+    const netTextColorClass = isNetPositive ? "text-rose-600" : "text-emerald-800";
+
+    const netBarStructureHtml = isNetPositive ? `
+      <div class="w-full h-[40%] flex flex-col justify-end items-center relative">
+        <span class="absolute -top-3.5 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal > 0 ? '+' : ''}${netVal}</span>
+        <div class="w-full max-w-[8px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
+      </div>
+      <div class="w-full h-[40%] relative"></div>
+    ` : `
+      <div class="w-full h-[40%] relative"></div>
+      <div class="w-full h-[40%] flex flex-col justify-start items-center relative">
+        <div class="w-full max-w-[8px] ${netColorClass} rounded-b-xs" style="height: ${netHeightPct}%;"></div>
+        <span class="absolute -bottom-3.5 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal}</span>
+      </div>
+    `;
+
+    return `
+      <div class="flex-1 h-full flex flex-col relative px-0.5 border-r border-slate-100/30">
+        <div class="w-full h-[80%] flex flex-col relative z-20">${netBarStructureHtml}</div>
+        <div class="h-[20%] w-full flex items-center justify-center border-t border-slate-100 shrink-0 bg-slate-50/40">
+          <span class="text-[9px] text-slate-400 font-extrabold tracking-tighter">${datePart}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  // 2. 下層獨立圖表核心：累計融資餘額由底往上生長獨立水位圖（含下層獨立專屬日期軸與水位數值實體化）
+  let lowerBalBarsHtml = localTrendDates.map((d, i) => {
+    const balVal = marginBalancePoints[i];
+    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 72), 72);
+
+    return `
+      <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/30 px-0.5">
+        <div class="w-full h-[76%] flex flex-col justify-end items-center relative">
+          <span class="absolute text-[9px] font-black text-blue-900 tracking-tighter" style="bottom: calc(${balHeightPct}% + 1px);">${balVal}</span>
+          <div class="w-full max-w-[10px] bg-blue-800 rounded-t-xs shadow-3xs" style="height: ${balHeightPct}%;"></div>
+        </div>
+        <div class="h-[24%] w-full flex items-center justify-center border-t border-slate-100 shrink-0 bg-slate-50/50">
+          <span class="text-[9.5px] text-slate-500 font-black tracking-tighter">${datePart}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  marginChartEl.innerHTML = `
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 w-full mt-1">
+      <div class="flex justify-between items-center mb-1.5 px-1">
+        <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
+        <div class="flex gap-3 text-xs font-black text-slate-400">
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
+        </div>
+      </div>
+      
+      <div class="flex flex-col gap-2.5 w-full">
+        <div class="w-full h-28 flex justify-between bg-white rounded-lg border border-slate-200 relative items-center overflow-hidden shadow-3xs">
+          <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400/90 z-10" style="top: 40%;"></div>
+          ${upperNetBarsHtml}
+        </div>
+        
+        <div class="w-full h-28 flex justify-between bg-white rounded-lg border border-slate-200 relative items-center overflow-hidden shadow-3xs">
+          ${lowerBalBarsHtml}
+        </div>
+      </div>
+    </div>`;
+}
