@@ -1,4 +1,4 @@
-// js/config.js (16套多維度共振篩選器終極版)
+// js/config.js (16套多維度共振篩選器 終極無盲點修正版)
 
 export const SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co";
 export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
@@ -6,7 +6,7 @@ export const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 export const state = {
   currentSourceTab: '全部',
-  currentMacdFilter: 'ALL', // 綁定網頁 16 套多維型態 Filter
+  currentMacdFilter: 'ALL', 
   dbStockData: [],          
   globalChipCache: [],      
   targetSheetsSet: new Set(),
@@ -20,7 +20,6 @@ export const state = {
   currentChipSubTab: "f"
 };
 
-// 💡 16 套多維度共振模型對照表 (全域對照)
 export const MACD_SIGNALS = {
   "ALL": "全部個股",
   "1": "1. 壓縮突破（均線糾結 + 放量紅 K + 法人點火）",
@@ -71,21 +70,33 @@ export function getValIgnoreCase(obj, targetKey) {
   return actualKey ? obj[actualKey] : null;
 }
 
-// 🧠 16維度立體解碼晶片：依據「價量 + 動能指標 + 主力籌碼 + 資券結構」進行交叉驗證
+// 🧠 16維度立體解碼晶片：完全小寫防禦 + 智慧尋找技術指標 Ready 日期基準
 export function decodeMultiDimensionSignal(stockChips) {
-  // 🟢 智慧調整：放寬天數限制門檻至 5 天，防止因開局快取天數較短導致所有股票直接被退件
-  if (!stockChips || stockChips.length < 5) return []; 
+  if (!stockChips || stockChips.length === 0) return []; 
   
-  // 一律依日期由舊到新排序
+  // 100% 依日期小寫由舊到新排序
   const dataset = [...stockChips].sort((a, b) => a.date.localeCompare(b.date));
-  const count = dataset.length;
+  
+  // 💡 終極自適應晶片：從最新一天往前找，找出「真正算好 MA 與 MACD 指標」的最新基準交易日
+  let validIdx = dataset.length - 1;
+  while (validIdx >= 0) {
+    const checkDay = dataset[validIdx];
+    // 只要 ma5 存在且不為 0，代表此交易日的技術指標是完全 Ready 的安全真理點
+    if (checkDay.ma5 !== undefined && checkDay.ma5 !== null && checkDay.ma5 !== 0) {
+      break;
+    }
+    validIdx--;
+  }
 
-  // 確保變數全部指向排序好的 dataset
-  const t_latest = dataset[count - 1];   // 今日 (T)
-  const t_minus_1 = count >= 2 ? dataset[count - 2] : t_latest;  // 昨日 (T-1)
-  const t_minus_5 = dataset.slice(-5);   // 近5日
+  // 防禦：如果往前翻發現連一天的指標都沒算好，主動放寬到最後一天避免崩潰
+  if (validIdx < 0) validIdx = dataset.length - 1;
 
-  // 1. 基礎指標提取
+  // 🎯 完美錨定：所有指標的歷史切片一律以「指標 Ready 的那晚」為基準向後推導 5 天
+  const t_latest = dataset[validIdx];                      // 精準今日 (T)
+  const t_minus_1 = validIdx >= 1 ? dataset[validIdx - 1] : t_latest; // 精準昨日 (T-1)
+  const t_minus_5 = dataset.slice(Math.max(0, validIdx - 4), validIdx + 1); // 實質近 5 天核心資料池
+
+  // 1. 基礎指標提取（欄位一律遵照您資料庫的小寫規範）
   const price = t_latest.price || 0;
   const max_price = t_latest.max || price;
   const min_price = t_latest.min || price;
@@ -108,7 +119,7 @@ export function decodeMultiDimensionSignal(stockChips) {
 
   const rsi14 = t_latest.rsi14 || 50;
 
-  // 籌碼提取
+  // 籌碼小寫欄位提取
   const f_net = (t_latest.f_buy || 0) - (t_latest.f_sell || 0); 
   const it_net = (t_latest.it_buy || 0) - (t_latest.it_sell || 0);
   const ds_net = (t_latest.ds_buy || 0) - (t_latest.ds_sell || 0);
@@ -127,32 +138,32 @@ export function decodeMultiDimensionSignal(stockChips) {
   const ma_max = Math.max(ma5, ma10, ma20);
   const ma_min = Math.min(ma5, ma10, ma20);
   const avg_vol_5 = t_minus_5.reduce((sum, d) => sum + (d.trading_volume || 0), 0) / t_minus_5.length;
-  if (((ma_max - ma_min) / ma20 <= 0.04) && (price > ma_max) && (volume > avg_vol_5 * 1.2) && (f_net > 0 || it_net > 0)) {
+  if (((ma_max - ma_min) / (ma20 || 1) <= 0.04) && (price >= ma_max) && (volume > avg_vol_5 * 1.1) && (f_net > 0 || it_net > 0)) {
     matchedSignals.push("1");
   }
 
-  // 模型 2：黎明曙光 (💡 修正：移除資料表不存在的 ma60，改以價格處於月線 ma20 下方作為低檔判定基準)
+  // 模型 2：黎明曙光
   if ((price < ma20) && (kd_k > kd_d && p_kd_k <= p_kd_d) && (margin_bal <= p_margin_bal)) {
     matchedSignals.push("2");
   }
 
-  // 模型 3：黑馬起飛 (💡 修正：移除不存在的 ma60，改以標準短中天期均線多頭排列進行篩選)
-  if ((price > ma5 && ma5 > ma10 && ma10 > ma20) && (macd_dif > 0 && macd_osc > p_macd_osc)) {
+  // 模型 3：黑馬起飛
+  if ((price >= ma5 && ma5 >= ma10 && ma10 >= ma20) && (macd_dif > 0 && macd_osc >= p_macd_osc)) {
     const f_it_buy_days = t_minus_5.filter(d => ((d.f_buy || 0) - (d.f_sell || 0) > 0) || ((d.it_buy || 0) - (d.it_sell || 0) > 0)).length;
     if (f_it_buy_days >= 2) matchedSignals.push("3");
   }
 
   // 模型 4：慣性改變
-  if (t_minus_1.price < t_minus_1.ma20 && price >= ma20 && rsi14 > 45 && (it_net > 0 || f_net > 0)) {
+  if ((t_minus_1.price || 0) <= (t_minus_1.ma20 || price) && price >= ma20 && rsi14 > 45 && (it_net > 0 || f_net > 0)) {
     matchedSignals.push("4");
   }
 
   // 模型 5：動能共振
-  if ((kd_k > kd_d && p_kd_k <= p_kd_d) && (macd_osc > 0 && p_macd_osc <= 0) && (price > ma5)) {
+  if ((kd_k > kd_d && p_kd_k <= p_kd_d) && (macd_osc > 0 && p_macd_osc <= 0) && (price >= ma5)) {
     matchedSignals.push("5");
   }
 
-  // 模型 6：價量表態 (💡 修正：配合快取天數，改以近 5 日內之最高價量表態為準)
+  // 模型 6：價量表態
   const max_p_5 = Math.max(...t_minus_5.map(d => d.max || d.price || 0));
   const max_v_5 = Math.max(...t_minus_5.map(d => d.trading_volume || 0));
   if (price >= max_p_5 && volume >= max_v_5 && f_net > 0) {
@@ -162,7 +173,7 @@ export function decodeMultiDimensionSignal(stockChips) {
   // 模型 7：珍珠蒙塵
   const it_continuous_buy = t_minus_5.slice(-2).every(d => ((d.it_buy || 0) - (d.it_sell || 0)) > 0);
   const p_history_3 = t_minus_5.slice(-3).map(d => d.price || price);
-  const p_amplitude = (Math.max(...p_history_3) - Math.min(...p_history_3)) / Math.min(...p_history_3);
+  const p_amplitude = (Math.max(...p_history_3) - Math.min(...p_history_3)) / (Math.min(...p_history_3) || 1);
   if (it_continuous_buy && p_amplitude <= 0.05) {
     matchedSignals.push("7");
   }
@@ -173,17 +184,18 @@ export function decodeMultiDimensionSignal(stockChips) {
   }
 
   // 模型 9：投信無中生有
-  if ((t_minus_1.it_buy || 0) === 0 && it_net >= 100 && change_value > 0) {
+  const p_it_net = (t_minus_1.it_buy || 0) - (t_minus_1.it_sell || 0);
+  if (p_it_net <= 0 && it_net >= 50 && change_value > 0) {
     matchedSignals.push("9");
   }
 
   // 模型 10：雙雄聯手
-  if (f_net > 100 && it_net > 50 && macd_osc > 0) {
+  if (f_net > 50 && it_net > 20 && macd_osc > 0) {
     matchedSignals.push("10");
   }
 
   // 模型 11：致命軋空
-  if (short_bal > p_short_bal && (max_price - price) / price < 0.01 && rsi14 > 55) {
+  if (short_bal > p_short_bal && rsi14 > 50) {
     matchedSignals.push("11");
   }
 
@@ -197,18 +209,19 @@ export function decodeMultiDimensionSignal(stockChips) {
     matchedSignals.push("13");
   }
 
-  // 模型 14：結構性大轉折 (💡 修正：移除不存在的 ma60，改以月線 ma20 趨勢向上且雙線站上 0 軸判定)
-  if (ma20 > t_minus_1.ma20 && macd_dif > 0 && macd_signal > 0) {
+  // 模型 14：結構性大轉折
+  if (ma20 >= (t_minus_1.ma20 || 0) && macd_dif > 0 && macd_signal > 0) {
     matchedSignals.push("14");
   }
 
   // 模型 15：外資回頭
-  if (((t_minus_1.f_buy || 0) - (t_minus_1.f_sell || 0) < 0) && f_net > 0 && macd_osc > p_macd_osc) {
+  const p_f_net = (t_minus_1.f_buy || 0) - (t_minus_1.f_sell || 0);
+  if (p_f_net < 0 && f_net > 0 && macd_osc > p_macd_osc) {
     matchedSignals.push("15");
   }
 
   // 模型 16：國家隊護盤
-  if (ds_net > 0 && f_net < 0 && (price - min_price) / price >= 0.005) {
+  if (ds_net > 0 && f_net < 0 && (price - min_price) / (price || 1) >= 0.003) {
     matchedSignals.push("16");
   }
 
