@@ -72,7 +72,7 @@ export function switchModalTab(tabMode) {
         
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
-        renderMarginTrendChart(); // 啟用精準圖表
+        renderMarginTrendChart(); // 啟動最新治本純 SVG 圖表
         bindBiDirectionalScrollLinkage();
       }
       scrollToLatestTrend(tabMode);
@@ -192,7 +192,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
   const listZone = document.getElementById("newsListZone");
   
   if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} RSS解析...\n`; }
-  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過網關讀取最新新聞...</div>`; }
+  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在讀取最新新聞...</div>`; }
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
@@ -226,8 +226,8 @@ async function fetchStockNewsBackground(stockId, stockName) {
       <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
         <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
         <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg">Yahoo News</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg">Anue News</a>
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市個股新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網即時新聞</a>
         </div>
       </div>`;
   }
@@ -402,7 +402,7 @@ export function renderChipTrendChart() {
 }
 
 // =========================================================================
-// 🌟 終極修正版：融資上下拆分雙獨立比例尺（數值100%全實體化標出 + 雙層獨立日期時間軸）
+// 🌟 終極完美修正版：全 SVG 純幾何圖表架構（融資增減基準線錨定 + 數值強制顯示 + 雙層底置日期）
 // =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -424,77 +424,44 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 1. 上層獨立圖表核心：每日融資增減雙向對稱圖（加蓋上層獨立專屬日期軸與實體數值標示）
-  let upperNetBarsHtml = localTrendDates.map((d, i) => {
-    const netVal = marginNetPoints[i];
+  const containerWidth = marginChartEl.clientWidth || 940;
+  const count = localTrendDates.length;
+  const stepX = containerWidth / count;
+
+  // 1. 上圖：純 SVG 融資增減雙向對稱平衡圖 (基準線定格 Y=48，正值往上，負值往下)
+  let upperSvgHtml = `<line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#94a3b8" stroke-width="1.5" />`; // 實體基準線
+  
+  // 2. 下圖：純 SVG 融資餘額累積水柱圖
+  let lowerSvgHtml = "";
+
+  localTrendDates.forEach((d, idx) => {
+    const netVal = marginNetPoints[idx];
+    const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 62), 62); // 調整至 62% 留出字體安全邊際
-    const isNetPositive = netVal >= 0;
     
-    const netColorClass = isNetPositive ? "bg-rose-600" : "bg-emerald-800";
-    const netTextColorClass = isNetPositive ? "text-rose-600" : "text-emerald-800";
-
-    const netBarStructureHtml = isNetPositive ? `
-      <div class="w-full h-[40%] flex flex-col justify-end items-center relative">
-        <span class="absolute -top-3.5 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal > 0 ? '+' : ''}${netVal}</span>
-        <div class="w-full max-w-[8px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
-      </div>
-      <div class="w-full h-[40%] relative"></div>
-    ` : `
-      <div class="w-full h-[40%] relative"></div>
-      <div class="w-full h-[40%] flex flex-col justify-start items-center relative">
-        <div class="w-full max-w-[8px] ${netColorClass} rounded-b-xs" style="height: ${netHeightPct}%;"></div>
-        <span class="absolute -bottom-3.5 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal}</span>
-      </div>
-    `;
-
-    return `
-      <div class="flex-1 h-full flex flex-col relative px-0.5 border-r border-slate-100/30">
-        <div class="w-full h-[80%] flex flex-col relative z-20">${netBarStructureHtml}</div>
-        <div class="h-[20%] w-full flex items-center justify-center border-t border-slate-100 shrink-0 bg-slate-50/40">
-          <span class="text-[9px] text-slate-400 font-extrabold tracking-tighter">${datePart}</span>
-        </div>
-      </div>`;
-  }).join('');
-
-  // 2. 下層獨立圖表核心：累計融資餘額由底往上生長獨立水位圖（含下層獨立專屬日期軸與水位數值實體化）
-  let lowerBalBarsHtml = localTrendDates.map((d, i) => {
-    const balVal = marginBalancePoints[i];
-    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 72), 72);
-
-    return `
-      <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/30 px-0.5">
-        <div class="w-full h-[76%] flex flex-col justify-end items-center relative">
-          <span class="absolute text-[9px] font-black text-blue-900 tracking-tighter" style="bottom: calc(${balHeightPct}% + 1px);">${balVal}</span>
-          <div class="w-full max-w-[10px] bg-blue-800 rounded-t-xs shadow-3xs" style="height: ${balHeightPct}%;"></div>
-        </div>
-        <div class="h-[24%] w-full flex items-center justify-center border-t border-slate-100 shrink-0 bg-slate-50/50">
-          <span class="text-[9.5px] text-slate-500 font-black tracking-tighter">${datePart}</span>
-        </div>
-      </div>`;
-  }).join('');
-
-  marginChartEl.innerHTML = `
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 w-full mt-1">
-      <div class="flex justify-between items-center mb-1.5 px-1">
-        <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
-        <div class="flex gap-3 text-xs font-black text-slate-400">
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
-        </div>
-      </div>
+    let exactX = idx * stepX + (stepX / 2); // 當前交易日的 X 軸核心中線
+    
+    // --- 上圖 SVG 幾何編譯 ---
+    if (netVal !== 0) {
+      // 縮放配比高度（最高佔單側 34px，留出 14px 寫字空間）
+      let barHeight = (Math.abs(netVal) / maxNet) * 32;
+      let barWidth = Math.min(stepX * 0.45, 14); // 柱體寬度
+      let barX = exactX - (barWidth / 2);
       
-      <div class="flex flex-col gap-2.5 w-full">
-        <div class="w-full h-28 flex justify-between bg-white rounded-lg border border-slate-200 relative items-center overflow-hidden shadow-3xs">
-          <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400/90 z-10" style="top: 40%;"></div>
-          ${upperNetBarsHtml}
-        </div>
-        
-        <div class="w-full h-28 flex justify-between bg-white rounded-lg border border-slate-200 relative items-center overflow-hidden shadow-3xs">
-          ${lowerBalBarsHtml}
-        </div>
-      </div>
-    </div>`;
-}
+      if (netVal > 0) {
+        // 融資增：由基準線 48 往上拉伸，Y 軸起點為 48 - barHeight
+        let barY = 48 - barHeight;
+        upperSvgHtml += `
+          <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#e11d48" rx="1" />
+          <text x="${exactX}" y="${barY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">+${netVal}</text>
+        `;
+      } else {
+        // 融資減：由基準線 48 往下拉伸，Y 軸起點為 48 直接向下延伸
+        upperSvgHtml += `
+          <rect x="${barX}" y="48" width="${barWidth}" height="${barHeight}" fill="#065f46" rx="1" />
+          <text x="${exactX}" y="${48 + barHeight + 11}" text-anchor="middle" font-weight="900" font-size="10" fill="#065f46" font-family="sans-serif">${netVal}</text>
+        `;
+      }
+    } else {
+      // 0 軸標示
+      upperSvgHtml += `<text x="${exactX}" y="45" text-anchor="middle" font-weight="bold" font-size="10" fill="#9
