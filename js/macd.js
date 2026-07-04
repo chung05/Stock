@@ -72,7 +72,7 @@ export function switchModalTab(tabMode) {
         
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
-        renderMarginTrendChart(); // 💡 觸發點：分頁切換時，同步渲染最下方的融資信用走勢
+        renderMarginTrendChart(); // 同步觸發並列版資券圖表
         bindBiDirectionalScrollLinkage();
       }
       scrollToLatestTrend(tabMode);
@@ -108,7 +108,6 @@ export function scrollToLatestTrend(tabMode = 'trend') {
   }, 60);
 }
 
-// 💡 智慧聯動升級：將股價走勢、法人籌碼、信用資券進行「三軌物理聯動綁定」
 function bindBiDirectionalScrollLinkage() {
   const pWrapper = document.getElementById("priceScrollWrapper");
   const cWrapper = document.getElementById("chipScrollWrapper");
@@ -158,7 +157,7 @@ export async function openCombinedModal(stockId, stockName) {
     switchChipSubTab('f'); 
     renderPriceTrendLineChart(localTrendDates, myChipsRaw);
     renderChipTrendChart();
-    renderMarginTrendChart(); // 💡 點擊個股開啟視窗時，同步初次渲染資券數據
+    renderMarginTrendChart(); // 載入個股時同步生成新資券數據
     renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
     bindBiDirectionalScrollLinkage();
     scrollToLatestTrend('trend');
@@ -332,7 +331,6 @@ export function renderPriceTrendLineChart(dates, chips) {
     dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
   });
 
-  // 💡 智慧修正：將所有的 stroke-width 粗細參數，一律對齊並綁定為與價格線相同的粗細規模（2.5 級別與 1.8~2.5 的一致化視覺）
   priceChartEl.innerHTML = `
     <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;">
       <line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
@@ -451,10 +449,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kPoints.length > 0 || dPoints.length > 0) {
     kdChartHtml += `
       <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;">
-        <polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        ${kdCirclesHtml}
-      </svg>`;
+        <polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`;
   }
   if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
   if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
@@ -502,21 +497,18 @@ export function renderChipTrendChart() {
 }
 
 // ==========================================================
-// 🌟 核心擴充：新增融資、融資餘額智慧自適應雙柱狀圖 (完美精準對齊 20 個交易日)
+// 🌟 核心增強：融資增減與融資餘額「雙圖表左右並列」全新架構
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
 
-  // 1. 抓取當前個股快取，並精準排序對齊 20 天時間軸
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
   const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
 
-  // 2. 提取融資當日買賣超增減 (張) 與 融資今日餘額 (張)
   let marginNetPoints = localTrendDates.map(d => {
     const row = myChipsRaw.find(c => String(c.date) === d);
     if (!row) return 0;
-    // 融資買進 - 融資賣出
     return (getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0);
   });
 
@@ -525,51 +517,59 @@ export function renderMarginTrendChart() {
     return row ? (getValIgnoreCase(row, 'margin_balance') || 0) : 0;
   });
 
-  // 3. 找出最大縮放比例，防止圖表頂天溢出
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 4. 立體雙區塊渲染：上半段為每日增減（融資增用淺藍色，融資減用綠色），下半段為水位餘額（用純綠色）
+  // 在同一個日期方框內，以 Flex 排版將【增減】與【餘額】物理性並列在左、右側
   let barsHtml = localTrendDates.map((d, i) => {
     const netVal = marginNetPoints[i];
     const balVal = marginBalancePoints[i];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
-    // 上半截增減張數高度比 (融資增淺藍、融資減綠色)
-    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 38), 38);
-    const isNetPositive = netVal >= 0;
-    const netColorClass = isNetPositive ? "bg-sky-400" : "bg-emerald-500";
+    // 1. 左側柱：融資增減高度計算
+    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 72), 72);
+    // 🟢 嚴格遵照規格：融資增用紅色 (rose-600)，融資減用深綠色 (emerald-700)
+    const netColorClass = netVal >= 0 ? "bg-rose-600" : "bg-emerald-700";
 
-    // 下半截餘額水位高度比 (純綠色柱狀圖)
-    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 40), 40);
+    // 2. 右側柱：融資餘額高度計算
+    // 🟢 嚴格遵照規格：融資餘額用深藍色 (blue-800)
+    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 72), 72);
 
     return `
-      <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/40">
-        <div class="w-full h-[50%] flex flex-col justify-end items-center relative bg-slate-50/20">
-          ${netVal !== 0 ? `<span class="text-[9px] font-black ${isNetPositive ? 'text-sky-600' : 'text-emerald-600'} tracking-tighter mb-0.5">${netVal > 0 ? '+' : ''}${netVal}</span>` : ''}
-          <div class="w-full max-w-[10px] min-w-[3px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
+      <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/70 px-0.5">
+        
+        <div class="w-full grow flex items-end justify-center gap-0.5 h-[80%] relative pb-1">
+          
+          <div class="flex flex-col items-center justify-end h-full w-1/2 relative group">
+            ${netVal !== 0 ? `<span class="absolute -top-3.5 text-[8.5px] font-black tracking-tighter opacity-0 group-hover:opacity-100 bg-slate-900 text-white px-0.5 rounded-xs transition-opacity z-30">${netVal > 0 ? '+' : ''}${netVal}</span>` : ''}
+            <div class="w-full max-w-[8px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
+          </div>
+          
+          <div class="flex flex-col items-center justify-end h-full w-1/2 relative group">
+            <span class="absolute -top-3.5 text-[8.5px] font-black tracking-tighter opacity-0 group-hover:opacity-100 bg-slate-900 text-white px-0.5 rounded-xs transition-opacity z-30">${balVal}</span>
+            <div class="w-full max-w-[10px] bg-blue-800 rounded-t-xs shadow-2xs" style="height: ${balHeightPct}%;"></div>
+          </div>
+
         </div>
         
-        <span class="absolute top-[calc(50%-7px)] text-[8.5px] text-slate-400 font-extrabold z-20 pointer-events-none">${datePart}</span>
-        
-        <div class="w-full h-[50%] flex flex-col justify-start items-center relative bg-slate-100/10">
-          <div class="w-full max-w-[14px] min-w-[4px] bg-green-500/80 rounded-b-xs shadow-3xs" style="height: ${balHeightPct}%;"></div>
-          <span class="text-[9px] font-bold text-green-700 mt-0.5 tracking-tighter">${balVal}</span>
+        <div class="h-[20%] w-full flex items-center justify-center border-t border-slate-100 shrink-0">
+          <span class="text-[9px] text-slate-500 font-extrabold tracking-tighter">${datePart}</span>
         </div>
+
       </div>`;
   }).join('');
 
   marginChartEl.innerHTML = `
     <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 w-full mt-1">
-      <div class="flex justify-between items-center mb-1 px-1">
-        <div class="text-[10px] font-black text-slate-500">🔹 融資信用結構區 (張)</div>
-        <div class="flex gap-2 text-[8px] font-bold text-slate-400">
-          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-sky-400 inline-block rounded-xs"></span>融資增減</span>
-          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-green-500/80 inline-block rounded-xs"></span>融資餘額</span>
+      <div class="flex justify-between items-center mb-1.5 px-1">
+        <div class="text-[10px] font-black text-slate-500">🔹 信用籌碼對照區 (張) <span class="text-[9px] text-slate-400 font-normal">（滑鼠移至柱體上方可顯示精準張數）</span></div>
+        <div class="flex gap-2.5 text-[8px] font-bold text-slate-400">
+          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
+          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-emerald-700 inline-block rounded-xs"></span>融資減</span>
+          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
         </div>
       </div>
-      <div class="w-full h-36 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center overflow-hidden">
-        <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400/80 z-10" style="top: 50%;"></div>
+      <div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-0.5 relative items-center overflow-hidden">
         ${barsHtml}
       </div>
     </div>`;
