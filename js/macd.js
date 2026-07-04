@@ -464,4 +464,48 @@ export function renderMarginTrendChart() {
       }
     } else {
       // 0 軸標示
-      upperSvgHtml += `<text x="${exactX}" y="45" text-anchor="middle" font-weight="bold" font-size="10" fill="#9
+      upperSvgHtml += `<text x="${exactX}" y="45" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
+    }
+    // 上層獨立圖表底置日期刻度（放置在 Y=93 基準線最下方）
+    upperSvgHtml += `<text x="${exactX}" y="93" text-anchor="middle" font-weight="black" font-size="10" fill="#64748b">${datePart}</text>`;
+
+    // --- 下圖 SVG 幾何編譯 ---
+    let balHeight = (balVal / maxBal) * 64; // 最高佔 64px，留出 14px 寫字
+    let balWidth = Math.min(stepX * 0.55, 18);
+    let balX = exactX - (balWidth / 2);
+    let balY = 82 - balHeight; // 基底定格在 Y=82 處往上長
+    
+    lowerSvgHtml += `
+      <rect x="${balX}" y="${balY}" width="${balWidth}" height="${balHeight}" fill="#1e40af" rx="1.5" />
+      <text x="${exactX}" y="${balY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e40af" font-family="sans-serif">${balVal}</text>
+      <text x="${exactX}" y="94" text-anchor="middle" font-weight="black" font-size="10" fill="#64748b">${datePart}</text>
+    `;
+  });
+
+  marginChartEl.innerHTML = `
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 w-full mt-1">
+      <div class="flex justify-between items-center mb-1.5 px-1">
+        <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
+        <div class="flex gap-3 text-xs font-black text-slate-400">
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
+        </div>
+      </div>
+      
+      <div class="flex flex-col gap-3 w-full">
+        <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
+            ${upperSvgHtml}
+          </svg>
+        </div>
+        
+        <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
+            <line x1="0" y1="82" x2="${containerWidth}" y2="82" stroke="#e2e8f0" stroke-width="1" />
+            ${lowerSvgHtml}
+          </svg>
+        </div>
+      </div>
+    </div>`;
+}
