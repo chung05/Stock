@@ -72,6 +72,7 @@ export function switchModalTab(tabMode) {
         
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
+        renderMarginTrendChart(); // 💡 觸發點：分頁切換時，同步渲染最下方的融資信用走勢
         bindBiDirectionalScrollLinkage();
       }
       scrollToLatestTrend(tabMode);
@@ -96,8 +97,10 @@ export function scrollToLatestTrend(tabMode = 'trend') {
     if (tabMode === 'trend') {
       const pWrapper = document.getElementById("priceScrollWrapper"); 
       const cWrapper = document.getElementById("chipScrollWrapper");
+      const mWrapper = document.getElementById("marginScrollWrapper");
       if (pWrapper) pWrapper.scrollLeft = pWrapper.scrollWidth;
       if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
+      if (mWrapper) mWrapper.scrollLeft = mWrapper.scrollWidth;
     } else if (tabMode === 'macd') {
       const mWrapper = document.getElementById("macdChartScrollWrapper");
       if (mWrapper) mWrapper.scrollLeft = mWrapper.scrollWidth;
@@ -105,28 +108,40 @@ export function scrollToLatestTrend(tabMode = 'trend') {
   }, 60);
 }
 
+// 💡 智慧聯動升級：將股價走勢、法人籌碼、信用資券進行「三軌物理聯動綁定」
 function bindBiDirectionalScrollLinkage() {
   const pWrapper = document.getElementById("priceScrollWrapper");
   const cWrapper = document.getElementById("chipScrollWrapper");
-  if (!pWrapper || !cWrapper) return;
+  const mWrapper = document.getElementById("marginScrollWrapper");
+  if (!pWrapper || !cWrapper || !mWrapper) return;
 
-  let isSyncingPriceScroll = false;
-  let isSyncingChipScroll = false;
+  let isSyncing = false;
 
   pWrapper.onscroll = () => {
-    if (!isSyncingChipScroll) {
-      isSyncingPriceScroll = true;
+    if (!isSyncing) {
+      isSyncing = true;
       cWrapper.scrollLeft = pWrapper.scrollLeft;
+      mWrapper.scrollLeft = pWrapper.scrollLeft;
+      isSyncing = false;
     }
-    isSyncingPriceScroll = false;
   };
 
   cWrapper.onscroll = () => {
-    if (!isSyncingPriceScroll) {
-      isSyncingPriceScroll = true;
-      pWrapper.scrollLeft = pWrapper.scrollLeft;
+    if (!isSyncing) {
+      isSyncing = true;
+      pWrapper.scrollLeft = cWrapper.scrollLeft;
+      mWrapper.scrollLeft = cWrapper.scrollLeft;
+      isSyncing = false;
     }
-    isSyncingPriceScroll = false;
+  };
+
+  mWrapper.onscroll = () => {
+    if (!isSyncing) {
+      isSyncing = true;
+      pWrapper.scrollLeft = mWrapper.scrollLeft;
+      cWrapper.scrollLeft = mWrapper.scrollLeft;
+      isSyncing = false;
+    }
   };
 }
 
@@ -143,6 +158,7 @@ export async function openCombinedModal(stockId, stockName) {
     switchChipSubTab('f'); 
     renderPriceTrendLineChart(localTrendDates, myChipsRaw);
     renderChipTrendChart();
+    renderMarginTrendChart(); // 💡 點擊個股開啟視窗時，同步初次渲染資券數據
     renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
     bindBiDirectionalScrollLinkage();
     scrollToLatestTrend('trend');
@@ -483,4 +499,78 @@ export function renderChipTrendChart() {
   }).join('');
 
   chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+}
+
+// ==========================================================
+// 🌟 核心擴充：新增融資、融資餘額智慧自適應雙柱狀圖 (完美精準對齊 20 個交易日)
+// ==========================================================
+export function renderMarginTrendChart() {
+  const marginChartEl = document.getElementById("trendMarginChart");
+  if (!marginChartEl || !state.currentActiveStockId) return;
+
+  // 1. 抓取當前個股快取，並精準排序對齊 20 天時間軸
+  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
+  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+
+  // 2. 提取融資當日買賣超增減 (張) 與 融資今日餘額 (張)
+  let marginNetPoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    if (!row) return 0;
+    // 融資買進 - 融資賣出
+    return (getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0);
+  });
+
+  let marginBalancePoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    return row ? (getValIgnoreCase(row, 'margin_balance') || 0) : 0;
+  });
+
+  // 3. 找出最大縮放比例，防止圖表頂天溢出
+  let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
+  let maxBal = Math.max(...marginBalancePoints, 1);
+
+  // 4. 立體雙區塊渲染：上半段為每日增減（融資增用淺藍色，融資減用綠色），下半段為水位餘額（用純綠色）
+  let barsHtml = localTrendDates.map((d, i) => {
+    const netVal = marginNetPoints[i];
+    const balVal = marginBalancePoints[i];
+    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+
+    // 上半截增減張數高度比 (融資增淺藍、融資減綠色)
+    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 38), 38);
+    const isNetPositive = netVal >= 0;
+    const netColorClass = isNetPositive ? "bg-sky-400" : "bg-emerald-500";
+
+    // 下半截餘額水位高度比 (純綠色柱狀圖)
+    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 40), 40);
+
+    return `
+      <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/40">
+        <div class="w-full h-[50%] flex flex-col justify-end items-center relative bg-slate-50/20">
+          ${netVal !== 0 ? `<span class="text-[9px] font-black ${isNetPositive ? 'text-sky-600' : 'text-emerald-600'} tracking-tighter mb-0.5">${netVal > 0 ? '+' : ''}${netVal}</span>` : ''}
+          <div class="w-full max-w-[10px] min-w-[3px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
+        </div>
+        
+        <span class="absolute top-[calc(50%-7px)] text-[8.5px] text-slate-400 font-extrabold z-20 pointer-events-none">${datePart}</span>
+        
+        <div class="w-full h-[50%] flex flex-col justify-start items-center relative bg-slate-100/10">
+          <div class="w-full max-w-[14px] min-w-[4px] bg-green-500/80 rounded-b-xs shadow-3xs" style="height: ${balHeightPct}%;"></div>
+          <span class="text-[9px] font-bold text-green-700 mt-0.5 tracking-tighter">${balVal}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  marginChartEl.innerHTML = `
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 w-full mt-1">
+      <div class="flex justify-between items-center mb-1 px-1">
+        <div class="text-[10px] font-black text-slate-500">🔹 融資信用結構區 (張)</div>
+        <div class="flex gap-2 text-[8px] font-bold text-slate-400">
+          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-sky-400 inline-block rounded-xs"></span>融資增減</span>
+          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-green-500/80 inline-block rounded-xs"></span>融資餘額</span>
+        </div>
+      </div>
+      <div class="w-full h-36 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center overflow-hidden">
+        <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400/80 z-10" style="top: 50%;"></div>
+        ${barsHtml}
+      </div>
+    </div>`;
 }
