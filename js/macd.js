@@ -72,7 +72,7 @@ export function switchModalTab(tabMode) {
         
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
-        renderMarginTrendChart(); // 同步觸發並列版資券圖表
+        renderMarginTrendChart(); // 同步觸發並列軸心版資券圖表
         bindBiDirectionalScrollLinkage();
       }
       scrollToLatestTrend(tabMode);
@@ -157,7 +157,7 @@ export async function openCombinedModal(stockId, stockName) {
     switchChipSubTab('f'); 
     renderPriceTrendLineChart(localTrendDates, myChipsRaw);
     renderChipTrendChart();
-    renderMarginTrendChart(); // 載入個股時同步生成新資券數據
+    renderMarginTrendChart(); // 載入個股時同步生成新版並列資券數據
     renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
     bindBiDirectionalScrollLinkage();
     scrollToLatestTrend('trend');
@@ -497,7 +497,7 @@ export function renderChipTrendChart() {
 }
 
 // ==========================================================
-// 🌟 核心增強：融資增減與融資餘額「雙圖表左右並列」全新架構
+// 🌟 信用大升級：融資增減（雙向多空軸）與融資餘額（右側攀升）實體並列圖表
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -508,8 +508,7 @@ export function renderMarginTrendChart() {
 
   let marginNetPoints = localTrendDates.map(d => {
     const row = myChipsRaw.find(c => String(c.date) === d);
-    if (!row) return 0;
-    return (getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0);
+    return row ? ((getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0)) : 0;
   });
 
   let marginBalancePoints = localTrendDates.map(d => {
@@ -520,40 +519,55 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 在同一個日期方框內，以 Flex 排版將【增減】與【餘額】物理性並列在左、右側
   let barsHtml = localTrendDates.map((d, i) => {
     const netVal = marginNetPoints[i];
     const balVal = marginBalancePoints[i];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
 
-    // 1. 左側柱：融資增減高度計算
-    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 72), 72);
-    // 🟢 嚴格遵照規格：融資增用紅色 (rose-600)，融資減用深綠色 (emerald-700)
-    const netColorClass = netVal >= 0 ? "bg-rose-600" : "bg-emerald-700";
+    // 計算左半截高度比例（最高佔單側上限 85% 防止蓋字）
+    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 82), 82);
+    const isNetPositive = netVal >= 0;
+    
+    // 🟢 嚴格對齊顏色：增用紅色 (bg-rose-600)，減用深綠色 (bg-emerald-800)
+    const netColorClass = isNetPositive ? "bg-rose-600" : "bg-emerald-800";
+    const netTextColorClass = isNetPositive ? "text-rose-600" : "text-emerald-800";
 
-    // 2. 右側柱：融資餘額高度計算
-    // 🟢 嚴格遵照規格：融資餘額用深藍色 (blue-800)
-    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 72), 72);
+    // 計算右半截全高度比例（融資餘額由底往上長）
+    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 82), 82);
+
+    // 💡 智慧多空定位法：正值在 50% 軸線上方往上長，負值在 50% 軸線下方往下探
+    const leftBarHtml = isNetPositive ? `
+      <div class="w-full h-1/2 flex flex-col justify-end items-center relative">
+        <span class="absolute -top-3.5 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal > 0 ? '+' : ''}${netVal}</span>
+        <div class="w-full max-w-[8px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
+      </div>
+      <div class="w-full h-1/2 relative"></div>
+    ` : `
+      <div class="w-full h-1/2 relative"></div>
+      <div class="w-full h-1/2 flex flex-col justify-start items-center relative">
+        <div class="w-full max-w-[8px] ${netColorClass} rounded-b-xs" style="height: ${netHeightPct}%;"></div>
+        <span class="absolute -bottom-3.5 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal}</span>
+      </div>
+    `;
 
     return `
       <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/70 px-0.5">
         
-        <div class="w-full grow flex items-end justify-center gap-0.5 h-[80%] relative pb-1">
+        <div class="w-full flex h-[82%] relative pb-0">
           
-          <div class="flex flex-col items-center justify-end h-full w-1/2 relative group">
-            ${netVal !== 0 ? `<span class="absolute -top-3.5 text-[8.5px] font-black tracking-tighter opacity-0 group-hover:opacity-100 bg-slate-900 text-white px-0.5 rounded-xs transition-opacity z-30">${netVal > 0 ? '+' : ''}${netVal}</span>` : ''}
-            <div class="w-full max-w-[8px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
+          <div class="h-full w-1/2 flex flex-col relative z-20">
+            ${leftBarHtml}
           </div>
           
-          <div class="flex flex-col items-center justify-end h-full w-1/2 relative group">
-            <span class="absolute -top-3.5 text-[8.5px] font-black tracking-tighter opacity-0 group-hover:opacity-100 bg-slate-900 text-white px-0.5 rounded-xs transition-opacity z-30">${balVal}</span>
-            <div class="w-full max-w-[10px] bg-blue-800 rounded-t-xs shadow-2xs" style="height: ${balHeightPct}%;"></div>
+          <div class="h-full w-1/2 flex flex-col justify-end items-center relative z-20">
+            <span class="absolute text-[9px] font-black text-blue-900 tracking-tighter" style="bottom: calc(${balHeightPct}% + 1px);">${balVal}</span>
+            <div class="w-full max-w-[10px] bg-blue-800 rounded-t-xs shadow-3xs" style="height: ${balHeightPct}%;"></div>
           </div>
 
         </div>
         
-        <div class="h-[20%] w-full flex items-center justify-center border-t border-slate-100 shrink-0">
-          <span class="text-[9px] text-slate-500 font-extrabold tracking-tighter">${datePart}</span>
+        <div class="h-[18%] w-full flex items-center justify-center border-t border-slate-100 shrink-0 bg-slate-50/40">
+          <span class="text-[9.5px] text-slate-500 font-black tracking-tighter">${datePart}</span>
         </div>
 
       </div>`;
@@ -562,14 +576,15 @@ export function renderMarginTrendChart() {
   marginChartEl.innerHTML = `
     <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 w-full mt-1">
       <div class="flex justify-between items-center mb-1.5 px-1">
-        <div class="text-[10px] font-black text-slate-500">🔹 信用籌碼對照區 (張) <span class="text-[9px] text-slate-400 font-normal">（滑鼠移至柱體上方可顯示精準張數）</span></div>
-        <div class="flex gap-2.5 text-[8px] font-bold text-slate-400">
+        <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
+        <div class="flex gap-2.5 text-[8.5px] font-black text-slate-400">
           <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
-          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-emerald-700 inline-block rounded-xs"></span>融資減</span>
+          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
           <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
         </div>
       </div>
-      <div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-0.5 relative items-center overflow-hidden">
+      <div class="w-full h-36 flex justify-between bg-white rounded-lg border border-slate-200 px-0.5 relative items-center overflow-hidden">
+        <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400/90 z-10" style="top: 50%;"></div>
         ${barsHtml}
       </div>
     </div>`;
