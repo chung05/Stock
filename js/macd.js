@@ -291,7 +291,6 @@ export function renderPriceTrendLineChart(dates, chips) {
     
     let exactX = idx * stepX + (stepX / 2); 
 
-    // 🟢 頂級顏色對比調整：股價採用深藍色 (#1e40af)，MA5 採用亮粉色 (#ec4899)，徹底拉開反差！
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96); 
       polylinePrice.push(`${exactX},${exactY}`);
@@ -317,12 +316,13 @@ export function renderPriceTrendLineChart(dates, chips) {
     dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-slate-950 truncate px-0.5">${datePart}</span>`;
   });
 
+  // 💡 智慧修正：將所有的 stroke-width 粗細參數，一律對齊並綁定為與價格線相同的粗細規模（2.5 級別與 1.8~2.5 的一致化視覺）
   priceChartEl.innerHTML = `
     <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;">
       <line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
-      <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       ${svgCirclesHtml}
     </svg>`;
