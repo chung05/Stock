@@ -27,7 +27,7 @@ function formatDateToString(dateObj) {
 }
 
 async function startHighPerformanceSync() {
-  console.log("🚀 啟動【主力成分股 v2】逐檔安全配速同步程序...");
+  console.log("🚀 啟動【主力成分股 v2 - 智慧自適應時間版】同步程序...");
   
   try {
     // 階段 A：從真理母名單讀取股票並嚴格去重
@@ -45,12 +45,46 @@ async function startHighPerformanceSync() {
     const rawStockIds = dbData.map(item => String(item.stock_id).trim()).filter(id => id && id !== 'undefined' && id !== 'null');
     const stockIds = [...new Set(rawStockIds)];
 
-    // 自適應台灣交易時區時間
-    const now = new Date();
-    const taipeiTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
-    const targetDate = taipeiTime.toISOString().split('T')[0];
+    // 🧠 核心智慧大腦：自動尋找大帳本當前的最晚日期，自適應推導增量時間區間
+    const { data: lastRecord, error: dateErr } = await supabase
+      .from('stock_chips_daily')
+      .select('date')
+      .order('date', { ascending: false })
+      .limit(1);
+      
+    if (dateErr) console.log("⚠️ 偵測大帳本最大日期異常:", dateErr.message);
 
-    console.log(`📅 同步日期: ${targetDate}, 實際名單長度: ${dbData.length}, 去重後精準股票總數: ${stockIds.length}`);
+    let startDate = new Date('2026-01-02');
+    if (lastRecord && lastRecord.length > 0 && lastRecord[0].date) {
+      const lastDate = new Date(lastRecord[0].date);
+      lastDate.setDate(lastDate.getDate() + 1); // 自動推導到下一天開始補資料
+      startDate = lastDate;
+    }
+    
+    // 🛡️ 【下午16:00 盤後防護機制】判斷今日資料是否 Ready
+    const now = new Date();
+    // 一律切換至台灣時區判定目前小時數
+    const taipeiHour = parseInt(now.toLocaleString("en-US", { timeZone: "Asia/Taipei", hour: '2-digit', hour12: false }), 10);
+    
+    let endDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+    
+    if (taipeiHour < 16) {
+      console.log("🕒 目前時間未滿台灣下午 16:00，盤後籌碼尚未 Ready。安全機制啟動：同步終點限制在【昨天】。");
+      endDate.setDate(endDate.getDate() - 1);
+    } else {
+      console.log("🕒 目前時間已過台灣下午 16:00，今日盤後數據已 Ready。同步終點允許至【今天】。");
+    }
+
+    const startDateStr = formatDateToString(startDate);
+    const endDateStr = formatDateToString(endDate);
+    
+    // 💡 終極安全重疊檢查：如果 startDate 比 endDate 還新，代表已經同步到最新狀態，無需重複執行
+    if (startDate > endDate) {
+      console.log(`💡 檢查完畢：大帳本已是最新狀態（已同步至 ${formatDateToString(endDate)}）。今日新資料尚未釋出，程序安全結束。`);
+      return;
+    }
+
+    console.log(`📅 同步日期區間: ${startDateStr} 至 ${endDateStr}, 核心名單總計: ${stockIds.length} 檔`);
 
     const commonHeaders = {
       'accept': 'application/json',
@@ -59,11 +93,10 @@ async function startHighPerformanceSync() {
 
     let allFetchedDailyChips = [];
 
-    // 階段 B：比照舊版安全機制，一次一個個股資料，穩健推進
+    // 階段 B：逐檔安全配速下載機制
     for (let i = 0; i < stockIds.length; i++) {
       const sId = stockIds[i];
       
-      // 每 15 檔強制休息 8 秒，防止被 FinMind 判定為惡意頻繁爬蟲而鎖 IP
       if (i > 0 && i % 15 === 0) {
         console.log(`⏳ 已安全同步 ${i} 檔，保護 API 流量強制休息 8 秒...`);
         await sleep(8000);
@@ -71,8 +104,8 @@ async function startHighPerformanceSync() {
 
       console.log(`[下載個股籌碼] (${i + 1}/${stockIds.length}) 標的: ${sId}`);
 
-      // 💡 智慧修正：回歸單一 data_id 請求，徹底排除多個股打包時引發的 400 錯誤！
-      const finalApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockTaiwanCompanyBuySell&data_id=${sId}&start_date=${targetDate}&end_date=${targetDate}&token=${finmindToken || ''}`;
+      // 💡 智慧修正：使用動態自適應的推導日期區間，全面防禦週六日或早上的空窗口
+      const finalApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockTaiwanCompanyBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${finmindToken || ''}`;
 
       let retries = 2;
       let fetchSuccess = false;
@@ -90,27 +123,25 @@ async function startHighPerformanceSync() {
             if (retries > 0) await sleep(1000);
           }
         } catch (apiErr) {
-          console.warn(`  ⚠️ 標的 ${sId} 連線忙碌中 (${apiErr.message})，進行複檢重試...`);
+          console.warn(`  ⚠️ 標的 ${sId} 連線回傳異常 (${apiErr.message})，進行複檢重試...`);
           retries--;
           if (retries > 0) await sleep(1500);
         }
       }
       
-      // 檔與檔之間的微秒配速，防禦伺服器過載
       await sleep(150);
     }
 
-    console.log(`\n📊 本日累計成功撈回 ${allFetchedDailyChips.length} 筆明細欄位紀錄。`);
+    console.log(`\n📊 本次區間累計成功撈回 ${allFetchedDailyChips.length} 筆明細欄位紀錄。`);
 
     if (allFetchedDailyChips.length === 0) {
-      console.log("ℹ️ 本日無新籌碼數據更新（可能為非交易日或個股盤後未完全釋出），流程安全結束。");
+      console.log("ℹ️ 撈回資料數為 0（此區間可能包含非交易日假日），流程安全結束。");
       return;
     }
 
-    // 階段 C：清洗格式並寫入 Supabase 大帳本
-    console.log("💾 正在發動 Supabase 智慧矩陣更新 (Upsert) 寫入作業...");
+    // 階段 C：寫入 Supabase 資料庫
+    console.log("💾 正在發動 Supabase 智慧更新 (Upsert) 作業...");
     
-    // 將撈回來的多筆資料（外資、投信、自營商等）聚合對位回大帳本對應的 28 欄位
     const dateMap = {};
     allFetchedDailyChips.forEach(row => {
       const d = row.date;
@@ -129,7 +160,6 @@ async function startHighPerformanceSync() {
         };
       }
 
-      // 依據 FinMind 傳回的法人名稱精準分流至對應的欄位
       if (row.name === 'Foreign_Investor') { dateMap[compositeKey].f_buy = row.buy; dateMap[compositeKey].f_sell = row.sell; }
       else if (row.name === 'Investment_Trust') { dateMap[compositeKey].it_buy = row.buy; dateMap[compositeKey].it_sell = row.sell; }
       else if (row.name === 'Dealer_self') { dateMap[compositeKey].ds_buy = row.buy; dateMap[compositeKey].ds_sell = row.sell; }
@@ -138,7 +168,6 @@ async function startHighPerformanceSync() {
 
     const finalUploadRows = Object.values(dateMap);
 
-    // 分批寫入資料庫，防止大Payload超載
     const saveChunkSize = 100;
     for (let j = 0; j < finalUploadRows.length; j += saveChunkSize) {
       const saveChunk = finalUploadRows.slice(j, j + saveChunkSize);
