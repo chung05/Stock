@@ -192,7 +192,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
   const listZone = document.getElementById("newsListZone");
   
   if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} RSS解析...\n`; }
-  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在讀取最新新聞...</div>`; }
+  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過網關讀取最新新聞...</div>`; }
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
@@ -226,8 +226,8 @@ async function fetchStockNewsBackground(stockId, stockName) {
       <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
         <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
         <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg">Yahoo 股市新聞</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg">Anue 鉅亨網新聞</a>
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網新聞</a>
         </div>
       </div>`;
   }
@@ -391,120 +391,4 @@ export function renderChipTrendChart() {
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
   const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
-  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
-  const cfg = subTabConfigs[state.currentChipSubTab];
-  
-  let nets = localTrendDates.map(d => { 
-    const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; 
-    if (state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
-    return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
-  });
-
-  let absMax = Math.max(...nets.map(Math.abs), 1), barsHtml = localTrendDates.map((d, i) => { 
-    const val = nets[i], isPositive = val >= 0, heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80), datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${datePart}</span></div></div>`; 
-  }).join('');
-
-  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
-}
-
-// =========================================================================
-// 🌟 核心修正版：純 SVG 雙圖表左右並列/上下分流大腦 (解決 Unexpected end of input 錯誤)
-// =========================================================================
-export function renderMarginTrendChart() {
-  const marginChartEl = document.getElementById("trendMarginChart");
-  if (!marginChartEl || !state.currentActiveStockId) return;
-
-  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
-
-  let marginNetPoints = localTrendDates.map(d => {
-    const row = myChipsRaw.find(c => String(c.date) === d);
-    return row ? ((getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0)) : 0;
-  });
-
-  let marginBalancePoints = localTrendDates.map(d => {
-    const row = myChipsRaw.find(c => String(c.date) === d);
-    return row ? (getValIgnoreCase(row, 'margin_balance') || 0) : 0;
-  });
-
-  let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
-  let maxBal = Math.max(...marginBalancePoints, 1);
-
-  const containerWidth = marginChartEl.clientWidth || 940;
-  const count = localTrendDates.length;
-  const stepX = containerWidth / count;
-
-  let upperSvgHtml = `<line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#94a3b8" stroke-width="1.5" />`; 
-  let lowerSvgHtml = "";
-
-  localTrendDates.forEach((d, idx) => {
-    const netVal = marginNetPoints[idx];
-    const balVal = marginBalancePoints[idx];
-    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    
-    let exactX = idx * stepX + (stepX / 2); 
-    
-    // --- 上圖 SVG 增減 ---
-    if (netVal !== 0) {
-      let barHeight = (Math.abs(netVal) / maxNet) * 32;
-      let barWidth = Math.min(stepX * 0.45, 14); 
-      let barX = exactX - (barWidth / 2);
-      
-      if (netVal > 0) {
-        let barY = 48 - barHeight;
-        upperSvgHtml += `
-          <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#e11d48" rx="1" />
-          <text x="${exactX}" y="${barY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">+${netVal}</text>
-        `;
-      } else {
-        upperSvgHtml += `
-          <rect x="${barX}" y="48" width="${barWidth}" height="${barHeight}" fill="#065f46" rx="1" />
-          <text x="${exactX}" y="${48 + barHeight + 11}" text-anchor="middle" font-weight="900" font-size="10" fill="#065f46" font-family="sans-serif">${netVal}</text>
-        `;
-      }
-    } else {
-      upperSvgHtml += `<text x="${exactX}" y="45" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
-    }
-    upperSvgHtml += `<text x="${exactX}" y="93" text-anchor="middle" font-weight="black" font-size="10" fill="#64748b">${datePart}</text>`;
-
-    // --- 下圖 SVG 餘額 ---
-    let balHeight = (balVal / maxBal) * 64; 
-    let balWidth = Math.min(stepX * 0.55, 18);
-    let balX = exactX - (balWidth / 2);
-    let balY = 82 - balHeight; 
-    
-    lowerSvgHtml += `
-      <rect x="${balX}" y="${balY}" width="${balWidth}" height="${balHeight}" fill="#1e40af" rx="1.5" />
-      <text x="${exactX}" y="${balY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e40af" font-family="sans-serif">${balVal}</text>
-      <text x="${exactX}" y="${94}" text-anchor="middle" font-weight="black" font-size="10" fill="#64748b">${datePart}</text>
-    `;
-  });
-
-  marginChartEl.innerHTML = `
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 w-full mt-1">
-      <div class="flex justify-between items-center mb-1.5 px-1">
-        <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
-        <div class="flex gap-3 text-xs font-black text-slate-400">
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
-        </div>
-      </div>
-      
-      <div class="flex flex-col gap-3 w-full">
-        <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
-          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
-            ${upperSvgHtml}
-          </svg>
-        </div>
-        
-        <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
-          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
-            <line x1="0" y1="82" x2="${containerWidth}" y2="82" stroke="#e2e8f0" stroke-width="1" />
-            ${lowerSvgHtml}
-          </svg>
-        </div>
-      </div>
-    </div>`;
-}
+  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor:
