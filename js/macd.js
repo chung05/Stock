@@ -72,7 +72,7 @@ export function switchModalTab(tabMode) {
         
         renderPriceTrendLineChart(localTrendDates, myChipsRaw);
         renderChipTrendChart();
-        renderMarginTrendChart(); // 同步觸發並列軸心版資券圖表
+        renderMarginTrendChart(); // 智慧雙獨立資券圖表解鎖
         bindBiDirectionalScrollLinkage();
       }
       scrollToLatestTrend(tabMode);
@@ -157,7 +157,7 @@ export async function openCombinedModal(stockId, stockName) {
     switchChipSubTab('f'); 
     renderPriceTrendLineChart(localTrendDates, myChipsRaw);
     renderChipTrendChart();
-    renderMarginTrendChart(); // 載入個股時同步生成新版並列資券數據
+    renderMarginTrendChart(); // 同步初次生成雙層資券圖表
     renderSeparatedMacdChartAndDecodeSignals(localTrendDates, myChipsRaw);
     bindBiDirectionalScrollLinkage();
     scrollToLatestTrend('trend');
@@ -191,83 +191,45 @@ async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
   const listZone = document.getElementById("newsListZone");
   
-  if (debugBox) {
-    debugBox.classList.remove("hidden");
-    debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) rss2json 高速解析流...\n`;
-  }
-  if (listZone) {
-    listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過專業網關讀取最新財經新聞...</div>`;
-  }
+  if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} RSS解析...\n`; }
+  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過專業網關讀取最新財經新聞...</div>`; }
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
   const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
 
-  let maxRetries = 3, currentRetry = 0, successFetch = false, resJson = null;
-
-  while (currentRetry < maxRetries && !successFetch) {
-    currentRetry++;
-    try {
-      const res = await fetch(apiUrl);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.status === 'ok') { 
-          resJson = json; 
-          successFetch = true; 
-          break; 
-        }
+  try {
+    const res = await fetch(apiUrl);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.status === 'ok' && json.items.length > 0) {
+        let listHtml = "";
+        json.items.slice(0, 10).forEach(item => {
+          const pubDate = new Date(item.pubDate);
+          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
+          listHtml += `
+            <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
+              <div class="text-xs text-slate-400 font-bold">📅 ${dateStr} <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div>
+              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
+            </a>`;
+        });
+        if (listZone) listZone.innerHTML = listHtml;
+        if (debugBox) debugBox.classList.add("hidden");
+        return;
       }
-    } catch (fetchErr) { 
-      console.warn(`第 ${currentRetry} 次新聞撈取嘗試失敗`, fetchErr); 
     }
-  }
+  } catch (e) {}
 
-  if (successFetch && resJson) {
-    const fetchedItems = resJson.items || [];
-    if (fetchedItems.length > 0) {
-      let listHtml = "";
-
-      fetchedItems.slice(0, 10).forEach(item => {
-        const pubDate = new Date(item.pubDate);
-        const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
-        const sourceName = item.author || "財經媒體";
-
-        listHtml += `
-          <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
-            <div class="text-xs text-slate-400 font-bold flex items-center gap-2">
-              <span>📅 ${dateStr}</span>
-              <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${sourceName}</span>
-            </div>
-            <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
-          </a>`;
-      });
-      
-      if (listZone) listZone.innerHTML = listHtml;
-      if (debugBox) debugBox.classList.add("hidden"); 
-    } else {
-      if (listZone) listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-8 text-center">查無相關新聞項目</div>`;
-      if (debugBox) debugBox.classList.add("hidden");
-    }
-  } else {
-    if (debugBox) debugBox.classList.add("hidden");
-    if (listZone) {
-      listZone.innerHTML = `
-        <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3 shadow-2xs">
-          <div class="text-sm font-black text-amber-800 flex items-center gap-1">⚠️ 雲端即時新聞同步忙碌</div>
-          <p class="text-xs text-amber-600 leading-relaxed max-w-md">
-            目前公共轉換伺服器連線已達尖峰上限，已自動為您開通本機端「${stockName}」專屬官方新聞高速直達特快車：
-          </p>
-          <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-            <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" rel="noopener noreferrer" class="flex-1 min-w-[150px] max-w-[200px] px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black rounded-lg shadow-sm transition-all text-center">
-              🔮 Yahoo 股市個股新聞
-            </a>
-            <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" rel="noopener noreferrer" class="flex-1 min-w-[150px] max-w-[200px] px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-black rounded-lg shadow-sm transition-all text-center">
-              🦊 Anue 鉅亨網即時新聞
-            </a>
-          </div>
+  if (debugBox) debugBox.classList.add("hidden");
+  if (listZone) {
+    listZone.innerHTML = `
+      <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3 shadow-2xs">
+        <div class="text-sm font-black text-amber-800 flex items-center gap-1">⚠️ 雲端即時新聞同步忙碌</div>
+        <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市個股新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網即時新聞</a>
         </div>
-      `;
-    }
+      </div>`;
   }
 }
 
@@ -277,7 +239,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   if (!priceChartEl || dates.length === 0) return;
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-
   let pricePoints = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.price) ? day.price : null; });
   let ma5Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma5 !== undefined && day.ma5 !== null) ? day.ma5 : null; });
   let ma10Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma10 !== undefined && day.ma10 !== null) ? day.ma10 : null; });
@@ -303,7 +264,6 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma10 = ma10Points[idx];
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    
     let exactX = idx * stepX + (stepX / 2); 
 
     if (price !== null) {
@@ -312,7 +272,6 @@ export function renderPriceTrendLineChart(dates, chips) {
       let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 14) : (exactY - 6);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#1e40af" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
-    
     if (ma5 !== null && state.visibleLines.ma5) {
       let yPercent = ((ma5 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
       polylineMA5.push(`${exactX},${exactY}`);
@@ -346,12 +305,10 @@ export function renderPriceTrendLineChart(dates, chips) {
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
-  
   const barDatesEl = document.getElementById("macdBarDates");
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
@@ -370,45 +327,25 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
-
-  let kdChartHtml = `
-    <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
-    <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
-    <div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>
-    <div class="absolute left-1 font-black text-[7px] text-rose-400 pointer-events-none" style="top: calc(20% - 4px);">80 超買</div>
-    <div class="absolute left-1 font-bold text-[7px] text-slate-400 pointer-events-none" style="top: calc(50% - 4px);">50 中軸</div>
-    <div class="absolute left-1 font-black text-[7px] text-emerald-500 pointer-events-none" style="top: calc(80% - 4px);">20 超賣</div>
-  `;
+  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
     let xPos = idx * stepX + (stepX / 2);
-    
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    if (d.dif !== null) {
-      difPoints.push(`${xPos},${exactDifY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
-    }
-    if (d.sig !== null) {
-      sigPoints.push(`${xPos},${exactSigY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
-    }
+    if (d.dif !== null) { difPoints.push(`${xPos},${exactDifY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`; }
+    if (d.sig !== null) { sigPoints.push(`${xPos},${exactSigY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`; }
 
-    lineChartHtml += `
-      <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
-        <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
-      </div>`;
-      
+    lineChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
     let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0;
     let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
     let oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
-    
     let textOscY = d.osc >= 0 ? "top-[1px]" : "bottom-[1px]";
     let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
 
@@ -420,56 +357,24 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       </div>`;
 
     if (d.kd_k !== null && d.kd_d !== null) {
-      let kY = ((100 - d.kd_k) / 100) * 112;
-      let dY = ((100 - d.kd_d) / 100) * 112;
-      
-      kPoints.push(`${xPos},${kY}`);
-      dPoints.push(`${xPos},${dY}`);
-
-      kdCirclesHtml += `
-        <circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" />
-        <circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" />
-        <text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text>
-        <text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>
-      `;
+      let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
+      kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
+      kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
     }
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) {
-    lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
-  }
-  
-  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
-  if(barChartEl) barChartEl.innerHTML = barChartHtml;
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
+  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml;
+  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
 
-  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
-  if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
-
-  if (kPoints.length > 0 || dPoints.length > 0) {
-    kdChartHtml += `
-      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;">
-        <polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`;
-  }
-  if (kdChartEl) kdChartEl.innerHTML = kdChartHtml;
-  if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
+  if (kdChartEl) kdChartEl.innerHTML = kdChartHtml; if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let titleText = "正常盤整型態";
-  
-  if (matchedCodes && matchedCodes.length > 0) {
-    titleText = matchedCodes.map(code => {
-      const fullText = MACD_SIGNALS[code] || "";
-      return fullText.includes("。") || fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText;
-    }).join(" + ");
-  }
-  
-  if(boardTitleEl) {
-    boardTitleEl.innerHTML = `
-      <span class="text-blue-600 font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span>
-      <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white hover:bg-slate-100 text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0">ℹ️ 條件</button>
-    `;
-  }
+  if (matchedCodes && matchedCodes.length > 0) { titleText = matchedCodes.map(code => { const fullText = MACD_SIGNALS[code] || ""; return fullText.includes("。") || fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText; }).join(" + "); }
+  if(boardTitleEl) { boardTitleEl.innerHTML = `<span class="text-blue-600 font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span><button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs cursor-pointer">ℹ️ 條件</button>`; }
 }
 
 export function renderChipTrendChart() {
@@ -496,8 +401,8 @@ export function renderChipTrendChart() {
   chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
 }
 
-// ==========================================================
-// 🌟 信用大升級：融資增減（雙向多空軸）與融資餘額（右側攀升）實體並列圖表
+// =========================================================================
+// 🌟 終極進化：融資與餘額「徹底拆分為上、下雙層獨立比例尺圖表」
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -519,26 +424,18 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  let barsHtml = localTrendDates.map((d, i) => {
+  // 1. 上圖：專門渲染「每日融資增減」中軸線雙向對稱柱體 (高度獨立完美拉開縮放)
+  let upperNetBarsHtml = localTrendDates.map((d, i) => {
     const netVal = marginNetPoints[i];
-    const balVal = marginBalancePoints[i];
-    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-
-    // 計算左半截高度比例（最高佔單側上限 85% 防止蓋字）
-    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 82), 82);
+    const netHeightPct = Math.min(Math.round((Math.abs(netVal) / maxNet) * 74), 74);
     const isNetPositive = netVal >= 0;
     
-    // 🟢 嚴格對齊顏色：增用紅色 (bg-rose-600)，減用深綠色 (bg-emerald-800)
     const netColorClass = isNetPositive ? "bg-rose-600" : "bg-emerald-800";
     const netTextColorClass = isNetPositive ? "text-rose-600" : "text-emerald-800";
 
-    // 計算右半截全高度比例（融資餘額由底往上長）
-    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 82), 82);
-
-    // 💡 智慧多空定位法：正值在 50% 軸線上方往上長，負值在 50% 軸線下方往下探
-    const leftBarHtml = isNetPositive ? `
+    const leftBarInnerHtml = isNetPositive ? `
       <div class="w-full h-1/2 flex flex-col justify-end items-center relative">
-        <span class="absolute -top-3.5 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal > 0 ? '+' : ''}${netVal}</span>
+        <span class="absolute -top-3 text-[9px] font-black tracking-tighter ${netTextColorClass}">${netVal > 0 ? '+' : ''}${netVal}</span>
         <div class="w-full max-w-[8px] ${netColorClass} rounded-t-xs" style="height: ${netHeightPct}%;"></div>
       </div>
       <div class="w-full h-1/2 relative"></div>
@@ -550,42 +447,47 @@ export function renderMarginTrendChart() {
       </div>
     `;
 
-    return `
-      <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/70 px-0.5">
-        
-        <div class="w-full flex h-[82%] relative pb-0">
-          
-          <div class="h-full w-1/2 flex flex-col relative z-20">
-            ${leftBarHtml}
-          </div>
-          
-          <div class="h-full w-1/2 flex flex-col justify-end items-center relative z-20">
-            <span class="absolute text-[9px] font-black text-blue-900 tracking-tighter" style="bottom: calc(${balHeightPct}% + 1px);">${balVal}</span>
-            <div class="w-full max-w-[10px] bg-blue-800 rounded-t-xs shadow-3xs" style="height: ${balHeightPct}%;"></div>
-          </div>
+    return `<div class="flex-1 h-full flex flex-col relative px-0.5 border-r border-slate-100/30">${leftBarInnerHtml}</div>`;
+  }).join('');
 
+  // 2. 下圖：專門渲染「融資累計餘額」由底往上生長的獨立高縮放比例圖
+  let lowerBalBarsHtml = localTrendDates.map((d, i) => {
+    const balVal = marginBalancePoints[i];
+    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    const balHeightPct = Math.min(Math.round((balVal / maxBal) * 72), 72);
+
+    return `
+      <div class="flex flex-col flex-1 h-full min-w-0 relative items-center border-r border-slate-100/30 px-0.5">
+        <div class="w-full h-[76%] flex flex-col justify-end items-center relative">
+          <span class="absolute text-[9px] font-black text-blue-900 tracking-tighter" style="bottom: calc(${balHeightPct}% + 1px);">${balVal}</span>
+          <div class="w-full max-w-[10px] bg-blue-800 rounded-t-xs shadow-3xs" style="height: ${balHeightPct}%;"></div>
         </div>
-        
-        <div class="h-[18%] w-full flex items-center justify-center border-t border-slate-100 shrink-0 bg-slate-50/40">
+        <div class="h-[24%] w-full flex items-center justify-center border-t border-slate-100 shrink-0 bg-slate-50/50">
           <span class="text-[9.5px] text-slate-500 font-black tracking-tighter">${datePart}</span>
         </div>
-
       </div>`;
   }).join('');
 
   marginChartEl.innerHTML = `
     <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 w-full mt-1">
-      <div class="flex justify-between items-center mb-1.5 px-1">
+      <div class="flex justify-between items-center mb-1 px-1">
         <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
-        <div class="flex gap-2.5 text-[8.5px] font-black text-slate-400">
-          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
-          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
-          <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
+        <div class="flex gap-3 text-xs font-black text-slate-400">
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
         </div>
       </div>
-      <div class="w-full h-36 flex justify-between bg-white rounded-lg border border-slate-200 px-0.5 relative items-center overflow-hidden">
-        <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400/90 z-10" style="top: 50%;"></div>
-        ${barsHtml}
+      
+      <div class="flex flex-col gap-2 w-full">
+        <div class="w-full h-24 flex justify-between bg-white rounded-lg border border-slate-200 relative items-center overflow-hidden">
+          <div class="absolute left-0 right-0 h-[1.5px] bg-slate-400/90 z-10" style="top: 50%;"></div>
+          ${upperNetBarsHtml}
+        </div>
+        
+        <div class="w-full h-28 flex justify-between bg-white rounded-lg border border-slate-200 relative items-center overflow-hidden">
+          ${lowerBalBarsHtml}
+        </div>
       </div>
     </div>`;
 }
