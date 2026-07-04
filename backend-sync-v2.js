@@ -27,25 +27,22 @@ function formatDateToString(dateObj) {
 }
 
 async function startHighPerformanceSync() {
-  console.log("🚀 啟動【主力成分股 v2 - 智慧自適應時間版】同步程序...");
+  console.log("🚀 啟動【主力成分股 v2 - 雙核心 API 智慧自適應版】同步程序...");
   
   try {
-    // 階段 A：從真理母名單讀取股票並嚴格去重
-    const { data: dbData, error: dbError } = await supabase
+    // 1. 從真理母名單讀取股票並嚴格去重
+    const { data: targetsData, error: targetError } = await supabase
       .from('stock_targets')
-      .select('stock_id, stock_name')
-      .order('stock_id', { ascending: true });
-
-    if (dbError) throw dbError;
-    if (!dbData || dbData.length === 0) {
-      console.warn("⚠️ 警告：從 stock_targets 未取得任何股票標的。");
-      return;
-    }
-
-    const rawStockIds = dbData.map(item => String(item.stock_id).trim()).filter(id => id && id !== 'undefined' && id !== 'null');
+      .select('stock_id');
+          
+    if (targetError) throw targetError;
+    const rawStockIds = (targetsData || []).map(item => String(item.stock_id).trim()).filter(id => id && id !== 'undefined' && id !== 'null');
     const stockIds = [...new Set(rawStockIds)];
+    console.log(`📊 成功獲取核心去重名單總計: ${stockIds.length} 檔。`);
 
-    // 🧠 核心智慧大腦：自動尋找大帳本當前的最晚日期，自適應推導增量時間區間
+    if (stockIds.length === 0) return;
+
+    // 2. 自動尋找大帳本當前的最晚日期，自適應推導增量時間區間
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
@@ -57,19 +54,17 @@ async function startHighPerformanceSync() {
     let startDate = new Date('2026-01-02');
     if (lastRecord && lastRecord.length > 0 && lastRecord[0].date) {
       const lastDate = new Date(lastRecord[0].date);
-      lastDate.setDate(lastDate.getDate() + 1); // 自動推導到下一天開始補資料
+      lastDate.setDate(lastDate.getDate() + 1);
       startDate = lastDate;
     }
     
-    // 🛡️ 【下午16:00 盤後防護機制】判斷今日資料是否 Ready
+    // 3. 🛡️ 下午 16:00 盤後防護機制
     const now = new Date();
-    // 一律切換至台灣時區判定目前小時數
     const taipeiHour = parseInt(now.toLocaleString("en-US", { timeZone: "Asia/Taipei", hour: '2-digit', hour12: false }), 10);
-    
     let endDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
     
     if (taipeiHour < 16) {
-      console.log("🕒 目前時間未滿台灣下午 16:00，盤後籌碼尚未 Ready。安全機制啟動：同步終點限制在【昨天】。");
+      console.log("🕒 目前時間未滿台灣下午 16:00，今日盤後籌碼尚未 Ready。安全機制啟動：同步終點限制在【昨天】。");
       endDate.setDate(endDate.getDate() - 1);
     } else {
       console.log("🕒 目前時間已過台灣下午 16:00，今日盤後數據已 Ready。同步終點允許至【今天】。");
@@ -78,106 +73,89 @@ async function startHighPerformanceSync() {
     const startDateStr = formatDateToString(startDate);
     const endDateStr = formatDateToString(endDate);
     
-    // 💡 終極安全重疊檢查：如果 startDate 比 endDate 還新，代表已經同步到最新狀態，無需重複執行
     if (startDate > endDate) {
-      console.log(`💡 檢查完畢：大帳本已是最新狀態（已同步至 ${formatDateToString(endDate)}）。今日新資料尚未釋出，程序安全結束。`);
+      console.log(`💡 檢查完畢：大帳本已是最新狀態（已同步至 ${formatDateToString(endDate)}）。今日新資料尚未釋出，暫不更新。`);
       return;
     }
 
-    console.log(`📅 同步日期區間: ${startDateStr} 至 ${endDateStr}, 核心名單總計: ${stockIds.length} 檔`);
+    console.log(`📅 大帳本實質增量抓取區間: ${startDateStr} 至 ${endDateStr}`);
 
     const commonHeaders = {
       'accept': 'application/json',
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    let allFetchedDailyChips = [];
-
-    // 階段 B：逐檔安全配速下載機制
+    // 4. 逐檔增量同步核心（完全對齊您原本能執行的舊版 API 結構）
     for (let i = 0; i < stockIds.length; i++) {
       const sId = stockIds[i];
       
       if (i > 0 && i % 15 === 0) {
-        console.log(`⏳ 已安全同步 ${i} 檔，保護 API 流量強制休息 8 秒...`);
-        await sleep(8000);
+        console.log(`⏳ 已同步 ${i} 檔，保護 API 流量強制休息 10 秒...`);
+        await sleep(10000);
       }
 
-      console.log(`[下載個股籌碼] (${i + 1}/${stockIds.length}) 標的: ${sId}`);
+      console.log(`[下載籌碼與K線] (${i + 1}/${stockIds.length}) ${sId}`);
 
-      // 💡 智慧修正：使用動態自適應的推導日期區間，全面防禦週六日或早上的空窗口
-      const finalApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockTaiwanCompanyBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${finmindToken || ''}`;
+      try {
+        const dateMap = {};
 
-      let retries = 2;
-      let fetchSuccess = false;
-
-      while (retries > 0 && !fetchSuccess) {
-        try {
-          const response = await axios.get(finalApiUrl, { headers: commonHeaders, timeout: 15000 });
-
-          if (response.data && response.data.status === 200) {
-            const dayData = response.data.data || [];
-            allFetchedDailyChips = allFetchedDailyChips.concat(dayData);
-            fetchSuccess = true;
-          } else {
-            retries--;
-            if (retries > 0) await sleep(1000);
-          }
-        } catch (apiErr) {
-          console.warn(`  ⚠️ 標的 ${sId} 連線回傳異常 (${apiErr.message})，進行複檢重試...`);
-          retries--;
-          if (retries > 0) await sleep(1500);
+        // (A) 正確下載三大法人籌碼接口
+        const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${finmindToken}`;
+        const res = await axios.get(apiUrl, { headers: commonHeaders, timeout: 15000 });
+        
+        if (res.data.status === 200 && Array.isArray(res.data.data)) {
+          res.data.data.forEach(row => {
+            const d = row.date;
+            if (!dateMap[d]) {
+              dateMap[d] = { 
+                stock_id: sId, date: d, price: null, change_value: 0, 
+                f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0,
+                open: 0, max: 0, min: 0, trading_volume: 0, updated_at: new Date().toISOString()
+              };
+            }
+            if (row.name === 'Foreign_Investor') { dateMap[d].f_buy = row.buy; dateMap[d].f_sell = row.sell; }
+            else if (row.name === 'Foreign_Dealer_Self') { dateMap[d].fd_buy = row.buy; dateMap[d].fd_sell = row.sell; }
+            else if (row.name === 'Investment_Trust') { dateMap[d].it_buy = row.buy; dateMap[d].it_sell = row.sell; }
+            else if (row.name === 'Dealer_self') { dateMap[d].ds_buy = row.buy; dateMap[d].ds_sell = row.sell; }
+            else if (row.name === 'Dealer_Hedging') { dateMap[d].dh_buy = row.buy; dateMap[d].dh_sell = row.sell; }
+          });
         }
+
+        // (B) 正確下載每日收盤K線價量接口
+        const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${finmindToken}`;
+        const priceRes = await axios.get(priceApiUrl, { headers: commonHeaders, timeout: 15000 });
+        
+        if (priceRes.data.status === 200 && Array.isArray(priceRes.data.data)) {
+          priceRes.data.data.forEach(pRow => {
+            const d = pRow.date;
+            if (!dateMap[d]) {
+              dateMap[d] = { 
+                stock_id: sId, date: d, price: null, change_value: 0, 
+                f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0,
+                open: 0, max: 0, min: 0, trading_volume: 0, updated_at: new Date().toISOString()
+              };
+            }
+            
+            dateMap[d].price = pRow.close;
+            dateMap[d].open = pRow.open;
+            dateMap[d].max = pRow.max;
+            dateMap[d].min = pRow.min;
+            dateMap[d].trading_volume = pRow.Trading_Volume;
+            dateMap[d].change_value = pRow.spread || 0;
+          });
+        }
+
+        // 聚合完畢後寫入 Supabase 大帳本
+        const rowsToUpsert = Object.values(dateMap);
+        if (rowsToUpsert.length > 0) {
+          const { error: upsertErr } = await supabase.from('stock_chips_daily').upsert(rowsToUpsert, { onConflict: 'stock_id,date' });
+          if (upsertErr) throw upsertErr;
+        }
+
+      } catch (err) {
+        console.error(`❌ 下載 ${sId} 發生異常: ${err.message}`);
       }
-      
-      await sleep(150);
-    }
-
-    console.log(`\n📊 本次區間累計成功撈回 ${allFetchedDailyChips.length} 筆明細欄位紀錄。`);
-
-    if (allFetchedDailyChips.length === 0) {
-      console.log("ℹ️ 撈回資料數為 0（此區間可能包含非交易日假日），流程安全結束。");
-      return;
-    }
-
-    // 階段 C：寫入 Supabase 資料庫
-    console.log("💾 正在發動 Supabase 智慧更新 (Upsert) 作業...");
-    
-    const dateMap = {};
-    allFetchedDailyChips.forEach(row => {
-      const d = row.date;
-      const sId = String(row.stock_id).trim();
-      const compositeKey = `${sId}_${d}`;
-
-      if (!dateMap[compositeKey]) {
-        dateMap[compositeKey] = {
-          stock_id: sId,
-          date: d,
-          f_buy: 0, f_sell: 0,
-          it_buy: 0, it_sell: 0,
-          ds_buy: 0, ds_sell: 0,
-          dh_buy: 0, dh_sell: 0,
-          updated_at: new Date().toISOString()
-        };
-      }
-
-      if (row.name === 'Foreign_Investor') { dateMap[compositeKey].f_buy = row.buy; dateMap[compositeKey].f_sell = row.sell; }
-      else if (row.name === 'Investment_Trust') { dateMap[compositeKey].it_buy = row.buy; dateMap[compositeKey].it_sell = row.sell; }
-      else if (row.name === 'Dealer_self') { dateMap[compositeKey].ds_buy = row.buy; dateMap[compositeKey].ds_sell = row.sell; }
-      else if (row.name === 'Dealer_Hedging') { dateMap[compositeKey].dh_buy = row.buy; dateMap[compositeKey].dh_sell = row.sell; }
-    });
-
-    const finalUploadRows = Object.values(dateMap);
-
-    const saveChunkSize = 100;
-    for (let j = 0; j < finalUploadRows.length; j += saveChunkSize) {
-      const saveChunk = finalUploadRows.slice(j, j + saveChunkSize);
-      const { error: upsertError } = await supabase
-        .from('stock_chips_daily')
-        .upsert(saveChunk, { onConflict: 'stock_id,date' });
-
-      if (upsertError) {
-        console.error(`❌ 寫入資料庫批次 ${j} 失敗:`, upsertError);
-      }
+      await sleep(200);
     }
 
     console.log("🟢 雲端大帳本數據天天自動同步全面大成功！");
