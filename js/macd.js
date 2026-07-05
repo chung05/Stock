@@ -192,7 +192,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
   const listZone = document.getElementById("newsListZone");
   
   if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} RSS解析...\n`; }
-  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過網關讀取最新新聞...</div>`; }
+  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在讀取最新新聞...</div>`; }
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
@@ -226,8 +226,8 @@ async function fetchStockNewsBackground(stockId, stockName) {
       <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
         <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
         <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市新聞</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網新聞</a>
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg">Yahoo 股市新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg">Anue 新聞</a>
         </div>
       </div>`;
   }
@@ -305,10 +305,12 @@ export function renderPriceTrendLineChart(dates, chips) {
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
+  
   const barDatesEl = document.getElementById("macdBarDates");
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
+
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
@@ -327,6 +329,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
+
   let kdChartHtml = `
     <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
     <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
@@ -341,18 +344,26 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
     let xPos = idx * stepX + (stepX / 2);
+    
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    if (d.dif !== null) { difPoints.push(`${xPos},${exactDifY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`; }
-    if (d.sig !== null) { sigPoints.push(`${xPos},${exactSigY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`; }
+    if (d.dif !== null) {
+      difPoints.push(`${xPos},${exactDifY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
+    }
+    if (d.sig !== null) {
+      sigPoints.push(`${xPos},${exactSigY}`);
+      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
+    }
 
     lineChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
     let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0;
     let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
     let oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
+    
     let textOscY = d.osc >= 0 ? "top-[1px]" : "bottom-[1px]";
     let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
 
@@ -364,24 +375,59 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       </div>`;
 
     if (d.kd_k !== null && d.kd_d !== null) {
-      let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
-      kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
-      kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
+      let kY = ((100 - d.kd_k) / 100) * 112;
+      let dY = ((100 - d.kd_d) / 100) * 112;
+      
+      kPoints.push(`${xPos},${kY}`);
+      dPoints.push(`${xPos},${dY}`);
+
+      kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>`;
     }
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
-  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml;
-  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
+  if (difPoints.length > 0 || sigPoints.length > 0) {
+    lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
+  }
+  
+  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
+  if(barChartEl) barChartEl.innerHTML = barChartHtml;
+  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
+  if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
+  if(kdChartEl) kdChartEl.innerHTML = kdChartHtml;
+  if(kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
-  if (kdChartEl) kdChartEl.innerHTML = kdChartHtml; if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
-
+  // 💡 智慧修正：精簡顯示「選項標題」並完整開通全域對話框事件連鎖
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let titleText = "正常盤整型態";
-  if (matchedCodes && matchedCodes.length > 0) { titleText = matchedCodes.map(code => { const fullText = MACD_SIGNALS[code] || ""; return fullText.includes("。") || fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText; }).join(" + "); }
-  if(boardTitleEl) { boardTitleEl.innerHTML = `<span class="text-blue-600 font-black text-xs sm:text-sm md:text-base tracking-wide whitespace-nowrap">${titleText}</span><button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white text-blue-600 border border-blue-200 rounded-md px-1 py-0.5 text-[9px] font-black shadow-3xs cursor-pointer">ℹ️ 條件</button>`; }
+  let fullDescText = "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。";
+  let fullCondText = "!(ALL_1_TO_16_CONDITIONS)";
+
+  if (matchedCodes && matchedCodes.length > 0) {
+    // 100% 僅提取精簡核心名稱，自動切除括號後綴
+    titleText = matchedCodes.map(code => {
+      const fullText = MACD_SIGNALS[code] || "";
+      return fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText;
+    }).join(" + ");
+
+    // 提取完整文字與公式，精準注入對話框快取
+    const firstCode = matchedCodes[0];
+    fullDescText = MACD_SIGNALS[firstCode] || titleText;
+    fullCondText = `觸發代碼集: [${matchedCodes.join(', ')}]\n符合指標：價量動能、信用資券及三大法人多維度共振點火。`;
+  }
+
+  // 實體化綁定細節
+  setSignalDetail(titleText, fullDescText, fullCondText);
+  
+  if(boardTitleEl) {
+    // col-span-1 級別防護：限制 max-width 加上隱藏過長字元 (truncate)，徹底消滅手機版與關閉按鍵重疊的硬傷！
+    boardTitleEl.innerHTML = `
+      <div class="flex items-center justify-center gap-1 min-w-0 max-w-[130px] sm:max-w-none">
+        <span class="text-blue-600 font-black text-xs sm:text-sm truncate shrink tracking-wide">${titleText}</span>
+        <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white text-blue-600 border border-blue-200 rounded-md px-1.5 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0 hover:bg-slate-50">ℹ️ 條件</button>
+      </div>
+    `;
+  }
 }
 
 export function renderChipTrendChart() {
@@ -408,9 +454,6 @@ export function renderChipTrendChart() {
   chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
 }
 
-// =========================================================================
-// 🌟 核心修正：純 SVG 精準畫布收斂調整（日期完美移至中軸線下方 + 顏色同步三大法人極深色）
-// =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -431,15 +474,12 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 🟢 智慧調整：寬度收斂 15px 留出安全邊際留白，徹底解決最右側柱體和數值顯示不完整被切掉的缺點
   const containerWidth = (marginChartEl.clientWidth || 940) - 15;
   const count = localTrendDates.length;
-  // X 軸計算預留兩端內縮邊距
   const paddingX = 14;
   const usableWidth = containerWidth - (paddingX * 2);
   const stepX = usableWidth / (count - 1 || 1);
 
-  // 上圖：中軸定格於 Y=42，留出最底部的基準線下寫字空間
   let upperSvgHtml = `<line x1="0" y1="42" x2="${containerWidth}" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
   let lowerSvgHtml = "";
 
@@ -447,13 +487,10 @@ export function renderMarginTrendChart() {
     const netVal = marginNetPoints[idx];
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    
-    // 計算每根柱子精準的 X 軸座標點
     let exactX = paddingX + (idx * stepX);
     
-    // --- 上圖 SVG 增減 ---
     if (netVal !== 0) {
-      let barHeight = (Math.abs(netVal) / maxNet) * 26; // 最大高度 26px，保障上下文字絕不溢出
+      let barHeight = (Math.abs(netVal) / maxNet) * 26; 
       let barWidth = Math.min(stepX * 0.45, 14); 
       let barX = exactX - (barWidth / 2);
       
@@ -473,10 +510,8 @@ export function renderMarginTrendChart() {
       upperSvgHtml += `<text x="${exactX}" y="38" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
     }
     
-    // 🟢 完美修正：日期刻度擺放在「基準線 42」的正下方 (Y=54)，且顏色 100% 同步三大法人的極深黑碳色 (#0f172a)
     upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
 
-    // --- 下圖 SVG 餘額 ---
     let balHeight = (balVal / maxBal) * 62; 
     let balWidth = Math.min(stepX * 0.55, 18);
     let balX = exactX - (balWidth / 2);
@@ -499,14 +534,12 @@ export function renderMarginTrendChart() {
           <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
         </div>
       </div>
-      
       <div class="flex flex-col gap-3 w-full">
         <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
             ${upperSvgHtml}
           </svg>
         </div>
-        
         <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
             <line x1="0" y1="82" x2="${containerWidth}" y2="82" stroke="#e2e8f0" stroke-width="1" />
