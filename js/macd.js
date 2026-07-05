@@ -192,7 +192,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
   const listZone = document.getElementById("newsListZone");
   
   if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) RSS解析...\n`; }
-  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在讀取最新新聞...</div>`; }
+  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過網關讀取最新新聞...</div>`; }
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
@@ -226,8 +226,8 @@ async function fetchStockNewsBackground(stockId, stockName) {
       <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
         <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
         <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市個股新聞</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網即時新聞</a>
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網新聞</a>
         </div>
       </div>`;
   }
@@ -369,36 +369,28 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
   if(kdChartEl) kdChartEl.innerHTML = kdChartHtml; if(kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  // 💡 終極定位大腦：精準對齊主選單，只抓主要名稱，完美杜絕重疊
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
   let titleText = "正常盤整";
 
   if (matchedCodes && matchedCodes.length > 0) {
-    // A. 優先對齊主畫面的下拉選單 Filter
     if (state.currentMacdFilter !== "ALL" && matchedCodes.includes(state.currentMacdFilter)) {
       targetCode = state.currentMacdFilter;
     } else {
-      // B. 如果選單是「不指定型態」，則預設撈取第一個觸發的真實指標
       targetCode = matchedCodes[0];
     }
-    
     const fullText = MACD_SIGNALS[targetCode] || "";
-    // 嚴格過濾：一律切除括號、代號及前綴，只取精簡純中文主要名稱
     titleText = fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText;
   }
 
-  // 🧠 大腦白話文案動態捕獲
   const speechObj = WHITE_SPEECHES[targetCode] || {
     desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
     cond: "【正常盤整】(未達 16 套主動多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
   };
 
-  // 實體化寫入 config 的全域 Dialog 快取中
   setSignalDetail(titleText, speechObj.desc, speechObj.cond);
   
   if(boardTitleEl) {
-    // 限制寬度防護 (max-w-[130px]) + 過長隱藏 (truncate)，徹底保護手機版不與關閉按鍵重疊！
     boardTitleEl.innerHTML = `
       <div class="flex items-center justify-center gap-1 min-w-0 max-w-[130px] sm:max-w-none">
         <span class="text-blue-600 font-black text-xs sm:text-sm truncate tracking-wide">${titleText}</span>
@@ -432,6 +424,9 @@ export function renderChipTrendChart() {
   chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
 }
 
+// =========================================================================
+// 🌟 終極修正版：日期間距百分之百同步對齊三大法人圖表比例尺，消除寬度溢出與切字硬傷
+// =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -452,11 +447,13 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  const containerWidth = (marginChartEl.clientWidth || 940) - 15;
+  // 🎯 核心調校：將總寬度完全與三大法人走勢圖外殼容器對齊 (960px 規模收放基準)
+  const containerWidth = 960;
   const count = localTrendDates.length;
-  const paddingX = 14;
-  const usableWidth = containerWidth - (paddingX * 2);
-  const stepX = usableWidth / (count - 1 || 1);
+  
+  // 🎯 完美對齊演算法：直接採用與法人籌碼圖完全對等的「Flex 平分式 Step 間距步長」
+  // 將總長度除以總天數，取得每根天數中心點
+  const stepX = containerWidth / count;
 
   let upperSvgHtml = `<line x1="0" y1="42" x2="${containerWidth}" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
   let lowerSvgHtml = "";
@@ -465,8 +462,11 @@ export function renderMarginTrendChart() {
     const netVal = marginNetPoints[idx];
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    let exactX = paddingX + (idx * stepX);
     
+    // 🎯 精準錨定：將 X 軸中心點完美拉到每一格平分空間的最中央，與上下的網格完全咬合，不偏不倚
+    let exactX = (idx * stepX) + (stepX / 2);
+    
+    // --- 上圖 SVG 增減 ---
     if (netVal !== 0) {
       let barHeight = (Math.abs(netVal) / maxNet) * 26; 
       let barWidth = Math.min(stepX * 0.45, 14); 
@@ -488,8 +488,10 @@ export function renderMarginTrendChart() {
       upperSvgHtml += `<text x="${exactX}" y="38" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
     }
     
+    // 日期刻度擺放在「基準線 42」的正下方 (Y=54)，並套用極深黑碳色
     upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
 
+    // --- 下圖 SVG 餘額 ---
     let balHeight = (balVal / maxBal) * 62; 
     let balWidth = Math.min(stepX * 0.55, 18);
     let balX = exactX - (balWidth / 2);
