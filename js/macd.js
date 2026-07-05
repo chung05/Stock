@@ -234,11 +234,10 @@ async function fetchStockNewsBackground(stockId, stockName) {
 }
 
 // ==========================================================
-// 🌟 1. 股價與均線走勢圖 (幾何坐標大一統，內嵌純 SVG 日期軸)
+// 🌟 1. 股價與均線走勢圖 (自適應外部容器寬度，吃滿全部版面空間)
 // ==========================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
-  const priceDatesEl = document.getElementById("trendPriceDates");
   if (!priceChartEl || dates.length === 0) return;
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
@@ -253,13 +252,15 @@ export function renderPriceTrendLineChart(dates, chips) {
   if (state.visibleLines.ma20) checkPool.push(...ma20Points);
 
   let allValidValues = checkPool.filter(v => v !== null && !isNaN(v));
-  if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; if(priceDatesEl) priceDatesEl.innerHTML = ""; return; }
+  if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; return; }
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
-  const containerWidth = 960; 
-  let count = cronDates.length, stepX = containerWidth / count; 
+  // 🎯 治本調整：主動捕獲外部滾動條包裝盒的實質內部 scrollWidth，有多少寬就畫滿多少寬，絕不留白！
+  const wrapper = document.getElementById("priceScrollWrapper");
+  const containerWidth = wrapper ? Math.max(wrapper.scrollWidth, 960) : 960;
   
+  let count = cronDates.length, stepX = containerWidth / count; 
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
   let svgCirclesHtml = "", svgDatesHtml = "";
 
@@ -293,12 +294,9 @@ export function renderPriceTrendLineChart(dates, chips) {
       polylineMA20.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 13}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
     }
-    
-    // 🎯 真理對齊修正：日期文字直接嵌入 SVG 畫布底部 (Y=95)，與數值點絕對重合
     svgDatesHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 高度調升至 102px 容納底置日期軸
   priceChartEl.innerHTML = `
     <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
       <line x1="0" y1="44" x2="${containerWidth}" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
@@ -309,12 +307,12 @@ export function renderPriceTrendLineChart(dates, chips) {
       ${svgCirclesHtml}
       ${svgDatesHtml}
     </svg>`;
+  priceChartEl.style.width = `${containerWidth}px`;
   priceChartEl.style.height = "102px";
-  if(priceDatesEl) priceDatesEl.innerHTML = ""; // 廢棄易產生錯位的外側 HTML 盒
 }
 
 // ==========================================================
-// 🌟 2. 三大法人籌碼圖 (全面重構為純幾何 SVG 柱狀圖，消除 Flexbox 錯位萬惡之源)
+// 🌟 2. 三大法人籌碼圖 (自適應吃滿 100% 寬度，與股價圖框大小完全一模一樣)
 // ==========================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
@@ -332,7 +330,10 @@ export function renderChipTrendChart() {
     return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
   });
 
-  const containerWidth = 960; 
+  // 🎯 治本調整：直接捕獲對應滾動包裝殼的寬度，框線規格與外襯完全與股價圖完全鏡像對齊！
+  const wrapper = document.getElementById("chipScrollWrapper");
+  const containerWidth = wrapper ? Math.max(wrapper.scrollWidth, 960) : 960;
+  
   let count = localTrendDates.length, stepX = containerWidth / count;
   let absMax = Math.max(...nets.map(Math.abs), 1);
   
@@ -363,23 +364,23 @@ export function renderChipTrendChart() {
     } else {
       svgBarsHtml += `<text x="${exactX}" y="42" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
     }
-    
-    // 🎯 真理對齊修正：三大法人日期直接底置嵌入 SVG (Y=95)，與最上方價格完全平行咬合
     svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
+  // 🎯 修正內外 padding 對齊價格圖 (統一為 p-2.5 結構且寬度吃滿)
   chipChartEl.innerHTML = `
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5" style="width: ${containerWidth}px;">
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5" style="width: ${containerWidth}px;">
       <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden">
         <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
           ${svgBarsHtml}
         </svg>
       </div>
     </div>`;
+  chipChartEl.style.width = `${containerWidth}px`;
 }
 
 // ==========================================================
-// 🌟 3. MACD與KD趨勢圖 (指標完全復活 + 右側圖例面板內縮安全錨定修復)
+// 🌟 3. MACD與KD趨勢圖 (自適應容器拉滿 + 圖例右側空間防浪費修正)
 // ==========================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -403,7 +404,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  const containerWidth = 960; 
+  // 🎯 治本調整：MACD/KD 分頁直接獲取包裝殼 scrollWidth，消除右側大量死白空間
+  const wrapper = document.getElementById("macdChartScrollWrapper");
+  const containerWidth = wrapper ? Math.max(wrapper.scrollWidth, 960) : 960;
+  
   let count = dataset.length, stepX = containerWidth / count; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
@@ -437,7 +441,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         ${d.osc !== null ? `<span class="absolute ${textOscY} text-[10.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
       </div>`;
 
-    // 🟢 KD 數據及圖形線段完全復活
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
@@ -456,17 +459,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = `${containerWidth}px`; }
   if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = `${containerWidth}px`; }
 
-  // 💡 智慧修正：將原本網頁右上角所有容易溢出的 Legend 圖例說明面板（如空方動能），改為精準內縮自適應錨定 (right-14)，徹底消滅手機版字體超出右邊緣的缺陷！
-  const parentLine = lineChartEl.previousElementSibling;
-  if (parentLine) {
-    const legendBox = parentLine.querySelector("div");
-    if (legendBox) legendBox.className = "flex items-center gap-2 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs absolute right-14 top-0 z-30";
-  }
-  const parentKd = kdChartEl.previousElementSibling;
-  if (parentKd) {
-    const legendBoxKd = parentKd.querySelector("div");
-    if (legendBoxKd) legendBoxKd.className = "flex items-center gap-2 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs absolute right-14 top-0 z-30";
-  }
+  // 🎯 修正內襯大面板圖例定位，向內安全錨定並同步拉寬
+  const innerScrollBox = wrapper ? wrapper.querySelector("div") : null;
+  if (innerScrollBox) innerScrollBox.style.width = `${containerWidth}px`;
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
@@ -500,7 +495,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 }
 
 // ==========================================================
-// 🌟 4. 融資與信用餘額圖 (幾何坐標大一統，精準垂直同步咬合)
+// 🌟 4. 融資與信用餘額圖 (完全自適應拉滿，邊框大小與上方完全一致)
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -522,8 +517,10 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 🎯 絕對坐標同步：寬度死鎖 960px 基礎規模，與上方所有圖表格線達成像素級絕對垂直對齊
-  const containerWidth = 960;
+  // 🎯 治本調整：主動捕獲外部融資包裝殼的滾動 scrollWidth，有多少寬就畫滿多少寬，拒絕右側空白！
+  const wrapper = document.getElementById("marginScrollWrapper");
+  const containerWidth = wrapper ? Math.max(wrapper.scrollWidth, 960) : 960;
+  
   const count = localTrendDates.length;
   const stepX = containerWidth / count;
 
@@ -535,7 +532,6 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 絕對坐標公式同步：(idx * stepX) + (stepX / 2)
     let exactX = (idx * stepX) + (stepX / 2);
     
     // --- 上圖 SVG 增減 ---
@@ -560,7 +556,6 @@ export function renderMarginTrendChart() {
       upperSvgHtml += `<text x="${exactX}" y="38" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
     }
     
-    // 🎯 完美修正：日期 100% 同步三大法人的最深黑碳色 (#0f172a)，且牢牢黏在中央基準線正下方
     upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
 
     // --- 下圖 SVG 餘額 ---
@@ -576,8 +571,9 @@ export function renderMarginTrendChart() {
     `;
   });
 
+  // 🎯 修正外襯 padding 為 p-2.5，邊框框線尺寸與外觀完美對齊股價、三大法人圖
   marginChartEl.innerHTML = `
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 w-full mt-1">
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5" style="width: ${containerWidth}px;">
       <div class="flex justify-between items-center mb-1.5 px-1">
         <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
         <div class="flex gap-3 text-xs font-black text-slate-400">
@@ -602,4 +598,5 @@ export function renderMarginTrendChart() {
         </div>
       </div>
     </div>`;
+  marginChartEl.style.width = `${containerWidth}px`;
 }
