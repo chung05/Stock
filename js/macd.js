@@ -233,6 +233,9 @@ async function fetchStockNewsBackground(stockId, stockName) {
   }
 }
 
+// ==========================================================
+// 🌟 1. 股價與均線走勢圖 (完全動態化自適應外部容器寬度)
+// ==========================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   if (!priceChartEl || dates.length === 0) return;
@@ -249,7 +252,7 @@ export function renderPriceTrendLineChart(dates, chips) {
   if (state.visibleLines.ma20) checkPool.push(...ma20Points);
 
   let allValidValues = checkPool.filter(v => v !== null && !isNaN(v));
-  if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股趨勢資料</div>`; return; }
+  if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; return; }
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
@@ -307,6 +310,9 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceChartEl.style.height = "102px";
 }
 
+// ==========================================================
+// 🌟 2. 三大法人籌碼圖 (自適應外部容器寬度)
+// ==========================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
@@ -370,6 +376,9 @@ export function renderChipTrendChart() {
   chipChartEl.style.width = "100%";
 }
 
+// ==========================================================
+// 🌟 3. MACD與KD趨勢圖 (自適應外部容器寬度)
+// ==========================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -491,6 +500,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
+// ==========================================================
+// 🌟 4. 融資與信用餘額圖 (完全自適應外部容器寬度)
+// ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
