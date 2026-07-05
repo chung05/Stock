@@ -1,6 +1,6 @@
 // js/macd.js
 // 🎯 智慧修正：頂部 Import 對齊新版 16 維度解碼晶片 `decodeMultiDimensionSignal`
-import { state, getValIgnoreCase, setSignalDetail, decodeMultiDimensionSignal, MACD_SIGNALS } from './config.js';
+import { state, getValIgnoreCase, setSignalDetail, decodeMultiDimensionSignal, MACD_SIGNALS, WHITE_SPEECHES } from './config.js';
 
 if (!state.visibleLines) {
   state.visibleLines = { ma5: true, ma10: false, ma20: true };
@@ -191,7 +191,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
   const listZone = document.getElementById("newsListZone");
   
-  if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} RSS解析...\n`; }
+  if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) RSS解析...\n`; }
   if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在讀取最新新聞...</div>`; }
 
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
@@ -226,8 +226,8 @@ async function fetchStockNewsBackground(stockId, stockName) {
       <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
         <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
         <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg">Yahoo 股市新聞</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg">Anue 新聞</a>
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市個股新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網即時新聞</a>
         </div>
       </div>`;
   }
@@ -305,12 +305,10 @@ export function renderPriceTrendLineChart(dates, chips) {
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
-  
   const barDatesEl = document.getElementById("macdBarDates");
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
@@ -329,41 +327,25 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
-
-  let kdChartHtml = `
-    <div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div>
-    <div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div>
-    <div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>
-    <div class="absolute left-1 font-black text-[7px] text-rose-400 pointer-events-none" style="top: calc(20% - 4px);">80 超買</div>
-    <div class="absolute left-1 font-bold text-[7px] text-slate-400 pointer-events-none" style="top: calc(50% - 4px);">50 中軸</div>
-    <div class="absolute left-1 font-black text-[7px] text-emerald-500 pointer-events-none" style="top: calc(80% - 4px);">20 超賣</div>
-  `;
+  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-bold tracking-tighter text-[10px] text-slate-400 px-0.5">${datePart}</span>`;
     let xPos = idx * stepX + (stepX / 2);
-    
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    if (d.dif !== null) {
-      difPoints.push(`${xPos},${exactDifY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`;
-    }
-    if (d.sig !== null) {
-      sigPoints.push(`${xPos},${exactSigY}`);
-      macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`;
-    }
+    if (d.dif !== null) { difPoints.push(`${xPos},${exactDifY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`; }
+    if (d.sig !== null) { sigPoints.push(`${xPos},${exactSigY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`; }
 
     lineChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
     let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0;
     let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
     let oscTop = d.osc > 0 ? `calc(50% - ${oscHeightPct}%)` : "50%";
-    
     let textOscY = d.osc >= 0 ? "top-[1px]" : "bottom-[1px]";
     let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
 
@@ -375,55 +357,51 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       </div>`;
 
     if (d.kd_k !== null && d.kd_d !== null) {
-      let kY = ((100 - d.kd_k) / 100) * 112;
-      let dY = ((100 - d.kd_d) / 100) * 112;
-      
-      kPoints.push(`${xPos},${kY}`);
-      dPoints.push(`${xPos},${dY}`);
-
-      kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>`;
+      let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
+      kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
+      kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
     }
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) {
-    lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`;
-  }
-  
-  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; 
-  if(barChartEl) barChartEl.innerHTML = barChartHtml;
-  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml;
-  if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
-  if(kdChartEl) kdChartEl.innerHTML = kdChartHtml;
-  if(kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
+  if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml;
+  if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
+  if(kdChartEl) kdChartEl.innerHTML = kdChartHtml; if(kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
-  // 💡 智慧修正：精簡顯示「選項標題」並完整開通全域對話框事件連鎖
+  // 💡 終極定位大腦：精準對齊主選單，只抓主要名稱，完美杜絕重疊
   const matchedCodes = decodeMultiDimensionSignal(chips);
-  let titleText = "正常盤整型態";
-  let fullDescText = "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。";
-  let fullCondText = "!(ALL_1_TO_16_CONDITIONS)";
+  let targetCode = "ALL";
+  let titleText = "正常盤整";
 
   if (matchedCodes && matchedCodes.length > 0) {
-    // 100% 僅提取精簡核心名稱，自動切除括號後綴
-    titleText = matchedCodes.map(code => {
-      const fullText = MACD_SIGNALS[code] || "";
-      return fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText;
-    }).join(" + ");
-
-    // 提取完整文字與公式，精準注入對話框快取
-    const firstCode = matchedCodes[0];
-    fullDescText = MACD_SIGNALS[firstCode] || titleText;
-    fullCondText = `觸發代碼集: [${matchedCodes.join(', ')}]\n符合指標：價量動能、信用資券及三大法人多維度共振點火。`;
+    // A. 優先對齊主畫面的下拉選單 Filter
+    if (state.currentMacdFilter !== "ALL" && matchedCodes.includes(state.currentMacdFilter)) {
+      targetCode = state.currentMacdFilter;
+    } else {
+      // B. 如果選單是「不指定型態」，則預設撈取第一個觸發的真實指標
+      targetCode = matchedCodes[0];
+    }
+    
+    const fullText = MACD_SIGNALS[targetCode] || "";
+    // 嚴格過濾：一律切除括號、代號及前綴，只取精簡純中文主要名稱
+    titleText = fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '') : fullText;
   }
 
-  // 實體化綁定細節
-  setSignalDetail(titleText, fullDescText, fullCondText);
+  // 🧠 大腦白話文案動態捕獲
+  const speechObj = WHITE_SPEECHES[targetCode] || {
+    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
+    cond: "【正常盤整】(未達 16 套主動多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
+  };
+
+  // 實體化寫入 config 的全域 Dialog 快取中
+  setSignalDetail(titleText, speechObj.desc, speechObj.cond);
   
   if(boardTitleEl) {
-    // col-span-1 級別防護：限制 max-width 加上隱藏過長字元 (truncate)，徹底消滅手機版與關閉按鍵重疊的硬傷！
+    // 限制寬度防護 (max-w-[130px]) + 過長隱藏 (truncate)，徹底保護手機版不與關閉按鍵重疊！
     boardTitleEl.innerHTML = `
       <div class="flex items-center justify-center gap-1 min-w-0 max-w-[130px] sm:max-w-none">
-        <span class="text-blue-600 font-black text-xs sm:text-sm truncate shrink tracking-wide">${titleText}</span>
+        <span class="text-blue-600 font-black text-xs sm:text-sm truncate tracking-wide">${titleText}</span>
         <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white text-blue-600 border border-blue-200 rounded-md px-1.5 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0 hover:bg-slate-50">ℹ️ 條件</button>
       </div>
     `;
@@ -534,12 +512,14 @@ export function renderMarginTrendChart() {
           <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
         </div>
       </div>
+      
       <div class="flex flex-col gap-3 w-full">
         <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
             ${upperSvgHtml}
           </svg>
         </div>
+        
         <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
             <line x1="0" y1="82" x2="${containerWidth}" y2="82" stroke="#e2e8f0" stroke-width="1" />
