@@ -234,7 +234,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
 }
 
 // ==========================================================
-// 🌟 1. 股價與均線走勢圖 幾何完美咬合對齊
+// 🌟 1. 股價與均線走勢圖 (幾何坐標大一統，內嵌純 SVG 日期軸)
 // ==========================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
@@ -253,15 +253,15 @@ export function renderPriceTrendLineChart(dates, chips) {
   if (state.visibleLines.ma20) checkPool.push(...ma20Points);
 
   let allValidValues = checkPool.filter(v => v !== null && !isNaN(v));
-  if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; priceDatesEl.innerHTML = ""; return; }
+  if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; if(priceDatesEl) priceDatesEl.innerHTML = ""; return; }
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
-  const containerWidth = 960; // 與三大法人容器底置 960px 規模絕對一致
+  const containerWidth = 960; 
   let count = cronDates.length, stepX = containerWidth / count; 
   
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
-  let svgCirclesHtml = "", dateHtml = "";
+  let svgCirclesHtml = "", svgDatesHtml = "";
 
   cronDates.forEach((d, idx) => {
     const price = pricePoints[idx];
@@ -270,48 +270,116 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 核心補償：精準咬合三大法人格子中線，消滅左右錯位
     let exactX = idx * stepX + (stepX / 2); 
 
     if (price !== null) {
-      let yPercent = ((price - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96); 
+      let yPercent = ((price - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82); 
       polylinePrice.push(`${exactX},${exactY}`);
-      let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 14) : (exactY - 6);
+      let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 13) : (exactY - 5);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#1e40af" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text>`;
     }
     if (ma5 !== null && state.visibleLines.ma5) {
-      let yPercent = ((ma5 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
+      let yPercent = ((ma5 - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82);
       polylineMA5.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#ec4899" /><text x="${exactX}" y="${exactY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#9d174d" font-family="sans-serif">${ma5.toFixed(1)}</text>`;
     }
     if (ma10 !== null && state.visibleLines.ma10) {
-      let yPercent = ((ma10 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
+      let yPercent = ((ma10 - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82);
       polylineMA10.push(`${exactX},${exactY}`);
       svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text>`;
     }
     if (state.visibleLines.ma20 && ma20 !== null) {
-      let yPercent = ((ma20 - minP) / rangeP) * 55 + 20; let exactY = 96 - ((yPercent / 100) * 96);
+      let yPercent = ((ma20 - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82);
       polylineMA20.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 14}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
+      svgCirclesHtml += `<circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 13}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text>`;
     }
-    // 🎯 完美修正：將走勢圖下方的 HTML 日期寬度徹底拉開，顏色100%同步三大法人的極深黑碳色 (#0f172a)
-    dateHtml += `<span class="flex-1 text-center font-black text-[10px] text-[#0f172a] truncate px-0.5">${datePart}</span>`;
+    
+    // 🎯 真理對齊修正：日期文字直接嵌入 SVG 畫布底部 (Y=95)，與數值點絕對重合
+    svgDatesHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
+  // 高度調升至 102px 容納底置日期軸
   priceChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 96px;">
-      <line x1="0" y1="48" x2="${containerWidth}" y2="48" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
+    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
+      <line x1="0" y1="44" x2="${containerWidth}" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
       <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       ${svgCirclesHtml}
+      ${svgDatesHtml}
     </svg>`;
-  priceDatesEl.innerHTML = dateHtml;
+  priceChartEl.style.height = "102px";
+  if(priceDatesEl) priceDatesEl.innerHTML = ""; // 廢棄易產生錯位的外側 HTML 盒
 }
 
 // ==========================================================
-// 🌟 2. MACD趨勢、MACD動能、KD指標 數值與日期坐標軸幾何完美對齊
+// 🌟 2. 三大法人籌碼圖 (全面重構為純幾何 SVG 柱狀圖，消除 Flexbox 錯位萬惡之源)
+// ==========================================================
+export function renderChipTrendChart() {
+  const chipChartEl = document.getElementById("trendChipChart");
+  if (!chipChartEl || !state.currentActiveStockId) return;
+
+  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
+  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
+
+  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: '#f43f5e', negColor: '#10b981' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: '#f97316', negColor: '#14b8a6' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: '#ef4444', negColor: '#22c55e' } };
+  const cfg = subTabConfigs[state.currentChipSubTab];
+  
+  let nets = localTrendDates.map(d => { 
+    const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; 
+    if (state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
+    return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
+  });
+
+  const containerWidth = 960; 
+  let count = localTrendDates.length, stepX = containerWidth / count;
+  let absMax = Math.max(...nets.map(Math.abs), 1);
+  
+  let svgBarsHtml = `<line x1="0" y1="46" x2="${containerWidth}" y2="46" stroke="#94a3b8" stroke-width="1" />`;
+
+  localTrendDates.forEach((d, idx) => {
+    const val = nets[idx];
+    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    let exactX = idx * stepX + (stepX / 2);
+    
+    if (val !== 0) {
+      let barHeight = (Math.abs(val) / absMax) * 32;
+      let barWidth = Math.min(stepX * 0.45, 16);
+      let barX = exactX - (barWidth / 2);
+      
+      if (val > 0) {
+        let barY = 46 - barHeight;
+        svgBarsHtml += `
+          <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${cfg.color}" rx="1" />
+          <text x="${exactX}" y="${barY - 3}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">+${val}</text>
+        `;
+      } else {
+        svgBarsHtml += `
+          <rect x="${barX}" y="46" width="${barWidth}" height="${barHeight}" fill="${cfg.negColor}" rx="1" />
+          <text x="${exactX}" y="${46 + barHeight + 11}" text-anchor="middle" font-weight="900" font-size="10" fill="#047857" font-family="sans-serif">${val}</text>
+        `;
+      }
+    } else {
+      svgBarsHtml += `<text x="${exactX}" y="42" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
+    }
+    
+    // 🎯 真理對齊修正：三大法人日期直接底置嵌入 SVG (Y=95)，與最上方價格完全平行咬合
+    svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
+  });
+
+  chipChartEl.innerHTML = `
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5" style="width: ${containerWidth}px;">
+      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
+          ${svgBarsHtml}
+        </svg>
+      </div>
+    </div>`;
+}
+
+// ==========================================================
+// 🌟 3. MACD與KD趨勢圖 (指標完全復活 + 右側圖例面板內縮安全錨定修復)
 // ==========================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -335,7 +403,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  // 🎯 核心修正：將 MACD / KD 的畫布與底置寬度，一律調升死鎖為與法人籌碼完全一致的 960px 基礎規模！
   const containerWidth = 960; 
   let count = dataset.length, stepX = containerWidth / count; 
   
@@ -346,13 +413,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
-    
-    // 🎯 完美同步：日期刻度字串全面放大對位，且顏色 100% 換上極深黑碳色 (#0f172a)
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
-    
-    // 🎯 完美對齊：坐標點完全卡死在中線
     let xPos = idx * stepX + (stepX / 2);
-    
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
@@ -394,6 +456,18 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = `${containerWidth}px`; }
   if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = `${containerWidth}px`; }
 
+  // 💡 智慧修正：將原本網頁右上角所有容易溢出的 Legend 圖例說明面板（如空方動能），改為精準內縮自適應錨定 (right-14)，徹底消滅手機版字體超出右邊緣的缺陷！
+  const parentLine = lineChartEl.previousElementSibling;
+  if (parentLine) {
+    const legendBox = parentLine.querySelector("div");
+    if (legendBox) legendBox.className = "flex items-center gap-2 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs absolute right-14 top-0 z-30";
+  }
+  const parentKd = kdChartEl.previousElementSibling;
+  if (parentKd) {
+    const legendBoxKd = parentKd.querySelector("div");
+    if (legendBoxKd) legendBoxKd.className = "flex items-center gap-2 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs absolute right-14 top-0 z-30";
+  }
+
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
   let titleText = "正常盤整";
@@ -425,33 +499,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
-export function renderChipTrendChart() {
-  const chipChartEl = document.getElementById("trendChipChart");
-  if (!chipChartEl || !state.currentActiveStockId) return;
-
-  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
-
-  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
-  const cfg = subTabConfigs[state.currentChipSubTab];
-  
-  let nets = localTrendDates.map(d => { 
-    const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; 
-    if (state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
-    return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
-  });
-
-  const containerWidth = 960; 
-  let absMax = Math.max(...nets.map(Math.abs), 1), barsHtml = localTrendDates.map((d, i) => { 
-    const val = nets[i], isPositive = val >= 0, heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80), datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-[#0f172a] font-black tracking-tighter">${datePart}</span></div></div>`; 
-  }).join('');
-
-  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5" style="width: ${containerWidth}px;"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
-}
-
 // ==========================================================
-// 🌟 3. 融資與信用餘額圖 幾何毫秒級完全對齊
+// 🌟 4. 融資與信用餘額圖 (幾何坐標大一統，精準垂直同步咬合)
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -473,7 +522,7 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 🎯 絕對座標對齊：寬度強制與三大法人、價格走勢完全對等錨定在 960px 規模！
+  // 🎯 絕對坐標同步：寬度死鎖 960px 基礎規模，與上方所有圖表格線達成像素級絕對垂直對齊
   const containerWidth = 960;
   const count = localTrendDates.length;
   const stepX = containerWidth / count;
@@ -486,7 +535,7 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 絕對坐標公式同步：(idx * stepX) + (stepX / 2)，與上方所有圖表格線達成像素級絕對垂直對齊
+    // 🎯 絕對坐標公式同步：(idx * stepX) + (stepX / 2)
     let exactX = (idx * stepX) + (stepX / 2);
     
     // --- 上圖 SVG 增減 ---
@@ -511,7 +560,7 @@ export function renderMarginTrendChart() {
       upperSvgHtml += `<text x="${exactX}" y="38" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
     }
     
-    // 日期標示於基準線 42 的正下方 (Y=55)，顏色 100% 同步三大法人的極深黑碳色 (#0f172a)
+    // 🎯 完美修正：日期 100% 同步三大法人的最深黑碳色 (#0f172a)，且牢牢黏在中央基準線正下方
     upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
 
     // --- 下圖 SVG 餘額 ---
