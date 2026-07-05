@@ -391,4 +391,128 @@ export function renderChipTrendChart() {
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
   const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
-  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor:
+  const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: 'bg-rose-500', negColor: 'bg-emerald-500' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: 'bg-orange-500', negColor: 'bg-teal-500' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: 'bg-red-500', negColor: 'bg-green-500' } };
+  const cfg = subTabConfigs[state.currentChipSubTab];
+  
+  let nets = localTrendDates.map(d => { 
+    const row = myChipsRaw.find(c => String(c.date) === d); if (!row) return 0; 
+    if (state.currentChipSubTab === "ds") return Math.round(((row.ds_buy || 0) + (row.dh_buy || 0)) / 1000) - Math.round(((row.ds_sell || 0) + (row.dh_sell || 0)) / 1000); 
+    return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
+  });
+
+  let absMax = Math.max(...nets.map(Math.abs), 1), barsHtml = localTrendDates.map((d, i) => { 
+    const val = nets[i], isPositive = val >= 0, heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80), datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${datePart}</span></div></div>`; 
+  }).join('');
+
+  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+}
+
+// =========================================================================
+// 🌟 核心修正：純 SVG 精準畫布收斂調整（日期完美移至中軸線下方 + 顏色同步三大法人極深色）
+// =========================================================================
+export function renderMarginTrendChart() {
+  const marginChartEl = document.getElementById("trendMarginChart");
+  if (!marginChartEl || !state.currentActiveStockId) return;
+
+  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
+  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+
+  let marginNetPoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    return row ? ((getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0)) : 0;
+  });
+
+  let marginBalancePoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    return row ? (getValIgnoreCase(row, 'margin_balance') || 0) : 0;
+  });
+
+  let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
+  let maxBal = Math.max(...marginBalancePoints, 1);
+
+  // 🟢 智慧調整：寬度收斂 15px 留出安全邊際留白，徹底解決最右側柱體和數值顯示不完整被切掉的缺點
+  const containerWidth = (marginChartEl.clientWidth || 940) - 15;
+  const count = localTrendDates.length;
+  // X 軸計算預留兩端內縮邊距
+  const paddingX = 14;
+  const usableWidth = containerWidth - (paddingX * 2);
+  const stepX = usableWidth / (count - 1 || 1);
+
+  // 上圖：中軸定格於 Y=42，留出最底部的基準線下寫字空間
+  let upperSvgHtml = `<line x1="0" y1="42" x2="${containerWidth}" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
+  let lowerSvgHtml = "";
+
+  localTrendDates.forEach((d, idx) => {
+    const netVal = marginNetPoints[idx];
+    const balVal = marginBalancePoints[idx];
+    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    
+    // 計算每根柱子精準的 X 軸座標點
+    let exactX = paddingX + (idx * stepX);
+    
+    // --- 上圖 SVG 增減 ---
+    if (netVal !== 0) {
+      let barHeight = (Math.abs(netVal) / maxNet) * 26; // 最大高度 26px，保障上下文字絕不溢出
+      let barWidth = Math.min(stepX * 0.45, 14); 
+      let barX = exactX - (barWidth / 2);
+      
+      if (netVal > 0) {
+        let barY = 42 - barHeight;
+        upperSvgHtml += `
+          <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#e11d48" rx="1" />
+          <text x="${exactX}" y="${barY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">+${netVal}</text>
+        `;
+      } else {
+        upperSvgHtml += `
+          <rect x="${barX}" y="42" width="${barWidth}" height="${barHeight}" fill="#065f46" rx="1" />
+          <text x="${exactX}" y="${42 + barHeight + 11}" text-anchor="middle" font-weight="900" font-size="10" fill="#065f46" font-family="sans-serif">${netVal}</text>
+        `;
+      }
+    } else {
+      upperSvgHtml += `<text x="${exactX}" y="38" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
+    }
+    
+    // 🟢 完美修正：日期刻度擺放在「基準線 42」的正下方 (Y=54)，且顏色 100% 同步三大法人的極深黑碳色 (#0f172a)
+    upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
+
+    // --- 下圖 SVG 餘額 ---
+    let balHeight = (balVal / maxBal) * 62; 
+    let balWidth = Math.min(stepX * 0.55, 18);
+    let balX = exactX - (balWidth / 2);
+    let balY = 82 - balHeight; 
+    
+    lowerSvgHtml += `
+      <rect x="${balX}" y="${balY}" width="${balWidth}" height="${balHeight}" fill="#1e40af" rx="1.5" />
+      <text x="${exactX}" y="${balY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e40af" font-family="sans-serif">${balVal}</text>
+      <text x="${exactX}" y="${95}" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>
+    `;
+  });
+
+  marginChartEl.innerHTML = `
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 w-full mt-1">
+      <div class="flex justify-between items-center mb-1.5 px-1">
+        <div class="text-xs font-black text-slate-500">🔹 融資(張)</div>
+        <div class="flex gap-3 text-xs font-black text-slate-400">
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-600 inline-block rounded-xs"></span>融資增</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-800 inline-block rounded-xs"></span>融資減</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>融資餘額</span>
+        </div>
+      </div>
+      
+      <div class="flex flex-col gap-3 w-full">
+        <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
+            ${upperSvgHtml}
+          </svg>
+        </div>
+        
+        <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
+            <line x1="0" y1="82" x2="${containerWidth}" y2="82" stroke="#e2e8f0" stroke-width="1" />
+            ${lowerSvgHtml}
+          </svg>
+        </div>
+      </div>
+    </div>`;
+}
