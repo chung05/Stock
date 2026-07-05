@@ -253,7 +253,8 @@ export function renderPriceTrendLineChart(dates, chips) {
   if (allValidValues.length === 0) { priceChartEl.innerHTML = `<div class="text-xs text-slate-400 m-auto">無近期股價趨勢資料</div>`; priceDatesEl.innerHTML = ""; return; }
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
-  let containerWidth = priceChartEl.clientWidth || 940, count = cronDates.length, stepX = containerWidth / count; 
+  const containerWidth = 960; // 統一價格畫布與籌碼一致
+  let count = cronDates.length, stepX = containerWidth / count; 
   
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
   let svgCirclesHtml = "", dateHtml = "";
@@ -323,7 +324,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
-  let containerWidth = lineChartEl.clientWidth || 820, count = dataset.length, stepX = containerWidth / count; 
+  const containerWidth = 960; // 統一寬度基礎
+  let count = dataset.length, stepX = containerWidth / count; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
@@ -356,6 +358,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         ${d.osc !== null ? `<span class="absolute ${textOscY} text-[10.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>` : ''}
       </div>`;
 
+    // 🟢 終極修復：對齊變數結構，將原本誤判的 d.kd_k 完全解開綁定
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
@@ -367,7 +370,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) lineChartEl.innerHTML = lineChartHtml; if(barChartEl) barChartEl.innerHTML = barChartHtml;
   if(lineDatesEl) lineDatesEl.innerHTML = lineDateHtml; if(barDatesEl) barDatesEl.innerHTML = lineDateHtml;
-  if(kdChartEl) kdChartEl.innerHTML = kdChartHtml; if(kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
+
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
+  if (kdChartEl) kdChartEl.innerHTML = kdChartHtml; if (kdDatesEl) kdDatesEl.innerHTML = lineDateHtml;
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
@@ -416,17 +421,15 @@ export function renderChipTrendChart() {
     return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
   });
 
+  const containerWidth = 960; // 價格與籌碼固定 960px
   let absMax = Math.max(...nets.map(Math.abs), 1), barsHtml = localTrendDates.map((d, i) => { 
     const val = nets[i], isPositive = val >= 0, heightPct = Math.min(Math.round((Math.abs(val) / absMax) * 80), 80), datePart = d.split('-')[1] + '/' + d.split('-')[2];
     return `<div class="flex flex-col flex-1 h-full min-w-0 relative items-center"><div class="w-full h-1/2 flex flex-col justify-end items-center relative">${isPositive && val > 0 ? `<span class="text-xs font-black text-rose-600 mb-1 tracking-tighter">+${val}</span><div class="w-full max-w-[20px] min-w-[4px] ${cfg.color} rounded-t-xs shadow-2xs" style="height: ${heightPct}%;"></div>` : ''}${val === 0 ? `<span class="text-xs font-bold text-slate-400 mb-1">0</span>` : ''}</div><div class="w-full h-1/2 flex flex-col justify-start items-center relative">${!isPositive ? `<div class="w-full max-w-[20px] min-w-[4px] ${cfg.negColor} rounded-b-xs shadow-2xs" style="height: ${heightPct}%;"></div><span class="text-xs font-black text-emerald-600 mt-1 tracking-tighter">${val}</span>` : ''}<span class="absolute top-[2px] text-[10px] text-slate-950 font-black tracking-tighter">${datePart}</span></div></div>`; 
   }).join('');
 
-  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5 w-full"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
+  chipChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-1.5" style="width: ${containerWidth}px;"><div class="w-full h-32 flex justify-between bg-white rounded-lg border border-slate-200 px-1 relative items-center"><div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10"></div>${barsHtml}</div></div>`;
 }
 
-// =========================================================================
-// 🌟 終極修正版：日期間距百分之百同步對齊三大法人圖表比例尺，消除寬度溢出與切字硬傷
-// =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -447,12 +450,11 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 🎯 核心調校：將總寬度完全與三大法人走勢圖外殼容器對齊 (960px 規模收放基準)
+  // 🟢 終極對齊：將總寬度死鎖對齊三大法人的 960px 物理容器！
   const containerWidth = 960;
   const count = localTrendDates.length;
   
-  // 🎯 完美對齊演算法：直接採用與法人籌碼圖完全對等的「Flex 平分式 Step 間距步長」
-  // 將總長度除以總天數，取得每根天數中心點
+  // 🟢 完美補償算法：完全對位三大法人的 flex-1 自然平分步長
   const stepX = containerWidth / count;
 
   let upperSvgHtml = `<line x1="0" y1="42" x2="${containerWidth}" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
@@ -463,7 +465,7 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 精準錨定：將 X 軸中心點完美拉到每一格平分空間的最中央，與上下的網格完全咬合，不偏不倚
+    // 🟢 精準錨定：完美咬合三大法人的 X 軸幾何中心點，絕不再錯位超寬
     let exactX = (idx * stepX) + (stepX / 2);
     
     // --- 上圖 SVG 增減 ---
@@ -488,7 +490,7 @@ export function renderMarginTrendChart() {
       upperSvgHtml += `<text x="${exactX}" y="38" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
     }
     
-    // 日期刻度擺放在「基準線 42」的正下方 (Y=54)，並套用極深黑碳色
+    // 🟢 完美修正：日期 100% 同步三大法人的最深黑碳色，且牢牢黏在中央基準線正下方 (Y=54)
     upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
 
     // --- 下圖 SVG 餘額 ---
@@ -515,7 +517,7 @@ export function renderMarginTrendChart() {
         </div>
       </div>
       
-      <div class="flex flex-col gap-3 w-full">
+      <div class="flex flex-col gap-3 w-full overflow-visible">
         <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
             ${upperSvgHtml}
