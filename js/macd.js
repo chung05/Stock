@@ -186,50 +186,8 @@ export async function openCombinedModal(stockId, stockName) {
   fetchStockNewsBackground(stockId, stockName);
 }
 
-async function fetchStockNewsBackground(stockId, stockName) {
-  const debugBox = document.getElementById("debugLogZone");
-  const listZone = document.getElementById("newsListZone");
-  if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) RSS解析...\n`; }
-  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過網關讀取最新新聞...</div>`; }
-  const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
-  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
-  try {
-    const res = await fetch(apiUrl);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.status === 'ok' && json.items.length > 0) {
-        let listHtml = "";
-        json.items.slice(0, 10).forEach(item => {
-          const pubDate = new Date(item.pubDate);
-          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
-          listHtml += `
-            <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
-              <div class="text-xs text-slate-400 font-bold">📅 ${dateStr} <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div>
-              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
-            </a>`;
-        });
-        if (listZone) listZone.innerHTML = listHtml;
-        if (debugBox) debugBox.classList.add("hidden");
-        return;
-      }
-    }
-  } catch (e) {}
-  if (debugBox) debugBox.classList.add("hidden");
-  if (listZone) {
-    listZone.innerHTML = `
-      <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
-        <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
-        <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
-          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市新聞</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 新聞</a>
-        </div>
-      </div>`;
-  }
-}
-
 // =========================================================================
-// 📈 走勢分頁：1. 股價與均線走勢圖 (常數 960px 錨定，內嵌絕對對齊日期)
+// 📈 走勢分頁：1. 股價與均線走勢圖 (100% 自適應框架拉滿，內嵌絕對對齊日期)
 // =========================================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
@@ -251,8 +209,13 @@ export function renderPriceTrendLineChart(dates, chips) {
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
-  const containerWidth = 960; 
-  let count = cronDates.length, stepX = containerWidth / count; 
+  // 🎯 100% 自適應：直接讀取 Popup 目前被框架限制的實質寬度，把寬度拉到最大，絕不超出！
+  const containerWidth = priceChartEl.clientWidth || 940;
+  const count = cronDates.length;
+  const paddingX = 16; // 左右安全留白補償
+  const usableWidth = containerWidth - (paddingX * 2);
+  const stepX = usableWidth / (count - 1 || 1);
+  
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
   let svgCirclesHtml = "", svgDatesHtml = "";
 
@@ -263,7 +226,7 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    let exactX = idx * stepX + (stepX / 2); 
+    let exactX = paddingX + (idx * stepX); 
 
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82); 
@@ -290,8 +253,8 @@ export function renderPriceTrendLineChart(dates, chips) {
   });
 
   priceChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
-      <line x1="0" y1="44" x2="${containerWidth}" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
+    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+      <line x1="0" y1="44" x2="100%" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
       <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
       ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
@@ -299,14 +262,11 @@ export function renderPriceTrendLineChart(dates, chips) {
       ${svgCirclesHtml}
       ${svgDatesHtml}
     </svg>`;
-  priceChartEl.style.width = `${containerWidth}px`;
   priceChartEl.style.height = "102px";
-  const parentNode = priceChartEl.parentNode;
-  if(parentNode) parentNode.style.width = `${containerWidth}px`;
 }
 
 // =========================================================================
-// 📈 走勢分頁：2. 三大法人籌碼圖 (常數 960px 錨定，完全移出多層外殼框線)
+// 📈 走勢分頁：2. 三大法人籌碼圖 (自適應100%寬度，修正堆疊重疊)
 // =========================================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
@@ -324,16 +284,19 @@ export function renderChipTrendChart() {
     return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
   });
 
-  const containerWidth = 960; 
-  let count = localTrendDates.length, stepX = containerWidth / count;
+  const containerWidth = chipChartEl.clientWidth || 940;
+  const count = localTrendDates.length;
+  const paddingX = 16;
+  const usableWidth = containerWidth - (paddingX * 2);
+  const stepX = usableWidth / (count - 1 || 1);
   let absMax = Math.max(...nets.map(Math.abs), 1);
   
-  let svgBarsHtml = `<line x1="0" y1="46" x2="${containerWidth}" y2="46" stroke="#94a3b8" stroke-width="1" />`;
+  let svgBarsHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1" />`;
 
   localTrendDates.forEach((d, idx) => {
     const val = nets[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    let exactX = idx * stepX + (stepX / 2);
+    let exactX = paddingX + (idx * stepX);
     
     if (val !== 0) {
       let barHeight = (Math.abs(val) / absMax) * 32;
@@ -358,16 +321,18 @@ export function renderChipTrendChart() {
     svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
+  // 🎯 重新灌注防重疊大圓角包裝外殼結構
   chipChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
-      ${svgBarsHtml}
-    </svg>`;
-  chipChartEl.style.width = `${containerWidth}px`;
+    <div class="w-full h-[102px] relative overflow-hidden">
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+        ${svgBarsHtml}
+      </svg>
+    </div>`;
   chipChartEl.style.height = "102px";
 }
 
 // =========================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (常數 960px 核心，折線節點100%中線幾何對齊)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (自適應100%寬度，折線節點高精準中線對齊)
 // =========================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -390,8 +355,12 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  const containerWidth = 960; 
-  let count = dataset.length, stepX = containerWidth / count; 
+  // 🎯 100% 自適應：徹底解決指標折線突破右邊框架邊緣的重大缺陷
+  const containerWidth = lineChartEl.clientWidth || 940;
+  const count = dataset.length;
+  const paddingX = 16;
+  const usableWidth = containerWidth - (paddingX * 2);
+  const stepX = usableWidth / (count - 1 || 1);
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
@@ -402,7 +371,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
     
-    let xPos = idx * stepX + (stepX / 2);
+    // 🎯 幾何等比修復：折線圖節點全部套用 paddingX + idx * stepX，與動能柱及底置日期中心完美對齊！
+    let xPos = paddingX + (idx * stepX);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
@@ -431,24 +401,19 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
       kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
     }
-    kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
-  if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = `${containerWidth}px`; lineChartEl.style.minWidth = `${containerWidth}px`; }
-  if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = `${containerWidth}px`; barChartEl.style.minWidth = `${containerWidth}px`; }
-  if(lineDatesEl) { lineDatesEl.innerHTML = lineDateHtml; lineDatesEl.style.width = `${containerWidth}px`; lineDatesEl.style.minWidth = `${containerWidth}px`; }
-  
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
+  if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
+  if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
+  if(lineDatesEl) { lineDatesEl.innerHTML = lineDateHtml; lineDatesEl.style.width = "100%"; }
+
   const bDWrapper = document.getElementById("macdBarDates");
-  if(bDWrapper) { bDWrapper.innerHTML = lineDateHtml; bDWrapper.style.width = `${containerWidth}px`; bDWrapper.style.minWidth = `${containerWidth}px`; }
+  if(bDWrapper) { bDWrapper.innerHTML = lineDateHtml; bDWrapper.style.width = "100%"; }
 
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
-  if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = `${containerWidth}px`; kdChartEl.style.minWidth = `${containerWidth}px`; }
-  if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = `${containerWidth}px`; kdDatesEl.style.minWidth = `${containerWidth}px`; }
-
-  const mWrapper = document.getElementById("macdChartScrollWrapper");
-  const innerScrollBox = mWrapper ? mWrapper.querySelector("div") : null;
-  if (innerScrollBox) { innerScrollBox.style.width = `${containerWidth}px`; innerScrollBox.style.minWidth = `${containerWidth}px`; }
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
+  if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
+  if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = "100%"; }
 
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
@@ -493,7 +458,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 }
 
 // ==========================================================
-// 🌟 4. 融資與信用餘額圖 (常數 960px 鎖定，100% 一體化單層圓角框)
+// 🌟 4. 融資與信用餘額圖 (自適應100%寬度，修復排版重疊)
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -515,11 +480,13 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  const containerWidth = 960; 
+  const containerWidth = marginChartEl.clientWidth || 940;
   const count = localTrendDates.length;
-  const stepX = containerWidth / count;
+  const paddingX = 16;
+  const usableWidth = containerWidth - (paddingX * 2);
+  const stepX = usableWidth / (count - 1 || 1);
 
-  let upperSvgHtml = `<line x1="0" y1="42" x2="${containerWidth}" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
+  let upperSvgHtml = `<line x1="0" y1="42" x2="100%" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
   let lowerSvgHtml = "";
 
   localTrendDates.forEach((d, idx) => {
@@ -527,7 +494,7 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    let exactX = (idx * stepX) + (stepX / 2);
+    let exactX = paddingX + (idx * stepX);
     
     if (netVal !== 0) {
       let barHeight = (Math.abs(netVal) / maxNet) * 26; 
@@ -564,15 +531,20 @@ export function renderMarginTrendChart() {
     `;
   });
 
+  // 🎯 重新注入防重疊與價格走勢鏡像一致的圓角防禦外殼
   marginChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px;">
-      ${upperSvgHtml}
-    </svg>
-    <div style="height: 14px;"></div>
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: ${containerWidth}px; height: 102px; margin-top: 8px;">
-      <line x1="0" y1="82" x2="${containerWidth}" y2="82" stroke="#e2e8f0" stroke-width="1" />
-      ${lowerSvgHtml}
-    </svg>`;
-  marginChartEl.style.width = `${containerWidth}px`;
-  marginChartEl.style.height = "215px";
+    <div class="flex flex-col gap-3 w-full overflow-visible">
+      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+          ${upperSvgHtml}
+        </svg>
+      </div>
+      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+          <line x1="0" y1="82" x2="100%" y2="82" stroke="#e2e8f0" stroke-width="1" />
+          ${lowerSvgHtml}
+        </svg>
+      </div>
+    </div>`;
+  marginChartEl.style.width = "100%";
 }
