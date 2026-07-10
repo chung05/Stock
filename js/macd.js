@@ -188,7 +188,7 @@ export async function openCombinedModal(stockId, stockName) {
 }
 
 // =========================================================================
-// 📰 財經新聞網關解析晶片 (完全參考 2index.html 正常版本修正整合)
+// 📰 財經新聞網關解析晶片
 // =========================================================================
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
@@ -315,6 +315,9 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceChartEl.style.height = "102px";
 }
 
+// =========================================================================
+// 📈 走勢分頁：2. 三大法人籌碼圖 (🎯 智慧修正：移除最內層雙重框，單層拉滿)
+// =========================================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
@@ -367,17 +370,19 @@ export function renderChipTrendChart() {
     svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
+  // 🎯 完美修正：移除內層 bg-white 雜框，直接由單層 bg-slate-50 容納大畫布，消除超出現象[cite: 3]
   chipChartEl.innerHTML = `
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5" style="width: 100%;">
-      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden">
-        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-          ${svgBarsHtml}
-        </svg>
-      </div>
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+        ${svgBarsHtml}
+      </svg>
     </div>`;
   chipChartEl.style.width = "100%";
 }
 
+// ==========================================================
+// 📊 MACD/KD分頁：3. MACD與KD指標群
+// ==========================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -440,7 +445,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
       kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
     }
-    kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
@@ -454,9 +458,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
   if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = "100%"; }
-
-  const innerScrollBox = wrapper ? wrapper.querySelector("div") : null;
-  if (innerScrollBox) innerScrollBox.style.width = "100%";
 
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
@@ -500,6 +501,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
+// ==========================================================
+// 🌟 4. 融資與信用餘額圖 (自適應100%寬度)
+// ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -520,7 +524,9 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  const containerWidth = marginChartEl.clientWidth || 940;
+  const wrapper = document.getElementById("marginScrollWrapper");
+  const containerWidth = wrapper ? wrapper.clientWidth : 940;
+  
   const count = localTrendDates.length;
   const paddingX = 16;
   const usableWidth = containerWidth - (paddingX * 2);
