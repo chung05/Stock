@@ -147,7 +147,7 @@
 
                 <div class="flex flex-col gap-1 relative border-b border-slate-200 pb-4">
                   <div class="text-[11px] font-black text-slate-900 px-1">📊 MACD動能</div>
-                  <div id="macdBarChart" class="flex items-center justify-between h-20 relative w-full border border-slate-200 bg-white rounded shadow-2xs"></div>
+                  <div id="macdBarChart" class="flex items-center justify-between h-20 relative w-full border-slate-200 bg-white rounded shadow-2xs"></div>
                   <div id="macdBarDates" class="flex justify-between font-bold text-[10px] text-slate-400 w-full px-1.5 mt-0.5"></div>
                 </div>
 
@@ -203,6 +203,12 @@
         <div class="flex-1 sm:w-56 sm:flex-initial">
           <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
             <option value="ALL">🌐 不指定型態 (顯示全部個股)</option>
+            <!-- 🎯 唯一改動：精準在最頂部注入 N1, N2, N3 三大全新菁英策略選項 -->
+            <optgroup label="⭐ 全新菁英策略戰略模組">
+              <option value="N1">👑 土洋接力基本訊號（投信認養+外資首認錯轉買+守穩10MA）</option>
+              <option value="N2">👑 土洋接力共振防護強效版（追加融資減+RSI突破50+放量20%）</option>
+              <option value="N3">💎 底部超賣沉澱打底（KD低檔區20金叉+RSI低檔回升+融資連減）</option>
+            </optgroup>
             <optgroup label="🔥 價量與型態表態模組">
               <option value="1">⚡ 1. 壓縮突破（均線糾結+放量+法人點火）</option>
               <option value="3">🚀 3. 黑馬起飛（四線多頭+MACD紅柱擴大）</option>
