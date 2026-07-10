@@ -315,7 +315,7 @@ export function renderPriceTrendLineChart(dates, chips) {
 }
 
 // =========================================================================
-// 📈 走勢分頁：2. 三大法人籌碼圖 (🎯 完美修復：移除內壁雙重框，單層畫布 100% 拉滿)
+// 📈 走勢分頁：2. 三大法人籌碼圖 (單層畫布 100% 拉滿)
 // =========================================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
@@ -369,7 +369,6 @@ export function renderChipTrendChart() {
     svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 🎯 灌注修復：補回被誤刪的容器外殼結構，100% 填滿且移除內壁雙重框
   chipChartEl.innerHTML = `
     <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
       <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
@@ -379,9 +378,9 @@ export function renderChipTrendChart() {
   chipChartEl.style.width = "100%";
 }
 
-// ==========================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群
-// ==========================================================
+// =========================================================================
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 智慧修正：折線數值與日期 100% 垂直對齊)
+// =========================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -417,7 +416,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
+    
+    // 🎯 核心校準：全面鎖定常數网格公式 (idx * stepX + stepX/2)，徹底根除折線與日期的位移偏差
     let xPos = idx * stepX + (stepX / 2);
+    
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
@@ -445,6 +447,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
       kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
     }
+    kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
@@ -499,6 +502,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
+// =========================================================================
+// 🌟 4. 融資與信用餘額圖 (🎯 智慧修正：補回圖表名稱標頭、常數中線對齊)
+// =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -523,9 +529,7 @@ export function renderMarginTrendChart() {
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
   const count = localTrendDates.length;
-  const paddingX = 16;
-  const usableWidth = containerWidth - (paddingX * 2);
-  const stepX = usableWidth / (count - 1 || 1);
+  let stepX = containerWidth / count;
 
   let upperSvgHtml = `<line x1="0" y1="42" x2="100%" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
   let lowerSvgHtml = "";
@@ -535,8 +539,10 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    let exactX = paddingX + (idx * stepX);
+    // 🎯 核心校準：一律鎖定與三大法人完全同步的幾何格線中心點 (idx * stepX + stepX/2)
+    let exactX = idx * stepX + (stepX / 2);
     
+    // --- 上圖 SVG 增減 ---
     if (netVal !== 0) {
       let barHeight = (Math.abs(netVal) / maxNet) * 26; 
       let barWidth = Math.min(stepX * 0.45, 14); 
@@ -572,19 +578,38 @@ export function renderMarginTrendChart() {
     `;
   });
 
+  // 🎯 完美整合：補件「🔹 融資當日增減」與「🔹 累計融資餘額」兩個圖表名稱標頭，風格規格全面看齊三大法人
   marginChartEl.innerHTML = `
-    <div class="flex flex-col gap-3 w-full overflow-visible">
-      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
-        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-          ${upperSvgHtml}
-        </svg>
+    <div class="flex flex-col gap-4 w-full overflow-visible">
+      
+      <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-1.5">
+        <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
+          <span>🔹 融資當日增減 (張)</span>
+          <div class="flex gap-2 text-[9px] font-black text-slate-400">
+            <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-rose-600 inline-block rounded-xs"></span>資增</span>
+            <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-emerald-800 inline-block rounded-xs"></span>資減</span>
+          </div>
+        </h4>
+        <div class="w-full h-[102px] bg-slate-50 border border-slate-200 rounded-lg relative overflow-hidden p-2.5">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+            ${upperSvgHtml}
+          </svg>
+        </div>
       </div>
-      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
-        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-          <line x1="0" y1="82" x2="100%" y2="82" stroke="#e2e8f0" stroke-width="1" />
-          ${lowerSvgHtml}
-        </svg>
+
+      <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-1.5">
+        <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
+          <span>🔹 累計融資餘額 (張)</span>
+          <span class="text-[9px] font-black text-slate-400 flex items-center gap-0.5"><span class="w-2 h-2 bg-blue-800 inline-block rounded-xs"></span>資券水位</span>
+        </h4>
+        <div class="w-full h-[102px] bg-slate-50 border border-slate-200 rounded-lg relative overflow-hidden p-2.5">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+            <line x1="0" y1="82" x2="100%" y2="82" stroke="#e2e8f0" stroke-width="1" />
+            ${lowerSvgHtml}
+          </svg>
+        </div>
       </div>
+
     </div>`;
   marginChartEl.style.width = "100%";
 }
