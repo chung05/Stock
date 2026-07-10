@@ -189,11 +189,14 @@ export async function openCombinedModal(stockId, stockName) {
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
   const listZone = document.getElementById("newsListZone");
+  
   if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) RSS解析...\n`; }
   if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過網關讀取最新新聞...</div>`; }
+
   const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
   const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
+
   try {
     const res = await fetch(apiUrl);
     if (res.ok) {
@@ -217,6 +220,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
   } catch (e) {
     console.error("新聞抓取異常:", e);
   }
+
   if (debugBox) debugBox.classList.add("hidden");
   if (listZone) {
     listZone.innerHTML = `
@@ -224,7 +228,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
         <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
         <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
           <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市新聞</a>
-          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網新聞</a>
         </div>
       </div>`;
   }
@@ -304,6 +308,9 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceChartEl.style.height = "102px";
 }
 
+// =========================================================================
+// 📈 走勢分頁：2. 三大法人籌碼圖 (🎯 完美修正：徹底移除最內層多餘框線)
+// =========================================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
@@ -356,17 +363,17 @@ export function renderChipTrendChart() {
     svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
+  // 🎯 完美修正：徹底蒸發重複的 bg-white / border 內壁雜框，讓畫布乾淨鋪平滿格[cite: 3]
   chipChartEl.innerHTML = `
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5" style="width: 100%;">
-      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden">
-        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-          ${svgBarsHtml}
-        </svg>
-      </div>
-    </div>`;
+    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+      ${svgBarsHtml}
+    </svg>`;
   chipChartEl.style.width = "100%";
 }
 
+// ==========================================================
+// 📊 MACD/KD分頁：3. MACD與KD指標群
+// ==========================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -454,7 +461,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     if (legendBoxKd) legendBoxKd.className = "flex items-center gap-2 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs absolute right-14 top-0 z-30";
   }
 
-  // 🎯 智慧定位大腦：優先對齊主下拉選單，過濾多重符合
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
   let titleText = "正常盤整";
