@@ -1,4 +1,4 @@
-// js/config.js (16套多維度共振篩選器 終極無盲點解鎖版)
+// js/config.js (16套多維度共振篩選器 + 3套全新土洋底接菁英晶片 終極整合版)
 
 export const SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co";
 export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc";
@@ -20,9 +20,12 @@ export const state = {
   currentChipSubTab: "f"
 };
 
-// 💡 16 套多維度共振模型字面對照表
+// 💡 16 套多維度共振模型 + 頂層 3 套全新戰略篩選器選單字面對照表
 export const MACD_SIGNALS = {
   "ALL": "全部個股",
+  "N1": "👑 土洋接力基本訊號（投信認養+外資首日認錯轉買+守穩10MA）",
+  "N2": "👑 土洋接力共振防護強效版（追加融資減+RSI突破50+放量20%）",
+  "N3": "💎 底部超賣沉澱打底（KD低檔區20金叉+RSI低檔回升+融資連減）",
   "1": "1. 壓縮突破（均線糾結 + 放量紅 K + 法人點火）",
   "2": "2. 黎明曙光（季線下低檔 + KD金叉 + 融資減）",
   "3": "3. 黑馬起飛（四線多頭排列 + MACD紅柱擴大 + 法人認養）",
@@ -33,7 +36,7 @@ export const MACD_SIGNALS = {
   "8": "8. 籌碼換手（融資大退 $\\ge$ 5% + 法人神救援 + 守月線）",
   "9": "9. 投信無中生有（投信打破清白首日爆買 $\\ge$ 300張 + 長紅）",
   "10": "10. 雙雄聯手（外資>500張 + 投信>200張 + MACD首日翻紅）",
-  "11": "11. 致命軋空（融券3日暴增 $\\ge$ 20% + 股價收最高 + RSI多頭）",
+  "11": "11. 致命軋空（融券3日暴增 $\\ge$ 20% + 5日線強控 + RSI多頭）",
   "12": "12. 權證螞蟻雄兵（自營商避險爆量 $\\ge$ 8% + 5日均量新高 + 股價大漲）",
   "13": "13. 主力投降（融資退 & 融券大減 + KD金叉 + 下影線收復5MA）",
   "14": "14. 結構性大轉折（月線強勢上揚 + MACD雙線站上0軸 + 法人長鎖）",
@@ -41,8 +44,20 @@ export const MACD_SIGNALS = {
   "16": "16. 國家隊護盤（自營商自行買賣逆勢大買 + 外資大賣 + 長下影線）"
 };
 
-// 🧠 業界最白話、最直覺的財經實戰特徵解說資料庫 (消滅生硬代碼、100%對齊文字說明)
+// 🧠 全新白話實戰解說資料庫（已完美擴充新模組文字，100%白話財經思維）
 export const WHITE_SPEECHES = {
+  "N1": {
+    desc: "此個股今日爆發極具看頭的「土洋認錯接力」轉折。主力內資投信近期本就已在轎上連續買超鎖碼（籌碼底氣紮實），而先前一路站在對立面倒貨的外資主力，剛好在今天出現毀滅性的賣壓竭盡、首日認錯反手大舉買超歸隊！且在接力過程中股價抗跌不倒，穩穩守在10日均線之上，宣告內外資主力達成控盤共識，是強烈的波段進場時機。",
+    cond: "【投信在轎上】(今日與昨日投信持續天天淨買超)\n【外資認錯點火】(昨日外資淨賣超倒貨，今日波段首日反手大舉淨買超)\n【結構未被破壞】(今日收盤價依然穩穩站在 10 日均線 MA10 之上)"
+  },
+  "N2": {
+    desc: "此個股為「土洋接力訊號」的最高規格究極進化版！今日不僅完全跨越了投信鎖碼、外資認錯反手買超的黃金轉折點，更難得的是，它成功通過了高難度的共振防護網濾網：市場最不穩定的散戶融資籌碼在今日不增反減、順利洗淨；同時技術面 RSI 衝破 50 多空分水嶺，MACD 柱狀體確認翻正，成交量比昨天暴增 20% 以上。代表此突破毫無虛假、浮額極度乾淨，波段上攻動能極其兇猛。",
+    cond: "【土洋接力成立】(投信連買認養 + 外資昨日大賣今日認錯轉大買 + 股價 > MA10)\n【浮額洗淨防護】(今日散戶融資餘額 $\\le$ 昨日融資，短線無賣壓)\n【中線動能噴發】(RSI14 > 50 且 MACD 柱狀體為正數 OSC > 0)\n【資金實體表態】(今日成交量大於昨天成交量的 1.2 倍，量增 20% 以上表態)"
+  },
+  "N3": {
+    desc: "此個股目前正上演教科書級的「跌深底部超賣沉澱翻紅」大轉折。股價在經歷中長期修正後跌進了月線下方的極低檔區，具備價格安全邊際。今日技術面傳來打底完成捷報：敏感的 KD 快線在 20 附近的超賣死角正式確認向上突破（低檔黃金交叉），RSI 指標也成功由 30 以下絕望區拔地翻揚。更完美的是，散戶融資連續幾天認賠殺出（籌碼大量沉澱），而外資或自營商大戶卻反向在低檔默默買超承接，是波段底部止跌反彈的絕佳轉折點。",
+    cond: "【超賣低檔區】(股價位於月線 20MA 下方，且 RSI14 由 30 以下超賣區回升)\n【技術指標金叉】(KD 指標今日在 20 附近或以下發生黃金交叉，K 向上突破 D)\n【散戶退場大戶接】(融資餘額連續減少進行籌碼沉澱，且外資或自營商今日為淨買超)"
+  },
   "1": {
     desc: "該個股過去一段時間股價波動極小，5日、10日、20日均線徹底糾結在一起（代表市場成本高度一致，主力長期壓盤吸籌）。今日突然發動攻勢破繭而出，收盤拉出一根上漲的長紅 K 棒，同時成交量明顯高於前 5 天的均量，且外資或投信在今日同步砸錢爆買。這代表短線盤整僵局遭到實體放量打破，主力資金正式進場點火，是極強烈波段啟動攻擊的訊號。",
     cond: "【均線糾結】(5, 10, 20日均線高度壓縮在4%窄幅內)\n【股價表態】(今日強勢收紅 K 棒，且一腳站上所有短天期均線之上)\n【動能放量】(今日成交量大於 5 日平均張數的 1.2 倍)\n【主力進場】(外資或投信今日大舉進場買超)"
@@ -68,7 +83,7 @@ export const WHITE_SPEECHES = {
     cond: "【股價創高】(今日最高價或收盤價，超越過去 20 個交易日的最高點)\n【成交爆量】(今日成交量同步創下過去 20 個交易日以來的單日最高量)\n【外資鎖碼】(外資單日淨買超大於 50 張以上，籌碼流入大戶手中)"
   },
   "7": {
-    desc: "該個股目前呈現「明珠蒙塵」的極度壓縮蓄勢型態：外資或投信在最近的 5 天內，已經連續 2 到 3 天以上天天默默買超（法人認養），但主力在吸籌時手法非常細膩，將每日股價的波動幅度壓在極窄的 5% 橫盤箱型內，且 MACD 動能目前躺在低檔安全區。這代表主力正在「進貨而不拉高」，刻意壓低吃飽。一旦籌碼吸足，橫盤橫有多長，噴就有多高。",
+    desc: "該個股目前呈現「明珠蒙塵」的極度壓縮蓄勢型態：外資或投信在最近的 5 天內，已經连续 2 到 3 天以上天天默默買超（法人認養），但主力在吸籌時手法非常細膩，將每日股價的波動幅度壓在極窄的 5% 橫盤箱型內，且 MACD 動能目前躺在低檔安全區。這代表主力正在「進貨而不拉高」，刻意壓低吃飽。一旦籌碼吸足，橫盤橫有多長，噴就有多高。",
     cond: "【法人暗中進貨】(外資或投信連續 2 天以上持續站在買方吸籌)\n【股價橫盤壓縮】(近 3 個交易日股價極度橫盤，高低波動振幅 < 5%)\n【动能低檔】(MACD指標目前位於低檔區，完全沒有過熱風險)"
   },
   "8": {
@@ -84,12 +99,12 @@ export const WHITE_SPEECHES = {
     cond: "【外資爆買】(今日外資單日淨買超實質大於 150 張)\n【投信強鎖】(今日投信單日淨買超實質大於 50 張)\n【動能首日翻紅】(MACD 指標的 OSC 動能柱今日波段首日翻紅轉正)"
   },
   "11": {
-    desc: "該個股目前正處於蓄勢待發的極度軋空結構中：市場上的散戶放空融券在近期呈現連續急增或持續攀升的對抗狀態。然而，主力大戶卻不畏空單，今日強勢拉高、股價硬挺站穩在短天期 5 日均線之上，強弱指標 RSI 更是飆破 55 進入強勢多方控盤。這代表空頭完全咬不動多頭，只要股價繼續往上攻，空頭融券就會引發全面斷頭的連環踩踏軋空行情。",
+    desc: "該個股目前正處於蓄勢待發的極度軋空結構中：市場上的散戶放空融券在近期呈現連續急增或持續攀升的對抗狀態。然而，主力大戶卻不畏空單，今日強勢拉高、股價硬挺站穩在短天期 5 日均線之上，強弱指標 RSI 更是飆破 55 進入強勢多方控盤。這代表空頭完全咬不動多頭，只要股價繼續往上攻，空頭融券就會引發全面端頭的連環踩踏軋空行情。",
     cond: "【放空急增】(市場融券餘額今日持續增加，死多頭與死空頭激烈對決)\n【強勢控盤】(股價穩健收在短線 MA5 之上，且 RSI14 指標大於 55 高檔動能)"
   },
   "12": {
     desc: "該個股在今日主力籌碼衍生性工具中，出現了極度敏銳的「主力探針」訊號：主力大戶或內資權證主力大舉進場搶購認購權證，迫使自營商為了避險，今日在集中市場爆量敲進該股現貨。自營商避險專用的 dh_net 欄位在今日呈現大幅淨買超表態，同時股價同步大漲。這代表市場上最聰明的權證螞蟻雄兵正在發動突襲，通常隔日還有大波動。",
-    cond: "【權證避險爆量】(自營商避險部位 dh_net 今日呈現大舉淨買超狀態)\n【現貨大漲】(今日股價變動 change_value 大於 0，收盤為實體大漲表態)"
+    cond: "【權證避險爆量】(自營商避險部位 dh_net 今日呈現大舉淨買超状态)\n【現貨大漲】(今日股價變動 change_value 大於 0，收盤為實體大漲表態)"
   },
   "13": {
     desc: "該個股今日上演「空頭棄械投降」的轉折行情：散戶融資大退、同時放空的空頭融券也大舉回補，資券結構呈現雙向同減。然而股價卻跌不下去，今日在觸底後拉出一段長長的下影線（代表低檔有隱形護盤神單），收盤更是強勢收復、站回 5 日均線。這代表多空洗盤正式結束，市場不論是追高浮額還是放空浮額都已清洗乾淨，股價重新拿回上升主權。",
@@ -104,7 +119,7 @@ export const WHITE_SPEECHES = {
     cond: "【外資連賣後大買】(前幾日外資一律連續大賣，今日首日發動認錯淨買超)\n【吞噬天量】(外資今日大買的張數，佔今日總成交量的 10% 以上比例)\n【動能反轉】(MACD指標的 OSC 柱狀體高度，明顯高於昨天表現)"
   },
   "16": {
-    desc: "該個股今日上演了驚心動魄的國家隊護盤奇蹟：在外資法人因為國際市場動盪、單日淨大賣超過 500 張的瘋狂倒貨下，代表政府護盤與官股券商動向的「自營商自行買賣」部位今日逆勢拔刀神救援，單日進場護盤狂買超過 50 張以上！在國家隊真金白銀的強行托盤下，個股在盤中殺低後拉出長長的下影線，展現極強的政策不跌鋼鐵意志。",
+    desc: "該個股今日上演了驚心動魄的國家隊護盤奇蹟：在外資法人因為國際市場動盪、單日淨大賣超過 500 張的瘋狂倒貨下，代表政府護盤與官股券商動向的「自營商自行買賣」部位今日逆勢拔刀神救援，單日進場護盤狂買超過 50 張以上！在國家隊真真白銀的強行托盤下，個股在盤中殺低後拉出長長的下影線，展現極強的政策不跌鋼鐵意志。",
     cond: "【外資大倒貨】(今日外資單日淨賣超實質大於 500 張)\n【自營商自行買賣護盤】(自營商自行買賣部位 ds_net 今日逆勢淨買超 > 50 張)\n【鋼鐵下影線】(股價盤中殺低後被強行買回，拉出高達 0.5% 以上的下影線)"
   }
 };
@@ -139,6 +154,7 @@ export function getValIgnoreCase(obj, targetKey) {
   return actualKey ? obj[actualKey] : null;
 }
 
+// 🎯 以下解碼晶片已完美融入全新 3 套菁英量化過濾器邏輯
 export function decodeMultiDimensionSignal(stockChips) {
   if (!stockChips || stockChips.length < 5) return []; 
   
@@ -156,13 +172,15 @@ export function decodeMultiDimensionSignal(stockChips) {
 
   const t_latest = dataset[validIdx];                      
   const t_minus_1 = validIdx >= 1 ? dataset[validIdx - 1] : t_latest; 
+  const t_minus_2 = validIdx >= 2 ? dataset[validIdx - 2] : t_minus_1;
+  const t_minus_3 = validIdx >= 3 ? dataset[validIdx - 3] : t_minus_2;
   const t_minus_5 = dataset.slice(Math.max(0, validIdx - 4), validIdx + 1); 
   const t_minus_20 = dataset.slice(Math.max(0, validIdx - 19), validIdx + 1); 
 
   const price = t_latest.price || 0;
-  const max_price = t_latest.max || price;
   const min_price = t_latest.min || price;
   const volume = t_latest.trading_volume || 0;
+  const p_volume = t_minus_1.trading_volume || 1;
   const change_value = t_latest.change_value || 0;
 
   const ma5 = t_latest.ma5 || price;
@@ -181,30 +199,57 @@ export function decodeMultiDimensionSignal(stockChips) {
 
   const rsi14 = t_latest.rsi14 || 50;
 
-  const f_buy_shares = Math.round((t_latest.f_buy || 0) / 1000);
-  const f_sell_shares = Math.round((t_latest.f_sell || 0) / 1000);
-  const f_net = f_buy_shares - f_sell_shares; 
+  const f_net = Math.round((t_latest.f_buy || 0) / 1000) - Math.round((t_latest.f_sell || 0) / 1000); 
+  const p_f_net = Math.round((t_minus_1.f_buy || 0) / 1000) - Math.round((t_minus_1.f_sell || 0) / 1000);
 
-  const it_buy_shares = Math.round((t_latest.it_buy || 0) / 1000);
-  const it_sell_shares = Math.round((t_latest.it_sell || 0) / 1000);
-  const it_net = it_buy_shares - it_sell_shares;
+  const it_net = Math.round((t_latest.it_buy || 0) / 1000) - Math.round((t_latest.it_sell || 0) / 1000);
+  const p_it_net = Math.round((t_minus_1.it_buy || 0) / 1000) - Math.round((t_minus_1.it_sell || 0) / 1000);
 
-  const ds_buy_shares = Math.round((t_latest.ds_buy || 0) / 1000);
-  const ds_sell_shares = Math.round((t_latest.ds_sell || 0) / 1000);
-  const ds_net = ds_buy_shares - ds_sell_shares;
-
-  const dh_buy_shares = Math.round((t_latest.dh_buy || 0) / 1000);
-  const dh_sell_shares = Math.round((t_latest.dh_sell || 0) / 1000);
-  const dh_net = dh_buy_shares - dh_sell_shares;
+  const ds_net = Math.round((t_latest.ds_buy || 0) / 1000) - Math.round((t_latest.ds_sell || 0) / 1000);
+  const dh_net = Math.round((t_latest.dh_net || 0) / 1000);
 
   const margin_bal = t_latest.margin_balance || 0;
   const p_margin_bal = t_minus_1.margin_balance || 0;
+  const p2_margin_bal = t_minus_2.margin_balance || 0;
+  const p3_margin_bal = t_minus_3.margin_balance || 0;
   const short_bal = t_latest.short_balance || 0;
   const p_short_bal = t_minus_1.short_balance || 0;
 
   const matchedSignals = [];
 
-  // 模型 1：壓縮突破
+  // ==========================================================
+  // 👑 新增新模型一：土洋接力基本訊號
+  // ==========================================================
+  const is_it_on_board = (it_net > 0) && (p_it_net > 0); // 投信連買買超
+  const is_f_认错 = (p_f_net < 0) && (f_net > 0); // 外資昨日賣今日首買
+  const is_price_safe = price > ma10; // 收盤價守住10日線
+  if (is_it_on_board && is_f_认错 && is_price_safe) {
+    matchedSignals.push("N1");
+  }
+
+  // ==========================================================
+  // 👑 新增新模型二：土洋接力共振防護強效版
+  // ==========================================================
+  const is_margin_clean = (margin_bal <= p_margin_bal); // 融資小於等於昨日
+  const is_trend_bullish = (rsi14 > 50) && (macd_osc > 0); // RSI>50 且 MACD柱為正
+  const is_volume_表态 = (volume >= p_volume * 1.2); // 今日量增20%以上
+  if (is_it_on_board && is_f_认错 && is_price_safe && is_margin_clean && is_trend_bullish && is_volume_表态) {
+    matchedSignals.push("N2");
+  }
+
+  // ==========================================================
+  // 💎 新增新模型三：底部超賣沉澱打底
+  // ==========================================================
+  const is_under_ma20 = price < ma20; // 股價位於月線下方
+  const is_kd_low_gold = (kd_k > kd_d && p_kd_k <= p_kd_d) && (p_kd_k <= 22 || kd_k <= 22); // KD低檔20附近金叉
+  const is_rsi_rebound = (rsi14 > t_minus_1.rsi14) && (t_minus_1.rsi14 <= 32 || rsi14 <= 35); // RSI低檔區回升
+  const is_margin_dropping = (margin_bal < p_margin_bal) && (p_margin_bal < p2_margin_bal); // 融資連續下降進行籌碼沉澱
+  const is_whale_buying = (f_net > 0 || ds_net > 0); // 外資或自營商出現低接買超跡象
+  if (is_under_ma20 && is_kd_low_gold && is_rsi_rebound && is_margin_dropping && is_whale_buying) {
+    matchedSignals.push("N3");
+  }
+
+  // 原模型 1：壓縮突破
   const ma_max = Math.max(ma5, ma10, ma20);
   const ma_min = Math.min(ma5, ma10, ma20);
   const avg_vol_5 = t_minus_5.reduce((sum, d) => sum + (d.trading_volume || 0), 0) / t_minus_5.length;
@@ -212,12 +257,12 @@ export function decodeMultiDimensionSignal(stockChips) {
     matchedSignals.push("1");
   }
 
-  // 模型 2：黎明曙光
+  // 原模型 2：黎明曙光
   if ((price < ma20) && (kd_k > kd_d && p_kd_k <= p_kd_d) && (margin_bal <= p_margin_bal || p_margin_bal === 0)) {
     matchedSignals.push("2");
   }
 
-  // 模型 3：黑馬起飛
+  // 原模型 3：黑馬起飛
   if ((price > ma5 && ma5 > ma10 && ma10 > ma20) && (macd_dif > 0 && macd_osc > p_macd_osc && macd_osc > 0)) {
     const f_it_buy_days = t_minus_5.filter(d => {
       const fb = Math.round((d.f_buy || 0) / 1000) - Math.round((d.f_sell || 0) / 1000);
@@ -227,17 +272,17 @@ export function decodeMultiDimensionSignal(stockChips) {
     if (f_it_buy_days >= 2) matchedSignals.push("3"); 
   }
 
-  // 模型 4：慣性改變
+  // 原模型 4：慣性改變
   if ((t_minus_1.price || 0) <= (t_minus_1.ma20 || price) && price >= ma20 && rsi14 > 45 && (it_net > 20 || f_net > 50)) {
     matchedSignals.push("4");
   }
 
-  // 模型 5：動能共振
+  // 原模型 5：動能共振
   if ((kd_k > kd_d && p_kd_k <= p_kd_d) && (macd_osc > 0 && p_macd_osc <= 0) && (price >= ma5 && price >= ma10)) {
     matchedSignals.push("5");
   }
 
-  // 模型 6：價量表態
+  // 原模型 6：價量表態
   const history_20_days_except_today = t_minus_20.slice(0, -1);
   const max_p_20 = history_20_days_except_today.length > 0 ? Math.max(...history_20_days_except_today.map(d => d.max || d.price || 0)) : 0;
   const max_v_20 = history_20_days_except_today.length > 0 ? Math.max(...history_20_days_except_today.map(d => d.trading_volume || 0)) : 0;
@@ -245,7 +290,7 @@ export function decodeMultiDimensionSignal(stockChips) {
     matchedSignals.push("6");
   }
 
-  // 模型 7：珍珠蒙塵
+  // 原模型 7：珍珠蒙塵
   const legal_3_continuous_buy = t_minus_5.slice(-2).every(d => {
     const fb = Math.round((d.f_buy || 0) / 1000) - Math.round((d.f_sell || 0) / 1000);
     const ib = Math.round((d.it_buy || 0) / 1000) - Math.round((d.it_sell || 0) / 1000);
@@ -257,49 +302,47 @@ export function decodeMultiDimensionSignal(stockChips) {
     matchedSignals.push("7");
   }
 
-  // 模型 8：籌碼換手
+  // 原模型 8：籌碼換手
   if ((margin_bal < p_margin_bal || p_margin_bal === 0) && price >= ma20 && (f_net > 50 || it_net > 20)) {
     matchedSignals.push("8");
   }
 
-  // 模型 9：投信無中生有
-  const p_it_net = (t_minus_1.it_buy || 0) - (t_minus_1.it_sell || 0);
+  // 原模型 9：投信無中生有
   if (p_it_net <= 0 && it_net >= 100 && change_value > 0) {
     matchedSignals.push("9");
   }
 
-  // 模型 10：雙雄聯手
+  // 原模型 10：雙雄聯手
   if (f_net > 150 && it_net > 50 && macd_osc > 0 && p_macd_osc <= 0) {
     matchedSignals.push("10");
   }
 
-  // 模型 11：致命軋空
+  // 原模型 11：致命軋空
   if (short_bal >= p_short_bal && price >= ma5 && rsi14 > 55) {
     matchedSignals.push("11");
   }
 
-  // 模型 12：權證螞蟻雄兵
+  // 原模型 12：權證螞蟻雄兵
   if (dh_net > 0 && change_value > 0) {
     matchedSignals.push("12");
   }
 
-  // 模型 13：主力投降
+  // 原模型 13：主力投降
   if (margin_bal <= p_margin_bal && short_bal <= p_short_bal && kd_k > kd_d) {
     matchedSignals.push("13");
   }
 
-  // 模型 14：結構性大轉折
+  // 原模型 14：結構性大轉折
   if (ma20 >= (t_minus_1.ma20 || 0) && macd_dif > 0 && macd_signal > 0) {
     matchedSignals.push("14");
   }
 
-  // 模型 15：外資回頭
-  const p_f_net = (t_minus_1.f_buy || 0) - (t_minus_1.f_sell || 0);
+  // 原模型 15：外資回頭
   if (p_f_net < 0 && f_net > 50 && macd_osc > p_macd_osc) {
     matchedSignals.push("15");
   }
 
-  // 模型 16：國家隊護盤
+  // 原模型 16：國家隊護盤
   const has_long_lower_shadow = (Math.min(price, t_latest.open || price) - min_price) / (price || 1) >= 0.005;
   if (ds_net > 50 && f_net < 0 && has_long_lower_shadow) {
     matchedSignals.push("16");
