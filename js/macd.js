@@ -186,9 +186,6 @@ export async function openCombinedModal(stockId, stockName) {
   fetchStockNewsBackground(stockId, stockName);
 }
 
-// =========================================================================
-// 📰 財經新聞網關解析晶片
-// =========================================================================
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
   const listZone = document.getElementById("newsListZone");
@@ -237,9 +234,6 @@ async function fetchStockNewsBackground(stockId, stockName) {
   }
 }
 
-// ==========================================================
-// 🌟 1. 股價與均線走勢圖 (完全動態化自適應外部容器寬度)
-// ==========================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   if (!priceChartEl || dates.length === 0) return;
@@ -314,9 +308,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceChartEl.style.height = "102px";
 }
 
-// =========================================================================
-// 📈 走勢分頁：2. 三大法人籌碼圖 (單層畫布 100% 拉滿)
-// =========================================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
@@ -379,7 +370,7 @@ export function renderChipTrendChart() {
 }
 
 // =========================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 智慧修正：折線數值與日期 100% 垂直對齊)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 幾何閉合調校：折線與日期100%垂直精準契合)
 // =========================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -417,7 +408,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
     
-    // 🎯 核心校準：全面鎖定常數網格公式 (idx * stepX + stepX/2)，徹底根除折線與日期的位移偏差
+    // 🎯 核心幾何對齊方案：使用均勻分布中線公式 idx * stepX + (stepX / 2)，使點位與數值完全對齊下方日期
     let xPos = idx * stepX + (stepX / 2);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
@@ -425,8 +416,13 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    if (d.dif !== null) { difPoints.push(`${xPos},${exactDifY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8">${d.dif.toFixed(2)}</text>`; }
-    if (d.sig !== null) { sigPoints.push(`${xPos},${exactSigY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 8}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c">${d.sig.toFixed(2)}</text>`; }
+    // 🎯 安全留白調整：兩側邊緣文字錨定微調，防切邊且保持與刻度正對齊
+    let textAnchor = "middle";
+    if (idx === 0) textAnchor = "start";
+    if (idx === count - 1) textAnchor = "end";
+
+    if (d.dif !== null) { difPoints.push(`${xPos},${exactDifY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${xPos}" y="${exactDifY - 4}" text-anchor="${textAnchor}" provinces font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif">${d.dif.toFixed(2)}</text>`; }
+    if (d.sig !== null) { sigPoints.push(`${xPos},${exactSigY}`); macdLineCirclesHtml += `<circle cx="${xPos}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${xPos}" y="${exactSigY + 9}" text-anchor="${textAnchor}" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text>`; }
 
     lineChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
     let oscHeightPct = d.osc !== null ? Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45) : 0;
@@ -445,7 +441,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
-      kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
+      kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="${textAnchor}" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="${textAnchor}" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>`;
     }
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
@@ -503,7 +499,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 }
 
 // =========================================================================
-// 🌟 4. 融資與信用餘額圖 (🎯 智慧修正：移除外部多餘嵌套，共用常數比例尺對齊法人圖)
+// 🌟 4. 融資與信用餘額圖 (🎯 精准修復：消滅 className、右上角標籤字體大尺標)
 // =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -525,7 +521,6 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  // 🎯 核心調校：完全鏡像「三大法人籌碼圖」的 100% 自然比例尺常數
   const wrapper = document.getElementById("chipScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
@@ -540,7 +535,6 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 幾何大一統：死鎖 X 軸中線公式，徹底消滅融資圖與法人圖之間的些微位移偏差
     let exactX = idx * stepX + (stepX / 2);
     
     // --- 上圖 SVG 增減 ---
@@ -579,16 +573,16 @@ export function renderMarginTrendChart() {
     `;
   });
 
-  // 🎯 完美整合：移除多餘嵌套外殼與內邊距，內嵌雙畫布直接對齊三大法人圖
+  // 🎯 終極修復：1. 徹底移除了 className 字樣。2. 右上角「資增/資減」與「資券水位」改為 text-xs font-black 大級字體，完美對位
   marginChartEl.innerHTML = `
     <div class="flex flex-col gap-4 w-full overflow-visible">
       
       <div class="flex flex-col gap-1.5">
         <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
-          <span>className 🔹 融資當日增減 (張)</span>
-          <div class="flex gap-2 text-[9px] font-black text-slate-400">
-            <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-rose-600 inline-block rounded-xs"></span>資增</span>
-            <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-emerald-800 inline-block rounded-xs"></span>資減</span>
+          <span>🔹 融資當日增減 (張)</span>
+          <div class="flex gap-2 text-xs font-black text-slate-400">
+            <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-600 inline-block rounded-xs"></span>資增</span>
+            <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span>資減</span>
           </div>
         </h4>
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
@@ -601,7 +595,7 @@ export function renderMarginTrendChart() {
       <div class="flex flex-col gap-1.5">
         <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
           <span>🔹 累計融資餘額 (張)</span>
-          <span class="text-[9px] font-black text-slate-400 flex items-center gap-0.5"><span class="w-2 h-2 bg-blue-800 inline-block rounded-xs"></span>資券水位</span>
+          <span class="text-xs font-black text-slate-400 flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-800 inline-block rounded-xs"></span>資券水位</span>
         </h4>
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
           <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
