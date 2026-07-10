@@ -1,4 +1,5 @@
 // js/macd.js
+// 🎯 智慧修正：頂部 Import 對齊新版 16 維度解碼晶片 `decodeMultiDimensionSignal`
 import { state, getValIgnoreCase, setSignalDetail, decodeMultiDimensionSignal, MACD_SIGNALS, WHITE_SPEECHES } from './config.js';
 
 if (!state.visibleLines) {
@@ -187,8 +188,59 @@ export async function openCombinedModal(stockId, stockName) {
 }
 
 // =========================================================================
-// 📈 走勢分頁：1. 股價與均線走勢圖 (100% 自適應框架拉滿，內嵌絕對對齊日期)
+// 📰 財經新聞網關解析晶片 (完全參考 2index.html 正常版本修正整合)
 // =========================================================================
+async function fetchStockNewsBackground(stockId, stockName) {
+  const debugBox = document.getElementById("debugLogZone");
+  const listZone = document.getElementById("newsListZone");
+  
+  if (debugBox) { debugBox.classList.remove("hidden"); debugBox.innerHTML = `[系統新聞診斷] 啟動 ${stockId} (${stockName}) RSS解析...\n`; }
+  if (listZone) { listZone.innerHTML = `<div class="text-xs text-slate-400 font-medium py-6 text-center animate-pulse">正在透過網關讀取最新新聞...</div>`; }
+
+  const rawSearchKeyword = `"${stockId}" OR "${stockName}"`;
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(rawSearchKeyword)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant`;
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
+
+  try {
+    const res = await fetch(apiUrl);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.status === 'ok' && json.items && json.items.length > 0) {
+        let listHtml = "";
+        json.items.slice(0, 10).forEach(item => {
+          const pubDate = new Date(item.pubDate);
+          const dateStr = `${pubDate.getFullYear()}-${String(pubDate.getMonth() + 1).padStart(2, '0')}-${String(pubDate.getDate()).padStart(2, '0')}`;
+          listHtml += `
+            <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
+              <div class="text-xs text-slate-400 font-bold">📅 ${dateStr} <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div>
+              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
+            </a>`;
+        });
+        if (listZone) listZone.innerHTML = listHtml;
+        if (debugBox) debugBox.classList.add("hidden");
+        return;
+      }
+    }
+  } catch (e) {
+    console.error("新聞抓取異常:", e);
+  }
+
+  if (debugBox) debugBox.classList.add("hidden");
+  if (listZone) {
+    listZone.innerHTML = `
+      <div class="p-5 border border-amber-200 bg-amber-50 rounded-xl text-center flex flex-col items-center gap-3">
+        <div class="text-sm font-black text-amber-800">⚠️ 雲端新聞同步忙碌</div>
+        <div class="flex flex-wrap gap-3 justify-center mt-2 w-full">
+          <a href="https://tw.stock.yahoo.com/q/h?s=${stockId}" target="_blank" class="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-lg text-center">Yahoo 股市新聞</a>
+          <a href="https://news.cnyes.com/news/id/${stockId}" target="_blank" class="px-4 py-2.5 bg-orange-500 text-white text-xs font-black rounded-lg text-center">Anue 鉅亨網新聞</a>
+        </div>
+      </div>`;
+  }
+}
+
+// ==========================================================
+// 🌟 1. 股價與均線走勢圖 (完全動態化自適應外部容器寬度)
+// ==========================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   if (!priceChartEl || dates.length === 0) return;
@@ -209,13 +261,10 @@ export function renderPriceTrendLineChart(dates, chips) {
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
-  // 🎯 100% 自適應：直接讀取 Popup 目前被框架限制的實質寬度，把寬度拉到最大，絕不超出！
-  const containerWidth = priceChartEl.clientWidth || 940;
-  const count = cronDates.length;
-  const paddingX = 16; // 左右安全留白補償
-  const usableWidth = containerWidth - (paddingX * 2);
-  const stepX = usableWidth / (count - 1 || 1);
+  const wrapper = document.getElementById("priceScrollWrapper");
+  const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
+  let count = cronDates.length, stepX = containerWidth / count; 
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
   let svgCirclesHtml = "", svgDatesHtml = "";
 
@@ -226,7 +275,7 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    let exactX = paddingX + (idx * stepX); 
+    let exactX = idx * stepX + (stepX / 2); 
 
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82); 
@@ -262,12 +311,10 @@ export function renderPriceTrendLineChart(dates, chips) {
       ${svgCirclesHtml}
       ${svgDatesHtml}
     </svg>`;
+  priceChartEl.style.width = "100%";
   priceChartEl.style.height = "102px";
 }
 
-// =========================================================================
-// 📈 走勢分頁：2. 三大法人籌碼圖 (自適應100%寬度，修正堆疊重疊)
-// =========================================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
@@ -284,11 +331,10 @@ export function renderChipTrendChart() {
     return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
   });
 
-  const containerWidth = chipChartEl.clientWidth || 940;
-  const count = localTrendDates.length;
-  const paddingX = 16;
-  const usableWidth = containerWidth - (paddingX * 2);
-  const stepX = usableWidth / (count - 1 || 1);
+  const wrapper = document.getElementById("chipScrollWrapper");
+  const containerWidth = wrapper ? wrapper.clientWidth : 940;
+  
+  let count = localTrendDates.length, stepX = containerWidth / count;
   let absMax = Math.max(...nets.map(Math.abs), 1);
   
   let svgBarsHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1" />`;
@@ -296,11 +342,11 @@ export function renderChipTrendChart() {
   localTrendDates.forEach((d, idx) => {
     const val = nets[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    let exactX = paddingX + (idx * stepX);
+    let exactX = idx * stepX + (stepX / 2);
     
     if (val !== 0) {
       let barHeight = (Math.abs(val) / absMax) * 32;
-      let barWidth = Math.min(stepX * 0.45, 14);
+      let barWidth = Math.min(stepX * 0.45, 16);
       let barX = exactX - (barWidth / 2);
       
       if (val > 0) {
@@ -321,19 +367,17 @@ export function renderChipTrendChart() {
     svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 🎯 重新灌注防重疊大圓角包裝外殼結構
   chipChartEl.innerHTML = `
-    <div class="w-full h-[102px] relative overflow-hidden">
-      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-        ${svgBarsHtml}
-      </svg>
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5" style="width: 100%;">
+      <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+          ${svgBarsHtml}
+        </svg>
+      </div>
     </div>`;
-  chipChartEl.style.height = "102px";
+  chipChartEl.style.width = "100%";
 }
 
-// =========================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (自適應100%寬度，折線節點高精準中線對齊)
-// =========================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -355,12 +399,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  // 🎯 100% 自適應：徹底解決指標折線突破右邊框架邊緣的重大缺陷
-  const containerWidth = lineChartEl.clientWidth || 940;
-  const count = dataset.length;
-  const paddingX = 16;
-  const usableWidth = containerWidth - (paddingX * 2);
-  const stepX = usableWidth / (count - 1 || 1);
+  const wrapper = document.getElementById("macdChartScrollWrapper");
+  const containerWidth = wrapper ? wrapper.clientWidth : 940;
+  
+  let count = dataset.length, stepX = containerWidth / count; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
@@ -370,10 +412,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
-    
-    // 🎯 幾何等比修復：折線圖節點全部套用 paddingX + idx * stepX，與動能柱及底置日期中心完美對齊！
-    let xPos = paddingX + (idx * stepX);
-    
+    let xPos = idx * stepX + (stepX / 2);
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
@@ -401,6 +440,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       kPoints.push(`${xPos},${kY}`); dPoints.push(`${xPos},${dY}`);
       kdCirclesHtml += `<circle cx="${xPos}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${xPos}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${xPos}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1">${Math.round(d.kd_k)}</text><text x="${xPos}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309">${Math.round(d.kd_d)}</text>`;
     }
+    kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
@@ -414,6 +454,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
   if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = "100%"; }
+
+  const innerScrollBox = wrapper ? wrapper.querySelector("div") : null;
+  if (innerScrollBox) innerScrollBox.style.width = "100%";
 
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
@@ -457,9 +500,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
-// ==========================================================
-// 🌟 4. 融資與信用餘額圖 (自適應100%寬度，修復排版重疊)
-// ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -531,7 +571,6 @@ export function renderMarginTrendChart() {
     `;
   });
 
-  // 🎯 重新注入防重疊與價格走勢鏡像一致的圓角防禦外殼
   marginChartEl.innerHTML = `
     <div class="flex flex-col gap-3 w-full overflow-visible">
       <div class="w-full h-[102px] bg-white rounded-lg border border-slate-200 relative overflow-hidden shadow-3xs">
