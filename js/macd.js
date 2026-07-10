@@ -476,4 +476,141 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let titleText = "正常盤整";
 
   if (matchedCodes && matchedCodes.length > 0) {
-    if (
+    if (state.currentMacdFilter !== "ALL" && matchedCodes.includes(state.currentMacdFilter)) {
+      targetCode = state.currentMacdFilter;
+    } else {
+      targetCode = matchedCodes[0];
+    }
+    const fullText = MACD_SIGNALS[targetCode] || "";
+    titleText = fullText.includes("（") ? fullText.split("（")[0].replace(/^\d+\.\s*/, '').replace(/^👑\s*/, '').replace(/^💎\s*/, '') : fullText;
+  }
+
+  const speechObj = WHITE_SPEECHES[targetCode] || {
+    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
+    cond: "【正常盤整】(未達多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
+  };
+
+  setSignalDetail(titleText, speechObj.desc, speechObj.cond);
+  
+  if(boardTitleEl) {
+    boardTitleEl.innerHTML = `
+      <div class="flex items-center justify-center gap-1 min-w-0 max-w-[130px] sm:max-w-none">
+        <span class="text-blue-600 font-black text-xs sm:text-sm truncate tracking-wide">${titleText}</span>
+        <button id="macdInfoBtnInline" onclick="window.showSignalInfoDialog()" class="bg-white text-blue-600 border border-blue-200 rounded-md px-1.5 py-0.5 text-[9px] font-black shadow-3xs transition-all cursor-pointer shrink-0 hover:bg-slate-50">ℹ️ 條件</button>
+      </div>
+    `;
+  }
+}
+
+// =========================================================================
+// 🌟 4. 融資與信用餘額圖 (🎯 智慧修正：移除外部多餘嵌套，共用常數比例尺對齊法人圖)
+// =========================================================================
+export function renderMarginTrendChart() {
+  const marginChartEl = document.getElementById("trendMarginChart");
+  if (!marginChartEl || !state.currentActiveStockId) return;
+
+  const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
+  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+
+  let marginNetPoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    return row ? ((getValIgnoreCase(row, 'margin_buy') || 0) - (getValIgnoreCase(row, 'margin_sell') || 0)) : 0;
+  });
+
+  let marginBalancePoints = localTrendDates.map(d => {
+    const row = myChipsRaw.find(c => String(c.date) === d);
+    return row ? (getValIgnoreCase(row, 'margin_balance') || 0) : 0;
+  });
+
+  let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
+  let maxBal = Math.max(...marginBalancePoints, 1);
+
+  // 🎯 核心調校：完全鏡像「三大法人籌碼圖」的 100% 自然比例尺常數
+  const wrapper = document.getElementById("chipScrollWrapper");
+  const containerWidth = wrapper ? wrapper.clientWidth : 940;
+  
+  const count = localTrendDates.length;
+  let stepX = containerWidth / count;
+
+  let upperSvgHtml = `<line x1="0" y1="42" x2="100%" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
+  let lowerSvgHtml = "";
+
+  localTrendDates.forEach((d, idx) => {
+    const netVal = marginNetPoints[idx];
+    const balVal = marginBalancePoints[idx];
+    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    
+    // 🎯 幾何大一統：死鎖 X 軸中線公式，徹底消滅融資圖與法人圖之間的些微位移偏差
+    let exactX = idx * stepX + (stepX / 2);
+    
+    // --- 上圖 SVG 增減 ---
+    if (netVal !== 0) {
+      let barHeight = (Math.abs(netVal) / maxNet) * 26; 
+      let barWidth = Math.min(stepX * 0.45, 14); 
+      let barX = exactX - (barWidth / 2);
+      
+      if (netVal > 0) {
+        let barY = 42 - barHeight;
+        upperSvgHtml += `
+          <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="#e11d48" rx="1" />
+          <text x="${exactX}" y="${barY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">+${netVal}</text>
+        `;
+      } else {
+        upperSvgHtml += `
+          <rect x="${barX}" y="42" width="${barWidth}" height="${barHeight}" fill="#065f46" rx="1" />
+          <text x="${exactX}" y="${42 + barHeight + 11}" text-anchor="middle" font-weight="900" font-size="10" fill="#065f46" font-family="sans-serif">${netVal}</text>
+        `;
+      }
+    } else {
+      upperSvgHtml += `<text x="${exactX}" y="38" text-anchor="middle" font-weight="bold" font-size="10" fill="#94a3b8">0</text>`;
+    }
+    
+    upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
+
+    let balHeight = (balVal / maxBal) * 62; 
+    let balWidth = Math.min(stepX * 0.55, 18);
+    let balX = exactX - (balWidth / 2);
+    let balY = 82 - balHeight; 
+    
+    lowerSvgHtml += `
+      <rect x="${balX}" y="${balY}" width="${balWidth}" height="${balHeight}" fill="#1e40af" rx="1.5" />
+      <text x="${exactX}" y="${balY - 4}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e40af" font-family="sans-serif">${balVal}</text>
+      <text x="${exactX}" y="${95}" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>
+    `;
+  });
+
+  // 🎯 完美整合：移除多餘嵌套外殼與內邊距，內嵌雙畫布直接對齊三大法人圖
+  marginChartEl.innerHTML = `
+    <div class="flex flex-col gap-4 w-full overflow-visible">
+      
+      <div class="flex flex-col gap-1.5">
+        <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
+          <span>className 🔹 融資當日增減 (張)</span>
+          <div class="flex gap-2 text-[9px] font-black text-slate-400">
+            <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-rose-600 inline-block rounded-xs"></span>資增</span>
+            <span class="flex items-center gap-0.5"><span class="w-2 h-2 bg-emerald-800 inline-block rounded-xs"></span>資減</span>
+          </div>
+        </h4>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+            ${upperSvgHtml}
+          </svg>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
+          <span>🔹 累計融資餘額 (張)</span>
+          <span class="text-[9px] font-black text-slate-400 flex items-center gap-0.5"><span class="w-2 h-2 bg-blue-800 inline-block rounded-xs"></span>資券水位</span>
+        </h4>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+            <line x1="0" y1="82" x2="100%" y2="82" stroke="#e2e8f0" stroke-width="1" />
+            ${lowerSvgHtml}
+          </svg>
+        </div>
+      </div>
+
+    </div>`;
+  marginChartEl.style.width = "100%";
+}
