@@ -186,6 +186,9 @@ export async function openCombinedModal(stockId, stockName) {
   fetchStockNewsBackground(stockId, stockName);
 }
 
+// =========================================================================
+// 📰 財經新聞網關解析晶片
+// =========================================================================
 async function fetchStockNewsBackground(stockId, stockName) {
   const debugBox = document.getElementById("debugLogZone");
   const listZone = document.getElementById("newsListZone");
@@ -234,6 +237,9 @@ async function fetchStockNewsBackground(stockId, stockName) {
   }
 }
 
+// ==========================================================
+// 🌟 1. 股價與均線走勢圖 (完全動態化自適應外部容器寬度)
+// ==========================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   if (!priceChartEl || dates.length === 0) return;
@@ -309,7 +315,7 @@ export function renderPriceTrendLineChart(dates, chips) {
 }
 
 // =========================================================================
-// 📈 走勢分頁：2. 三大法人籌碼圖 (🎯 完美修正：徹底移除最內層多餘框線)
+// 📈 走勢分頁：2. 三大法人籌碼圖 (🎯 完美修復：移除內壁雙重框，單層畫布 100% 拉滿)
 // =========================================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
@@ -363,11 +369,13 @@ export function renderChipTrendChart() {
     svgBarsHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 🎯 完美修正：徹底蒸發重複的 bg-white / border 內壁雜框，讓畫布乾淨鋪平滿格[cite: 3]
+  // 🎯 灌注修復：補回被誤刪的容器外殼結構，100% 填滿且移除內壁雙重框
   chipChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-      ${svgBarsHtml}
-    </svg>`;
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+        ${svgBarsHtml}
+      </svg>
+    </div>`;
   chipChartEl.style.width = "100%";
 }
 
@@ -377,6 +385,7 @@ export function renderChipTrendChart() {
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
+  const bDWrapper = document.getElementById("macdBarDates");
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
@@ -442,8 +451,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
   if(lineDatesEl) { lineDatesEl.innerHTML = lineDateHtml; lineDatesEl.style.width = "100%"; }
-
-  const bDWrapper = document.getElementById("macdBarDates");
   if(bDWrapper) { bDWrapper.innerHTML = lineDateHtml; bDWrapper.style.width = "100%"; }
 
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
