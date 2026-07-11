@@ -382,7 +382,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極精準修正：100%維持您上傳的原裝代碼，僅利用外層 DOM 進行完美的文字、位置與字級調整)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 唯一定向文字微調與字級放大修復)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -434,8 +434,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    const debugTipDif = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
-    const debugTipSig = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
+    const debugTipDif = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
+    const debugTipSig = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
 
     if (d.dif !== null) { 
       difPoints.push({ x: exactX, y: exactDifY }); 
@@ -502,25 +502,24 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
   // =========================================================================================
-  // 🎯 100% 黃金版核心外置安全補件：利用 DOM Tree 對齊微調，保證幾何畫布完全不變
+  // 🎯 100% 黃金版外置安全微調：利用現成外部標頭 DOM 節點渲染，物理畫布 0% 更動，徹底避空
   // =========================================================================================
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
-    // 2. 趨勢圖右上角大字級與純化 (僅留 DIF快線、DEA慢線)
+    // 2 & 3. 趨勢圖右上角圖例：大字級化、加粗、僅顯示 DIF快線 / DEA慢線
+    parentLine.className = "flex items-center justify-between w-full pb-1";
     parentLine.innerHTML = `
-      <div class="flex items-center justify-between w-full pb-1">
-        <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
-        <div class="flex gap-3 text-xs font-black text-slate-500">
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-500 inline-block rounded-xs"></span>DIF快線</span>
-          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-orange-400 inline-block rounded-xs"></span>DEA慢線</span>
-        </div>
+      <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
+      <div class="flex gap-3 text-xs font-black text-slate-500">
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-500 inline-block rounded-xs"></span>DIF快線</span>
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-orange-400 inline-block rounded-xs"></span>DEA慢線</span>
       </div>`;
   }
 
   const parentBar = barChartEl.previousElementSibling;
   if (parentBar) {
-    // 1 & 2 & 3. 解決動能標題遮擋問題：加上 mt-6 (往下調整)！並將「多方動能/空方動能」放大印在其右上角！
-    parentBar.className = "flex items-center justify-between w-full mt-6 pb-1";
+    // 1 & 2 & 3. 治本：將動能標題列整體主動套用 mt-5 向上騰出空間，並將多空動能字體放大至 text-xs 列於右上角！
+    parentBar.className = "flex items-center justify-between w-full mt-5 pb-1";
     parentBar.innerHTML = `
       <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
       <div class="flex gap-3 text-xs font-black text-slate-500">
@@ -531,8 +530,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   const parentKd = kdChartEl.previousElementSibling;
   if (parentKd) {
-    // 3 & 4. 解決 KD 標題、圖例與 (超買區 >80, 超賣區 <20) 的後置大字級放大化，並向下推移 mt-6 保持對稱！
-    parentKd.className = "flex items-center justify-between w-full mt-6 pb-1";
+    // 3 & 4. KD指標：大標題與圖例字級全數放大，並同向加入 mt-5 以維持平衡，完美將 (超買區 >80, 超賣區 <20) 接在第一個大標題後方！
+    parentKd.className = "flex items-center justify-between w-full mt-5 pb-1";
     parentKd.innerHTML = `
       <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
         <span>⚡ KD 指標</span>
