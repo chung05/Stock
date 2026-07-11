@@ -235,7 +235,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
 }
 
 // ==========================================================
-// 🌟 1. 股價與均線走勢圖 (🎯 完美修復：恢復自適應比例，頂格拉滿消滅空白)
+// 🌟 1. 股價與均線走勢圖 (🎯 改造：升級雙層框，死鎖 25px 起點 + 50px 步長)
 // ==========================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
@@ -257,11 +257,6 @@ export function renderPriceTrendLineChart(dates, chips) {
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
-  const wrapper = document.getElementById("priceScrollWrapper");
-  const containerWidth = wrapper ? wrapper.clientWidth : 940;
-  
-  let count = state.extendedTrendDates.length || 20;
-  let stepX = containerWidth / count; 
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
   let svgCirclesHtml = "", svgDatesHtml = "";
 
@@ -271,36 +266,35 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma10 = ma10Points[idx];
     const ma20 = ma20Points[idx];
     
+    // 🎯 鋼鐵規則：起點距離內側框 25px，之後等差每步固定遞增 50px
     let gridIdx = state.extendedTrendDates.indexOf(d);
     if (gridIdx === -1) return;
-    let visualIdx = 19 - gridIdx; // 鏡像反轉
-    let exactX = visualIdx * stepX + (stepX / 2); 
+    let visualIdx = 19 - gridIdx;
+    let exactX = 25 + (visualIdx * 50); 
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-
-    const dText = `網格欄位:${visualIdx} | 日期:${d} | X軸座標:${exactX.toFixed(1)}px`;
 
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82); 
       polylinePrice.push(`${exactX},${exactY}`);
       let midPrice = (maxP + minP) / 2, textY = price >= midPrice ? (exactY + 13) : (exactY - 5);
-      svgCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#1e40af" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text><title>${dText} | 股價:${price}</title></g>`;
+      svgCirclesHtml += `<g><circle cx="${exactX}" cy="${exactY}" r="3.5" fill="#1e40af" stroke="#ffffff" stroke-width="1.5" /><text x="${exactX}" y="${textY}" text-anchor="middle" font-weight="900" font-size="10" fill="#1e3a8a" font-family="sans-serif">${price}</text></g>`;
     }
     if (ma5 !== null && state.visibleLines.ma5) {
       let yPercent = ((ma5 - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82);
       polylineMA5.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactY}" r="2" fill="#ec4899" /><text x="${exactX}" y="${exactY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#9d174d" font-family="sans-serif">${ma5.toFixed(1)}</text><title>${dText} | MA5:${ma5.toFixed(1)}</title></g>`;
+      svgCirclesHtml += `<g><circle cx="${exactX}" cy="${exactY}" r="2" fill="#ec4899" /><text x="${exactX}" y="${exactY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#9d174d" font-family="sans-serif">${ma5.toFixed(1)}</text></g>`;
     }
     if (ma10 !== null && state.visibleLines.ma10) {
       let yPercent = ((ma10 - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82);
       polylineMA10.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text><title>${dText} | MA10:${ma10.toFixed(1)}</title></g>`;
+      svgCirclesHtml += `<g><circle cx="${exactX}" cy="${exactY}" r="2" fill="#10b981" /><text x="${exactX}" y="${exactY - 5}" text-anchor="middle" font-weight="black" font-size="10" fill="#064e3b" font-family="sans-serif">${ma10.toFixed(1)}</text></g>`;
     }
     if (state.visibleLines.ma20 && ma20 !== null) {
       let yPercent = ((ma20 - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82);
       polylineMA20.push(`${exactX},${exactY}`);
-      svgCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 13}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text><title>${dText} | MA20:${ma20.toFixed(1)}</title></g>`;
+      svgCirclesHtml += `<g><circle cx="${exactX}" cy="${exactY}" r="2" fill="#f97316" /><text x="${exactX}" y="${exactY + 13}" text-anchor="middle" font-weight="black" font-size="10" fill="#7c2d12" font-family="sans-serif">${ma20.toFixed(1)}</text></g>`;
     }
-    svgDatesHtml += `<g class="cursor-help"><text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text><title>${dText}</title></g>`;
+    svgDatesHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
   polylinePrice.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
@@ -308,22 +302,29 @@ export function renderPriceTrendLineChart(dates, chips) {
   polylineMA10.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
   polylineMA20.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
 
+  // 🎯 改造：升級為完美對齊的雙層圓角框外殼
   priceChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 102px;">
-      <line x1="0" y1="44" x2="100%" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" class="pointer-events-none" />
-      <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />
-      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />` : ''}
-      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />` : ''}
-      <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />
-      ${svgCirclesHtml}
-      ${svgDatesHtml}
-    </svg>`;
+    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-1.5 w-full">
+      <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
+        <span>🔹 股價與均線走勢</span>
+      </h4>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+          <line x1="0" y1="44" x2="100%" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
+          <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+          ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+          <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          ${svgCirclesHtml}
+          ${svgDatesHtml}
+        </svg>
+      </div>
+    </div>`;
   priceChartEl.style.width = "100%";
-  priceChartEl.style.height = "102px";
 }
 
 // ==========================================================
-// 🌟 2. 三大法人籌碼圖 (🎯 完美修復：恢復自適應比例，頂格拉滿消滅空白)
+// 🌟 2. 三大法人籌碼圖 (🎯 改造：鎖定 25px 起點 + 50px 步長)
 // ==========================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
@@ -341,27 +342,22 @@ export function renderChipTrendChart() {
     return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
   });
 
-  const wrapper = document.getElementById("chipScrollWrapper");
-  const containerWidth = wrapper ? wrapper.clientWidth : 940;
-  
-  let count = state.extendedTrendDates.length || 20;
-  let stepX = containerWidth / count;
   let absMax = Math.max(...nets.map(Math.abs), 1);
-  
   let svgBarsHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1" />`;
 
   localTrendDates.forEach((d, idx) => {
     const val = nets[idx];
     
+    // 🎯 鋼鐵規則：起點距離內側框 25px，之後等差每步固定遞增 50px
     let gridIdx = state.extendedTrendDates.indexOf(d);
     if (gridIdx === -1) return;
     let visualIdx = 19 - gridIdx;
-    let exactX = visualIdx * stepX + (stepX / 2);
+    let exactX = 25 + (visualIdx * 50);
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
     if (val !== 0) {
       let barHeight = (Math.abs(val) / absMax) * 32;
-      let barWidth = Math.min(stepX * 0.45, 16);
+      let barWidth = 16;
       let barX = exactX - (barWidth / 2);
       
       if (val > 0) {
@@ -392,7 +388,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 智慧對齊：鎖定動能圖格線中心，完美整合雙向 Hover)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (大腦核心留存，不改動)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -424,25 +420,21 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
   let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 pointer-events-none z-10" style="top: 50%;"></div>`;
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`;
+  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`, lineDateHtml = "";
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 生成大骨架日期
-  let lineDateHtml = "";
-  [...state.extendedTrendDates].reverse().forEach((d, idx) => {
+  state.extendedTrendDates.forEach((d, idx) => {
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     let dateX = idx * stepX + (stepX / 2);
     const dateDebugText = `網格欄位:${idx} | 日期:${d} | X軸座標:${dateX.toFixed(1)}px`;
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
   });
 
-  // 2. 映射數據與幾何座標
   dataset.forEach((d, idx) => {
     let gridIdx = state.extendedTrendDates.indexOf(d.date);
     if (gridIdx === -1) return; 
 
-    // 🎯 大一統等差中線公式：完美落針於動能柱垂直格線中央
     let visualIdx = 19 - gridIdx;
     let exactX = visualIdx * stepX + (stepX / 2);
     
@@ -480,7 +472,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  // 3. 生成動能柱 HTML
   [...state.extendedTrendDates].reverse().forEach((targetDate) => {
     const d = dataset.find(x => x.date === targetDate);
     if (!d || d.osc === null) {
@@ -499,7 +490,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }
   });
 
-  // 解鎖 pointer-events-auto 允許自由滑動 Hover 圓點
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
@@ -552,9 +542,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
-// =========================================================================
-// 🌟 4. 融資與信用餘額圖 (🎯 完美修復：恢復自適應比例，頂格拉滿消滅空白)
-// =========================================================================
+// ==========================================================
+// 🌟 4. 融資與信用餘額圖 (🎯 改造：鎖定 25px 起點 + 50px 步長)
+// ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -575,12 +565,6 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
-  const wrapper = document.getElementById("chipScrollWrapper");
-  const containerWidth = wrapper ? wrapper.clientWidth : 940;
-  
-  const count = localTrendDates.length;
-  let stepX = containerWidth / count;
-
   let upperSvgHtml = `<line x1="0" y1="42" x2="100%" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
   let lowerSvgHtml = "";
 
@@ -588,14 +572,15 @@ export function renderMarginTrendChart() {
     const netVal = marginNetPoints[idx];
     const balVal = marginBalancePoints[idx];
     
+    // 🎯 鋼鐵規則：起點距離內側框 25px，之後等差每步固定遞增 50px
     let gridIdx = state.extendedTrendDates.indexOf(d);
     if (gridIdx === -1) return;
-    let exactX = ((19 - gridIdx) * stepX) + (stepX / 2);
+    let exactX = 25 + ((19 - gridIdx) * 50);
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
     if (netVal !== 0) {
       let barHeight = (Math.abs(netVal) / maxNet) * 26; 
-      let barWidth = Math.min(stepX * 0.45, 14); 
+      let barWidth = 14; 
       let barX = exactX - (barWidth / 2);
       
       if (netVal > 0) {
@@ -617,7 +602,7 @@ export function renderMarginTrendChart() {
     upperSvgHtml += `<text x="${exactX}" y="55" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
 
     let balHeight = (balVal / maxBal) * 62; 
-    let balWidth = Math.min(stepX * 0.55, 18);
+    let balWidth = 18;
     let balX = exactX - (balWidth / 2);
     let balY = 82 - balHeight; 
     
