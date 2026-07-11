@@ -235,7 +235,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
 }
 
 // ====================================================================================
-// 🌟 1. 股價與均線走勢圖 (🎯 完美修復：精準補回內層灰底框線，完美契合兩層框模式，14等分間距)
+// 🌟 1. 股價與均線走勢圖 (標準兩層框模式，14等分間距)
 // ====================================================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
@@ -304,7 +304,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   polylineMA10.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
   polylineMA20.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
 
-  // 🎯 灌注第二層框 (bg-slate-50 border border-slate-200)，與三大法人達到像素級的完美看齊！
   priceChartEl.innerHTML = `
     <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
       <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
@@ -385,8 +384,8 @@ export function renderChipTrendChart() {
   chipChartEl.style.width = "100%";
 }
 
-// ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修復：100% 同步 14 等分間距，首尾兩端各精準留白 25px)
+// ==================================================================================
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修正：解鎖 MACD動能雙層框，死鎖 25px 邊距與等差 14 等分)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -395,8 +394,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-  
-  // 🎯 死鎖最新 15 筆交易日資料，由左至右呈現（首筆最舊、末筆最新）
   if (cronDates.length > 15) { cronDates = cronDates.slice(-15); }
 
   let dataset = cronDates.map(d => { 
@@ -414,28 +411,29 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  const containerWidth = barChartEl ? barChartEl.clientWidth : 940;
+  // 🎯 使用完全相等的畫布比例尺計算核心
+  const containerWidth = lineChartEl ? lineChartEl.clientWidth : 940;
   let usableWidth = containerWidth - 50; 
   let stepX = usableWidth / 14; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
-  let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 pointer-events-none z-10" style="top: 50%;"></div>`;
+  let barSvgHtml = `<line x1="0" y1="56" x2="100%" y2="56" stroke="#94a3b8" stroke-width="1.2" />`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`;
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 生成 15 日等差底置日期軸 HTML
+  // 1. 生成 15 日等差底置日期軸 HTML (首尾各精準保留 25px)
   let lineDateHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     let dateX = 25 + (idx * stepX);
-    const dateDebugText = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${dateX.toFixed(1)}px`;
-    lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
+    const dateDebugText = `網格欄位:${idx} | 日期:${d.date} | X軸座標:${dateX.toFixed(1)}px`;
+    lineDateHtml += `<span style="position: absolute; left: ${dateX}px; transform: translateX(-50%); text-align: center;" class="font-black tracking-tighter text-[10px] text-[#0f172a] cursor-help" title="${dateDebugText}">${datePart}</span>`;
   });
 
-  // 2. 繪製折線圖與數據點
+  // 2. 繪製指標與動能柱
   dataset.forEach((d, idx) => {
-    // 🎯 大一統等差級數公式：起點 25px，中間均分 14 等份，點、線、文字毫秒級絕對對位
+    // 🎯 死鎖等差幾何主線，起點頂格 25px，末點頂格 containerWidth - 25px
     let exactX = 25 + (idx * stepX);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
@@ -455,6 +453,25 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       macdLineCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text><title>${debugTipSig}</title></g>`; 
     }
 
+    // 🎯 動能柱（OSC）繪製：重構為 SVG 格式以共用完全相等的 25px-14等分 X 軸等差像素坐標系，垂直咬合
+    if (d.osc !== null) {
+      let barHeight = (Math.abs(d.osc) / maxOscAbs) * 45;
+      let barWidth = 12;
+      let barX = exactX - (barWidth / 2);
+      let barColor = d.osc > 0 ? "#ef4444" : "#10b981";
+      let barY = d.osc > 0 ? (56 - barHeight) : 56;
+      let textOscY = d.osc >= 0 ? (barY - 3) : (56 + barHeight + 11);
+      let textOscColor = d.osc >= 0 ? "#e11d48" : "#047857";
+
+      barSvgHtml += `
+        <g class="cursor-pointer">
+          <line x1="${exactX}" y1="0" x2="${exactX}" y2="112" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3" />
+          <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${barColor}" rx="1" />
+          <text x="${exactX}" y="${textOscY}" text-anchor="middle" font-weight="black" font-size="10" fill="${textOscColor}" font-family="sans-serif">${d.osc.toFixed(2)}</text>
+          <title>網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | 動能:${d.osc.toFixed(2)}</title>
+        </g>`;
+    }
+
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push({ x: exactX, y: kY }); dPoints.push({ x: exactX, y: dY });
@@ -472,34 +489,26 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  // 3. 生成動能柱 (15日對位)
-  dataset.forEach((d) => {
-    if (d.osc === null) {
-      barChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
-    } else {
-      let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
-      let oscTop = d.osc > 0 ? `calc(50% - ${Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45)}%)` : "50%";
-      let textOscY = d.osc >= 0 ? "top-[1px]" : "bottom-[1px]";
-      let textOscColor = d.osc >= 0 ? "text-rose-600" : "text-emerald-700";
-      barChartHtml += `
-        <div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20">
-          <div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div>
-          <div class="absolute w-3.5 max-w-[12px] min-w-[4px] ${oscBg} rounded-xs shadow-3xs" style="top: ${oscTop}; height: ${Math.min((Math.abs(d.osc) / maxOscAbs) * 45, 45)}%;"></div>
-          <span class="absolute ${textOscY} text-[10.5px] font-black tracking-tighter ${textOscColor}">${d.osc.toFixed(2)}</span>
-        </div>`;
-    }
-  });
-
-  // 解鎖 pointer-events-auto 允許自由滑動 Hover 圓點
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px; padding-left:0px; margin-left:0px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
+  // 🎯 灌注修復：將 MACD 動能圖表外殼加上灰底內襯 (bg-slate-50 border border-slate-200)，完美解鎖標準兩層框！
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
-  if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
-  if(lineDatesEl) { lineDatesEl.innerHTML = lineDateHtml; lineDatesEl.style.width = "100%"; }
-  if(bDWrapper) { bDWrapper.innerHTML = lineDateHtml; bDWrapper.style.width = "100%"; }
+  
+  if(barChartEl) { 
+    barChartEl.innerHTML = `
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden" style="width: 100%;">
+        <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
+          ${barSvgHtml}
+        </svg>
+      </div>`; 
+    barChartEl.style.width = "100%"; 
+  }
+  
+  if(lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
+  if(bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
 
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px; padding-left:0px; margin-left:0px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
-  if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = "100%"; }
+  if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
