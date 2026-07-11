@@ -1,4 +1,4 @@
-// js/macd.js (底部日期 Hover 幾何座標診斷特殊除錯版本)
+// js/macd.js
 import { state, getValIgnoreCase, setSignalDetail, decodeMultiDimensionSignal, MACD_SIGNALS, WHITE_SPEECHES } from './config.js';
 
 if (!state.visibleLines) {
@@ -269,7 +269,10 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    let exactX = idx * stepX + (stepX / 2); 
+    // 🎯 透過全局大骨架日期定位實質網格位置索引
+    let gridIdx = state.extendedTrendDates.indexOf(d);
+    if (gridIdx === -1) gridIdx = idx;
+    let exactX = gridIdx * stepX + (stepX / 2); 
 
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82); 
@@ -337,7 +340,10 @@ export function renderChipTrendChart() {
   localTrendDates.forEach((d, idx) => {
     const val = nets[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    let exactX = idx * stepX + (stepX / 2);
+    
+    let gridIdx = state.extendedTrendDates.indexOf(d);
+    if (gridIdx === -1) gridIdx = idx;
+    let exactX = gridIdx * stepX + (stepX / 2);
     
     if (val !== 0) {
       let barHeight = (Math.abs(val) / absMax) * 32;
@@ -348,7 +354,7 @@ export function renderChipTrendChart() {
         let barY = 46 - barHeight;
         svgBarsHtml += `
           <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${cfg.color}" rx="1" />
-          <text x="${exactX}" y="${barY - 3}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">+${val}</text>
+          <text x="${exactX}" y="${barY - 3}" text-anchor="middle" font-weight="900" font-size="10" fill="#e11d48" font-family="sans-serif">${val}</text>
         `;
       } else {
         svgBarsHtml += `
@@ -372,7 +378,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🔬 座標診斷專用補件版：加入底置日期 Hover 標記)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 智慧解鎖：解鎖 pointer-events 以允許折線點接收 Hover)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -399,44 +405,47 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const wrapper = document.getElementById("macdChartScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  // 🎯 治本終極防禦：強迫間距母數除以骨架的 20 天，實現絕對固定的等差級數增加
   let count = state.extendedTrendDates.length || 20; 
   let stepX = containerWidth / count; 
   
-  let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 z-10" style="top: 50%;"></div>`, lineDateHtml = "";
-  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed z-10" style="top: 80%;"></div>`;
+  let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 pointer-events-none z-10" style="top: 50%;"></div>`;
+  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`, lineDateHtml = "";
+  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 🔬 [核心修復]：手動依據 20 格等差網格生成底置日期的 HTML。
-  // 並在每一個日期的 <span> 標籤中精準加入 <title>，滑鼠放上去就能直接顯示物理座標，供您對齊核驗！
+  // 1. 生成大骨架日期 (20天等差)
   state.extendedTrendDates.forEach((d, idx) => {
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     let dateX = idx * stepX + (stepX / 2);
-    const dateDebugText = `[日期軸診斷] 網格第 ${idx} 格 | 日期: ${d} | 物理中線座標: ${dateX.toFixed(1)}px`;
+    const dateDebugText = `[日期軸] 網格欄位:${idx} | 日期: ${d} | X軸中心: ${dateX.toFixed(1)}px`;
     
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
   });
 
+  // 2. 映射實質交易數據
   dataset.forEach((d, idx) => {
-    // 🎯 幾何大一統：線條節點、小圓圈、數據文字一律採用完全等差、固定遞增的 `idx * stepX + stepX/2` 算法
-    let exactX = idx * stepX + (stepX / 2);
+    // 🎯 治本王道公式：先找出這個交易日在 20 天總外殼裡的實質網格位置索引！
+    let gridIdx = state.extendedTrendDates.indexOf(d.date);
+    if (gridIdx === -1) return; // 週末無效直接過濾
+
+    // 這樣橫向位置一定與下方的日期、動能柱完全穿透契合，等差級數增加，再無任何累加右偏！
+    let exactX = gridIdx * stepX + (stepX / 2);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    const debugTipDif = `[快線點診斷] 索引:${idx} | 日期:${d.date} | X座標:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
-    const debugTipSig = `[慢線點診斷] 索引:${idx} | 日期:${d.date} | X座標:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
+    const debugTipDif = `[快線點] 網格第:${gridIdx}格 | 日期:${d.date} | X座標:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
+    const debugTipSig = `[慢線點] 網格第:${gridIdx}格 | 日期:${d.date} | X座標:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
 
     if (d.dif !== null) { 
       difPoints.push(`${exactX},${exactDifY}`); 
-      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactDifY}" r="2.5" fill="#3b82f6" class="pointer-events-auto cursor-pointer" title="${debugTipDif}" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif" class="pointer-events-auto cursor-help" title="${debugTipDif}">${d.dif.toFixed(2)}</text>`; 
+      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactDifY}" r="3" fill="#3b82f6" class="cursor-pointer" title="${debugTipDif}" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif" class="cursor-help" title="${debugTipDif}">${d.dif.toFixed(2)}</text>`; 
     }
     if (d.sig !== null) { 
       sigPoints.push(`${exactX},${exactSigY}`); 
-      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactSigY}" r="2.5" fill="#fb923c" class="pointer-events-auto cursor-pointer" title="${debugTipSig}" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif" class="pointer-events-auto cursor-help" title="${debugTipSig}">${d.sig.toFixed(2)}</text>`; 
+      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" class="cursor-pointer" title="${debugTipSig}" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif" class="cursor-help" title="${debugTipSig}">${d.sig.toFixed(2)}</text>`; 
     }
 
     barChartHtml += `
@@ -450,20 +459,19 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push(`${exactX},${kY}`); dPoints.push(`${exactX},${dY}`);
       
-      const debugTipKd = `[KD點診斷] 索引:${idx} | 日期:${d.date} | X:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
-      kdCirclesHtml += `<circle cx="${exactX}" cy="${kY}" r="2" fill="#0ea5e9" class="pointer-events-auto cursor-pointer" title="${debugTipKd}" /><circle cx="${exactX}" cy="${dY}" r="2" fill="#f59e0b" class="pointer-events-auto cursor-pointer" title="${debugTipKd}" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif" class="pointer-events-auto cursor-help" title="${debugTipKd}">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif" class="pointer-events-auto cursor-help" title="${debugTipKd}">${Math.round(d.kd_d)}</text>`;
+      const debugTipKd = `[KD指標點] 網格第:${gridIdx}格 | 日期:${d.date} | X:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
+      kdCirclesHtml += `<circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" class="cursor-pointer" title="${debugTipKd}" /><circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" class="cursor-pointer" title="${debugTipKd}" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif" class="cursor-help" title="${debugTipKd}">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif" class="cursor-help" title="${debugTipKd}">${Math.round(d.kd_d)}</text>`;
     }
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
+  // 🎯 智慧解鎖：將外框原本的 pointer-events-none 移除，改為 pointer-events-auto。這樣滑鼠 Hover 點位與數字標籤就能百分之百彈出提示！
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
-  
-  // 注入已綁定物理座標資訊的等差日期 HTML
   if(lineDatesEl) { lineDatesEl.innerHTML = lineDateHtml; lineDatesEl.style.width = "100%"; }
   if(bDWrapper) { bDWrapper.innerHTML = lineDateHtml; bDWrapper.style.width = "100%"; }
 
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${kdCirclesHtml}</svg>`; }
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPoints.join(' ')}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${dPoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
   if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = "100%"; }
 
