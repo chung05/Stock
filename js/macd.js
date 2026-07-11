@@ -1,4 +1,4 @@
-// js/macd.js
+// js/macd.js (幾何座標驗證與 Hover 系統診斷特殊除錯版本)
 import { state, getValIgnoreCase, setSignalDetail, decodeMultiDimensionSignal, MACD_SIGNALS, WHITE_SPEECHES } from './config.js';
 
 if (!state.visibleLines) {
@@ -257,7 +257,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   const wrapper = document.getElementById("priceScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  // 🎯 鋼鐵防禦：分母強制鎖死與全域 HTML 外殼日期軸相同的 20 天，拒絕週末少天數干擾
   let count = state.extendedTrendDates.length || 20;
   let stepX = containerWidth / count; 
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
@@ -270,7 +269,6 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 等差級數增加：用固定不變的步長，精準推導每一天的橫向位置
     let exactX = idx * stepX + (stepX / 2); 
 
     if (price !== null) {
@@ -374,7 +372,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修正：100% 同步 20 日等差級數公式，根除週末不對稱位移)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (⚡ 特殊驗證版：死鎖等差步長並加入 Hover 診斷看板)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -401,7 +399,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const wrapper = document.getElementById("macdChartScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  // 🎯 治本終極修復：全數死鎖 HTML 外殼的 20 天總開盤天數。每一步都是「固定等差增加 stepX」！
+  // 🎯 治本終極防禦：強迫間距母數除以骨架的 20 天，實現絕對固定的等差級數增加
   let count = state.extendedTrendDates.length || 20; 
   let stepX = containerWidth / count; 
   
@@ -414,8 +412,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
     
-    // 🎯 幾何大一統：線條節點、小圓圈、數據文字一律採用完全等差、固定遞增的 `idx * stepX + stepX/2` 算法
-    // 完美呼應 2index.html 的對齊策略，徹底根除週末少天數產生的雪崩式累加位移！
+    // 🎯 等差公式： idx * stepX + stepX/2
     let exactX = idx * stepX + (stepX / 2);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
@@ -423,13 +420,29 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
+    // 🔬 [特殊除錯功能]：建立 Hover 幾何座標提示看板字串
+    const debugTipDif = `IDX:${idx} | 日期:${d.date} | X座標:${exactX.toFixed(1)}px | 步長:${stepX.toFixed(1)}px | 公式:idx*stepX+stepX/2 | 有效天數:${dataset.length}天`;
+    const debugTipSig = `IDX:${idx} | 日期:${d.date} | X座標:${exactX.toFixed(1)}px | 慢線值:${d.sig?.toFixed(2)}`;
+
     if (d.dif !== null) { 
       difPoints.push(`${exactX},${exactDifY}`); 
-      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif">${d.dif.toFixed(2)}</text>`; 
+      macdLineCirclesHtml += `
+        <circle cx="${exactX}" cy="${exactDifY}" r="3" fill="#3b82f6" class="cursor-pointer pointer-events-auto" data-tippy-content="${debugTipDif}">
+          <title>${debugTipDif}</title>
+        </circle>
+        <text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif" class="pointer-events-auto cursor-help">
+          <title>${debugTipDif}</title>${d.dif.toFixed(2)}
+        </text>`; 
     }
     if (d.sig !== null) { 
       sigPoints.push(`${exactX},${exactSigY}`); 
-      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text>`; 
+      macdLineCirclesHtml += `
+        <circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" class="cursor-pointer pointer-events-auto">
+          <title>${debugTipSig}</title>
+        </circle>
+        <text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif" class="pointer-events-auto cursor-help">
+          <title>${debugTipSig}</title>${d.sig.toFixed(2)}
+        </text>`; 
     }
 
     barChartHtml += `
@@ -442,11 +455,18 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push(`${exactX},${kY}`); dPoints.push(`${exactX},${dY}`);
-      kdCirclesHtml += `<circle cx="${exactX}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>`;
+      
+      const debugTipKd = `IDX:${idx} | 日期:${d.date} | X:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
+      kdCirclesHtml += `
+        <circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" class="pointer-events-auto cursor-pointer"><title>${debugTipKd}</title></circle>
+        <circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" class="pointer-events-auto cursor-pointer"><title>${debugTipKd}</title></circle>
+        <text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif" class="pointer-events-auto cursor-help"><title>${debugTipKd}</title>${Math.round(d.kd_k)}</text>
+        <text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif" class="pointer-events-auto cursor-help"><title>${debugTipKd}</title>${Math.round(d.kd_d)}</text>`;
     }
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
+  // 🎯 這裡折線本身的 polyline 100% 同步完全對齊完後的等差級數 exactX 坐標
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
@@ -522,7 +542,7 @@ export function renderMarginTrendChart() {
   const wrapper = document.getElementById("chipScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  let count = state.extendedTrendDates.length || 20;
+  const count = localTrendDates.length;
   let stepX = containerWidth / count;
 
   let upperSvgHtml = `<line x1="0" y1="42" x2="100%" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
