@@ -234,14 +234,20 @@ async function fetchStockNewsBackground(stockId, stockName) {
   }
 }
 
-// ==========================================================
-// 🌟 1. 股價與均線走勢圖 (🎯 改造：升級雙層框，死鎖 25px 起點 + 50px 步長)
-// ==========================================================
+// =========================================================================
+// 🌟 1. 股價與均線走勢圖 (🎯 徹底修復：移除多餘外殼消滅三層框，改為標準兩層框並死鎖 14 等分間距公式)
+// =========================================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   if (!priceChartEl || dates.length === 0) return;
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
+  
+  // 🎯 限制最多只抓取最新 15 筆交易日資料，由左至右呈現（首筆為最舊，尾筆為最新）
+  if (cronDates.length > 15) {
+    cronDates = cronDates.slice(-15);
+  }
+
   let pricePoints = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.price) ? day.price : null; });
   let ma5Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma5 !== undefined && day.ma5 !== null) ? day.ma5 : null; });
   let ma10Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma10 !== undefined && day.ma10 !== null) ? day.ma10 : null; });
@@ -257,6 +263,11 @@ export function renderPriceTrendLineChart(dates, chips) {
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
+  // 🎯 精準核算 14 等分像素比例尺
+  const containerWidth = priceChartEl.parentElement ? priceChartEl.parentElement.clientWidth : 940;
+  let usableWidth = containerWidth - 50; 
+  let stepX = usableWidth / 14; 
+
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
   let svgCirclesHtml = "", svgDatesHtml = "";
 
@@ -265,13 +276,10 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma5 = ma5Points[idx];
     const ma10 = ma10Points[idx];
     const ma20 = ma20Points[idx];
-    
-    // 🎯 鋼鐵規則：起點距離內側框 25px，之後等差每步固定遞增 50px
-    let gridIdx = state.extendedTrendDates.indexOf(d);
-    if (gridIdx === -1) return;
-    let visualIdx = 19 - gridIdx;
-    let exactX = 25 + (visualIdx * 50); 
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    
+    // 🎯 兩側各保留 25px 邊距，中間區分 14 等份，精準落位
+    let exactX = 25 + (idx * stepX);
 
     if (price !== null) {
       let yPercent = ((price - minP) / rangeP) * 50 + 15; let exactY = 82 - ((yPercent / 100) * 82); 
@@ -297,41 +305,34 @@ export function renderPriceTrendLineChart(dates, chips) {
     svgDatesHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  polylinePrice.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
-  polylineMA5.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
-  polylineMA10.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
-  polylineMA20.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
-
-  // 🎯 改造：升級為完美對齊的雙層圓角框外殼
+  // 🎯 徹底移除多餘大殼容器 HTML，只輸出純裝載 Canvas 的單層畫布，完美維持外圍原生的兩層框模式！
   priceChartEl.innerHTML = `
-    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-1.5 w-full">
-      <h4 class="text-xs font-black text-slate-500 flex items-center justify-between px-0.5">
-        <span>🔹 股價與均線走勢</span>
-      </h4>
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
-        <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-          <line x1="0" y1="44" x2="100%" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
-          <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-          ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-          <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          ${svgCirclesHtml}
-          ${svgDatesHtml}
-        </svg>
-      </div>
-    </div>`;
+    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+      <line x1="0" y1="44" x2="100%" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
+      <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${svgCirclesHtml}
+      ${svgDatesHtml}
+    </svg>`;
   priceChartEl.style.width = "100%";
 }
 
 // ==========================================================
-// 🌟 2. 三大法人籌碼圖 (🎯 改造：鎖定 25px 起點 + 50px 步長)
+// 🌟 2. 三大法人籌碼圖 (🎯 徹底修復：死鎖 14 等分、首尾各保留 25px 邊距)
 // ==========================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
 
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
+  let localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
+
+  // 🎯 統一死鎖最新 15 筆交易日
+  if (localTrendDates.length > 15) {
+    localTrendDates = localTrendDates.slice(-15);
+  }
 
   const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: '#f43f5e', negColor: '#10b981' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: '#f97316', negColor: '#14b8a6' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: '#ef4444', negColor: '#22c55e' } };
   const cfg = subTabConfigs[state.currentChipSubTab];
@@ -342,22 +343,23 @@ export function renderChipTrendChart() {
     return Math.round((getValIgnoreCase(row, cfg.bKey) || 0) / 1000) - Math.round((getValIgnoreCase(row, cfg.sKey) || 0) / 1000); 
   });
 
+  const containerWidth = chipChartEl.clientWidth || 940;
+  let usableWidth = containerWidth - 50;
+  let stepX = usableWidth / 14; 
   let absMax = Math.max(...nets.map(Math.abs), 1);
+  
   let svgBarsHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1" />`;
 
   localTrendDates.forEach((d, idx) => {
     const val = nets[idx];
-    
-    // 🎯 鋼鐵規則：起點距離內側框 25px，之後等差每步固定遞增 50px
-    let gridIdx = state.extendedTrendDates.indexOf(d);
-    if (gridIdx === -1) return;
-    let visualIdx = 19 - gridIdx;
-    let exactX = 25 + (visualIdx * 50);
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    
+    // 🎯 兩側各保留 25px，等差級數推進
+    let exactX = 25 + (idx * stepX);
     
     if (val !== 0) {
       let barHeight = (Math.abs(val) / absMax) * 32;
-      let barWidth = 16;
+      let barWidth = 14;
       let barX = exactX - (barWidth / 2);
       
       if (val > 0) {
@@ -388,7 +390,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (大腦核心留存，不改動)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (完好留存，絕無改動)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -420,11 +422,12 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
   let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 pointer-events-none z-10" style="top: 50%;"></div>`;
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`, lineDateHtml = "";
+  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`;
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  state.extendedTrendDates.forEach((d, idx) => {
+  let lineDateHtml = "";
+  [...state.extendedTrendDates].reverse().forEach((d, idx) => {
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     let dateX = idx * stepX + (stepX / 2);
     const dateDebugText = `網格欄位:${idx} | 日期:${d} | X軸座標:${dateX.toFixed(1)}px`;
@@ -543,14 +546,19 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 }
 
 // ==========================================================
-// 🌟 4. 融資與信用餘額圖 (🎯 改造：鎖定 25px 起點 + 50px 步長)
+// 🌟 4. 融資與信用餘額圖 (🎯 徹底修復：死鎖 14 等分、首尾各保留 25px 邊距)
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
 
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
-  const localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+  let localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
+
+  // 🎯 統一死鎖最新 15 筆交易日
+  if (localTrendDates.length > 15) {
+    localTrendDates = localTrendDates.slice(-15);
+  }
 
   let marginNetPoints = localTrendDates.map(d => {
     const row = myChipsRaw.find(c => String(c.date) === d);
@@ -565,18 +573,20 @@ export function renderMarginTrendChart() {
   let maxNet = Math.max(...marginNetPoints.map(Math.abs), 1);
   let maxBal = Math.max(...marginBalancePoints, 1);
 
+  const containerWidth = marginChartEl.clientWidth || 940;
+  let usableWidth = containerWidth - 50;
+  let stepX = usableWidth / 14;
+
   let upperSvgHtml = `<line x1="0" y1="42" x2="100%" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
   let lowerSvgHtml = "";
 
   localTrendDates.forEach((d, idx) => {
     const netVal = marginNetPoints[idx];
     const balVal = marginBalancePoints[idx];
-    
-    // 🎯 鋼鐵規則：起點距離內側框 25px，之後等差每步固定遞增 50px
-    let gridIdx = state.extendedTrendDates.indexOf(d);
-    if (gridIdx === -1) return;
-    let exactX = 25 + ((19 - gridIdx) * 50);
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
+    
+    // 🎯 兩側各保留 25px，等差級數推進
+    let exactX = 25 + (idx * stepX);
     
     if (netVal !== 0) {
       let barHeight = (Math.abs(netVal) / maxNet) * 26; 
