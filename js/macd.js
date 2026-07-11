@@ -234,19 +234,15 @@ async function fetchStockNewsBackground(stockId, stockName) {
   }
 }
 
-// =========================================================================
-// 🌟 1. 股價與均線走勢圖 (🎯 徹底修復：移除多餘外殼消滅三層框，改為標準兩層框並死鎖 14 等分間距公式)
-// =========================================================================
+// ====================================================================================
+// 🌟 1. 股價與均線走勢圖 (🎯 完美修復：精準補回內層灰底框線，完美契合兩層框模式，14等分間距)
+// ====================================================================================
 export function renderPriceTrendLineChart(dates, chips) {
   const priceChartEl = document.getElementById("trendPriceChart");
   if (!priceChartEl || dates.length === 0) return;
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-  
-  // 🎯 限制最多只抓取最新 15 筆交易日資料，由左至右呈現（首筆為最舊，尾筆為最新）
-  if (cronDates.length > 15) {
-    cronDates = cronDates.slice(-15);
-  }
+  if (cronDates.length > 15) { cronDates = cronDates.slice(-15); }
 
   let pricePoints = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.price) ? day.price : null; });
   let ma5Points = cronDates.map(d => { const day = chips.find(c => String(c.date) === d); return (day && day.ma5 !== undefined && day.ma5 !== null) ? day.ma5 : null; });
@@ -263,8 +259,7 @@ export function renderPriceTrendLineChart(dates, chips) {
 
   let maxP = Math.max(...allValidValues), minP = Math.min(...allValidValues), rangeP = maxP - minP === 0 ? 1 : maxP - minP;
   
-  // 🎯 精準核算 14 等分像素比例尺
-  const containerWidth = priceChartEl.parentElement ? priceChartEl.parentElement.clientWidth : 940;
+  const containerWidth = priceChartEl.clientWidth || 940;
   let usableWidth = containerWidth - 50; 
   let stepX = usableWidth / 14; 
 
@@ -278,7 +273,6 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 兩側各保留 25px 邊距，中間區分 14 等份，精準落位
     let exactX = 25 + (idx * stepX);
 
     if (price !== null) {
@@ -305,22 +299,29 @@ export function renderPriceTrendLineChart(dates, chips) {
     svgDatesHtml += `<text x="${exactX}" y="95" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 🎯 徹底移除多餘大殼容器 HTML，只輸出純裝載 Canvas 的單層畫布，完美維持外圍原生的兩層框模式！
+  polylinePrice.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
+  polylineMA5.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
+  polylineMA10.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
+  polylineMA20.sort((a,b) => parseFloat(a.split(',')[0]) - parseFloat(b.split(',')[0]));
+
+  // 🎯 灌注第二層框 (bg-slate-50 border border-slate-200)，與三大法人達到像素級的完美看齊！
   priceChartEl.innerHTML = `
-    <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
-      <line x1="0" y1="44" x2="100%" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
-      <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
-      <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      ${svgCirclesHtml}
-      ${svgDatesHtml}
-    </svg>`;
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[102px] relative overflow-hidden" style="width: 100%;">
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 102px;">
+        <line x1="0" y1="44" x2="100%" y2="44" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4" />
+        <polyline points="${polylineMA5.join(' ')}" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${polylineMA10.length > 0 ? `<polyline points="${polylineMA10.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+        ${polylineMA20.length > 0 ? `<polyline points="${polylineMA20.join(' ')}" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+        <polyline points="${polylinePrice.join(' ')}" fill="none" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${svgCirclesHtml}
+        ${svgDatesHtml}
+      </svg>
+    </div>`;
   priceChartEl.style.width = "100%";
 }
 
 // ==========================================================
-// 🌟 2. 三大法人籌碼圖 (🎯 徹底修復：死鎖 14 等分、首尾各保留 25px 邊距)
+// 🌟 2. 三大法人籌碼圖 (14 等分間距，首尾各保留 25px 邊距)
 // ==========================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
@@ -329,10 +330,7 @@ export function renderChipTrendChart() {
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
   let localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b)); 
 
-  // 🎯 統一死鎖最新 15 筆交易日
-  if (localTrendDates.length > 15) {
-    localTrendDates = localTrendDates.slice(-15);
-  }
+  if (localTrendDates.length > 15) { localTrendDates = localTrendDates.slice(-15); }
 
   const subTabConfigs = { f: { bKey: 'f_buy', sKey: 'f_sell', color: '#f43f5e', negColor: '#10b981' }, it: { bKey: 'it_buy', sKey: 'it_sell', color: '#f97316', negColor: '#14b8a6' }, ds: { bKey: 'ds_buy', sKey: 'ds_sell', color: '#ef4444', negColor: '#22c55e' } };
   const cfg = subTabConfigs[state.currentChipSubTab];
@@ -353,8 +351,6 @@ export function renderChipTrendChart() {
   localTrendDates.forEach((d, idx) => {
     const val = nets[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    
-    // 🎯 兩側各保留 25px，等差級數推進
     let exactX = 25 + (idx * stepX);
     
     if (val !== 0) {
@@ -389,8 +385,8 @@ export function renderChipTrendChart() {
   chipChartEl.style.width = "100%";
 }
 
-// ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (完好留存，絕無改動)
+// ====================================================================================================
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修復：100% 同步 14 等分間距，首尾兩端各精準留白 25px)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -399,6 +395,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
+  
+  // 🎯 死鎖最新 15 筆交易日資料，由左至右呈現（首筆最舊、末筆最新）
+  if (cronDates.length > 15) { cronDates = cronDates.slice(-15); }
+
   let dataset = cronDates.map(d => { 
     const row = chips.find(c => String(c.date) === d); 
     return { 
@@ -414,11 +414,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  const wrapper = document.getElementById("macdChartScrollWrapper");
-  const containerWidth = wrapper ? wrapper.clientWidth : 940;
-  
-  let count = state.extendedTrendDates.length || 20; 
-  let stepX = containerWidth / count; 
+  const containerWidth = barChartEl ? barChartEl.clientWidth : 940;
+  let usableWidth = containerWidth - 50; 
+  let stepX = usableWidth / 14; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
   let barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 pointer-events-none z-10" style="top: 50%;"></div>`;
@@ -426,28 +424,27 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
+  // 1. 生成 15 日等差底置日期軸 HTML
   let lineDateHtml = "";
-  [...state.extendedTrendDates].reverse().forEach((d, idx) => {
-    const datePart = d.split('-')[1] + '/' + d.split('-')[2];
-    let dateX = idx * stepX + (stepX / 2);
-    const dateDebugText = `網格欄位:${idx} | 日期:${d} | X軸座標:${dateX.toFixed(1)}px`;
+  dataset.forEach((d, idx) => {
+    const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
+    let dateX = 25 + (idx * stepX);
+    const dateDebugText = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${dateX.toFixed(1)}px`;
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
   });
 
+  // 2. 繪製折線圖與數據點
   dataset.forEach((d, idx) => {
-    let gridIdx = state.extendedTrendDates.indexOf(d.date);
-    if (gridIdx === -1) return; 
-
-    let visualIdx = 19 - gridIdx;
-    let exactX = visualIdx * stepX + (stepX / 2);
+    // 🎯 大一統等差級數公式：起點 25px，中間均分 14 等份，點、線、文字毫秒級絕對對位
+    let exactX = 25 + (idx * stepX);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    const debugTipDif = `網格欄位:${visualIdx} | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
-    const debugTipSig = `網格欄位:${visualIdx} | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
+    const debugTipDif = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
+    const debugTipSig = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
 
     if (d.dif !== null) { 
       difPoints.push({ x: exactX, y: exactDifY }); 
@@ -462,7 +459,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push({ x: exactX, y: kY }); dPoints.push({ x: exactX, y: dY });
       
-      const debugTipKd = `網格欄位:${visualIdx} | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
+      const debugTipKd = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
       kdCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text><title>${debugTipKd}</title></g>`;
     }
   });
@@ -475,9 +472,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  [...state.extendedTrendDates].reverse().forEach((targetDate) => {
-    const d = dataset.find(x => x.date === targetDate);
-    if (!d || d.osc === null) {
+  // 3. 生成動能柱 (15日對位)
+  dataset.forEach((d) => {
+    if (d.osc === null) {
       barChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative min-w-0 z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
     } else {
       let oscBg = d.osc > 0 ? "bg-rose-500/90" : "bg-emerald-500/90";
@@ -493,13 +490,14 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
+  // 解鎖 pointer-events-auto 允許自由滑動 Hover 圓點
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px; padding-left:0px; margin-left:0px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
   if(lineDatesEl) { lineDatesEl.innerHTML = lineDateHtml; lineDatesEl.style.width = "100%"; }
   if(bDWrapper) { bDWrapper.innerHTML = lineDateHtml; bDWrapper.style.width = "100%"; }
 
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px; padding-left:0px; margin-left:0px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
   if (kdDatesEl) { kdDatesEl.innerHTML = lineDateHtml; kdDatesEl.style.width = "100%"; }
 
@@ -546,7 +544,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 }
 
 // ==========================================================
-// 🌟 4. 融資與信用餘額圖 (🎯 徹底修復：死鎖 14 等分、首尾各保留 25px 邊距)
+// 🌟 4. 融資與信用餘額圖 (14 等分間距，首尾各保留 25px 邊距)
 // ==========================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
@@ -555,10 +553,7 @@ export function renderMarginTrendChart() {
   const myChipsRaw = state.globalChipCache.filter(c => String(c.stock_id).trim() === String(state.currentActiveStockId).trim());
   let localTrendDates = [...state.extendedTrendDates].filter(d => myChipsRaw.some(c => String(c.date) === d)).sort((a, b) => a.localeCompare(b));
 
-  // 🎯 統一死鎖最新 15 筆交易日
-  if (localTrendDates.length > 15) {
-    localTrendDates = localTrendDates.slice(-15);
-  }
+  if (localTrendDates.length > 15) { localTrendDates = localTrendDates.slice(-15); }
 
   let marginNetPoints = localTrendDates.map(d => {
     const row = myChipsRaw.find(c => String(c.date) === d);
@@ -585,7 +580,6 @@ export function renderMarginTrendChart() {
     const balVal = marginBalancePoints[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
-    // 🎯 兩側各保留 25px，等差級數推進
     let exactX = 25 + (idx * stepX);
     
     if (netVal !== 0) {
