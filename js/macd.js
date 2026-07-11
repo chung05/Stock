@@ -370,7 +370,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修正：參考 2index.html 的正統 19 等分首尾頂格公式，使點線面完美同步)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修復：全數死鎖等差增長的固定 stepX 座標系)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -409,27 +409,21 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
     
-    // 🎯 參考 2index.html 真正對齊的公式：折線圖系列一律死鎖採用正統 19 等分算法 (idx * containerWidth / (count - 1))
-    // 絕不加上 (stepX/2) 或是平分中線！這樣折線本身、圈圈、上方數據文字標籤三者在畫布上 100% 同時等距、絕對不偏航不溢出！
-    let exactX = (idx * containerWidth) / (count - 1 || 1);
+    // 🎯 治本大一統：全數回歸固定步長增加的網格中線 (idx * stepX + stepX/2)，徹底驅逐任何累積誤差
+    let exactX = idx * stepX + (stepX / 2);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
     let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    // 防止首尾兩天數值超出畫布的文字錨定優化
-    let textAnchor = "middle";
-    if (idx === 0) textAnchor = "start";
-    if (idx === count - 1) textAnchor = "end";
-
     if (d.dif !== null) { 
       difPoints.push(`${exactX},${exactDifY}`); 
-      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="${textAnchor}" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif">${d.dif.toFixed(2)}</text>`; 
+      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactDifY}" r="2" fill="#3b82f6" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif">${d.dif.toFixed(2)}</text>`; 
     }
     if (d.sig !== null) { 
       sigPoints.push(`${exactX},${exactSigY}`); 
-      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="${textAnchor}" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text>`; 
+      macdLineCirclesHtml += `<circle cx="${exactX}" cy="${exactSigY}" r="2" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text>`; 
     }
 
     barChartHtml += `
@@ -442,12 +436,11 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push(`${exactX},${kY}`); dPoints.push(`${exactX},${dY}`);
-      kdCirclesHtml += `<circle cx="${exactX}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="${textAnchor}" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="${textAnchor}" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>`;
+      kdCirclesHtml += `<circle cx="${exactX}" cy="${kY}" r="2" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text>`;
     }
     kdChartHtml += `<div class="flex flex-col items-center flex-1 h-full relative z-20"><div class="absolute w-[1px] bg-slate-100 top-0 bottom-0 left-1/2 -translate-x-1/2 border-dashed pointer-events-none"></div></div>`;
   });
 
-  // 🎯 折線、圓點、文字數值 100% 大一統，完美對齊邊界，絕不再發生任何累加位移！
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" style="width: 100%; height: 112px;"><polyline points="${difPoints.join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${sigPoints.join(' ')}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   if(barChartEl) { barChartEl.innerHTML = barChartHtml; barChartEl.style.width = "100%"; }
@@ -484,7 +477,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 
   const speechObj = WHITE_SPEECHES[targetCode] || {
-    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
+    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理阶段，未觸發特殊法人或資券共振訊號。",
     cond: "【正常盤整】(未達多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
   };
 
@@ -500,6 +493,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
+// =========================================================================
+// 🌟 4. 融資與信用餘額圖 (完全自適應寬度，與三大法人等比例對齊)
+// =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -536,6 +532,7 @@ export function renderMarginTrendChart() {
     
     let exactX = idx * stepX + (stepX / 2);
     
+    // --- 上圖 SVG 增減 ---
     if (netVal !== 0) {
       let barHeight = (Math.abs(netVal) / maxNet) * 26; 
       let barWidth = Math.min(stepX * 0.45, 14); 
