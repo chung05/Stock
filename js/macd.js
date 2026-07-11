@@ -485,9 +485,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
   if(barChartEl) { 
+    // 🎯 核心修正 1：在畫布的內部框架上方，精準追加 padding-top 以確保內部 SVG 下移，文字擁有獨立物理高度不重疊
     barChartEl.innerHTML = `
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden" style="width: 100%;">
-        <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[132px] pt-[26px] relative overflow-hidden" style="width: 100%;">
+        <svg class="absolute bottom-2 left-0 right-0 w-full h-[112px] pointer-events-auto z-10" style="width: 100%; height: 112px;">
           ${barSvgHtml}
         </svg>
       </div>`; 
@@ -498,15 +499,24 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if(bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
 
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
-  if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
+  if (kdChartEl) { 
+    // 🎯 核心修正 1 連動：配合動能圖下移，KD指標內部框架也同步等距增加 padding-top 與高，使文字完美避開
+    kdChartEl.innerHTML = `
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[132px] pt-[26px] relative overflow-hidden w-full">
+        <div class="absolute bottom-2 left-0 right-0 w-full h-[112px]">
+          ${kdChartHtml}
+        </div>
+      </div>`;
+    kdChartEl.style.width = "100%"; 
+  }
   if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
   // =========================================================================================
-  // 🎯 100% 黃金版外置安全微調：利用現成外部標頭 DOM 節點渲染，物理畫布 0% 更動，徹底避空
+  // 🎯 核心修正 2 & 3 & 4：不破壞畫布結構，直接微調原生標頭元素，全面大字級化並精準分配圖例文字
   // =========================================================================================
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
-    // 2 & 3. 趨勢圖右上角圖例：大字級化、加粗、僅顯示 DIF快線 / DEA慢線
+    // 趨勢圖：右上角僅保留放大加粗後的「DIF快線 / DEA慢線」
     parentLine.className = "flex items-center justify-between w-full pb-1";
     parentLine.innerHTML = `
       <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
@@ -518,8 +528,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   const parentBar = barChartEl.previousElementSibling;
   if (parentBar) {
-    // 1 & 2 & 3. 治本：將動能標題列整體主動套用 mt-5 向上騰出空間，並將多空動能字體放大至 text-xs 列於右上角！
-    parentBar.className = "flex items-center justify-between w-full mt-5 pb-1";
+    // 動能圖：大標題字體與趨勢完全對齊，並在右上方獨立呈現放大加粗後的「多方動能 / 空方動能」！
+    parentBar.className = "flex items-center justify-between w-full pb-1";
     parentBar.innerHTML = `
       <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
       <div class="flex gap-3 text-xs font-black text-slate-500">
@@ -530,8 +540,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   const parentKd = kdChartEl.previousElementSibling;
   if (parentKd) {
-    // 3 & 4. KD指標：大標題與圖例字級全數放大，並同向加入 mt-5 以維持平衡，完美將 (超買區 >80, 超賣區 <20) 接在第一個大標題後方！
-    parentKd.className = "flex items-center justify-between w-full mt-5 pb-1";
+    // KD指標：大標題字體放大，右上角僅留大級「K值 / D值」，並精準將 (超買區 >80, 超賣區 <20) 移動至大標題正後方！
+    parentKd.className = "flex items-center justify-between w-full pb-1";
     parentKd.innerHTML = `
       <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
         <span>⚡ KD 指標</span>
@@ -542,6 +552,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-amber-500 inline-block rounded-xs"></span>D值 (慢線)</span>
       </div>`;
   }
+
+  // 強制清除原生 HTML 結構中遺留的微小絕對定位文字盒
+  if (parentLine && parentLine.querySelector("div:not(.flex)")) parentLine.querySelector("div:not(.flex)").remove();
+  if (parentKd && parentKd.querySelector("div:not(.flex)")) parentKd.querySelector("div:not(.flex)").remove();
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
