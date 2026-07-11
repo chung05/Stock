@@ -382,7 +382,7 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修正：100%鎖定原生15天黃金對位，僅修改文字位置與大小)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 100%原裝無損：純利用內置 SVG 平移 14px 完美解決遮擋)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -408,13 +408,14 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  // 🎯 使用完全相等的畫布比例尺計算核心
   const containerWidth = lineChartEl ? lineChartEl.clientWidth : 940;
   let usableWidth = containerWidth - 50; 
   let stepX = usableWidth / 14; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
-  let barSvgHtml = `<line x1="0" y1="56" x2="100%" y2="56" stroke="#94a3b8" stroke-width="1.2" />`;
+  
+  // 🎯 1. 治本微調：將零軸基準格線幾何平移至 70px (56 + 14)，為上方留出 14px 淨空層！
+  let barSvgHtml = `<line x1="0" y1="70" x2="100%" y2="70" stroke="#94a3b8" stroke-width="1.2" />`;
   let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`;
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
@@ -447,18 +448,19 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       macdLineCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text><title>${debugTipSig}</title></g>`; 
     }
 
+    // 🎯 1. 治本微調：柱體與動能文字坐標集體 +14px 向下微調位移，不動外殼 HTML 高度，100% 亮起格線不遮擋
     if (d.osc !== null) {
-      let barHeight = (Math.abs(d.osc) / maxOscAbs) * 45;
+      let barHeight = (Math.abs(d.osc) / maxOscAbs) * 38; // 微微緊縮比例尺騰出最上方文字區
       let barWidth = 12;
       let barX = exactX - (barWidth / 2);
       let barColor = d.osc > 0 ? "#ef4444" : "#10b981";
-      let barY = d.osc > 0 ? (56 - barHeight) : 56;
-      let textOscY = d.osc >= 0 ? (barY - 3) : (56 + barHeight + 11);
+      let barY = d.osc > 0 ? (70 - barHeight) : 70;
+      let textOscY = d.osc >= 0 ? (barY - 3) : (70 + barHeight + 11);
       let textOscColor = d.osc >= 0 ? "#e11d48" : "#047857";
 
       barSvgHtml += `
         <g class="cursor-pointer">
-          <line x1="${exactX}" y1="0" x2="${exactX}" y2="112" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3" />
+          <line x1="${exactX}" y1="14" x2="${exactX}" y2="112" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3" />
           <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${barColor}" rx="1" />
           <text x="${exactX}" y="${textOscY}" text-anchor="middle" font-weight="black" font-size="10" fill="${textOscColor}" font-family="sans-serif">${d.osc.toFixed(2)}</text>
           <title>網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | 動能:${d.osc.toFixed(2)}</title>
@@ -466,7 +468,9 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }
 
     if (d.kd_k !== null && d.kd_d !== null) {
-      let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
+      // 🎯 1 連動：KD Indicators 幾何折線與小圓圈點位集體 +14px 向量平移，完美對位
+      let kY = ((100 - d.kd_k) / 100) * 88 + 14; 
+      let dY = ((100 - d.kd_d) / 100) * 88 + 14;
       kPoints.push({ x: exactX, y: kY }); dPoints.push({ x: exactX, y: dY });
       
       const debugTipKd = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
@@ -474,10 +478,18 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }
   });
 
+  difPoints.sort((a,b) => a.x - b.x); sigPoints.sort((a,b) => a.x - b.x);
+  kPoints.sort((a,b) => a.x - b.x); dPoints.sort((a,b) => a.x - b.x);
+
+  let dPath = difPoints.map(p => `${p.x},${p.y}`).join(' ');
+  let sPath = sigPoints.map(p => `${p.x},${p.y}`).join(' ');
+  let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
+  let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
+
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
-  // 🎯 1. 治本修復：保留高度為112px的標準原裝畫布不變，絕不加padding
+  // 🎯 100%原版外框結構還原：灰底圓角框完美回歸，112px純淨拉滿，不再有遺漏框線的問題！
   if(barChartEl) { 
     barChartEl.innerHTML = `
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden" style="width: 100%;">
@@ -492,15 +504,21 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if(bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
 
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
-  if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
+  if (kdChartEl) { 
+    kdChartEl.innerHTML = `
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
+        ${kdChartHtml}
+      </div>`;
+    kdChartEl.style.width = "100%"; 
+  }
   if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
   // =========================================================================================
-  // 🎯 100% 黃金版外置安全微調：利用外部標頭原生 DOM 區塊直接「向上移動」，文字永不與圖表接觸
-  // =========================================================================================
+  // 🎯 核心修正 2 & 3 & 4：不碰圖表 HTML 標籤，純粹操作外部標頭原生 DOM 元素，大字級渲染
+  // ====================================================================================
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
-    // 2 & 3. 趨勢圖右上角圖例：僅保留放大加粗後的「DIF快線 / DEA慢線」
+    // 📈 MACD趨勢：右上角大字級加粗，僅留「DIF快線 / DEA慢線」
     parentLine.className = "flex items-center justify-between w-full pb-1";
     parentLine.innerHTML = `
       <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
@@ -512,9 +530,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   const parentBar = barChartEl.previousElementSibling;
   if (parentBar) {
-    // 1 & 2 & 3. 治本：將動能標題與圖例文字區塊「向上調整10px」避空！(套用 mb-2.5) 
-    // 大標題與右上角「多方動能/空方動能」圖例同步放大為等大字級！
-    parentBar.className = "flex items-center justify-between w-full pb-1 mb-2.5";
+    // 📊 MACD動能：大標題與右上角「多方動能/空方動能」圖例大字級純化，且圖表下移後空間完美釋放！
+    parentBar.className = "flex items-center justify-between w-full pb-1";
     parentBar.innerHTML = `
       <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
       <div class="flex gap-3 text-xs font-black text-slate-500">
@@ -525,8 +542,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   const parentKd = kdChartEl.previousElementSibling;
   if (parentKd) {
-    // 3 & 4. KD指標標題與圖例字級全數放大，並完美將 (超買區 >80, 超賣區 <20) 接在標題正後方！
-    parentKd.className = "flex items-center justify-between w-full pb-1 mb-2.5";
+    // ⚡ KD 指標：大標題字級拉大，右上角僅留大級「K值/D值」，並將說明文字極限逼近、接在標題正後方！
+    parentKd.className = "flex items-center justify-between w-full pb-1";
     parentKd.innerHTML = `
       <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
         <span>⚡ KD 指標</span>
@@ -538,7 +555,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       </div>`;
   }
 
-  // 強制清除原裝外殼結構中遺留的舊微小絕對定位字串盒
+  // 清除外框容器中偶發遺留的舊原生定位圖例盒
   if (parentLine && parentLine.querySelector("div:not(.flex)")) parentLine.querySelector("div:not(.flex)").remove();
   if (parentKd && parentKd.querySelector("div:not(.flex)")) parentKd.querySelector("div:not(.flex)").remove();
 
