@@ -257,7 +257,9 @@ export function renderPriceTrendLineChart(dates, chips) {
   const wrapper = document.getElementById("priceScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  let count = cronDates.length, stepX = containerWidth / count; 
+  // 🎯 鋼鐵防禦：分母強制鎖死與全域 HTML 外殼日期軸相同的 20 天，拒絕週末少天數干擾
+  let count = state.extendedTrendDates.length || 20;
+  let stepX = containerWidth / count; 
   let polylinePrice = [], polylineMA5 = [], polylineMA10 = [], polylineMA20 = [];
   let svgCirclesHtml = "", svgDatesHtml = "";
 
@@ -268,6 +270,7 @@ export function renderPriceTrendLineChart(dates, chips) {
     const ma20 = ma20Points[idx];
     const datePart = d.split('-')[1] + '/' + d.split('-')[2];
     
+    // 🎯 等差級數增加：用固定不變的步長，精準推導每一天的橫向位置
     let exactX = idx * stepX + (stepX / 2); 
 
     if (price !== null) {
@@ -327,7 +330,8 @@ export function renderChipTrendChart() {
   const wrapper = document.getElementById("chipScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  let count = localTrendDates.length, stepX = containerWidth / count;
+  let count = state.extendedTrendDates.length || 20;
+  let stepX = containerWidth / count;
   let absMax = Math.max(...nets.map(Math.abs), 1);
   
   let svgBarsHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1" />`;
@@ -370,7 +374,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修復：全數死鎖等差增長的固定 stepX 座標系)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修正：100% 同步 20 日等差級數公式，根除週末不對稱位移)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -397,7 +401,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const wrapper = document.getElementById("macdChartScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  let count = dataset.length; 
+  // 🎯 治本終極修復：全數死鎖 HTML 外殼的 20 天總開盤天數。每一步都是「固定等差增加 stepX」！
+  let count = state.extendedTrendDates.length || 20; 
   let stepX = containerWidth / count; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "", barChartHtml = `<div class="absolute left-0 right-0 h-[1.5px] bg-slate-400 z-10" style="top: 50%;"></div>`;
@@ -409,7 +414,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     lineDateHtml += `<span class="flex-1 text-center font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`;
     
-    // 🎯 治本大一統：全數回歸固定步長增加的網格中線 (idx * stepX + stepX/2)，徹底驅逐任何累積誤差
+    // 🎯 幾何大一統：線條節點、小圓圈、數據文字一律採用完全等差、固定遞增的 `idx * stepX + stepX/2` 算法
+    // 完美呼應 2index.html 的對齊策略，徹底根除週末少天數產生的雪崩式累加位移！
     let exactX = idx * stepX + (stepX / 2);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
@@ -477,7 +483,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 
   const speechObj = WHITE_SPEECHES[targetCode] || {
-    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理阶段，未觸發特殊法人或資券共振訊號。",
+    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
     cond: "【正常盤整】(未達多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
   };
 
@@ -493,9 +499,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 }
 
-// =========================================================================
-// 🌟 4. 融資與信用餘額圖 (完全自適應寬度，與三大法人等比例對齊)
-// =========================================================================
 export function renderMarginTrendChart() {
   const marginChartEl = document.getElementById("trendMarginChart");
   if (!marginChartEl || !state.currentActiveStockId) return;
@@ -519,7 +522,7 @@ export function renderMarginTrendChart() {
   const wrapper = document.getElementById("chipScrollWrapper");
   const containerWidth = wrapper ? wrapper.clientWidth : 940;
   
-  const count = localTrendDates.length;
+  let count = state.extendedTrendDates.length || 20;
   let stepX = containerWidth / count;
 
   let upperSvgHtml = `<line x1="0" y1="42" x2="100%" y2="42" stroke="#94a3b8" stroke-width="1.5" />`; 
@@ -532,7 +535,6 @@ export function renderMarginTrendChart() {
     
     let exactX = idx * stepX + (stepX / 2);
     
-    // --- 上圖 SVG 增減 ---
     if (netVal !== 0) {
       let barHeight = (Math.abs(netVal) / maxNet) * 26; 
       let barWidth = Math.min(stepX * 0.45, 14); 
