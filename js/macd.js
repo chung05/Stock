@@ -209,7 +209,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
           listHtml += `
             <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
               <div class="text-xs text-slate-400 font-bold">📅 ${dateStr} <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div>
-              <h4 class="text-sm font-extrabold text-blue-700 text-left leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
+              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
             </a>`;
         });
         if (listZone) listZone.innerHTML = listHtml;
@@ -382,13 +382,13 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極版面完美歸位：抹殺雙層標題、補齊標準分隔線與等大雙層框樣式)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 完美對接新版 HTML 佈局，純粹注入 SVG 向量圖形，100% 亮起資料)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
   const bDWrapper = document.getElementById("macdBarDates");
-  const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
+  const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdDatesEl");
 
   let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
   if (cronDates.length > 15) { cronDates = cronDates.slice(-15); }
@@ -475,92 +475,37 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   });
 
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
-  
-  // 🎯 1. 📈 MACD趨勢：100% 恢復內層原汁原味畫布結構，絕不再輸出任何重複 <h4>
-  if (lineChartEl) { 
-    lineChartEl.innerHTML = `
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
-        ${lineChartHtml}
-      </div>
-      <div class="border-b border-slate-200 pb-4 mb-3 w-full"></div>`; 
-    lineChartEl.style.width = "100%"; 
-  }
-  
-  // 🎯 2. 📊 MACD動能：100% 給予與趨勢圖完全等大、帶有標準雙層灰底圓角框的畫布容器！
-  if (barChartEl) { 
-    barChartEl.innerHTML = `
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
-        <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
-          ${barSvgHtml}
-        </svg>
-      </div>
-      <div class="border-b border-slate-200 pb-4 mb-3 w-full"></div>`; 
-    barChartEl.style.width = "100%"; 
-  }
-  
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
+
+  // 🎯 絕不在內部修改或複寫任何 <h4> 與外殼框線容器，僅純淨注入 SVG 向量渲染與時間日期軸[cite: 3]
+  if (lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
+  if (barChartEl) { barChartEl.innerHTML = `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">${barSvgHtml}</svg>`; barChartEl.style.width = "100%"; }
+  if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
+
   if (lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
   if (bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
-
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
-  
-  // 🎯 3. ⚡ KD 指標：100% 等大對齊灰底圓角框，並在最下方留出乾淨位置提供備註說明
-  if (kdChartEl) { 
-    kdChartEl.innerHTML = `
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
-        ${kdChartHtml}
-      </div>
-      <div class="text-left text-xs font-black text-slate-500 mt-2 pl-0.5 tracking-wide">
-        備註: 大於80為"超買" , 低於20為"超賣"
-      </div>`;
-    kdChartEl.style.width = "100%"; 
-  }
   if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
-  // =========================================================================================
-  // 🎯 治本修復 2：只更新網頁原本自帶的第一個原生標頭元素，全面大字級化、純化，徹底清除重複影分身
-  // =========================================================================================
-  const parentLine = lineChartEl.previousElementSibling;
+  // ====================================================================================================
+  // 🎯 精準文字大小放大：直接抓取網頁已經獨立繪製好的原生外置標頭列元件，大字級美化看盤規格
+  // ====================================================================================================
+  const parentLine = lineChartEl.parentElement ? lineChartEl.parentElement.previousElementSibling : null;
   if (parentLine) {
-    // 📈 MACD趨勢：左上標題，右上角僅保留放大加粗後的「DIF快線 / DEA慢線」
-    parentLine.className = "flex items-center justify-between w-full pb-1.5";
-    parentLine.innerHTML = `
-      <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
-      <div class="flex gap-3 text-xs font-black text-slate-500">
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-500 inline-block rounded-xs"></span>DIF快線</span>
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-orange-400 inline-block rounded-xs"></span>DEA慢線</span>
-      </div>`;
+    const h4 = parentLine.querySelector('h4'); if (h4) h4.className = "text-xs font-black text-slate-500";
+    const labels = parentLine.querySelectorAll('span'); labels.forEach(l => l.className = "flex items-center gap-0.5 text-xs font-black text-slate-500");
   }
 
-  const parentBar = barChartEl.previousElementSibling;
+  const parentBar = barChartEl.parentElement ? barChartEl.parentElement.previousElementSibling : null;
   if (parentBar) {
-    // 📊 MACD動能：大標題字體等大對齊，並在右上方獨立分配放大加粗後的「多方動能 / 空方動能」圖例
-    parentBar.className = "flex items-center justify-between w-full pb-1.5 mt-2.5";
-    parentBar.innerHTML = `
-      <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
-      <div class="flex gap-3 text-xs font-black text-slate-500">
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
-      </div>`;
+    const h4 = parentBar.querySelector('h4'); if (h4) h4.className = "text-xs font-black text-slate-500";
+    const labels = parentBar.querySelectorAll('span'); labels.forEach(l => l.className = "flex items-center gap-0.5 text-xs font-black text-slate-500");
   }
 
-  const parentKd = kdChartEl.previousElementSibling;
+  const parentKd = kdChartEl.parentElement ? kdChartEl.parentElement.previousElementSibling : null;
   if (parentKd) {
-    // ⚡ KD 指標：左上大標題與超買超賣說明完美接後方，右上角純化為僅顯示大字級「K值 / D值」
-    parentKd.className = "flex items-center justify-between w-full pb-1.5 mt-2.5";
-    parentKd.innerHTML = `
-      <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
-        <span>⚡ KD 指標</span>
-        <span class="text-xs font-black text-slate-400 font-sans tracking-tight">(超買區 >80, 超賣區 <20)</span>
-      </h4>
-      <div class="flex gap-3 text-xs font-black text-slate-500">
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-sky-500 inline-block rounded-xs"></span>K值 (快線)</span>
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-amber-500 inline-block rounded-xs"></span>D值 (慢線)</span>
-      </div>`;
+    const h4 = parentKd.querySelector('h4'); if (h4) h4.className = "text-xs font-black text-slate-500";
+    const labels = parentKd.querySelectorAll('span'); labels.forEach(l => l.className = "flex items-center gap-0.5 text-xs font-black text-slate-500");
   }
-
-  // 乾淨清空原裝結構內可能遺留的老舊定位文字盒
-  if (parentLine && parentLine.querySelector("div:not(.flex)")) parentLine.querySelector("div:not(.flex)").remove();
-  if (parentKd && parentKd.querySelector("div:not(.flex)")) parentKd.querySelector("div:not(.flex)").remove();
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
@@ -583,7 +528,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   setSignalDetail(titleText, speechObj.desc, speechObj.cond);
   
-  if(boardTitleEl) {
+  if (boardTitleEl) {
     boardTitleEl.innerHTML = `
       <div class="flex items-center justify-center gap-1 min-w-0 max-w-[130px] sm:max-w-none">
         <span class="text-blue-600 font-black text-xs sm:text-sm truncate tracking-wide">${titleText}</span>
