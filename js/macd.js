@@ -382,7 +382,7 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修正：將日期軸直接移入第二層 SVG 畫布內部，落實絕對座標重合)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 幾何優化：日期安全拉高至 Y=104px 完美留白不截斷)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -408,26 +408,25 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  // 🎯 15天黃金等差物理比例尺核心
   const containerWidth = lineChartEl ? lineChartEl.clientWidth : 940;
   let usableWidth = containerWidth - 50; 
   let stepX = usableWidth / 14; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
-  let barSvgHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1.2" />`; // 🌟 高度從 56 修正縮小為 46，為底部留出 15px 日期安全空間
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 42%;"></div>`; // 🌟 軸線中心比率微調
+  let barSvgHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1.2" />`; 
+  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 42%;"></div>`; 
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 16%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 42%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 72%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 🌟 終極結構解鎖：直接生成內嵌於第二層 SVG 內部畫布底部的實體 <text> 日期標籤軸（坐標起跑線 25px 絕對重合）
+  // 1. 🎯 幾何安全重塑：將 Y 軸位置從 106 重新精算拉高至 104px，保證文字完美浮在內側底部邊界上方，不歪斜、不截斷
   let svgEmbeddedDatesHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     let dateX = 25 + (idx * stepX);
-    svgEmbeddedDatesHtml += `<text x="${dateX}" y="106" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
+    svgEmbeddedDatesHtml += `<text x="${dateX}" y="104" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 2. 映射數據與幾何坐標，微調幾何 Y 軸高度範圍 (從原本 112 降至 92，騰出空間給底部日期，絕不重疊擠壓)
+  // 2. 映射數據與幾何坐標
   dataset.forEach((d, idx) => {
     let exactX = 25 + (idx * stepX);
     
@@ -478,7 +477,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  // 3. 實體注入：將生好的 SVG 數據折線連同下方剛剛內嵌的「完全體日期軸（svgEmbeddedDatesHtml）」一體化注入第二層灰底容器內部！
+  // 3. 實體注入
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
   if (lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
@@ -493,7 +492,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
 
-  // 4. 🧹 清洗安全熔斷：全量清除、清空 HTML 外殼多餘的舊第一層外部時間標籤軸，阻絕任何重疊與歪斜
+  // 4. 清洗安全熔斷
   if (lineDatesEl) { lineDatesEl.innerHTML = ""; }
   if (bDWrapper) { bDWrapper.innerHTML = ""; }
   if (kdDatesEl) { kdDatesEl.innerHTML = ""; }
@@ -513,7 +512,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 
   const speechObj = WHITE_SPEECHES[targetCode] || {
-    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
+    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理阶段，未觸發特殊法人或資券共振訊號。",
     cond: "【正常盤整】(未達多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
   };
 
