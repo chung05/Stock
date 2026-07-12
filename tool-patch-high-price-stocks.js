@@ -35,7 +35,7 @@ async function run() {
     const tags = item.sheet_tags || [];
     
     // 條件 A：必須包含您的高價股標籤 (請與您資料庫填寫的字串完全一致)
-    const hasHighPriceTag = tags.includes("高價股100");
+    const hasHighPriceTag = tags.includes("High_100");
     
     // 條件 B：排除同時擁有舊分類(TW50, TW100, MSCI) 的已有資料個股
     const hasOldTags = tags.includes("TW50") || tags.includes("TW100") || tags.includes("MSCI");
