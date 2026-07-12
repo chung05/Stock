@@ -2,221 +2,509 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>牛牛分析站 - 19種智慧過濾模型與資料庫欄位詳細規格書</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <title>牛牛分析站 - 智慧過濾籌碼寬資版</title>
+  
+  <link rel="icon" type="image/png" href="main_icon.png">
+  
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+    .sticky-col-shadow { box-shadow: 3px 0 6px -3px rgba(0, 0, 0, 0.25); }
+    dialog::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 p-8 font-sans antialiased">
-  <div class="max-w-7xl mx-auto bg-white p-8 rounded-2xl shadow-md border border-slate-200">
-    
-    <div class="border-b-2 border-blue-600 pb-4 mb-6 flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-black text-slate-900">📊 牛牛分析站 - 系統選股策略與資料庫交接規格書</h1>
-        <p class="text-sm font-bold text-slate-500 mt-1">智慧過濾籌碼寬資版 - 19種篩選模型細化邏輯、目前使用精確數值、與實體資料庫欄位紀錄對照表</p>
-      </div>
-      <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow-xs cursor-pointer transition-colors">🖨️ 一鍵轉存 PDF / 列印手冊</button>
-    </div>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
-    <div class="overflow-x-auto mb-10">
-      <table class="w-full text-left text-xs border-collapse border border-slate-200">
-        <thead>
-          <tr class="bg-slate-100 text-slate-900 font-black border-b border-slate-300 text-sm">
-            <th class="p-3 border border-slate-200 w-28">模組分類</th>
-            <th class="p-3 border border-slate-200 text-center w-14">代號</th>
-            <th class="p-3 border border-slate-200 w-44">訊號/策略名稱</th>
-            <th class="p-3 border border-slate-200">看盤核心詳細規則 (邏輯與型態特徵)</th>
-            <th class="p-3 border border-slate-200 w-52 text-blue-700">目前模型使用數值 (系統預設硬編碼)</th>
-            <th class="p-3 border border-slate-200 w-52">後續可微調與優化方向</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-200 font-medium text-slate-700 leading-relaxed">
-          <tr class="bg-amber-50/40">
-            <td class="p-3 border border-slate-200 font-black text-amber-800" rowspan="3">⭐ 全新菁英策略</td>
-            <td class="p-3 border border-slate-200 text-center font-black">N1</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">土洋接力基本訊號</td>
-            <td>投信鎖碼認養，搭配外資大方向認錯回頭。股價回檔不破中期生命線，屬於強勢波段換手型態。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 投信當日買超 &gt; 0 張<br>2. 外資當日買超 &gt; 0 張<br>3. 收盤價 &gt;= 10MA 均線</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將雙法人買超改為設定下限（如均 &gt; 200張），加強濾網。</td>
-          </tr>
-          <tr class="bg-amber-50/40">
-            <td class="p-3 border border-slate-200 text-center font-black">N2</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">土洋接力共振防護強效版</td>
-            <td>N1的升級震盪清洗版。透過「融資減」確認散戶浮額退場，搭配 RSI 動能指標突破中軸轉強，且伴隨量能攻擊。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 符合 N1 全數條件<br>2. 散戶融資當日減 &gt; 0 張<br>3. RSI14 指標 &gt; 50<br>4. 今日量 &gt;= 20日均量 * 1.2</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調量能爆發倍數（如 1.2 倍提高至 1.5 倍攻擊量）。</td>
-          </tr>
-          <tr class="bg-amber-50/40">
-            <td class="p-3 border border-slate-200 text-center font-black">N3</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">底部超賣沉澱打底</td>
-            <td>股價經歷長期修正後的安全打底訊號。指標位於極度超賣區共振回升，且市場融資信用部位持續退場，籌碼沉澱完畢。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. KD之K值 &lt; 20 且金叉D值<br>2. RSI14 由低檔連續2日回升<br>3. 融資餘額連續 2 日減少</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可放寬低檔區間至 25 或者是拉長融資連減天數（如連3減）。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 font-black text-rose-700" rowspan="3">🔥 價量型態</td>
-            <td class="p-3 border border-slate-200 text-center font-black">1</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">壓縮突破</td>
-            <td>短期均線與中期均線高度糾結（箱型壓縮），當日突發長紅 K 線或爆量突破，通常代表新一輪波段行情點火。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. Max(MA5,10,20)/Min(MA5,10,20) 誤差 &lt; 3%<br>2. 今日量 &gt;= 5日均量 * 1.5<br>3. 外資或投信買超 &gt; 300 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調均線糾結誤差（2%更嚴格），或加入股價漲幅限制（&gt;3%）。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">3</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">黑馬起飛</td>
-            <td>標準的多頭發散噴發型態。短中長期均線全面多頭排列，且 MACD 主動能紅柱（OSC）處於持續擴張的極速進攻狀態。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. MA5 &gt; MA10 &gt; MA20 &gt; MA60<br>2. MACD_OSC &gt; 0<br>3. OSC(今日) &gt; OSC(昨日)</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可加入「偏離 5MA 乖離率」上限（如過高不追，防短線過熱）。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">6</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">價量表態</td>
-            <td>強勢股突破波段新高型態。股價刷新一個月以來的最高收盤價，且有大資金（外資）巨額鎖碼進駐。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 收盤價 = 近 20 日最高收盤價<br>2. 當日成交量 &gt; 近 5 日最大量<br>3. 外資當日買超 &gt; 500 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將新高天數門檻由 20 日拉長至 60 日（季新高）提升大趨勢精準度。</td>
-          </tr>
-          <tr class="bg-blue-50/20">
-            <td class="p-3 border border-slate-200 font-black text-blue-700" rowspan="3">📈 動能指標</td>
-            <td class="p-3 border border-slate-200 text-center font-black">4</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">慣性改變</td>
-            <td>原本受到中期月線下彎壓制的空方慣性被打破。股價首日強勢站上月線，且投信法人在底部出現防守性大買。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 昨日價 &lt; MA20 且 今日價 &gt; MA20<br>2. 投信當日買超 &gt; 250 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調投信防守張數門檻（例如針對大型股提高至 500 張）。</td>
-          </tr>
-          <tr class="bg-blue-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">5</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">動能共振</td>
-            <td>技術指標的雙重共振。短期動能（KD）黃金交叉，同時中波段趨勢動能（MACD）綠柱動能衰退並翻紅，代表雙重轉強。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. KD 發生黃金交叉<br>2. MACD_OSC &gt; 昨日 MACD_OSC<br>3. 當日成交量 &gt; 5日均量</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可限制 KD 交叉必須發生在 50 中軸以下（確保非高檔過熱區）。</td>
-          </tr>
-          <tr class="bg-blue-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">14</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">結構性大轉折</td>
-            <td>大波段的多空結構大扭轉。月線（短波段趨勢）向上黃金交叉季線（中長線生命線），且 MACD 快線翻上 0 軸進入多方發展。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. MA20 向上交叉 MA60 (近2日內)<br>2. MACD_DIF &gt; 0 (進入零軸之上)</td>
-            <td class="p-3 border border-slate-200 text-slate-500">屬於長線策略，可加入當日季線（MA60）必須扣抵低值（即季線向上）的限制。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 font-black text-purple-700" rowspan="3">👑 主力鎖碼</td>
-            <td class="p-3 border border-slate-200 text-center font-black">7</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">珍珠蒙塵</td>
-            <td>標準的「主力暗中吸籌」型態。法人在市場上大舉、連續吃貨買進，但股價卻被壓在箱型或狹幅區間不漲，靜待表態。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 外資或投信連續 3 日買超<br>2. 合計法人買超量 &gt; 1500 張<br>3. 近 3 日股價高低震盪波動 &lt; 4%</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可拉長吸籌天數（如連 5 買），更易抓到中線超級黑馬股。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">9</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">投信無中生有</td>
-            <td>業界極高勝率的「神券商打破清白」策略。投信在過去數個月完全沒有任何該股持股或進出，首日突然毫無徵兆爆量大買。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 過去 20 個交易日投信買超皆 = 0<br>2. 今日投信突然買超 &gt; 350 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可針對不同股本微調，如中小型股 200 張、大型股 500 張。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">10</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">雙雄聯手</td>
-            <td>市場多頭共識最強烈的訊號。市場兩大資金巨頭（外資與內資投信）在同一天爆量大買點火，通常後面皆有強大基本面支撐。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 外資當日買超 &gt; 1000 張<br>2. 投信當日買超 &gt; 500 張<br>3. MACD_OSC 綠柱縮減或翻紅</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將張數條件改為佔成交量比例（如雙雄買超合計達當日量10%）。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 font-black text-emerald-800" rowspan="7">⚡ 籌碼結構</td>
-            <td class="p-3 border border-slate-200 text-center font-black">2</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">黎明曙光</td>
-            <td>極端的空頭大洗盤轉折。股價位於季線下的絕對低檔，散戶經不起震盪「融資恐慌斷頭大退」，但技術指標已低檔金叉。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 股價 &lt; MA60 且 負乖離率 &gt; 6%<br>2. 融資當日大減 &gt; 400 張<br>3. KD 在 &lt; 30 區域黃金交叉</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調股價偏離季線的負乖離率（如 -8%）來精準捕捉更大型的融資斷頭反彈。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">8</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">籌碼換手</td>
-            <td>中繼換手強勢防守。散戶融資部位因洗盤震盪而大退，但法人精準在月線（中期生命線）展開跨線救援大買，浮額洗淨。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 散戶融資當日減少 &gt; 300 張<br>2. 法人當日買超 &gt; 500 張<br>3. 收盤價在 MA20 上下 1.5% 內(守穩)</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將守穩區間縮小（如月線正負 1% 內），防守力道更精準。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">11</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">致命軋空</td>
-            <td>強硬的空頭燃料爆發策略。市場融券賣方盲目放空，導致空頭部位暴增，主力趁機暴力拉抬逼空，股價強勢收最高。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 融券餘額近 3 日累計增 &gt; 600 張<br>2. 券資比 &gt; 25%<br>3. 收盤價位於當日最高價的 1% 內</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可調整券資比限制（提高至 35% 軋空力道更猛烈）。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">12</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">權證螞蟻雄兵</td>
-            <td>大戶利用權證槓桿發動突襲。權證市場爆發巨量，迫使自營商必須在現貨市場買進等量股票進行「避險鎖碼」，推升股價。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 自營商避險當日買超 &gt; 800 張<br>2. 當日股價漲幅 &gt; 4%</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可限制自營商必須「連續2日避險大買」，過濾隔日沖權證。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">13</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">主力投降</td>
-            <td>信用部位全面清洗。資券同減代表主力與散戶同步退場或大舉認賠，浮額呈現真空，此時 KD 出現交叉並收復 5MA 屬於極輕籌碼反彈。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 融資減 &gt; 0 且 融券減 &gt; 0<br>2. KD 發生交叉轉強<br>3. 收盤價 &gt; MA5 均線</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調融資券減少的比例限制，強化浮額洗淨的純度。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">15</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">外資回頭</td>
-            <td>外資高空認錯行情。外資主力在前一個波段瘋狂殺出大賣，但當日突然打破慣性，反手展開巨額認錯大轉買，易引發 V 轉。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 過去 5 日外資合計賣超 &gt; 3000 張<br>2. 今日外資反手大轉買 &gt; 800 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調前段大賣張數下限（如拉大至 5000 張更具逆轉指標性）。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">16</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">國家隊護盤</td>
-            <td>護盤基金或大公股券商的防守策略。在大盤或個股非理性崩跌時，八大官股券商逆勢巨額買超，收盤留下強大防守下影線。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 官股券商合計買超 &gt; 600 張<br>2. (最高價-收盤價)/(最高價-最低價) &lt; 0.3<br>3. 下影線長度 &gt; 實體 K 線的 1.5 倍</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可結合大盤跌幅（如大盤大跌百點時），更能鎖定精準護盤標的。</td>
-          </tr>
-        </tbody>
-      </table>
+  <div id="loadingModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4 text-center border border-slate-100 flex flex-col items-center">
+      <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <h3 class="text-base font-bold text-slate-900 mb-1">雲端籌碼智慧同步中...</h3>
+      <p id="loadingDetail" class="text-xs text-slate-500 font-medium">安全連線中...</p>
     </div>
-
-    <div class="mt-8 border-t-2 border-slate-300 pt-6">
-      <h2 class="text-base font-black text-slate-900 mb-3 flex items-center gap-1.5">
-        <span>📋 附錄：雲端大帳本實體資料庫紀錄欄位資訊 (Database Schema)</span>
-      </h2>
-      <p class="text-xs text-slate-500 font-bold mb-4">以下紀錄後端 API 以及 Supabase 雲端資料庫實際回傳之 JSON 對照結構欄位，供前台微調策略進行邏輯呼叫時對位參考：</p>
-      
-      <div class="bg-slate-900 text-emerald-400 p-5 rounded-xl font-mono text-xs overflow-x-auto shadow-inner leading-relaxed">
-[
-  { "欄位名稱": "stock_id",        "資料型態": "text",          "欄位說明": "股票代號" },
-  { "欄位名稱": "date",            "資料型態": "text",          "欄位說明": "資料日期" },
-  { "欄位名稱": "f_buy",           "資料型態": "bigint",        "欄位說明": "外資當日買進張數" },
-  { "欄位名稱": "f_sell",          "資料型態": "bigint",        "欄位說明": "外資當日賣出張數" },
-  { "欄位名稱": "fd_buy",          "資料型態": "bigint",        "欄位說明": "外資與自營商合計買進張數" },
-  { "欄位名稱": "fd_sell",         "資料型態": "bigint",        "欄位說明": "外資與自營商合計賣出張數" },
-  { "欄位名稱": "it_buy",          "資料型態": "bigint",        "欄位說明": "投信當日買進張數" },
-  { "欄位名稱": "it_sell",         "資料型態": "bigint",        "欄位說明": "投信當日賣出張數" },
-  { "欄位名稱": "ds_buy",          "資料型態": "bigint",        "欄位說明": "自營商(自行買賣)當日買進張數" },
-  { "欄位名稱": "ds_sell",         "資料型態": "bigint",        "欄位說明": "自營商(自行買賣)當日賣出張數" },
-  { "欄位名稱": "dh_buy",          "資料型態": "bigint",        "欄位說明": "自營商(避險)當日買進張數" },
-  { "欄位名稱": "dh_sell",         "資料型態": "bigint",        "欄位說明": "自營商(避險)當日賣出張數" },
-  { "欄位名稱": "price",           "資料型態": "numeric",       "欄位說明": "當日個股收盤價" },
-  { "欄位名稱": "change_value",    "資料型態": "numeric",       "欄位說明": "當日漲跌金額差值(可為正負或零)" },
-  { "欄位名稱": "open",            "資料型態": "numeric",       "欄位說明": "當日開盤價" },
-  { "欄位名稱": "max",             "資料型態": "numeric",       "欄位說明": "當日最高價" },
-  { "欄位名稱": "min",             "資料型態": "numeric",       "欄位說明": "當日最低價" },
-  { "欄位名稱": "trading_volume",  "資料型態": "numeric",       "欄位說明": "成交量(張)" },
-  { "欄位名稱": "ma5",             "資料型態": "numeric",       "欄位說明": "5日移動平均線" },
-  { "欄位名稱": "ma10",            "資料型態": "numeric(10,2)", "欄位說明": "10日均線" },
-  { "欄位名稱": "ma20",            "資料型態": "numeric(10,2)", "欄位說明": "20日均線" },
-  { "欄位名稱": "rsi14",           "資料型態": "numeric(5,2)",  "欄位說明": "14天期相對強弱指標" },
-  { "欄位名稱": "macd_dif",        "資料型態": "numeric",       "欄位說明": "MACD 指標之 DIF (快線)" },
-  { "欄位名稱": "macd_signal",     "資料型態": "numeric",       "欄位說明": "MACD 指標之 MACD (慢線)" },
-  { "欄位名稱": "macd_osc",        "資料型態": "numeric",       "欄位說明": "MACD 指標之 OSC (柱狀體)" },
-  { "欄位名稱": "rsv",             "資料型態": "numeric",       "欄位說明": "KD 指標之未成熟隨機值(RSV)" },
-  { "欄位名稱": "kd_k",            "資料型態": "numeric",       "欄位說明": "KD 指標之 K 值" },
-  { "欄位名稱": "kd_d",            "資料型態": "numeric",       "欄位說明": "KD 指標之 D 值" },
-  { "欄位名稱": "margin_buy",      "資料型態": "bigint",        "欄位說明": "當日融資買進張數" },
-  { "欄位名稱": "margin_sell",     "資料型態": "bigint",        "欄位說明": "當日融資賣出張數" },
-  { "欄位名稱": "margin_balance",  "資料型態": "bigint",        "欄位說明": "今日融資餘額(水位)" },
-  { "欄位名稱": "short_buy",       "資料型態": "bigint",        "欄位說明": "當日融券買進(還券)張數" },
-  { "欄位名稱": "short_sell",      "資料型態": "bigint",        "欄位說明": "當日融券賣出張數" },
-  { "欄位名稱": "short_balance",     "資料型態": "bigint",        "欄位說明": "今日融券餘額(水位)" }
-]
-      </div>
-    </div>
-
   </div>
+
+  <dialog id="infoDialog" class="rounded-2xl shadow-2xl p-6 max-w-md w-full border border-slate-200 bg-white focus:outline-none">
+    <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
+      <h4 id="infoDialogTitle" class="text-base font-black text-slate-900 flex items-center gap-1">📋 訊號特徵與條件</h4>
+      <button onclick="document.getElementById('infoDialog').close()" class="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1">✕</button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <div class="text-xs font-bold text-slate-400 mb-0.5">📊 盤勢特徵描述</div>
+        <p id="infoDialogDesc" class="text-sm font-semibold text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100"></p>
+      </div>
+      <div>
+        <div class="text-xs font-bold text-slate-400 mb-0.5">💻 程式觸發邏輯條件</div>
+        <div id="infoDialogCond" class="text-xs font-mono font-bold text-amber-600 bg-amber-50/60 p-2.5 rounded-xl border border-amber-100/60 leading-normal tracking-tight"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="newsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] min-h-[550px] md:min-h-0 flex flex-col border border-slate-100 overflow-hidden">
+      
+      <div class="py-2.5 px-4 border-b border-slate-200 grid grid-cols-3 items-center bg-slate-50 rounded-t-2xl shrink-0">
+        <h3 id="newsModalTitle" class="text-xs sm:text-sm font-black text-slate-900 truncate text-left">個股詳細資訊</h3>
+        <div id="macdSignalTitle" class="text-center flex justify-center items-center gap-1 min-w-0">
+          <span class="text-xs font-bold text-slate-400 animate-pulse">正在精準解碼趨勢模型...</span>
+        </div>
+        <div class="text-right">
+          <button id="closeNewsModalBtn" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1 inline-block">✕</button>
+        </div>
+      </div>
+
+      <div id="modalIndicatorBar" class="bg-linear-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-4 py-2.5 grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0 text-center">
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">目前股價</div><div id="modalInfoPrice" class="text-xs font-black text-slate-800">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">今日漲跌</div><div id="modalInfoChange" class="text-xs font-black text-slate-800">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA5 均線</div><div id="modalInfoMA10" class="text-xs font-black text-purple-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MA20 均線</div><div id="modalInfoMA20" class="text-xs font-black text-orange-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">RSI14 強弱</div><div id="modalInfoRSI14" class="text-xs font-black text-purple-600">--</div></div>
+        <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs"><div class="text-[10px] font-bold text-slate-400">MACD 動能</div><div id="modalInfoMACD" class="text-xs font-black text-slate-800">--</div></div>
+      </div>
+
+      <div class="flex border-b border-slate-200 bg-slate-50/50 px-4 shrink-0">
+        <button id="tabBtnTrend" class="py-1.5 px-4 text-sm font-black border-b-2 border-blue-600 text-blue-600 focus:outline-none cursor-pointer transition-all">📈 走勢</button>
+        <button id="tabBtnMacd" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📊 MACD/KD</button>
+        <button id="tabBtnNews" class="py-1.5 px-4 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer transition-all">📰 新聞</button>
+      </div>
+      
+      <div class="p-4 overflow-y-auto h-[550px] md:h-auto md:grow bg-slate-50/30 relative flex flex-col">
+        <div id="trendZone" class="block space-y-4 w-full grow">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5 border-b border-slate-100 pb-1.5">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 股價與均線走勢</h4>
+              <div class="flex flex-wrap gap-2.5 items-center text-[10px] font-black text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 shadow-3xs">
+                <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
+                  <input type="checkbox" id="toggleMA5" checked onchange="window.toggleLine('ma5', this.checked)" class="rounded text-purple-600 focus:ring-purple-400 w-3.5 h-3.5 cursor-pointer" />
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-purple-500 inline-block rounded-xs"></span>(MA5)</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
+                  <input type="checkbox" id="toggleMA10" onchange="window.toggleLine('ma10', this.checked)" class="rounded text-emerald-600 focus:ring-emerald-400 w-3.5 h-3.5 cursor-pointer" />
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-emerald-500 inline-block rounded-xs"></span>(MA10)</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none hover:text-slate-900">
+                  <input type="checkbox" id="toggleMA20" checked onchange="window.toggleLine('ma20', this.checked)" class="rounded text-orange-600 focus:ring-orange-400 w-3.5 h-3.5 cursor-pointer" />
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-0.5 bg-orange-400 inline-block rounded-xs"></span>(MA20)</span>
+                </label>
+              </div>
+            </div>
+
+            <div id="priceScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div class="min-w-[960px] px-1 relative">
+                <div id="trendPriceChart" class="h-24 relative w-full border-b border-slate-200 bg-white"></div>
+                <div id="trendPriceDates" class="flex justify-between font-black mt-1.5 w-full"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1 mb-1">
+              <h4 class="text-xs font-black text-slate-500 flex items-center gap-1">🔹 三大法人 (張)</h4>
+              <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button id="subTabF" class="px-3 py-1 text-xs font-black bg-white text-slate-900 rounded-md shadow-2xs cursor-pointer transition-all">外資</button>
+                <button id="subTabIT" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">投信</button>
+                <button id="subTabDS" class="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-md cursor-pointer transition-all">自營商</button>
+              </div>
+            </div>
+            <div id="chipScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div id="trendChipChart" class="w-full min-w-[960px]"></div>
+            </div>
+          </div>
+
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+            <div id="marginScrollWrapper" class="w-full overflow-x-auto pb-2 scrollbar-thin">
+              <div id="trendMarginChart" class="w-full min-w-[960px]"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="macdZone" class="hidden space-y-4 w-full grow">
+          <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col w-full">
+            
+            <div class="w-full">
+              <div class="flex items-center justify-between w-full pb-1.5">
+                <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
+                <div class="flex gap-3 text-xs font-black text-slate-500">
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-500 inline-block rounded-xs"></span>DIF快線</span>
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-orange-400 inline-block rounded-xs"></span>DEA慢線</span>
+                </div>
+              </div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
+                <div id="macdLineChart" class="w-full h-full relative"></div>
+              </div>
+              <div id="macdLineDates" class="w-full mt-1"></div>
+            </div>
+
+            <div class="border-b border-slate-200 my-4 w-full"></div>
+
+            <div class="w-full">
+              <div class="flex items-center justify-between w-full pb-1.5">
+                <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
+                <div class="flex gap-3 text-xs font-black text-slate-500">
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
+                </div>
+              </div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
+                <div id="macdBarChart" class="w-full h-full relative"></div>
+              </div>
+              <div id="macdBarDates" class="w-full mt-1"></div>
+            </div>
+
+            <div class="border-b border-slate-200 my-4 w-full"></div>
+
+            <div class="w-full">
+              <div class="flex items-center justify-between w-full pb-1.5">
+                <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
+                  <span>⚡ KD 指標</span>
+                  <span class="text-xs font-black text-slate-400 font-sans tracking-tight">(超買區 >80, 超賣區 <20)</span>
+                </h4>
+                <div class="flex gap-3 text-xs font-black text-slate-500">
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-sky-500 inline-block rounded-xs"></span>K值 (快線)</span>
+                  <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-amber-500 inline-block rounded-xs"></span>D值 (慢線)</span>
+                </div>
+              </div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
+                <div id="kdLineChart" class="w-full h-full relative"></div>
+              </div>
+              <div id="kdDatesEl" class="w-full mt-1"></div>
+              <div class="text-left text-xs font-black text-slate-500 mt-2.5 pl-0.5 tracking-wide w-full">
+                備註: 大於80為"超買" , 低於20為"超賣"
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="newsZone" class="hidden h-full w-full overflow-y-auto grow">
+          <div id="debugLogZone" class="mb-4 p-3 bg-slate-900 text-amber-400 font-mono text-[11px] rounded-xl border border-slate-700 leading-normal hidden whitespace-pre-wrap text-left"></div>
+          <div id="newsListZone" class="space-y-3 block w-full"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky top-0 z-40 bg-linear-to-r from-sky-400 via-cyan-400 to-blue-400 text-slate-900 py-3 shadow-md border-b border-sky-300/30 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0 shrink-0">
+        <img src="main_icon.png" alt="牛牛標誌" class="w-[36px] h-[36px] object-contain rounded-lg shadow-xs bg-white/40 p-0.5 shrink-0">
+        <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-slate-950 whitespace-nowrap">牛牛分析站</h1>
+      </div>
+      <div class="flex items-center gap-4 shrink-0 min-w-0">
+        <div class="hidden sm:flex items-center gap-3 text-[11px] font-bold text-slate-800/90 whitespace-nowrap overflow-hidden">
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>名單更新：<span id="listUpdateTime" class="font-black text-slate-950">載入中...</span></span>
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>資料更新：<span id="chipUpdateTime" class="font-black text-slate-950">檢測中...</span></span>
+        </div>
+        <button id="forceSyncBtn" class="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1">⚡ 更新</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 pt-4 pb-12">
+    <section class="bg-white p-3 rounded-xl shadow-xs border border-slate-200 mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-row items-center gap-2 w-full sm:w-auto grow min-w-0">
+        <div class="flex-1 sm:w-44 sm:flex-initial">
+          <select id="tabSelect" onchange="window.switchTab(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors"></select>
+        </div>
+        <div class="flex-1 sm:w-56 sm:flex-initial">
+          <select id="macdFilterSelect" onchange="window.changeMacdFilter(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 focus:outline-none cursor-pointer transition-colors">
+            <option value="ALL">🌐 不指定型態 (顯示全部個股)</option>
+            <optgroup label="⭐ 全新菁英策略戰略模組">
+              <option value="N1">👑 土洋接力基本訊號（投信認養+外資首認錯轉買+守穩10MA）</option>
+              <option value="N2">👑 土洋接力共振防護強效版（追加融資減+RSI突破50+放量20%）</option>
+              <option value="N3">💎 底部超賣沉澱打底（KD低檔區20金叉+RSI低檔回升+融資連減）</option>
+            </optgroup>
+            <optgroup label="🔥 價量與型態表態模組">
+              <option value="1">⚡ 1. 壓縮突破（均線糾結+放量+法人點火）</option>
+              <option value="3">🚀 3. 黑馬起飛（四線多頭+MACD紅柱擴大）</option>
+              <option value="6">📊 6. 價量表態（創20日新高價量+外資鎖碼）</option>
+            </optgroup>
+            <optgroup label="📈 動能與指標共振模組">
+              <option value="4">🎯 4. 慣性改變（突破月線壓制+投信大買）</option>
+              <option value="5">🧬 5. 動能共振（KD金叉+MACD綠柱翻紅）</option>
+              <option value="14">💎 14. 結構性大轉折（月金叉季線+MACD站上0軸）</option>
+            </optgroup>
+            <optgroup label="👑 法人與主力鎖碼模組">
+              <option value="7">🔮 7. 珍珠蒙塵（法人連3買+橫盤壓縮）</option>
+              <option value="9">🌱 9. 投信無中生有（投信打破清白首日爆買）</option>
+              <option value="10">🦅 10. 雙雄聯手（外資大買+投信爆買+MACD翻紅）</option>
+            </optgroup>
+            <optgroup label="⚡ 籌碼換手與資券結構轉折">
+              <option value="2">🌅 2. 黎明曙光（季線下低檔+KD金叉+融資減）</option>
+              <option value="8">🤝 8. 籌碼換手（融資大退+法人神救援+守月線）</option>
+              <option value="11">🪜 11. 致命軋空（融券3日暴增+股價收最高）</option>
+              <option value="12">🐜 12. 權證螞蟻雄兵（自營商避險爆量+股價大漲）</option>
+              <option value="13">🏳️ 13. 主力投降（資券同減+KD金叉+收復5MA）</option>
+              <option value="15">🔄 15. 外資回頭（連5賣後首日認錯大買）</option>
+              <option value="16">🛡️ 16. 國家隊護盤（官股自行買賣逆勢大買+長下影線）</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-row items-center justify-between gap-2 w-full sm:w-auto shrink-0 border-t border-slate-100 pt-2 sm:border-t-0 sm:pt-0">
+        <div class="text-xs text-slate-500 font-extrabold whitespace-nowrap shrink-0">
+          共有: <span id="recordCount" class="font-bold text-sm text-blue-600">0</span> 檔
+        </div>
+        <div class="flex items-center gap-1.5 min-w-0 grow justify-end">
+          <div class="relative flex items-center min-w-0 grow max-w-[180px] sm:max-w-none">
+            <input type="text" id="keywordInput" placeholder="代號或名稱..." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+            <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">✕</button>
+          </div>
+          <button id="searchStockBtn" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs whitespace-nowrap flex items-center gap-1">🔍 搜尋</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="mainTableWrapper" class="bg-white rounded-xl shadow-md border border-slate-300 overflow-auto max-h-[72vh] relative">
+      <table class="min-w-full text-center text-sm text-slate-700 border-collapse table-fixed">
+        <thead class="text-slate-800 font-extrabold sticky top-0 z-30 bg-slate-100 shadow-xs border-b border-slate-300">
+          <tr id="tableHeaderDates"></tr>
+          <tr id="tableHeaderSub" class="text-xs text-slate-500 bg-slate-50/80"></tr>
+        </thead>
+        <tbody id="stockTableBody" class="bg-white"></tbody>
+      </table>
+    </section>
+
+    <div class="mt-12 border-t border-slate-300 pt-6">
+      <div class="flex items-center gap-1.5 mb-3">
+        <h2 class="text-base font-black text-slate-900">📋 附錄：雲端大帳本資料庫欄位對照規格表</h2>
+      </div>
+      <p class="text-xs text-slate-500 font-bold mb-4">本表紀錄後端雲端大帳本與前台前端資料流對位呼叫時所使用之實體 Schema 欄位結構：</p>
+      
+      <div class="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-xs max-h-[400px]">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-900 font-black border-b border-slate-300 sticky top-0">
+              <th class="p-2.5 border-r border-slate-200">實體欄位名稱 (JSON Key)</th>
+              <th class="p-2.5 border-r border-slate-200">資料型態</th>
+              <th class="p-2.5">前台中文說明與看盤特徵意義</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700 font-semibold font-mono">
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">stock_id</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">text</td>
+              <td class="p-2.5 font-sans">股票代號 (如: 2330)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">date</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">text</td>
+              <td class="p-2.5 font-sans">資料日期 (格式: YYYY-MM-DD)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">f_buy</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-rose-600">外資當日買進張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">f_sell</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-emerald-600">外資當日賣出張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">fd_buy</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">外資與自營商合計買進張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">fd_sell</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">外資與自營商合計賣出張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">it_buy</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-rose-600">投信當日買進張數 (投信認養指標)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">it_sell</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-emerald-600">投信當日賣出張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ds_buy</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">自營商(自行買賣)當日買進張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ds_sell</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">自營商(自行買賣)當日賣出張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">dh_buy</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-purple-600">自營商(避險)當日買進張數 (散戶權證連動)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">dh_sell</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-purple-600">自營商(避險)當日賣出張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">price</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans font-bold">當日個股收盤價</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">change_value</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">當日漲跌金額差值 (可為正負或零)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">open</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">當日開盤價</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">max</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">當日最高價</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">min</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">當日最低價</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">trading_volume</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">成交量 (張)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ma5</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">5日移動平均線 (週線)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ma10</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric(10,2)</td>
+              <td class="p-2.5 font-sans">10日均線 (雙週線 / 中期生命線)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ma20</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric(10,2)</td>
+              <td class="p-2.5 font-sans">20日均線 (月線 / 扣抵平衡防禦線)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">rsi14</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric(5,2)</td>
+              <td class="p-2.5 font-sans">14天期相對強弱指標 (動能轉折中軸判斷)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">macd_dif</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">MACD 指標之 DIF (快線線體)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">macd_signal</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">MACD 指標之 MACD (DEA慢線線體)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">macd_osc</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">MACD 指標之 OSC (動能多空柱狀體)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">rsv</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">KD 指標之未成熟隨機值 (RSV)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">kd_k</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">KD 指標之 K 值 (快速反應線)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">kd_d</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
+              <td class="p-2.5 font-sans">KD 指標之 D 值 (慢速確認線)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">margin_buy</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">當日散戶融資買進張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">margin_sell</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">當日散戶融資賣出張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">margin_balance</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-orange-600 font-bold">今日融資餘額累積總水位 (張)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">short_buy</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">當日融券買進 (回補還券) 張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">short_sell</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans">當日融券賣出 (借券放空) 張數</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80 bg-slate-50/30">
+              <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">short_balance</td>
+              <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
+              <td class="p-2.5 font-sans text-purple-600 font-bold">今日融券餘額累積總水位 (張)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastNotice" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-950/95 text-white border border-slate-700 font-black px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 text-sm tracking-wide shadow-black/40">
+    <span class="inline-block animate-spin text-lg text-blue-400">⏳</span>
+    <span>大數據多空交叉過濾中...</span>
+  </div>
+
+  <script type="module">
+    import { state, showSignalInfoDialog } from './js/config.js'; 
+    import { forceSyncFlow, calculateTradeDaysLists } from './js/api.js';
+    import { renderTableHeader, applyFilters, clearSearchField, executeStockSearch, handleSearchKeyup, switchTab, changeMacdFilter } from './js/ui.js';
+    import { openCombinedModal, closeNewsModal, switchModalTab, switchChipSubTab, toggleLine } from './js/macd.js';
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      window.showSignalInfoDialog = showSignalInfoDialog;
+      
+      window.openCombinedModal = openCombinedModal;
+      window.closeNewsModal = closeNewsModal;
+      window.switchTab = switchTab;
+      window.changeMacdFilter = changeMacdFilter;
+      window.toggleLine = toggleLine;
+
+      calculateTradeDaysLists();
+      renderTableHeader();
+
+      document.getElementById("forceSyncBtn").addEventListener("click", forceSyncFlow);
+      document.getElementById("closeNewsModalBtn").addEventListener("click", closeNewsModal);
+      document.getElementById("searchStockBtn").addEventListener("click", executeStockSearch);
+      document.getElementById("clearSearchBtn").addEventListener("click", clearSearchField);
+      document.getElementById("keywordInput").addEventListener("keyup", handleSearchKeyup);
+
+      document.getElementById("tabBtnTrend").addEventListener("click", () => switchModalTab('trend'));
+      document.getElementById("tabBtnMacd").addEventListener("click", () => switchModalTab('macd'));
+      document.getElementById("tabBtnNews").addEventListener("click", () => switchModalTab('news'));
+
+      document.getElementById("subTabF").addEventListener("click", () => switchChipSubTab('f'));
+      document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
+      document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
+
+      await forceSyncFlow();
+    });
+  </script>
 </body>
 </html>
