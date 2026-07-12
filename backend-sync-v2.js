@@ -1,4 +1,4 @@
-// backend-sync-v2.js
+// 跨接口三合一自動化增量同步backend-sync-v2.js
 import 'dotenv/config';
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
