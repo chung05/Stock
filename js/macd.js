@@ -143,7 +143,7 @@ function bindBiDirectionalScrollLinkage() {
   };
 }
 
-export function openCombinedModal(stockId, stockName) {
+export async function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
@@ -382,7 +382,7 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 完美對接新版 HTML 佈局，純粹注入 SVG 向量圖形，100% 亮起資料)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修復：與 index.html 完美看齊，精準灌注 SVG 折線數據)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -419,6 +419,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
+  // 1. 生成 15 日等差底置日期軸 HTML
   let lineDateHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
@@ -427,6 +428,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     lineDateHtml += `<span style="position: absolute; left: ${dateX}px; transform: translateX(-50%); text-align: center;" class="font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
   });
 
+  // 2. 映射數據與幾何座標
   dataset.forEach((d, idx) => {
     let exactX = 25 + (idx * stepX);
     
@@ -474,38 +476,35 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }
   });
 
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
+  difPoints.sort((a,b) => a.x - b.x); sigPoints.sort((a,b) => a.x - b.x);
+  kPoints.sort((a,b) => a.x - b.x); dPoints.sort((a,b) => a.x - b.x);
 
-  // 🎯 絕不在內部修改或複寫任何 <h4> 與外殼框線容器，僅純淨注入 SVG 向量渲染與時間日期軸[cite: 3]
+  let dPath = difPoints.map(p => `${p.x},${p.y}`).join(' ');
+  let sPath = sigPoints.map(p => `${p.x},${p.y}`).join(' ');
+  let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
+  let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
+
+  // 🎯 核心修正 2：不碰 index.html 的灰底圓角容器外殼，只將生好的純 SVG 線條注入內部骨架！
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if (lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
-  if (barChartEl) { barChartEl.innerHTML = `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">${barSvgHtml}</svg>`; barChartEl.style.width = "100%"; }
+  
+  if (barChartEl) { 
+    barChartEl.innerHTML = `
+      <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
+        ${barSvgHtml}
+      </svg>`; 
+    barChartEl.style.width = "100%"; 
+  }
+  
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
 
+  // 完美刷新底部時間日期軸
   if (lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
   if (bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
   if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
-  // ====================================================================================================
-  // 🎯 精準文字大小放大：直接抓取網頁已經獨立繪製好的原生外置標頭列元件，大字級美化看盤規格
-  // ====================================================================================================
-  const parentLine = lineChartEl.parentElement ? lineChartEl.parentElement.previousElementSibling : null;
-  if (parentLine) {
-    const h4 = parentLine.querySelector('h4'); if (h4) h4.className = "text-xs font-black text-slate-500";
-    const labels = parentLine.querySelectorAll('span'); labels.forEach(l => l.className = "flex items-center gap-0.5 text-xs font-black text-slate-500");
-  }
-
-  const parentBar = barChartEl.parentElement ? barChartEl.parentElement.previousElementSibling : null;
-  if (parentBar) {
-    const h4 = parentBar.querySelector('h4'); if (h4) h4.className = "text-xs font-black text-slate-500";
-    const labels = parentBar.querySelectorAll('span'); labels.forEach(l => l.className = "flex items-center gap-0.5 text-xs font-black text-slate-500");
-  }
-
-  const parentKd = kdChartEl.parentElement ? kdChartEl.parentElement.previousElementSibling : null;
-  if (parentKd) {
-    const h4 = parentKd.querySelector('h4'); if (h4) h4.className = "text-xs font-black text-slate-500";
-    const labels = parentKd.querySelectorAll('span'); labels.forEach(l => l.className = "flex items-center gap-0.5 text-xs font-black text-slate-500");
-  }
+  // 徹底清除最尾端 parentLine.innerHTML 等會抹除圖表的舊代碼！
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
