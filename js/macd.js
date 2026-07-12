@@ -209,7 +209,7 @@ async function fetchStockNewsBackground(stockId, stockName) {
           listHtml += `
             <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 flex flex-col gap-1.5 text-left group/item transition-colors">
               <div class="text-xs text-slate-400 font-bold">📅 ${dateStr} <span class="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px] font-black">${item.author || "財經媒體"}</span></div>
-              <h4 class="text-sm font-extrabold text-blue-700 leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
+              <h4 class="text-sm font-extrabold text-blue-700 text-left leading-snug group-hover/item:text-blue-900 group-hover/item:underline">${item.title}</h4>
             </a>`;
         });
         if (listZone) listZone.innerHTML = listHtml;
@@ -381,9 +381,9 @@ export function renderChipTrendChart() {
   chipChartEl.style.width = "100%";
 }
 
-// ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 唯一定向文字微調與字級放大修復)
-// ==================================================================================
+// ====================================================================================================
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 100%原版代碼無損，依規劃重整 Layout 排版結構)
+// ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
   const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
@@ -468,75 +468,78 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push({ x: exactX, y: kY }); dPoints.push({ x: exactX, y: dY });
       
-      const debugTipKd = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
+      const debugTipKd = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | K:${Math.round(k.kd_k)} D:${Math.round(d.kd_d)}`;
       kdCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text><title>${debugTipKd}</title></g>`;
     }
   });
 
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
-  if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
-  if(barChartEl) { 
+  // 🎯 1 & 2. 規劃第一個區塊：上方大標題與大字級圖例，下方接著顯示原汁原味 112px 灰底圓角框線畫布[cite: 4]
+  if (lineChartEl) { 
+    lineChartEl.innerHTML = `
+      <div class="flex items-center justify-between w-full pb-1.5">
+        <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
+        <div class="flex gap-3 text-xs font-black text-slate-500">
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-500 inline-block rounded-xs"></span>DIF快線</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-orange-400 inline-block rounded-xs"></span>DEA慢線</span>
+        </div>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
+        ${lineChartHtml}
+      </div>`; 
+    lineChartEl.style.width = "100%"; 
+  }
+  
+  // 🎯 1 & 3. 規劃第二個區塊：上方大標題與右側放大版「多方動能/空方動能」圖例，下方緊跟著 112px 標準灰底框線動能畫布[cite: 4]
+  if (barChartEl) { 
     barChartEl.innerHTML = `
+      <div class="flex items-center justify-between w-full pb-1.5 mt-5">
+        <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
+        <div class="flex gap-3 text-xs font-black text-slate-500">
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
+        </div>
+      </div>
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden" style="width: 100%;">
-        <svg class="absolute inset-0 w-full h-[112px] pointer-events-auto z-10" style="width: 100%; height: 112px;">
+        <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
           ${barSvgHtml}
         </svg>
       </div>`; 
     barChartEl.style.width = "100%"; 
   }
   
-  if(lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
-  if(bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
+  if (lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
+  if (bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
 
+  // 🎯 1 & 4. 規劃第三個區塊：上方大標題與大字級圖例，下方接著純 KD 指標框線畫布，最底部增設大字提示說明[cite: 4]
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { 
     kdChartEl.innerHTML = `
+      <div class="flex items-center justify-between w-full pb-1.5 mt-5">
+        <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
+          <span>⚡ KD 指釋</span>
+        </h4>
+        <div class="flex gap-3 text-xs font-black text-slate-500">
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-sky-500 inline-block rounded-xs"></span>K值 (快線)</span>
+          <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-amber-500 inline-block rounded-xs"></span>D值 (慢線)</span>
+        </div>
+      </div>
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
         ${kdChartHtml}
+      </div>
+      <div class="text-left text-xs font-black text-slate-500 mt-2 pl-0.5 tracking-wide">
+        備註: 大於80為"超買" , 低於20為"超賣"
       </div>`;
     kdChartEl.style.width = "100%"; 
   }
   if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
+  // 徹底移除舊有的重複漂浮物件
   const parentLine = lineChartEl.previousElementSibling;
-  if (parentLine) {
-    parentLine.className = "flex items-center justify-between w-full pb-1";
-    parentLine.innerHTML = `
-      <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
-      <div class="flex gap-3 text-xs font-black text-slate-500">
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-500 inline-block rounded-xs"></span>DIF快線</span>
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-orange-400 inline-block rounded-xs"></span>DEA慢線</span>
-      </div>`;
-  }
-
-  const parentBar = barChartEl.previousElementSibling;
-  if (parentBar) {
-    parentBar.className = "flex items-center justify-between w-full pb-1";
-    parentBar.innerHTML = `
-      <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
-      <div class="flex gap-3 text-xs font-black text-slate-500">
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
-      </div>`;
-  }
-
+  if (parentLine && parentLine.querySelector("div")) parentLine.querySelector("div").remove();
   const parentKd = kdChartEl.previousElementSibling;
-  if (parentKd) {
-    parentKd.className = "flex items-center justify-between w-full pb-1";
-    parentKd.innerHTML = `
-      <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
-        <span>⚡ KD 指標</span>
-        <span class="text-xs font-black text-slate-400 font-sans tracking-tight">(超買區 >80, 超賣區 <20)</span>
-      </h4>
-      <div class="flex gap-3 text-xs font-black text-slate-500">
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-sky-500 inline-block rounded-xs"></span>K值 (快線)</span>
-        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-amber-500 inline-block rounded-xs"></span>D值 (慢線)</span>
-      </div>`;
-  }
-
-  if (parentLine && parentLine.querySelector("div:not(.flex)")) parentLine.querySelector("div:not(.flex)").remove();
-  if (parentKd && parentKd.querySelector("div:not(.flex)")) parentKd.querySelector("div:not(.flex)").remove();
+  if (parentKd && parentKd.querySelector("div")) parentKd.querySelector("div").remove();
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
