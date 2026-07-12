@@ -382,100 +382,14 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 100%原版代碼無損，依規劃重整 Layout 排版結構)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極版面骨架重整：先文字標頭、後獨立灰底圓角框線畫布)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
-  const lineDatesEl = document.getElementById("macdLineDates"), boardTitleEl = document.getElementById("macdSignalTitle");
-  const bDWrapper = document.getElementById("macdBarDates");
-  const kdChartEl = document.getElementById("kdLineChart"), kdDatesEl = document.getElementById("kdLineDates");
+  const boardTitleEl = document.getElementById("macdSignalTitle");
+  const kdChartEl = document.getElementById("kdLineChart");
 
-  let cronDates = [...dates].sort((a, b) => a.localeCompare(b));
-  if (cronDates.length > 15) { cronDates = cronDates.slice(-15); }
-
-  let dataset = cronDates.map(d => { 
-    const row = chips.find(c => String(c.date) === d); 
-    return { 
-      date: d, 
-      dif: row ? getValIgnoreCase(row, 'macd_dif') : null, 
-      sig: row ? getValIgnoreCase(row, 'macd_signal') : null, 
-      osc: row ? getValIgnoreCase(row, 'macd_osc') : null,
-      kd_k: row ? getValIgnoreCase(row, 'kd_k') : null,
-      kd_d: row ? getValIgnoreCase(row, 'kd_d') : null
-    }; 
-  });
-
-  let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
-  let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
-  
-  const containerWidth = lineChartEl ? lineChartEl.clientWidth : 940;
-  let usableWidth = containerWidth - 50; 
-  let stepX = usableWidth / 14; 
-  
-  let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
-  let barSvgHtml = `<line x1="0" y1="56" x2="100%" y2="56" stroke="#94a3b8" stroke-width="1.2" />`;
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 50%;"></div>`;
-  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
-  let kPoints = [], dPoints = [], kdCirclesHtml = "";
-
-  let lineDateHtml = "";
-  dataset.forEach((d, idx) => {
-    const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
-    let dateX = 25 + (idx * stepX);
-    const dateDebugText = `網格欄位:${idx} | 日期:${d.date} | X軸座標:${dateX.toFixed(1)}px`;
-    lineDateHtml += `<span style="position: absolute; left: ${dateX}px; transform: translateX(-50%); text-align: center;" class="font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
-  });
-
-  dataset.forEach((d, idx) => {
-    let exactX = 25 + (idx * stepX);
-    
-    let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
-    let sigY = ((maxLine - d.sig) / lineRange) * 70 + 15;
-    let exactDifY = (difY / 100) * 112;
-    let exactSigY = (sigY / 100) * 112;
-
-    const debugTipDif = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
-    const debugTipSig = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
-
-    if (d.dif !== null) { 
-      difPoints.push({ x: exactX, y: exactDifY }); 
-      macdLineCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactDifY}" r="3" fill="#3b82f6" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif">${d.dif.toFixed(2)}</text><title>${debugTipDif}</title></g>`; 
-    }
-    if (d.sig !== null) { 
-      sigPoints.push({ x: exactX, y: exactSigY }); 
-      macdLineCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text><title>${debugTipSig}</title></g>`; 
-    }
-
-    if (d.osc !== null) {
-      let barHeight = (Math.abs(d.osc) / maxOscAbs) * 45;
-      let barWidth = 12;
-      let barX = exactX - (barWidth / 2);
-      let barColor = d.osc > 0 ? "#ef4444" : "#10b981";
-      let barY = d.osc > 0 ? (56 - barHeight) : 56;
-      let textOscY = d.osc >= 0 ? (barY - 3) : (56 + barHeight + 11);
-      let textOscColor = d.osc >= 0 ? "#e11d48" : "#047857";
-
-      barSvgHtml += `
-        <g class="cursor-pointer">
-          <line x1="${exactX}" y1="0" x2="${exactX}" y2="112" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3" />
-          <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${barColor}" rx="1" />
-          <text x="${exactX}" y="${textOscY}" text-anchor="middle" font-weight="black" font-size="10" fill="${textOscColor}" font-family="sans-serif">${d.osc.toFixed(2)}</text>
-          <title>網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | 動能:${d.osc.toFixed(2)}</title>
-        </g>`;
-    }
-
-    if (d.kd_k !== null && d.kd_d !== null) {
-      let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
-      kPoints.push({ x: exactX, y: kY }); dPoints.push({ x: exactX, y: dY });
-      
-      const debugTipKd = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | K:${Math.round(k.kd_k)} D:${Math.round(d.kd_d)}`;
-      kdCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text><title>${debugTipKd}</title></g>`;
-    }
-  });
-
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
-  
-  // 🎯 1 & 2. 規劃第一個區塊：上方大標題與大字級圖例，下方接著顯示原汁原味 112px 灰底圓角框線畫布[cite: 4]
+  // 🎯 1. 規劃第一個區塊（📈 MACD趨勢）：上方大標題與大字級圖例，下方接著顯示 112px 獨立灰底圓角框線畫布
   if (lineChartEl) { 
     lineChartEl.innerHTML = `
       <div class="flex items-center justify-between w-full pb-1.5">
@@ -486,12 +400,11 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         </div>
       </div>
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
-        ${lineChartHtml}
-      </div>`; 
+        </div>`; 
     lineChartEl.style.width = "100%"; 
   }
   
-  // 🎯 1 & 3. 規劃第二個區塊：上方大標題與右側放大版「多方動能/空方動能」圖例，下方緊跟著 112px 標準灰底框線動能畫布[cite: 4]
+  // 🎯 2. 規劃第二個區塊（📊 MACD動能）：上方大標題與右側放大版「多方動能/空方動能」圖例，下方緊跟著 112px 標準灰底圓角框線動能畫布
   if (barChartEl) { 
     barChartEl.innerHTML = `
       <div class="flex items-center justify-between w-full pb-1.5 mt-5">
@@ -501,24 +414,17 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
           <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
         </div>
       </div>
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden" style="width: 100%;">
-        <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
-          ${barSvgHtml}
-        </svg>
-      </div>`; 
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
+        </div>`; 
     barChartEl.style.width = "100%"; 
   }
   
-  if (lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
-  if (bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
-
-  // 🎯 1 & 4. 規劃第三個區塊：上方大標題與大字級圖例，下方接著純 KD 指標框線畫布，最底部增設大字提示說明[cite: 4]
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
+  // 🎯 3. 規劃第三個區塊（⚡ KD 指標）：上方大標題與大字級圖例，下方接著純 KD 指標框線畫布，最底部增設大字白話提示說明
   if (kdChartEl) { 
     kdChartEl.innerHTML = `
       <div class="flex items-center justify-between w-full pb-1.5 mt-5">
         <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
-          <span>⚡ KD 指釋</span>
+          <span>⚡ KD 指標</span>
         </h4>
         <div class="flex gap-3 text-xs font-black text-slate-500">
           <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-sky-500 inline-block rounded-xs"></span>K值 (快線)</span>
@@ -526,16 +432,14 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
         </div>
       </div>
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
-        ${kdChartHtml}
-      </div>
+        </div>
       <div class="text-left text-xs font-black text-slate-500 mt-2 pl-0.5 tracking-wide">
         備註: 大於80為"超買" , 低於20為"超賣"
       </div>`;
     kdChartEl.style.width = "100%"; 
   }
-  if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
-  // 徹底移除舊有的重複漂浮物件
+  // 徹底清掃並防止原生舊外殼重複干擾
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine && parentLine.querySelector("div")) parentLine.querySelector("div").remove();
   const parentKd = kdChartEl.previousElementSibling;
@@ -556,7 +460,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   }
 
   const speechObj = WHITE_SPEECHES[targetCode] || {
-    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
+    desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理阶段，未觸發特殊法人或資券共振訊號。",
     cond: "【正常盤整】(未達多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
   };
 
