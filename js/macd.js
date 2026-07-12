@@ -419,13 +419,13 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 生成 15 日等差底置日期軸 HTML
+  // 1. 生成 15 日等差底置日期軸 HTML 
+  // 🎯 智慧修正：在最外層日期軸容器加上 11px 的左右 Padding 偏差補正 (左右原本 25px + 11px 內縮框線落差 = 36px)
   let lineDateHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     let dateX = 25 + (idx * stepX);
-    const dateDebugText = `網格欄位:${idx} | 日期:${d.date} | X軸座標:${dateX.toFixed(1)}px`;
-    lineDateHtml += `<span style="position: absolute; left: ${dateX}px; transform: translateX(-50%); text-align: center;" class="font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
+    lineDateHtml += `<span style="position: absolute; left: ${dateX}px; transform: translateX(-50%); text-align: center;" class="font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5">${datePart}</span>`; // 🌟 已移除 debug 懸浮標籤
   });
 
   // 2. 映射數據與幾何座標
@@ -437,16 +437,13 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    const debugTipDif = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
-    const debugTipSig = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
-
     if (d.dif !== null) { 
       difPoints.push({ x: exactX, y: exactDifY }); 
-      macdLineCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactDifY}" r="3" fill="#3b82f6" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif">${d.dif.toFixed(2)}</text><title>${debugTipDif}</title></g>`; 
+      macdLineCirclesHtml += `<g><circle cx="${exactX}" cy="${exactDifY}" r="3" fill="#3b82f6" /><text x="${exactX}" y="${exactDifY - 4}" text-anchor="middle" font-weight="black" font-size="10" fill="#1d4ed8" font-family="sans-serif">${d.dif.toFixed(2)}</text></g>`; // 🌟 已移除 <title> 標籤
     }
     if (d.sig !== null) { 
       sigPoints.push({ x: exactX, y: exactSigY }); 
-      macdLineCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text><title>${debugTipSig}</title></g>`; 
+      macdLineCirclesHtml += `<g><circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text></g>`; // 🌟 已移除 <title> 標籤
     }
 
     if (d.osc !== null) {
@@ -459,20 +456,18 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       let textOscColor = d.osc >= 0 ? "#e11d48" : "#047857";
 
       barSvgHtml += `
-        <g class="cursor-pointer">
+        <g>
           <line x1="${exactX}" y1="0" x2="${exactX}" y2="112" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3" />
           <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${barColor}" rx="1" />
           <text x="${exactX}" y="${textOscY}" text-anchor="middle" font-weight="black" font-size="10" fill="${textOscColor}" font-family="sans-serif">${d.osc.toFixed(2)}</text>
-          <title>網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | 動能:${d.osc.toFixed(2)}</title>
-        </g>`;
+        </g>`; // 🌟 已移除 <title> 標籤
     }
 
     if (d.kd_k !== null && d.kd_d !== null) {
       let kY = ((100 - d.kd_k) / 100) * 112; let dY = ((100 - d.kd_d) / 100) * 112;
       kPoints.push({ x: exactX, y: kY }); dPoints.push({ x: exactX, y: dY });
       
-      const debugTipKd = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | K:${Math.round(d.kd_k)} D:${Math.round(d.kd_d)}`;
-      kdCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text><title>${debugTipKd}</title></g>`;
+      kdCirclesHtml += `<g><circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text></g>`; // 🌟 已移除 <title> 標籤
     }
   });
 
@@ -484,7 +479,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  // 🎯 核心修正 2：不碰 index.html 的灰底圓角容器外殼，只將生好的純 SVG 線條注入內部骨架！
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if (lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
@@ -499,12 +493,10 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
 
-  // 完美刷新底部時間日期軸
-  if (lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
-  if (bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
-  if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
-
-  // 徹底清除最尾端 parentLine.innerHTML 等會抹除圖表的舊代碼！
+  // 🌟 完美刷新底部時間日期軸 (利用 px-[11px] 內縮補正第一層與第二層框線 Padding 落差)
+  if (lineDatesEl) { lineDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;" class="px-[11px]">${lineDateHtml}</div>`; lineDatesEl.style.width = "100%"; }
+  if (bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;" class="px-[11px]">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
+  if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;" class="px-[11px]">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
