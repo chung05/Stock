@@ -382,7 +382,7 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 幾何優化：圖表高度100%恢復，日期文字精準鎖死在 Y=120px)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極對齊：圖表不變，日期文字安全定格在畫布內部的 Y=102px 處)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -418,22 +418,22 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 16%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 42%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 72%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 🎯 核心對齊：將 Y 坐標精準鎖死在 120px，完全置於最下緣，不更動其餘任何高低限制
+  // 1. 🎯 幾何安全定格：將日期文字 Y 座標精準設為 102px，保證完全在第二層框線容器內部（總高112px）完整呈出不截斷
   let svgEmbeddedDatesHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     let dateX = 25 + (idx * stepX);
-    svgEmbeddedDatesHtml += `<text x="${dateX}" y="120" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
+    svgEmbeddedDatesHtml += `<text x="${dateX}" y="102" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 2. 映射數據與幾何坐標
+  // 2. 原始 Y 軸公式與物理高度範圍 (0px ~ 92px) 完好如初完全不動
   dataset.forEach((d, idx) => {
     let exactX = 25 + (idx * stepX);
     
     let difY = ((maxLine - d.dif) / lineRange) * 60 + 12;
     let sigY = ((maxLine - d.sig) / lineRange) * 60 + 12;
-    let exactDifY = (difY / 100) * 92;
-    let exactSigY = (sigY / 100) * 92;
+    let exactDifY = (difY / 100) * 92; 
+    let exactSigY = (sigY / 100) * 92; 
 
     if (d.dif !== null) { 
       difPoints.push({ x: exactX, y: exactDifY }); 
@@ -477,22 +477,22 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  // 3. 實體一體化注入
-  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 132px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
+  // 3. 實體安全注入
+  if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
   if (lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
   if (barChartEl) { 
     barChartEl.innerHTML = `
-      <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 132px;">
+      <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
         ${barSvgHtml}${svgEmbeddedDatesHtml}
       </svg>`; 
     barChartEl.style.width = "100%"; 
   }
   
-  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 132px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
+  if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
 
-  // 4. 清洗安全外殼
+  // 4. 清洗外部安全外殼
   if (lineDatesEl) { lineDatesEl.innerHTML = ""; }
   if (bDWrapper) { bDWrapper.innerHTML = ""; }
   if (kdDatesEl) { kdDatesEl.innerHTML = ""; }
