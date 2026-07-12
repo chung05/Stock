@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>牛牛分析站 - 19種智慧過濾模型與資料庫欄位詳細規格說明書</title>
+  <title>牛牛分析站 - 19種智慧過濾篩選模型與資料庫欄位詳細規格書</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 p-8 font-sans antialiased">
@@ -11,201 +11,208 @@
     <div class="border-b-2 border-blue-600 pb-4 mb-6 flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-black text-slate-900">📊 牛牛分析站 - 系統篩選策略與資料庫交接規格書</h1>
-        <p class="text-sm font-bold text-slate-500 mt-1">智慧過濾籌碼寬資版 - 19種篩選模型細化邏輯、目前使用精確數值、與實體資料庫欄位紀錄全面對照指南</p>
+        <p class="text-sm font-bold text-slate-500 mt-1">智慧過濾籌碼寬資版 - 19種前/後端篩選模型細化邏輯、目前運作精確數值、與實體資料庫規格紀錄全面對照表</p>
       </div>
       <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow-xs cursor-pointer transition-colors">🖨️ 一鍵轉存 PDF / 列印手冊</button>
     </div>
 
-    <div class="overflow-x-auto mb-10">
-      <table class="w-full text-left text-xs border-collapse border border-slate-200">
-        <thead>
-          <tr class="bg-slate-100 text-slate-900 font-black border-b border-slate-300 text-sm">
-            <th class="p-3 border border-slate-200 w-28">模組分類</th>
-            <th class="p-3 border border-slate-200 text-center w-14">代號</th>
-            <th class="p-3 border border-slate-200 w-44">訊號/策略名稱</th>
-            <th class="p-3 border border-slate-200">看盤核心詳細規則 (邏輯與型態特徵)</th>
-            <th class="p-3 border border-slate-200 w-52 text-blue-700">目前模型使用數值 (系統預設硬編碼)</th>
-            <th class="p-3 border border-slate-200 w-52">後續可微調與優化方向</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-200 font-medium text-slate-700 leading-relaxed">
-          <tr class="bg-amber-50/40">
-            <td class="p-3 border border-slate-200 font-black text-amber-800" rowspan="3">⭐ 全新菁英策略</td>
-            <td class="p-3 border border-slate-200 text-center font-black">N1</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">土洋接力基本訊號</td>
-            <td>投信鎖碼認養，搭配外資大方向認錯回頭。股價回檔不破中期生命線，屬於強勢波段換手型態。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 投信當日買超 &gt; 0 張<br>2. 外資當日買超 &gt; 0 張<br>3. 收盤價 &gt;= 10MA 均線</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將雙法人買超改為設定下限（如均 &gt; 200張），加強濾網。</td>
-          </tr>
-          <tr class="bg-amber-50/40">
-            <td class="p-3 border border-slate-200 text-center font-black">N2</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">土洋接力共振防護強效版</td>
-            <td>N1的升級震盪清洗版。透過「融資減」確認散戶浮額退場，搭配 RSI 動能指標突破中軸轉強，且伴隨量能攻擊。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 符合 N1 全數條件<br>2. 散戶融資當日減 &gt; 0 張<br>3. RSI14 指標 &gt; 50<br>4. 今日量 &gt;= 20日均量 * 1.2</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調量能爆發倍數（如 1.2 倍提高至 1.5 倍攻擊量）。</td>
-          </tr>
-          <tr class="bg-amber-50/40">
-            <td class="p-3 border border-slate-200 text-center font-black">N3</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">底部超賣沉澱打底</td>
-            <td>股價經歷長期修正後的安全打底訊號。指標位於極度超賣區共振回升，且市場融資信用部位持續退場，籌碼沉澱完畢。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. KD之K值 &lt; 20 且金叉D值<br>2. RSI14 由低檔連續2日回升<br>3. 融資餘額連續 2 日減少</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可放寬低檔區間至 25 或者是拉長融資連減天數（如連3減）。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 font-black text-rose-700" rowspan="3">🔥 價量型態</td>
-            <td class="p-3 border border-slate-200 text-center font-black">1</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">壓縮突破</td>
-            <td>短期均線與中期均線高度糾結（箱型壓縮），當日突發長紅 K 線或爆量突破，通常代表新一輪波段行情點火。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. Max(MA5,10,20)/Min(MA5,10,20) 誤差 &lt; 3%<br>2. 今日量 &gt;= 5日均量 * 1.5<br>3. 外資或投信買超 &gt; 300 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調均線糾結誤差（2%更嚴格），或加入股價漲幅限制（&gt;3%）。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">3</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">黑馬起飛</td>
-            <td>標準的多頭發散噴發型態。短中長期均線全面多頭排列，且 MACD 主動能紅柱（OSC）處於持續擴張的極速進攻狀態。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. MA5 &gt; MA10 &gt; MA20 &gt; MA60<br>2. MACD_OSC &gt; 0<br>3. OSC(今日) &gt; OSC(昨日)</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可加入「偏離 5MA 乖離率」上限（如過高不追，防短線過熱）。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">6</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">價量表態</td>
-            <td>強勢股突破波段新高型態。股價刷新一個月以來的最高收盤價，且有大資金（外資）巨額鎖碼進駐。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 收盤價 = 近 20 日最高收盤價<br>2. 當日成交量 &gt; 近 5 日最大量<br>3. 外資當日買超 &gt; 500 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將新高天數門檻由 20 日拉長至 60 日（季新高）提升大趨勢精準度。</td>
-          </tr>
-          <tr class="bg-blue-50/20">
-            <td class="p-3 border border-slate-200 font-black text-blue-700" rowspan="3">📈 動能指標</td>
-            <td class="p-3 border border-slate-200 text-center font-black">4</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">慣性改變</td>
-            <td>原本受到中期月線下彎壓制的空方慣性被打破。股價首日強勢站上月線，且投信法人在底部出現防守性大買。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 昨日價 &lt; MA20 且 今日價 &gt; MA20<br>2. 投信當日買超 &gt; 250 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調投信防守張數門檻（例如針對大型股提高至 500 張）。</td>
-          </tr>
-          <tr class="bg-blue-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">5</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">動能共振</td>
-            <td>技術指標的雙重共振。短期動能（KD）黃金交叉，同時中波段趨勢動能（MACD）綠柱動能衰退並翻紅，代表雙重轉強。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. KD 發生黃金交叉<br>2. MACD_OSC &gt; 昨日 MACD_OSC<br>3. 當日成交量 &gt; 5日均量</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可限制 KD 交叉必須發生在 50 中軸以下（確保非高檔過熱區）。</td>
-          </tr>
-          <tr class="bg-blue-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">14</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">結構性大轉折</td>
-            <td>大波段的多空結構大扭轉。月線（短波段趨勢）向上黃金交叉季線（中長線生命線），且 MACD 快線翻上 0 軸進入多方發展。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. MA20 向上交叉 MA60 (近2日內)<br>2. MACD_DIF &gt; 0 (進入零軸之上)</td>
-            <td class="p-3 border border-slate-200 text-slate-500">屬於長線策略，可加入當日季線（MA60）必須扣抵低值（即季線向上）的限制。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 font-black text-purple-700" rowspan="3">👑 主力鎖碼</td>
-            <td class="p-3 border border-slate-200 text-center font-black">7</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">珍珠蒙塵</td>
-            <td>標準的「主力暗中吸籌」型態。法人在市場上大舉、連續吃貨買進，但股價卻被壓在箱型或狹幅區間不漲，靜待表態。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 外資或投信連續 3 日買超<br>2. 合計法人買超量 &gt; 1500 張<br>3. 近 3 日股價高低震盪波動 &lt; 4%</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可拉長吸籌天數（如連 5 買），更易抓到中線超級黑馬股。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">9</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">投信無中生有</td>
-            <td>業界極高勝率的「神券商打破清白」策略。投信在過去數個月完全沒有任何該股持股或進出，首日突然毫無徵兆爆量大買。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 過去 20 個交易日投信買超皆 = 0<br>2. 今日投信突然買超 &gt; 350 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可針對不同股本微調，如中小型股 200 張、大型股 500 張。</td>
-          </tr>
-          <tr>
-            <td class="p-3 border border-slate-200 text-center font-black">10</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">雙雄聯手</td>
-            <td>市場多頭共識最強烈的訊號。市場兩大資金巨頭（外資與內資投信）在同一天爆量大買點火，通常後面皆有強大基本面支撐。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 外資當日買超 &gt; 1000 張<br>2. 投信當日買超 &gt; 500 張<br>3. MACD_OSC 綠柱縮減或翻紅</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將張數條件改為佔成交量比例（如雙雄買超合計達當日量10%）。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 font-black text-emerald-800" rowspan="7">⚡ 籌碼結構</td>
-            <td class="p-3 border border-slate-200 text-center font-black">2</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">黎明曙光</td>
-            <td>極端的空頭大洗盤轉折。股價位於季線下的絕對低檔，散戶經不起震盪「融資恐慌斷頭大退」，但技術指標已低檔金叉。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 股價 &lt; MA60 且 負乖離率 &gt; 6%<br>2. 融資當日大減 &gt; 400 張<br>3. KD 在 &lt; 30 區域黃金交叉</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調股價偏離季線的負乖離率（如 -8%）來精準捕捉更大型的融資斷頭反彈。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">8</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">籌碼換手</td>
-            <td>中繼換手強勢防守。散戶融資部位因洗盤震盪而大退，但法人精準在月線（中期生命線）展開跨線救援大買，浮額洗淨。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 散戶融資當日減少 &gt; 300 張<br>2. 法人當日買超 &gt; 500 張<br>3. 收盤價在 MA20 上下 1.5% 內(守穩)</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可將守穩區間縮小（如月線正負 1% 內），防守力道更精準。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">11</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">致命軋空</td>
-            <td>強硬的空頭燃料爆發策略。市場融券賣方盲目放空，導致空頭部位暴增，主力趁機暴力拉抬逼空，股價強勢收最高。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 融券餘額近 3 日累計增 &gt; 600 張<br>2. 券資比 &gt; 25%<br>3. 收盤價位於當日最高價的 1% 內</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可調整券資比限制（提高至 35% 軋空力道更猛烈）。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">12</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">權證螞蟻雄兵</td>
-            <td>大戶利用權證槓桿發動突襲。權證市場爆發巨量，迫使自營商必須在現貨市場買進等量股票進行「避險鎖碼」，推升股價。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 自營商避險當日買超 &gt; 800 張<br>2. 當日股價漲幅 &gt; 4%</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可限制自營商必須「連續2日避險大買」，過濾隔日沖權證。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">13</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">主力投降</td>
-            <td>信用部位全面清洗。資券同減代表主力與散戶同步退場或大舉認賠，浮額呈現真空，此時 KD 出現交叉並收復 5MA 屬於極輕籌碼反彈。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 融資減 &gt; 0 且 融券減 &gt; 0<br>2. KD 發生交叉轉強<br>3. 收盤價 &gt; MA5 均線</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調融資券減少的比例限制，強化浮額洗淨的純度。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">15</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">外資回頭</td>
-            <td>外資高空認錯行情。外資主力在前一個波段瘋狂殺出大賣，但當日突然打破慣性，反手展開巨額認錯大轉買，易引發 V 轉。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 過去 5 日外資合計賣超 &gt; 3000 張<br>2. 今日外資反手大轉買 &gt; 800 張</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調前段大賣張數下限（如拉大至 5000 張更具逆轉指標性）。</td>
-          </tr>
-          <tr class="bg-emerald-50/20">
-            <td class="p-3 border border-slate-200 text-center font-black">16</td>
-            <td class="p-3 border border-slate-200 font-black text-slate-900">國家隊護盤</td>
-            <td>護盤基金或大公股券商的防守策略。在大盤或個股非理性崩跌時，八大官股券商逆勢巨額買超，收盤留下強大防守下影線。</td>
-            <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 官股券商合計買超 &gt; 600 張<br>2. (最高價-收盤價)/(最高價-最低價) &lt; 0.3<br>3. 下影線長度 &gt; 實體 K 線的 1.5 倍</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可結合大盤跌幅（如大盤大跌百點時），更能鎖定精準護盤標的。</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="mb-8">
+      <h2 class="text-base font-black text-slate-900 mb-3 flex items-center gap-2">
+        <span class="w-2.5 h-4 bg-blue-600 inline-block rounded-xs"></span>
+        <span>第一部分：19種篩選模型型態特徵與程式觸發條件</span>
+      </h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse border border-slate-200">
+          <thead>
+            <tr class="bg-slate-100 text-slate-900 font-black border-b border-slate-300 text-sm">
+              <th class="p-3 border border-slate-200 w-28">模組分類</th>
+              <th class="p-3 border border-slate-200 text-center w-14">代號</th>
+              <th class="p-3 border border-slate-200 w-44">訊號/策略名稱</th>
+              <th class="p-3 border border-slate-200">看盤核心詳細規則 (邏輯與型態特徵)</th>
+              <th class="p-3 border border-slate-200 w-52 text-blue-700">目前模型使用數值 (系統預設硬編碼)</th>
+              <th class="p-3 border border-slate-200 w-52">後續可微調與優化方向</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-medium text-slate-700 leading-relaxed">
+            <tr class="bg-amber-50/40">
+              <td class="p-3 border border-slate-200 font-black text-amber-800" rowspan="3">⭐ 全新菁英策略</td>
+              <td class="p-3 border border-slate-200 text-center font-black">N1</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">土洋接力基本訊號</td>
+              <td>投信鎖碼認養，搭配外資大方向認錯回頭。股價回檔不破中期生命線，屬於強勢波段換手型態。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 投信當日買超 &gt; 0 張<br>2. 外資當日買超 &gt; 0 張<br>3. 收盤價 &gt;= 10MA 均線</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可將雙法人買超改為設定下限（如均 &gt; 200張），加強濾網。</td>
+            </tr>
+            <tr class="bg-amber-50/40">
+              <td class="p-3 border border-slate-200 text-center font-black">N2</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">土洋接力共振防護強效版</td>
+              <td>N1的升級震盪清洗版。透過「融資減」確認散戶浮額退場，搭配 RSI 動能指標突破中軸轉強，且伴隨量能攻擊。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 符合 N1 全數條件<br>2. 散戶融資當日減 &gt; 0 張<br>3. RSI14 指標 &gt; 50<br>4. 今日量 &gt;= 20日均量 * 1.2</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可微調量能爆發倍數（如 1.2 倍提高至 1.5 倍攻擊量）。</td>
+            </tr>
+            <tr class="bg-amber-50/40">
+              <td class="p-3 border border-slate-200 text-center font-black">N3</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">底部超賣沉澱打底</td>
+              <td>股價經歷長期修正後的安全打底訊號。指標位於極度超賣區共振回升，且市場融資信用部位持續退場，籌碼沉澱完畢。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. KD之K值 &lt; 20 且金叉D值<br>2. RSI14 由低檔連續2日回升<br>3. 融資餘額連續 2 日減少</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可放寬低檔區間至 25 或者是拉長融資連減天數（如連3減）。</td>
+            </tr>
+            <tr>
+              <td class="p-3 border border-slate-200 font-black text-rose-700" rowspan="3">🔥 價量型態</td>
+              <td class="p-3 border border-slate-200 text-center font-black">1</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">壓縮突破</td>
+              <td>短期均線與中期均線高度糾結（箱型壓縮），當日突發長紅 K 線或爆量突破，通常代表新一輪波段行情點火。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. Max(MA5,10,20)/Min(MA5,10,20) 誤差 &lt; 3%<br>2. 今日量 &gt;= 5日均量 * 1.5<br>3. 外資或投信買超 &gt; 300 張</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可微調均線糾結誤差（2%更嚴格），或加入股價漲幅限制（&gt;3%）。</td>
+            </tr>
+            <tr>
+              <td class="p-3 border border-slate-200 text-center font-black">3</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">黑馬起飛</td>
+              <td>標準的多頭發散噴發型態。短中長期均線全面多頭排列，且 MACD 主動能紅柱（OSC）處於持續擴張的極速進攻狀態。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. MA5 &gt; MA10 &gt; MA20 &gt; MA60<br>2. MACD_OSC &gt; 0<br>3. OSC(今日) &gt; OSC(昨日)</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可加入「偏離 5MA 乖離率」上限（如過高不追，防短線過熱）。</td>
+            </tr>
+            <tr>
+              <td class="p-3 border border-slate-200 text-center font-black">6</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">價量表態</td>
+              <td>強勢股突破波段新高型態。股價刷新一個月以來的最高收盤價，且有大資金（外資）巨額鎖碼進駐。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 收盤價 = 近 20 日最高收盤價<br>2. 當日成交量 &gt; 近 5 日最大量<br>3. 外資當日買超 &gt; 500 張</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可調整新高天數定義（例如拉長至創 60 日新高）。</td>
+            </tr>
+            <tr class="bg-blue-50/20">
+              <td class="p-3 border border-slate-200 font-black text-blue-700" rowspan="3">📈 動能指標</td>
+              <td class="p-3 border border-slate-200 text-center font-black">4</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">慣性改變</td>
+              <td>原本受到中期月線下彎壓制的空方慣性被打破。股價首日強勢站上月線，且投信法人在底部出現防守性大買。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 昨日價 &lt; MA20 且 今日價 &gt; MA20<br>2. 投信當日買超 &gt; 250 張</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可微調投信防守張數門檻（例如針對大型股提高至 500 張）。</td>
+            </tr>
+            <tr class="bg-blue-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">5</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">動能共振</td>
+              <td>技術指標的雙重共振。短期動能（KD）黃金交叉，同時中波段趨勢動能（MACD）綠柱動能衰退並翻紅，代表雙重轉強。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. KD 發生黃金交叉<br>2. MACD_OSC &gt; 昨日 MACD_OSC<br>3. 當日成交量 &gt; 5日均量</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可限制 KD 交叉必須發生在 50 中軸以下（確保非高檔過熱區）。</td>
+            </tr>
+            <tr class="bg-blue-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">14</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">結構性大轉折</td>
+              <td>大波段的多空結構大扭轉。月線（短波段趨勢）向上黃金交叉季線（中長線生命線），且 MACD 快線翻上 0 軸進入多方發展。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. MA20 向上交叉 MA60 (近2日內)<br>2. MACD_DIF &gt; 0 (進入零軸之上)</td>
+              <td class="p-3 border border-slate-200 text-slate-500">屬於長線策略，可加入當日季線（MA60）必須扣抵低值（即季線向上）的限制。</td>
+            </tr>
+            <tr>
+              <td class="p-3 border border-slate-200 font-black text-purple-700" rowspan="3">👑 主力鎖碼</td>
+              <td class="p-3 border border-slate-200 text-center font-black">7</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">珍珠蒙塵</td>
+              <td>標準的「主力暗中吸籌」型態。法人在市場上大舉、連續吃貨買進，但股價卻被壓在箱型或狹幅區間不漲，靜待表態。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 外資或投信連續 3 日買超<br>2. 合計法人買超量 &gt; 1500 張<br>3. 近 3 日股價高低震盪波動 &lt; 4%</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可拉長吸籌天數（如連 5 買），更易抓到中線超級黑馬股。</td>
+            </tr>
+            <tr>
+              <td class="p-3 border border-slate-200 text-center font-black">9</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">投信無中生有</td>
+              <td>業界極高勝率的「神券商打破清白」策略。投信在過去數個月完全沒有任何該股持股或進出，首日突然毫無徵兆爆量大買。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 過去 20 個交易日投信買超皆 = 0<br>2. 今日投信突然買超 &gt; 350 張</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可針對不同股本微調，如中小型股 200 張、大型股 500 張。</td>
+            </tr>
+            <tr>
+              <td class="p-3 border border-slate-200 text-center font-black">10</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">雙雄聯手</td>
+              <td>市場多頭共識最強烈的訊號。市場兩大資金巨頭（外資與內資投信）在同一天爆量大買點火，通常後面皆有強大基本面支撐。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 外資當日買超 &gt; 1000 張<br>2. 投信當日買超 &gt; 500 張<br>3. MACD_OSC 綠柱縮減或翻紅</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可將張數條件改為佔成交量比例（如雙雄買超合計達當日量10%）。</td>
+            </tr>
+            <tr class="bg-emerald-50/20">
+              <td class="p-3 border border-slate-200 font-black text-emerald-800" rowspan="7">⚡ 籌碼結構</td>
+              <td class="p-3 border border-slate-200 text-center font-black">2</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">黎明曙光</td>
+              <td>極端的空頭大洗盤轉折。股價位於季線下的絕對低檔，散戶經不起震盪「融資恐慌斷頭大退」，但技術指標已低檔金叉。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 股價 &lt; MA60 且 負乖離率 &gt; 6%<br>2. 融資當日大減 &gt; 400 張<br>3. KD 在 &lt; 30 區域黃金交叉</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可微調股價偏離季線的負乖離率（如必須偏離 -5% 以上）。</td>
+            </tr>
+            <tr class="bg-emerald-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">8</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">籌碼換手</td>
+              <td>中繼換手強勢防守。散戶融資部位因洗盤震盪而大退，但法人精準在月線（中期生命線）展開跨線救援大買，浮額洗淨。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 散戶融資當日減少 &gt; 300 張<br>2. 法人當日買超 &gt; 500 張<br>3. 收盤價在 MA20 上下 1.5% 內(守穩)</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可將守穩區間縮小（如月線正負 1% 內），防守力道更精準。</td>
+            </tr>
+            <tr class="bg-emerald-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">11</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">致命軋空</td>
+              <td>強硬的空頭燃料爆發策略。市場融券賣方盲目放空，導致空頭部位暴增，主力趁機暴力拉抬逼空，股價強勢收最高。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 融券餘額近 3 日內累計增 &gt; 600 張<br>2. 券資比 &gt; 25%<br>3. 收盤價位於當日最高價的 1% 內</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可調整券資比限制（提高至 35% 軋空力道更猛烈）。</td>
+            </tr>
+            <tr class="bg-emerald-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">12</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">權證螞蟻雄兵</td>
+              <td>大戶利用權證槓桿發動突襲。權證市場爆發巨量，迫使自營商必須在現貨市場買進等量股票進行「避險鎖碼」，推升股價。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 自營商避險當日買超 &gt; 800 張<br>2. 當日股價漲幅 &gt; 4%</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可限制自營商必須「連續2日避險大買」，過濾隔日沖權證。</td>
+            </tr>
+            <tr class="bg-emerald-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">13</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">主力投降</td>
+              <td>信用部位全面清洗。資券同減代表主力與散戶同步退場或大舉認賠，浮額呈現真空，此時 KD 出現交叉並收復 5MA 屬於極輕籌碼反彈。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 融資減 &gt; 0 且 融券減 &gt; 0<br>2. KD 發生交叉轉強<br>3. 收盤價 &gt; MA5 均線</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可微調融資券減少的比例限制，強化浮額洗淨的純度。</td>
+            </tr>
+            <tr class="bg-emerald-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">15</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">外資回頭</td>
+              <td>外資高空認錯行情。外資主力在前一個波段瘋狂殺出大賣，但當日突然打破慣性，反手展開巨額認錯大轉買，易引發 V 轉。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 過去 5 日外資合計賣超 &gt; 3000 張<br>2. 今日外資反手大轉買 &gt; 800 張</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可調整大賣天數上限與認錯轉買的力道。</td>
+            </tr>
+            <tr class="bg-emerald-50/20">
+              <td class="p-3 border border-slate-200 text-center font-black">16</td>
+              <td class="p-3 border border-slate-200 font-black text-slate-900">國家隊護盤</td>
+              <td>護盤基金或大公股券商的防守策略。在大盤或個股非理性崩跌時，八大官股券商逆勢巨額買超，收盤留下強大防守下影線。</td>
+              <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 官股券商合計買超 &gt; 600 張<br>2. (最高價-收盤價)/(最高價-最低價) &lt; 0.3<br>3. 下影線長度 &gt; 實體 K 線的 1.5 倍</td>
+              <td class="p-3 border border-slate-200 text-slate-500">可結合大盤跌幅（如大盤大跌百點時），更能鎖定精盤護盤標的。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="mt-12 border-t-2 border-slate-300 pt-6">
-      <div class="flex items-center gap-1.5 mb-3">
-        <h2 class="text-base font-black text-slate-900">📋 附錄：雲端大帳本資料庫欄位對照規格表 (Supabase Schema)</h2>
-      </div>
-      <p class="text-xs text-slate-500 font-bold mb-4">本表紀錄後端雲端大帳本 API 回傳 JSON 與前端前台資料流微調對位時，所使用之實體 Schema 欄位結構：</p>
+      <h2 class="text-base font-black text-slate-900 mb-3 flex items-center gap-2">
+        <span class="w-2.5 h-4 bg-blue-600 inline-block rounded-xs"></span>
+        <span>第二部分：附錄 - 雲端大帳本資料庫欄位紀錄對照表 (Supabase Schema)</span>
+      </h2>
+      <p class="text-xs text-slate-500 font-bold mb-4">本表依據雲端實體紀錄資料（Fields_.txt）進行重繪，精確對照後端資料 API 回傳結構，移除任何前台看盤主頁雜訊：</p>
       
       <div class="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-xs">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100 text-slate-900 font-black border-b border-slate-300">
               <th class="p-3 border-r border-slate-200 w-64">實體欄位名稱 (JSON Key)</th>
-              <th class="p-3 border-r border-slate-200 w-44">資料型態 (Type)</th>
-              <th class="p-3">前台中文說明與看盤籌碼特徵意義</th>
+              <th class="p-3 border-r border-slate-200 w-44">資料型態 (Database Type)</th>
+              <th class="p-3">前台前端呼叫說明與籌碼特徵意義</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-700 font-semibold font-mono leading-relaxed">
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">stock_id</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">text</td>
-              <td class="p-2.5 font-sans font-bold">股票代號 (如: 2330)</td>
+              <td class="p-2.5 font-sans">股票代號 (例如: 2330, 2454)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">date</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">text</td>
-              <td class="p-2.5 font-sans">資料日期 (格式: YYYY-MM-DD)</td>
+              <td class="p-2.5 font-sans">資料日期 (全球統一格式: YYYY-MM-DD)</td>
             </tr>
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">f_buy</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
-              <td class="p-2.5 font-sans text-rose-600 font-bold">外資當日買進張數</td>
+              <td class="p-2.5 font-sans text-rose-600">外資當日買進張數</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">f_sell</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
-              <td class="p-2.5 font-sans text-emerald-600 font-bold">外資當日賣出張數</td>
+              <td class="p-2.5 font-sans text-emerald-600">外資當日賣出張數</td>
             </tr>
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">fd_buy</td>
@@ -220,12 +227,12 @@
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">it_buy</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
-              <td class="p-2.5 font-sans text-rose-600 font-bold">投信當日買進張數 (投信鎖碼看盤要標)</td>
+              <td class="p-2.5 font-sans text-rose-600 font-bold">投信當日買進張數 (法人認養關鍵核心)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">it_sell</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
-              <td class="p-2.5 font-sans text-emerald-600 font-bold">投信當日賣出張數</td>
+              <td class="p-2.5 font-sans text-emerald-600">投信當日賣出張數</td>
             </tr>
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ds_buy</td>
@@ -240,7 +247,7 @@
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">dh_buy</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
-              <td class="p-2.5 font-sans text-purple-600">自營商(避險)當日買進張數 (主力瘋掃權證連動)</td>
+              <td class="p-2.5 font-sans text-purple-600">自營商(避險)當日買進張數 (與大戶狂掃權證相關)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">dh_sell</td>
@@ -250,7 +257,7 @@
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">price</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
-              <td class="p-2.5 font-sans font-black text-slate-900">當日個股收盤價</td>
+              <td class="p-2.5 font-sans font-bold">當日個股收盤價</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">change_value</td>
@@ -280,17 +287,17 @@
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ma5</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
-              <td class="p-2.5 font-sans text-purple-600">5日移動平均線</td>
+              <td class="p-2.5 font-sans text-purple-600">5日移動平均線 (週均線)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ma10</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric(10,2)</td>
-              <td class="p-2.5 font-sans text-emerald-600">10日均線</td>
+              <td class="p-2.5 font-sans text-emerald-600">10日均線 (雙週均線)</td>
             </tr>
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">ma20</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric(10,2)</td>
-              <td class="p-2.5 font-sans text-orange-600">20日均線</td>
+              <td class="p-2.5 font-sans text-orange-600">20日均線 (月生命線)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">rsi14</td>
@@ -300,17 +307,17 @@
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">macd_dif</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
-              <td class="p-2.5 font-sans text-blue-600">MACD 指標之 DIF (快線)</td>
+              <td class="p-2.5 font-sans text-blue-600">MACD 指標之 DIF (快線線體)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">macd_signal</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
-              <td class="p-2.5 font-sans text-orange-500">MACD 指標之 MACD (慢線)</td>
+              <td class="p-2.5 font-sans text-orange-500">MACD 指標之 MACD (DEA慢線線體)</td>
             </tr>
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">macd_osc</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
-              <td class="p-2.5 font-sans font-bold">MACD 指標之 OSC (多空柱狀體)</td>
+              <td class="p-2.5 font-sans font-bold">MACD 指標之 OSC (多空動能柱狀體)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">rsv</td>
@@ -320,12 +327,12 @@
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">kd_k</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
-              <td class="p-2.5 font-sans text-sky-600">KD 指標之 K 值</td>
+              <td class="p-2.5 font-sans text-sky-600">KD 指標之 K 值 (反應快線)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">kd_d</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">numeric</td>
-              <td class="p-2.5 font-sans text-amber-500">KD 指標之 D 值</td>
+              <td class="p-2.5 font-sans text-amber-500">KD 指標之 D 值 (確認慢線)</td>
             </tr>
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">margin_buy</td>
@@ -340,7 +347,7 @@
             <tr class="hover:bg-slate-50/80">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">margin_balance</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
-              <td class="p-2.5 font-sans text-orange-600 font-bold">今日融資餘額(資券水位)</td>
+              <td class="p-2.5 font-sans text-orange-600 font-bold">今日融資餘額累積總水位 (張)</td>
             </tr>
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">short_buy</td>
@@ -355,7 +362,7 @@
             <tr class="hover:bg-slate-50/80 bg-slate-50/30">
               <td class="p-2.5 border-r border-slate-200 text-blue-600 font-bold">short_balance</td>
               <td class="p-2.5 border-r border-slate-200 text-slate-400">bigint</td>
-              <td class="p-2.5 font-sans text-purple-600 font-bold">今日融券餘額(資券水位)</td>
+              <td class="p-2.5 font-sans text-purple-600 font-bold">今日融券餘額累積總水位 (張)</td>
             </tr>
           </tbody>
         </table>
