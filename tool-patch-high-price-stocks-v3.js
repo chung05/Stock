@@ -1,4 +1,4 @@
-// tool-patch-high-price-stocks.js
+// tool-patch-high-price-stocks-v3.js
 if (!global.WebSocket) { global.WebSocket = class {}; }
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -11,22 +11,13 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// 自動取得動態當天日期 (格式：YYYY-MM-DD)
-function getTodayStr() {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 async function run() {
-  console.log("🔥 🚨 【全新高價股專用・精準歷史補件大程序】啟動...");
+  console.log("🔥 🚨 【牛牛大帳本 v3・全新高價股 34 欄位完美歷史補件程序】啟動...");
 
   // 🎯 1. 讀取母名單，同時拉出 sheet_tags 標籤進行精準審查
   const { data: targets, error: tErr } = await supabase
     .from('stock_targets')
-    .select('stock_id, sheet_tags'); // 🌟 多撈取標籤欄位
+    .select('stock_id, sheet_tags'); 
     
   if (tErr) throw tErr;
   
@@ -34,17 +25,17 @@ async function run() {
   const stockList = (targets || []).filter(item => {
     const tags = item.sheet_tags || [];
     
-    // 條件 A：必須包含您的高價股標籤 (請與您資料庫填寫的字串完全一致)
-    const hasHighPriceTag = tags.includes("High_100");
+    // 條件 A：標籤精準對齊更新為您指定的 "High_100"
+    const hasHighPriceTag = tags.includes("High_100"); 
     
-    // 條件 B：排除同時擁有舊分類(TW50, TW100, MSCI) 的已有資料個股
+    // 條件 B：排除同時擁有舊分類 (TW50, TW100, MSCI) 的已有資料個股
     const hasOldTags = tags.includes("TW50") || tags.includes("TW100") || tags.includes("MSCI");
     
-    // 只有「包含高價股 100」且「不屬於任何舊有成分股」的股票，才是需要補資料的全新標的
+    // 只有「包含 High_100」且「不屬於任何舊有成分股」的股票，才是需要補資料的全新標的
     return hasHighPriceTag && !hasOldTags;
   });
 
-  console.log(`📊 篩選完畢！已自動掠過複合標籤個股，共有: ${stockList.length} 檔全新高價股需要進行資料補齊。`);
+  console.log(`📊 篩選完畢！已自動過濾掠過複合標籤個股，共有: ${stockList.length} 檔全新高價股需要進行34欄位歷史補齊。`);
   if (stockList.length === 0) {
     console.log("✅ 沒有符合條件的全新個股，程序安全結束。");
     return;
@@ -55,33 +46,35 @@ async function run() {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
   };
 
+  // 🎯 3. 精準時間地際線限制設定：2026/01/02 至 2026/07/09
   const startDateStr = "2026-01-02";
-  const endDateStr = getTodayStr(); // 動態自動取得當天日期
-  console.log(`📅 資料歷史補件範圍設定：${startDateStr} 至 ${endDateStr}`);
+  const endDateStr = "2026-07-09"; 
+  console.log(`📅 資料歷史補件範圍死鎖設定：${startDateStr} 至 ${endDateStr}`);
 
-  // 3. 逐檔進行完整性校驗與實體重建
+  // 4. 逐檔進行 34 欄位完整性加載、暖身指標計算與實體入庫
   for (let i = 0; i < stockList.length; i++) {
     const sId = String(stockList[i].stock_id).trim();
     
-    // 🛡️ 流量防護：每 3 檔就強制休息 15 秒，極速降低觸發 FinMind 空殼或頻率限制的機率
-    if (i > 0 && i % 3 === 0) {
-      console.log(`⏳ [安全防禦] 已處理 ${i} 檔，強制原地冷卻 15 秒...`);
+    // 🛡️ 流量降載安全防線：每 2 檔就強制原地冷卻 15 秒
+    // 2 檔個股共有 2 * 3 = 6 次 API 調用，能完美防禦 FinMind 每分鐘的空殼或頻率限制
+    if (i > 0 && i % 2 === 0) {
+      console.log(`\n⏳ [安全防禦] 已處理 ${i} 檔，為保護每小時 600 次配額，強制原地冷卻 15 秒...`);
       await sleep(15000);
     }
 
-    console.log(`\n🔄 [補件進度 ${i + 1}/${stockList.length}] 正在專屬抓取重建個股: ${sId}`);
+    console.log(`\n🔄 [補件進度 ${i + 1}/${stockList.length}] 正在專屬抓取 34 欄位完全體個股: ${sId}`);
 
     try {
-      // 宣告一個真理交易日對照表，只有通過價格審查的日子才能留存
+      // 宣告開市交易日對照真理表
       const tradingDayMap = {};
 
-      // === (A) 核心關卡一：優先下載完整「價格」資料 ===
+      // === (A) 核心關卡一：優先下載完整「價格」資料 (API 呼叫 1) ===
       let priceFetched = false;
       let priceRetries = 3;
       while (!priceFetched && priceRetries > 0) {
         try {
           const priceUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-          const pRes = await axios.get(priceUrl, { headers: commonHeaders });
+          const pRes = await axios.get(priceUrl, { headers: commonHeaders, timeout: 15000 });
           
           if (pRes.data.status === 200 && Array.isArray(pRes.data.data) && pRes.data.data.length > 0) {
             pRes.data.data.forEach(pRow => {
@@ -89,15 +82,16 @@ async function run() {
               
               // 🚫 【硬性判定】如果收盤價不存在、為 0 或是 NULL，代表當天台股休市！
               if (!pRow.close || pRow.close === null || pRow.close === 0) {
-                return; // 徹底掠過，絕不在記憶體中建立這天的 Row 外殼
+                return; // 徹底掠過休市日，絕不建立 Row 外殼
               }
 
-              // 🌟 只有實打實有成交價的日子，才准許建立初始結構
+              // 🌟 建立 34 欄位實體資料格子，初始化預設資券欄位
               tradingDayMap[d] = { 
                 stock_id: sId, date: d, 
                 price: pRow.close, open: pRow.open || pRow.close, max: pRow.max || pRow.close, min: pRow.min || pRow.close, 
                 trading_volume: pRow.Trading_Volume || 0, change_value: pRow.spread || 0,
-                f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0 
+                f_buy: 0, f_sell: 0, fd_buy: 0, fd_sell: 0, it_buy: 0, it_sell: 0, ds_buy: 0, ds_sell: 0, dh_buy: 0, dh_sell: 0,
+                margin_buy: 0, margin_sell: 0, margin_balance: 0, short_buy: 0, short_sell: 0, short_balance: 0 // 🌟 成功補齊 6 個資券 Key
               };
             });
             priceFetched = true;
@@ -118,26 +112,21 @@ async function run() {
         continue;
       }
 
-      await sleep(600); // 延長 API 間隔
+      await sleep(400); // 溫和調速
 
-      // === (B) 核心關卡二：下載完整籌碼，並與開市日強行對齊 ===
+      // === (B) 核心關卡二：下載完整「三大法人籌碼」，並與開市日強行對齊 (API 呼叫 2) ===
       let chipFetched = false;
       let chipRetries = 3;
       while (!chipFetched && chipRetries > 0) {
         try {
           const chipUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
-          const cRes = await axios.get(chipUrl, { headers: commonHeaders });
+          const cRes = await axios.get(chipUrl, { headers: commonHeaders, timeout: 15000 });
           
           if (cRes.data.status === 200 && Array.isArray(cRes.data.data) && cRes.data.data.length > 0) {
             cRes.data.data.forEach(row => {
               const d = row.date;
-              
-              // 🚫 【硬性判定】如果這個籌碼日期在「開市真理表」裡找不到，表示當天台股放假！
-              if (!tradingDayMap[d]) {
-                return; // 直接扔掉休市日的籌碼髒資料
-              }
+              if (!tradingDayMap[d]) return; // 拋棄休市日的籌碼雜訊
 
-              // 確定當天有開市，才填入法人籌碼
               if (row.name === 'Foreign_Investor') { tradingDayMap[d].f_buy = row.buy; tradingDayMap[d].f_sell = row.sell; }
               else if (row.name === 'Foreign_Dealer_Self') { tradingDayMap[d].fd_buy = row.buy; tradingDayMap[d].fd_sell = row.sell; }
               else if (row.name === 'Investment_Trust') { tradingDayMap[d].it_buy = row.buy; tradingDayMap[d].it_sell = row.sell; }
@@ -162,7 +151,48 @@ async function run() {
         continue;
       }
 
-      // === (C) 執行無損技術指標遞迴計算 ===
+      await sleep(400); // 溫和調速
+
+      // === (C) 🌟 核心關卡三：完美補齊追加第三接口，一鍵抓回歷史「融資融券」數據 (API 呼叫 3) ===
+      let marginFetched = false;
+      let marginRetries = 3;
+      while (!marginFetched && marginRetries > 0) {
+        try {
+          const marginUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${process.env.FINMIND_TOKEN}`;
+          const mRes = await axios.get(marginUrl, { headers: commonHeaders, timeout: 15000 });
+          
+          if (mRes.data.status === 200 && Array.isArray(mRes.data.data) && mRes.data.data.length > 0) {
+            mRes.data.data.forEach(mRow => {
+              const d = mRow.date;
+              if (!tradingDayMap[d]) return; // 拋棄休市日的資券資料
+              
+              // 灌入 6 個信用交易實體數值欄位
+              tradingDayMap[d].margin_buy = mRow.MarginPurchaseBuy || 0;
+              tradingDayMap[d].margin_sell = mRow.MarginPurchaseSell || 0;
+              tradingDayMap[d].margin_balance = mRow.MarginPurchaseTodayBalance || 0;
+              tradingDayMap[d].short_buy = mRow.ShortSaleBuy || 0;
+              tradingDayMap[d].short_sell = mRow.ShortSaleSell || 0;
+              tradingDayMap[d].short_balance = mRow.ShortSaleTodayBalance || 0;
+            });
+            marginFetched = true;
+          } else {
+            console.log(`⚠️ 資券 API 回傳空殼 (Status: ${mRes.data.status})，15秒後重試...`);
+            await sleep(15000);
+            marginRetries--;
+          }
+        } catch (e) {
+          console.log(`💥 資券連線異常，15秒後重試: ${e.message}`);
+          await sleep(15000);
+          marginRetries--;
+        }
+      }
+
+      if (!marginFetched) {
+        console.error(`❌ [安全熔斷] 個股 ${sId} 無法取得歷史資券，跳過此個股。`);
+        continue;
+      }
+
+      // === (D) 核心關卡四：執行無損技術指標遞迴波段暖身計算 ===
       let sortedDays = Object.values(tradingDayMap).sort((a, b) => a.date.localeCompare(b.date));
       if (sortedDays.length < 10) {
         console.warn(`⚠️ [驗證失敗] 個股 ${sId} 的實體開市天數嚴重不足，拒絕入庫。`);
@@ -184,9 +214,9 @@ async function run() {
           // MA 均線 (5, 10, 20)
           if (subLen >= 5) targetDay.ma5 = parseFloat((subPool.slice(-5).reduce((a, b) => a + (b.price || 0), 0) / 5).toFixed(2));
           if (subLen >= 10) targetDay.ma10 = parseFloat((subPool.slice(-10).reduce((a, b) => a + (b.price || 0), 0) / 10).toFixed(2));
-          if (subLen >= 20) targetDay.ma20 = parseFloat((subPool.slice(-20).reduce((a, b) => a + (b.price || 0), 0) / 20).toFixed(2));
+          if (subLen >= 20) targetDay.ma20 = parseFloat((subPool.slice(-20).reduce((acc, c) => acc + (c.price || 0), 0) / 20).toFixed(2));
 
-          // RSI 14 (時間軸純淨連續，無休市斷代問題)
+          // RSI 14
           if (j > 0 && sortedDays[j - 1].price > 0) {
             const change = currentPrice - sortedDays[j - 1].price;
             const up = change > 0 ? change : 0;
@@ -235,19 +265,19 @@ async function run() {
         }
       }
 
-      // === (D) 整批乾淨寫入大帳本 ===
+      // === (E) 關卡五：34欄位完全體資料整批大量寫入雲端大帳本 ===
       const { error: insertErr } = await supabase.from('stock_chips_daily').insert(sortedDays);
       if (insertErr) throw insertErr;
-      console.log(`✨ [補件成功] 個股 ${sId} 歷史大帳本物理重建完畢。`);
+      console.log(`✨ [完全體入庫成功] 個股 ${sId} 的 34 欄位歷史波段大帳本物理重建完畢！`);
 
     } catch (singleErr) {
       console.error(`❌ 重建個股 ${sId} 失敗:`, singleErr.message);
     }
     
-    await sleep(600); // 延長間隔
+    await sleep(500); // 延長間隔
   }
 
-  console.log("\n🎉 【純淨全新高價股專用・歷史補件大工程】完美收官！");
+  console.log(`\n🎉 【2026/01/02 ~ 2026/07/09 全新高價股 High_100 完全體歷史補件大工程】完美收官！`);
 }
 
 run();
