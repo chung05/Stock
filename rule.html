@@ -2,20 +2,21 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>牛牛分析站 - 19種智慧過濾篩選模型詳細規格說明書</title>
+  <title>牛牛分析站 - 19種智慧過濾模型與資料庫欄位詳細規格書</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 p-8 font-sans antialiased">
   <div class="max-w-7xl mx-auto bg-white p-8 rounded-2xl shadow-md border border-slate-200">
+    
     <div class="border-b-2 border-blue-600 pb-4 mb-6 flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-black text-slate-900">📊 牛牛分析站 - 系統篩選策略詳細規格書</h1>
-        <p class="text-sm font-bold text-slate-500 mt-1">智慧過濾籌碼寬資版 - 19種篩選模型前/後端邏輯、目前使用精確數值與微調指南</p>
+        <h1 class="text-2xl font-black text-slate-900">📊 牛牛分析站 - 系統選股策略與資料庫交接規格書</h1>
+        <p class="text-sm font-bold text-slate-500 mt-1">智慧過濾籌碼寬資版 - 19種篩選模型細化邏輯、目前使用精確數值、與實體資料庫欄位紀錄對照表</p>
       </div>
       <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow-xs cursor-pointer transition-colors">🖨️ 一鍵轉存 PDF / 列印手冊</button>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto mb-10">
       <table class="w-full text-left text-xs border-collapse border border-slate-200">
         <thead>
           <tr class="bg-slate-100 text-slate-900 font-black border-b border-slate-300 text-sm">
@@ -23,7 +24,7 @@
             <th class="p-3 border border-slate-200 text-center w-14">代號</th>
             <th class="p-3 border border-slate-200 w-44">訊號/策略名稱</th>
             <th class="p-3 border border-slate-200">看盤核心詳細規則 (邏輯與型態特徵)</th>
-            <th class="p-3 border border-slate-200 w-48 text-blue-700">目前模型使用數值 (系統硬編碼)</th>
+            <th class="p-3 border border-slate-200 w-52 text-blue-700">目前模型使用數值 (系統預設硬編碼)</th>
             <th class="p-3 border border-slate-200 w-52">後續可微調與優化方向</th>
           </tr>
         </thead>
@@ -83,7 +84,7 @@
           <tr class="bg-blue-50/20">
             <td class="p-3 border border-slate-200 text-center font-black">5</td>
             <td class="p-3 border border-slate-200 font-black text-slate-900">動能共振</td>
-            <td>技術指標的雙重共振。短期動能（KD）黃金交叉，同時中波段趨勢動能（MACD）綠柱縮減或翻紅，代表雙重轉強。</td>
+            <td>技術指標的雙重共振。短期動能（KD）黃金交叉，同時中波段趨勢動能（MACD）綠柱動能衰退並翻紅，代表雙重轉強。</td>
             <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. KD 發生黃金交叉<br>2. MACD_OSC &gt; 昨日 MACD_OSC<br>3. 當日成交量 &gt; 5日均量</td>
             <td class="p-3 border border-slate-200 text-slate-500">可限制 KD 交叉必須發生在 50 中軸以下（確保非高檔過熱區）。</td>
           </tr>
@@ -122,7 +123,7 @@
             <td class="p-3 border border-slate-200 font-black text-slate-900">黎明曙光</td>
             <td>極端的空頭大洗盤轉折。股價位於季線下的絕對低檔，散戶經不起震盪「融資恐慌斷頭大退」，但技術指標已低檔金叉。</td>
             <td class="p-3 border border-slate-200 text-blue-800 font-bold">1. 股價 &lt; MA60 且 負乖離率 &gt; 6%<br>2. 融資當日大減 &gt; 400 張<br>3. KD 在 &lt; 30 區域黃金交叉</td>
-            <td class="p-3 border border-slate-200 text-slate-500">可微調負乖離率大小（如 -8%）來精準捕捉更大型的融資斷頭反彈。</td>
+            <td class="p-3 border border-slate-200 text-slate-500">可微調股價偏離季線的負乖離率（如 -8%）來精準捕捉更大型的融資斷頭反彈。</td>
           </tr>
           <tr class="bg-emerald-50/20">
             <td class="p-3 border border-slate-200 text-center font-black">8</td>
@@ -169,6 +170,53 @@
         </tbody>
       </table>
     </div>
+
+    <div class="mt-8 border-t-2 border-slate-300 pt-6">
+      <h2 class="text-base font-black text-slate-900 mb-3 flex items-center gap-1.5">
+        <span>📋 附錄：雲端大帳本實體資料庫紀錄欄位資訊 (Database Schema)</span>
+      </h2>
+      <p class="text-xs text-slate-500 font-bold mb-4">以下紀錄後端 API 以及 Supabase 雲端資料庫實際回傳之 JSON 對照結構欄位，供前台微調策略進行邏輯呼叫時對位參考：</p>
+      
+      <div class="bg-slate-900 text-emerald-400 p-5 rounded-xl font-mono text-xs overflow-x-auto shadow-inner leading-relaxed">
+[
+  { "欄位名稱": "stock_id",        "資料型態": "text",          "欄位說明": "股票代號" },
+  { "欄位名稱": "date",            "資料型態": "text",          "欄位說明": "資料日期" },
+  { "欄位名稱": "f_buy",           "資料型態": "bigint",        "欄位說明": "外資當日買進張數" },
+  { "欄位名稱": "f_sell",          "資料型態": "bigint",        "欄位說明": "外資當日賣出張數" },
+  { "欄位名稱": "fd_buy",          "資料型態": "bigint",        "欄位說明": "外資與自營商合計買進張數" },
+  { "欄位名稱": "fd_sell",         "資料型態": "bigint",        "欄位說明": "外資與自營商合計賣出張數" },
+  { "欄位名稱": "it_buy",          "資料型態": "bigint",        "欄位說明": "投信當日買進張數" },
+  { "欄位名稱": "it_sell",         "資料型態": "bigint",        "欄位說明": "投信當日賣出張數" },
+  { "欄位名稱": "ds_buy",          "資料型態": "bigint",        "欄位說明": "自營商(自行買賣)當日買進張數" },
+  { "欄位名稱": "ds_sell",         "資料型態": "bigint",        "欄位說明": "自營商(自行買賣)當日賣出張數" },
+  { "欄位名稱": "dh_buy",          "資料型態": "bigint",        "欄位說明": "自營商(避險)當日買進張數" },
+  { "欄位名稱": "dh_sell",         "資料型態": "bigint",        "欄位說明": "自營商(避險)當日賣出張數" },
+  { "欄位名稱": "price",           "資料型態": "numeric",       "欄位說明": "當日個股收盤價" },
+  { "欄位名稱": "change_value",    "資料型態": "numeric",       "欄位說明": "當日漲跌金額差值(可為正負或零)" },
+  { "欄位名稱": "open",            "資料型態": "numeric",       "欄位說明": "當日開盤價" },
+  { "欄位名稱": "max",             "資料型態": "numeric",       "欄位說明": "當日最高價" },
+  { "欄位名稱": "min",             "資料型態": "numeric",       "欄位說明": "當日最低價" },
+  { "欄位名稱": "trading_volume",  "資料型態": "numeric",       "欄位說明": "成交量(張)" },
+  { "欄位名稱": "ma5",             "資料型態": "numeric",       "欄位說明": "5日移動平均線" },
+  { "欄位名稱": "ma10",            "資料型態": "numeric(10,2)", "欄位說明": "10日均線" },
+  { "欄位名稱": "ma20",            "資料型態": "numeric(10,2)", "欄位說明": "20日均線" },
+  { "欄位名稱": "rsi14",           "資料型態": "numeric(5,2)",  "欄位說明": "14天期相對強弱指標" },
+  { "欄位名稱": "macd_dif",        "資料型態": "numeric",       "欄位說明": "MACD 指標之 DIF (快線)" },
+  { "欄位名稱": "macd_signal",     "資料型態": "numeric",       "欄位說明": "MACD 指標之 MACD (慢線)" },
+  { "欄位名稱": "macd_osc",        "資料型態": "numeric",       "欄位說明": "MACD 指標之 OSC (柱狀體)" },
+  { "欄位名稱": "rsv",             "資料型態": "numeric",       "欄位說明": "KD 指標之未成熟隨機值(RSV)" },
+  { "欄位名稱": "kd_k",            "資料型態": "numeric",       "欄位說明": "KD 指標之 K 值" },
+  { "欄位名稱": "kd_d",            "資料型態": "numeric",       "欄位說明": "KD 指標之 D 值" },
+  { "欄位名稱": "margin_buy",      "資料型態": "bigint",        "欄位說明": "當日融資買進張數" },
+  { "欄位名稱": "margin_sell",     "資料型態": "bigint",        "欄位說明": "當日融資賣出張數" },
+  { "欄位名稱": "margin_balance",  "資料型態": "bigint",        "欄位說明": "今日融資餘額(水位)" },
+  { "欄位名稱": "short_buy",       "資料型態": "bigint",        "欄位說明": "當日融券買進(還券)張數" },
+  { "欄位名稱": "short_sell",      "資料型態": "bigint",        "欄位說明": "當日融券賣出張數" },
+  { "欄位名稱": "short_balance",     "資料型態": "bigint",        "欄位說明": "今日融券餘額(水位)" }
+]
+      </div>
+    </div>
+
   </div>
 </body>
 </html>
