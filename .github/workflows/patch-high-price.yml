@@ -1,6 +1,5 @@
 name: 🚀 手動補件：全新高價股 34 欄位歷史完全體重建
 
-# 🎯 核心機制：開啟網頁手動觸發按鈕 (Workflow Dispatch)
 on:
   workflow_dispatch:
 
@@ -9,26 +8,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 複製並簽出您在 GitHub 上的最新程式碼倉庫
       - name: 📥 Checkout Repository Code
         uses: actions/checkout@v4
 
-      # 2. 設定完全對齊您本機開發的 Node.js 執行環境
       - name: ⚙️ Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # 支援您專案中使用的現代 JS 特性 (如 import/require)
-          cache: 'npm'       # 自動開啟 npm 快取防護鎖，極速縮短每次執行的佈署時間
+          node-version: '20'
+          # 🌟 已移除 cache: 'npm'，徹底根除找不到 package-lock.json 的錯誤
 
-      # 3. 安裝專屬依賴套件 (axios, @supabase/supabase-js, dotenv)
       - name: 📦 Install Required Dependencies
         run: |
           npm install axios @supabase/supabase-js dotenv
 
-      # 4. 🚀 核心執行關卡：注入安全環境變數並啟動實體補件工具
       - name: 🔥 Execute 34-Fields High Price Stock Patch Tool
         env:
-          # 💡 安全防護：將您 Supabase 與 FinMind 的密鑰鎖安全映射入 Actions 記憶體中
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
