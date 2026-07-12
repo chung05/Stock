@@ -143,7 +143,7 @@ function bindBiDirectionalScrollLinkage() {
   };
 }
 
-export async function openCombinedModal(stockId, stockName) {
+export function openCombinedModal(stockId, stockName) {
   state.currentActiveStockId = stockId; 
   document.getElementById("newsModal").classList.remove("hidden");
   document.getElementById("newsModalTitle").innerText = `${stockId} ${stockName}`;
@@ -319,9 +319,6 @@ export function renderPriceTrendLineChart(dates, chips) {
   priceChartEl.style.width = "100%";
 }
 
-// ==========================================================
-// 🌟 2. 三大法人籌碼圖 (14 等分間距，首尾各保留 25px 邊距)
-// ==========================================================
 export function renderChipTrendChart() {
   const chipChartEl = document.getElementById("trendChipChart");
   if (!chipChartEl || !state.currentActiveStockId) return;
@@ -385,7 +382,7 @@ export function renderChipTrendChart() {
 }
 
 // ==================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極修正：解鎖 MACD動能雙層框，死鎖 25px 邊距與等差 14 等分)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 唯一定向文字微調與字級放大修復)
 // ==================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -411,7 +408,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  // 🎯 使用完全相等的畫布比例尺計算核心
   const containerWidth = lineChartEl ? lineChartEl.clientWidth : 940;
   let usableWidth = containerWidth - 50; 
   let stepX = usableWidth / 14; 
@@ -422,18 +418,15 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 20%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 50%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 80%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 生成 15 日等差底置日期軸 HTML (首尾各精準保留 25px)
   let lineDateHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
     let dateX = 25 + (idx * stepX);
     const dateDebugText = `網格欄位:${idx} | 日期:${d.date} | X軸座標:${dateX.toFixed(1)}px`;
-    lineDateHtml += `<span style="position: absolute; left: ${dateX}px; transform: translateX(-50%); text-align: center;" class="font-black tracking-tighter text-[10px] text-[#0f172a] cursor-help" title="${dateDebugText}">${datePart}</span>`;
+    lineDateHtml += `<span style="position: absolute; left: ${dateX}px; transform: translateX(-50%); text-align: center;" class="font-black tracking-tighter text-[10px] text-[#0f172a] px-0.5 cursor-help" title="${dateDebugText}">${datePart}</span>`;
   });
 
-  // 2. 繪製指標與動能柱
   dataset.forEach((d, idx) => {
-    // 🎯 死鎖等差幾何主線，起點頂格 25px，末點頂格 containerWidth - 25px
     let exactX = 25 + (idx * stepX);
     
     let difY = ((maxLine - d.dif) / lineRange) * 70 + 15;
@@ -441,8 +434,8 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     let exactDifY = (difY / 100) * 112;
     let exactSigY = (sigY / 100) * 112;
 
-    const debugTipDif = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
-    const debugTipSig = `網格第:${idx}格 | 日期:${d.date} | X軸座標:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
+    const debugTipDif = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DIF:${d.dif?.toFixed(2)}`;
+    const debugTipSig = `網格第:${idx}格 | 日期:${d.date} | X軸:${exactX.toFixed(1)}px | DEA:${d.sig?.toFixed(2)}`;
 
     if (d.dif !== null) { 
       difPoints.push({ x: exactX, y: exactDifY }); 
@@ -453,7 +446,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
       macdLineCirclesHtml += `<g class="cursor-pointer"><circle cx="${exactX}" cy="${exactSigY}" r="3" fill="#fb923c" /><text x="${exactX}" y="${exactSigY + 9}" text-anchor="middle" font-weight="black" font-size="10" fill="#c2410c" font-family="sans-serif">${d.sig.toFixed(2)}</text><title>${debugTipSig}</title></g>`; 
     }
 
-    // 🎯 動能柱（OSC）繪製：重構為 SVG 格式以共用完全相等的 25px-14等分 X 軸等差像素坐標系，垂直咬合
     if (d.osc !== null) {
       let barHeight = (Math.abs(d.osc) / maxOscAbs) * 45;
       let barWidth = 12;
@@ -481,22 +473,13 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }
   });
 
-  difPoints.sort((a,b) => a.x - b.x); sigPoints.sort((a,b) => a.x - b.x);
-  kPoints.sort((a,b) => a.x - b.x); dPoints.sort((a,b) => a.x - b.x);
-
-  let dPath = difPoints.map(p => `${p.x},${p.y}`).join(' ');
-  let sPath = sigPoints.map(p => `${p.x},${p.y}`).join(' ');
-  let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
-  let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
-
-  // 🎯 灌注修復：將 MACD 動能圖表外殼加上灰底內襯 (bg-slate-50 border border-slate-200)，完美解鎖標準兩層框！
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}</svg>`; }
   if(lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
   if(barChartEl) { 
     barChartEl.innerHTML = `
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden" style="width: 100%;">
-        <svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;">
+        <svg class="absolute inset-0 w-full h-[112px] pointer-events-auto z-10" style="width: 100%; height: 112px;">
           ${barSvgHtml}
         </svg>
       </div>`; 
@@ -507,19 +490,53 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if(bDWrapper) { bDWrapper.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; bDWrapper.style.width = "100%"; }
 
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}</svg>`; }
-  if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
+  if (kdChartEl) { 
+    kdChartEl.innerHTML = `
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative overflow-hidden w-full">
+        ${kdChartHtml}
+      </div>`;
+    kdChartEl.style.width = "100%"; 
+  }
   if (kdDatesEl) { kdDatesEl.innerHTML = `<div style="position: relative; width: 100%; height: 20px;">${lineDateHtml}</div>`; kdDatesEl.style.width = "100%"; }
 
   const parentLine = lineChartEl.previousElementSibling;
   if (parentLine) {
-    const legendBox = parentLine.querySelector("div");
-    if (legendBox) legendBox.className = "flex items-center gap-2 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs absolute right-14 top-0 z-30";
+    parentLine.className = "flex items-center justify-between w-full pb-1";
+    parentLine.innerHTML = `
+      <h4 class="text-xs font-black text-slate-500">📈 MACD趨勢</h4>
+      <div class="flex gap-3 text-xs font-black text-slate-500">
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-blue-500 inline-block rounded-xs"></span>DIF快線</span>
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-orange-400 inline-block rounded-xs"></span>DEA慢線</span>
+      </div>`;
   }
+
+  const parentBar = barChartEl.previousElementSibling;
+  if (parentBar) {
+    parentBar.className = "flex items-center justify-between w-full pb-1";
+    parentBar.innerHTML = `
+      <h4 class="text-xs font-black text-slate-500">📊 MACD動能</h4>
+      <div class="flex gap-3 text-xs font-black text-slate-500">
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-rose-500 inline-block rounded-xs"></span>多方動能</span>
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span>空方動能</span>
+      </div>`;
+  }
+
   const parentKd = kdChartEl.previousElementSibling;
   if (parentKd) {
-    const legendBoxKd = parentKd.querySelector("div");
-    if (legendBoxKd) legendBoxKd.className = "flex items-center gap-2 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-3xs absolute right-14 top-0 z-30";
+    parentKd.className = "flex items-center justify-between w-full pb-1";
+    parentKd.innerHTML = `
+      <h4 class="text-xs font-black text-slate-500 flex items-center gap-1.5">
+        <span>⚡ KD 指標</span>
+        <span class="text-xs font-black text-slate-400 font-sans tracking-tight">(超買區 >80, 超賣區 <20)</span>
+      </h4>
+      <div class="flex gap-3 text-xs font-black text-slate-500">
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-sky-500 inline-block rounded-xs"></span>K值 (快線)</span>
+        <span class="flex items-center gap-0.5"><span class="w-2.5 h-2.5 bg-amber-500 inline-block rounded-xs"></span>D值 (慢線)</span>
+      </div>`;
   }
+
+  if (parentLine && parentLine.querySelector("div:not(.flex)")) parentLine.querySelector("div:not(.flex)").remove();
+  if (parentKd && parentKd.querySelector("div:not(.flex)")) parentKd.querySelector("div:not(.flex)").remove();
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
