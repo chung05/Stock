@@ -382,7 +382,7 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 幾何最終對齊：日期文字精準定格在網格邊界上移 10px 的 92px 完美起跑線)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極平衡對齊：全量向下平移 10px，與 92px 日期完美中和不碰撞)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -413,12 +413,12 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let stepX = usableWidth / 14; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
-  let barSvgHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1.2" />`; 
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 42%;"></div>`; 
-  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 16%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 42%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 72%;"></div>`;
+  let barSvgHtml = `<line x1="0" y1="56" x2="100%" y2="56" stroke="#94a3b8" stroke-width="1.2" />`; // 🌟 恢復原始中心零軸
+  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 52px;"></div>`; // 🌟 恢復原始格線中心點
+  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 26px;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 52px;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 78px;"></div>`; // 🌟 精準向下修正平移對齊
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 🎯 幾何優化核心：應您的實測要求，將 Y 座標精準向上拉抬 10px，死鎖定格在 92px，落實絕對重合對齊
+  // 1. 日期文字精準維持鎖死在 92px 起跑線
   let svgEmbeddedDatesHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
@@ -426,14 +426,14 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     svgEmbeddedDatesHtml += `<text x="${dateX}" y="92" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 2. 映射數據與幾何坐標
+  // 2. 🎯 幾何向下平移核心：全圖形縮限比率，Y 軸精準疊加 10px 向下平移，徹底根除偏高感
   dataset.forEach((d, idx) => {
     let exactX = 25 + (idx * stepX);
     
-    let difY = ((maxLine - d.dif) / lineRange) * 60 + 12;
-    let sigY = ((maxLine - d.sig) / lineRange) * 60 + 12;
-    let exactDifY = (difY / 100) * 92; 
-    let exactSigY = (sigY / 100) * 92; 
+    let difY = ((maxLine - d.dif) / lineRange) * 52 + 5; // 🌟 收窄振幅範圍 52
+    let sigY = ((maxLine - d.sig) / lineRange) * 52 + 5; 
+    let exactDifY = ((difY / 100) * 82) + 10; // 🌟 實體疊加 10 像素物理平移
+    let exactSigY = ((sigY / 100) * 82) + 10; // 🌟 實體疊加 10 像素物理平移
 
     if (d.dif !== null) { 
       difPoints.push({ x: exactX, y: exactDifY }); 
@@ -445,24 +445,25 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     }
 
     if (d.osc !== null) {
-      let barHeight = (Math.abs(d.osc) / maxOscAbs) * 36;
+      let barHeight = (Math.abs(d.osc) / maxOscAbs) * 32; // 🌟 振幅比例下收
       let barWidth = 12;
       let barX = exactX - (barWidth / 2);
       let barColor = d.osc > 0 ? "#ef4444" : "#10b981";
-      let barY = d.osc > 0 ? (46 - barHeight) : 46;
-      let textOscY = d.osc >= 0 ? (barY - 3) : (46 + barHeight + 11);
+      let barY = d.osc > 0 ? (56 - barHeight) : 56; // 🌟 圍繞 56 零軸對開
+      let textOscY = d.osc >= 0 ? (barY - 3) : (56 + barHeight + 11);
       let textOscColor = d.osc >= 0 ? "#e11d48" : "#047857";
 
       barSvgHtml += `
         <g>
-          <line x1="${exactX}" y1="0" x2="${exactX}" y2="92" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3" />
+          <line x1="${exactX}" y1="0" x2="${exactX}" y2="82" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3" />
           <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${barColor}" rx="1" />
           <text x="${exactX}" y="${textOscY}" text-anchor="middle" font-weight="black" font-size="10" fill="${textOscColor}" font-family="sans-serif">${d.osc.toFixed(2)}</text>
         </g>`;
     }
 
     if (d.kd_k !== null && d.kd_d !== null) {
-      let kY = ((100 - d.kd_k) / 100) * 92; let dY = ((100 - d.kd_d) / 100) * 92;
+      let kY = (((100 - d.kd_k) / 100) * 72) + 10; // 🌟 KD 高度比例壓縮並下移 10px
+      let dY = (((100 - d.kd_d) / 100) * 72) + 10;
       kPoints.push({ x: exactX, y: kY }); dPoints.push({ x: exactX, y: dY });
       
       kdCirclesHtml += `<g><circle cx="${exactX}" cy="${kY}" r="2.5" fill="#0ea5e9" /><circle cx="${exactX}" cy="${dY}" r="2.5" fill="#f59e0b" /><text x="${exactX}" y="${kY - 4}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#0369a1" font-family="sans-serif">${Math.round(d.kd_k)}</text><text x="${exactX}" y="${dY + 9}" text-anchor="middle" font-weight="black" font-size="10.5" fill="#b45309" font-family="sans-serif">${Math.round(d.kd_d)}</text></g>`;
@@ -477,7 +478,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  // 3. 實體安全注入
+  // 3. 實體注入
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
   if (lineChartEl) { lineChartEl.innerHTML = lineChartHtml; lineChartEl.style.width = "100%"; }
   
@@ -492,7 +493,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   if (kPoints.length > 0 || dPoints.length > 0) { kdChartHtml += `<svg class="absolute inset-0 w-full h-full pointer-events-auto z-10" style="width: 100%; height: 112px;"><polyline points="${kPath}" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${kdDPath}" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${kdCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
   if (kdChartEl) { kdChartEl.innerHTML = kdChartHtml; kdChartEl.style.width = "100%"; }
 
-  // 4. 清洗安全外殼
+  // 4. 清洗外部安全外殼
   if (lineDatesEl) { lineDatesEl.innerHTML = ""; }
   if (bDWrapper) { bDWrapper.innerHTML = ""; }
   if (kdDatesEl) { kdDatesEl.innerHTML = ""; }
@@ -513,7 +514,7 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
 
   const speechObj = WHITE_SPEECHES[targetCode] || {
     desc: "此個股目前處於多空平衡的橫盤箱型壓縮整理階段，未觸發特殊法人或資券共振訊號。",
-    cond: "【正常盤整】(未達多維模型爆發點火臨界值，短線籌碼呈均衡對位狀態)"
+    cond: "【正常盤整】(未達多維模型爆發點點火臨界值，短線籌碼呈均衡對位狀態)"
   };
 
   setSignalDetail(titleText, speechObj.desc, speechObj.cond);
