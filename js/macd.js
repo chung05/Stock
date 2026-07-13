@@ -101,6 +101,14 @@ export function scrollToLatestTrend(tabMode = 'trend') {
       if (cWrapper) cWrapper.scrollLeft = cWrapper.scrollWidth;
       if (mWrapper) mWrapper.scrollLeft = mWrapper.scrollWidth;
     } else if (tabMode === 'macd') {
+      // 🌟 核心修正 1：手機版開啟 MACD 分頁時，自動將三個獨立內嵌滾動條鎖定最右側（最新的100%當天資料）
+      const lineScroll = document.querySelector("#macdLineChart .overflow-x-auto");
+      const barScroll = document.querySelector("#macdBarChart .overflow-x-auto");
+      const kdScroll = document.querySelector("#kdLineChart .overflow-x-auto");
+      if (lineScroll) lineScroll.scrollLeft = lineScroll.scrollWidth;
+      if (barScroll) barScroll.scrollLeft = barScroll.scrollWidth;
+      if (kdScroll) kdScroll.scrollLeft = kdScroll.scrollWidth;
+
       const mWrapper = document.getElementById("macdChartScrollWrapper");
       if (mWrapper) mWrapper.scrollLeft = mWrapper.scrollWidth;
     }
@@ -139,6 +147,44 @@ function bindBiDirectionalScrollLinkage() {
       pWrapper.scrollLeft = mWrapper.scrollLeft;
       cWrapper.scrollLeft = mWrapper.scrollLeft;
       isSyncing = false;
+    }
+  };
+}
+
+// 🌟 核心修正 2：新建專屬行動端 MACD 三圖表一體化手勢連動滑動監聽晶片
+function bindMacdMobileScrollLinkage() {
+  const lineScroll = document.querySelector("#macdLineChart .overflow-x-auto");
+  const barScroll = document.querySelector("#macdBarChart .overflow-x-auto");
+  const kdScroll = document.querySelector("#kdLineChart .overflow-x-auto");
+  
+  if (!lineScroll || !barScroll || !kdScroll) return;
+
+  let isMacdSyncing = false;
+
+  lineScroll.onscroll = () => {
+    if (!isMacdSyncing) {
+      isMacdSyncing = true;
+      barScroll.scrollLeft = lineScroll.scrollLeft;
+      kdScroll.scrollLeft = lineScroll.scrollLeft;
+      isMacdSyncing = false;
+    }
+  };
+
+  barScroll.onscroll = () => {
+    if (!isMacdSyncing) {
+      isMacdSyncing = true;
+      lineScroll.scrollLeft = barScroll.scrollLeft;
+      kdScroll.scrollLeft = barScroll.scrollLeft;
+      isMacdSyncing = false;
+    }
+  };
+
+  kdScroll.onscroll = () => {
+    if (!isMacdSyncing) {
+      isMacdSyncing = true;
+      lineScroll.scrollLeft = kdScroll.scrollLeft;
+      barScroll.scrollLeft = kdScroll.scrollLeft;
+      isMacdSyncing = false;
     }
   };
 }
@@ -382,7 +428,7 @@ export function renderChipTrendChart() {
 }
 
 // ====================================================================================================
-// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 RWD 終極融合：手機版預設擴展 230% 寬度，完美顯示 6 個交易日左右滑動)
+// 📊 MACD/KD分頁：3. MACD與KD指標群 (🎯 終極聯動：綁定橫向同頻連動晶片 + 盤後開局定位最右側最新一天)
 // ====================================================================================================
 export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   const lineChartEl = document.getElementById("macdLineChart"), barChartEl = document.getElementById("macdBarChart");
@@ -408,7 +454,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let lineValues = dataset.flatMap(d => [d.dif, d.sig]).filter(v => v !== null && !isNaN(v)), maxLine = Math.max(...lineValues, 0.01), minLine = Math.min(...lineValues, -0.01), lineRange = maxLine - minLine === 0 ? 1 : maxLine - minLine;
   let oscValues = dataset.map(d => d.osc).filter(v => v !== null && !isNaN(v)), maxOscAbs = Math.max(...oscValues.map(Math.abs), 0.01);
   
-  // 🎯 RWD 動態寬度防禦：偵測是否為手機小螢幕，並動態賦予 2.3 倍超大彈性基底寬度，實現 6 日看盤黃金對齊比例
   const isMobile = window.innerWidth < 640;
   const baseContainerWidth = lineChartEl ? (lineChartEl.parentElement?.clientWidth || 360) : 360;
   const containerWidth = isMobile ? (baseContainerWidth * 2.3) : (lineChartEl?.clientWidth || 940);
@@ -417,12 +462,11 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let stepX = usableWidth / 14; 
   
   let difPoints = [], sigPoints = [], macdLineCirclesHtml = "";
-  let barSvgHtml = `<line x1="0" y1="56" x2="100%" y2="56" stroke="#94a3b8" stroke-width="1.2" />`; 
-  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 52px; width: 100%;"></div>`; 
-  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 26px; width: 100%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 52px; width: 100%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 78px; width: 100%;"></div>`;
+  let barSvgHtml = `<line x1="0" y1="46" x2="100%" y2="46" stroke="#94a3b8" stroke-width="1.2" />`; 
+  let lineChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-slate-200 pointer-events-none z-10" style="top: 42%; width: 100%;"></div>`; 
+  let kdChartHtml = `<div class="absolute left-0 right-0 h-[1px] bg-rose-200/80 border-dashed pointer-events-none z-10" style="top: 16%; width: 100%;"></div><div class="absolute left-0 right-0 h-[1px] bg-slate-200/60 border-dashed pointer-events-none z-10" style="top: 42%; width: 100%;"></div><div class="absolute left-0 right-0 h-[1px] bg-emerald-200/80 border-dashed pointer-events-none z-10" style="top: 72%; width: 100%;"></div>`;
   let kPoints = [], dPoints = [], kdCirclesHtml = "";
 
-  // 1. 日期文字精準維持鎖死在 92px 起跑線
   let svgEmbeddedDatesHtml = "";
   dataset.forEach((d, idx) => {
     const datePart = d.date.split('-')[1] + '/' + d.date.split('-')[2];
@@ -430,7 +474,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     svgEmbeddedDatesHtml += `<text x="${dateX}" y="92" text-anchor="middle" font-weight="black" font-size="10" fill="#0f172a" font-family="sans-serif">${datePart}</text>`;
   });
 
-  // 2. 幾何平移計算
   dataset.forEach((d, idx) => {
     let exactX = 25 + (idx * stepX);
     
@@ -482,8 +525,6 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
   let kPath = kPoints.map(p => `${p.x},${p.y}`).join(' ');
   let kdDPath = dPoints.map(p => `${p.x},${p.y}`).join(' ');
 
-  // 3. 實體彈性寬度比例尺注入：動態為 SVG 畫布寫入 `width: ${containerWidth}px`
-  // 🌟 外層圓角框容器強制加上 `w-full overflow-x-auto` 樣式外殼，確保在手機上滑動順暢、不與排版衝突
   if (difPoints.length > 0 || sigPoints.length > 0) { lineChartHtml += `<svg class="absolute inset-0 pointer-events-auto z-10" style="width: ${containerWidth}px; height: 112px;"><polyline points="${dPath}" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" /><polyline points="${sPath}" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none" />${macdLineCirclesHtml}${svgEmbeddedDatesHtml}</svg>`; }
   if (lineChartEl) { 
     lineChartEl.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 h-[112px] relative w-full overflow-x-auto overflow-y-hidden shadow-2xs">${lineChartHtml}</div>`; 
@@ -506,10 +547,20 @@ export function renderSeparatedMacdChartAndDecodeSignals(dates, chips) {
     kdChartEl.style.width = "100%"; 
   }
 
-  // 4. 清洗外部安全外殼
   if (lineDatesEl) { lineDatesEl.innerHTML = ""; }
   if (bDWrapper) { bDWrapper.innerHTML = ""; }
   if (kdDatesEl) { kdDatesEl.innerHTML = ""; }
+
+  // 🌟 核心修復點 3：渲染完畢瞬間，為手機端主動綁定「三圖表跨框架同步聯動滑動晶片」並修正初始視角至最右側
+  setTimeout(() => {
+    bindMacdMobileScrollLinkage();
+    const lineScroll = document.querySelector("#macdLineChart .overflow-x-auto");
+    const barScroll = document.querySelector("#macdBarChart .overflow-x-auto");
+    const kdScroll = document.querySelector("#kdLineChart .overflow-x-auto");
+    if (lineScroll) lineScroll.scrollLeft = lineScroll.scrollWidth;
+    if (barScroll) barScroll.scrollLeft = barScroll.scrollWidth;
+    if (kdScroll) kdScroll.scrollLeft = kdScroll.scrollWidth;
+  }, 20);
 
   const matchedCodes = decodeMultiDimensionSignal(chips);
   let targetCode = "ALL";
