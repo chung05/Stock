@@ -1,0 +1,37 @@
+name: 🚨 手動補件：精準加灌 31 檔下載失敗個股
+
+# 🎯 僅開啟手動執行按鈕
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write #[cite: 8]
+
+jobs:
+  manual-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2 #[cite: 8]
+      
+      - uses: actions/setup-node@v4 #[cite: 8]
+        with: 
+          node-version: '22' #[cite: 8]
+          
+      - name: 安裝核心套件
+        run: npm install axios @supabase/supabase-js dotenv #[cite: 8]
+      
+      - name: 執行精準補件指令
+        run: node tool-patch-failed-stocks.js
+        env:
+          TZ: Asia/Taipei #[cite: 8]
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }} #[cite: 8]
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} #[cite: 8]
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }} #[cite: 8]
+
+      # 💡 同步完成後自動物理推送前端網頁，維持看盤最新面貌
+      - name: 🚀 同步物理刷新 GitHub Pages 網頁
+        uses: peaceiris/actions-gh-pages@v4 #[cite: 8]
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }} #[cite: 8]
+          publish_dir: '.' #[cite: 8]
+          force_orphan: true #[cite: 8]
