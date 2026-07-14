@@ -33,7 +33,7 @@ async function run() {
     ];
     console.log(`📊 目標補件個股總計: ${stockIds.length} 檔。`);
 
-    // 🎯 2. 自適應推導增量時間區間[cite: 7]
+    // 🎯 2. 自適應推導增量時間區間
     const { data: lastRecord, error: dateErr } = await supabase
       .from('stock_chips_daily')
       .select('date')
@@ -44,7 +44,7 @@ async function run() {
 
     let startDate = new Date('2026-01-02');
     if (lastRecord && lastRecord.length > 0 && lastRecord[0].date) {
-      // 🌟 補件晶片重要邏輯：就地回溯一天開始補件，防止任何時間邊界資料殘缺
+      // 🌟 補件晶片核心邏輯：就地回溯一天開始補件，防止任何時間邊界資料殘缺
       startDate = new Date(lastRecord[0].date);
     }
     
@@ -52,8 +52,9 @@ async function run() {
     const taipeiHour = parseInt(now.toLocaleString("en-US", { timeZone: "Asia/Taipei", hour: '2-digit', hour12: false }), 10);
     let endDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
     
-    if (taipeHour < 16) {
-      console.log("🕒 未滿 16:00，同步終點限制在【昨天】。[cite: 7]");
+    // 🌟 完美修正點：將原先打錯字的 taipeHour 修正補回關鍵的 "i" -> taipeiHour！
+    if (taipeiHour < 16) {
+      console.log("🕒 當前台灣時間未滿 16:00，同步終點限制在【昨天】。");
       endDate.setDate(endDate.getDate() - 1);
     }
 
@@ -65,29 +66,29 @@ async function run() {
       return;
     }
 
-    console.log(`📅 實質增量補件區間: ${startDateStr} 至 ${endDateStr}[cite: 7]`);
+    console.log(`📅 實質增量補件區間: ${startDateStr} 至 ${endDateStr}`);
 
     const commonHeaders = {
       'accept': 'application/json',
       'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
-    // 🎯 3. 逐檔進行 34 欄位資料完整下載修復[cite: 7]
+    // 🎯 3. 逐檔進行 34 欄位資料完整下載修復
     for (let i = 0; i < stockIds.length; i++) {
       const sId = stockIds[i];
       
-      // 🛡️ 流量控制：每 2 檔就強制休息 12 秒，高安全降載防禦[cite: 7]
+      // 🛡️ 流量控制：每 2 檔就強制休息 12 秒，高安全降載防禦
       if (i > 0 && i % 2 === 0) {
-        console.log(`⏳ 補件防護機制：已同步 ${i} 檔，保護 API 強制冷卻 12 秒...[cite: 7]`);
+        console.log(`⏳ 補件防護機制：已同步 ${i} 檔，保護 API 強制冷卻 12 秒...`);
         await sleep(12000);
       }
 
-      console.log(`[補件全量下載] (${i + 1}/${stockIds.length}) 標的: ${sId}[cite: 7]`);
+      console.log(`[補件全量下載] (${i + 1}/${stockIds.length}) 標的: ${sId}`);
 
       try {
         const dateMap = {};
 
-        // (A) 下載三大法人籌碼[cite: 7]
+        // (A) 下載三大法人籌碼
         const apiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const res = await axios.get(apiUrl, { headers: commonHeaders, timeout: 15000 });
         
@@ -110,7 +111,7 @@ async function run() {
           });
         }
 
-        // (B) 下載收盤K線價量[cite: 7]
+        // (B) 下載收盤K線價量
         const priceApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const priceRes = await axios.get(priceApiUrl, { headers: commonHeaders, timeout: 15000 });
         
@@ -130,7 +131,7 @@ async function run() {
           });
         }
 
-        // (C) 下載融資券接口[cite: 7]
+        // (C) 下載融資券接口
         const marginApiUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${startDateStr}&end_date=${endDateStr}&token=${FINMIND_TOKEN}`;
         const marginRes = await axios.get(marginApiUrl, { headers: commonHeaders, timeout: 15000 });
         
@@ -155,13 +156,13 @@ async function run() {
         }
 
       } catch (err) {
-        console.error(`❌ 下載 ${sId} 補件異常: ${err.message}[cite: 7]`);
+        console.error(`❌ 下載 ${sId} 補件異常: ${err.message}`);
       }
       await sleep(200);
     }
 
-    // 🎯 4. 全量資券與價量對齊到位後，發動指標大腦重算補齊[cite: 7]
-    console.log("💡 補件大底打好！發動 28 欄位技術指標遞迴重算大腦...[cite: 7]");
+    // 🎯 4. 全量資券與價量對齊到位後，發動指標大腦重算補齊
+    console.log("💡 補件大底打好！發動 28 欄位技術指標遞迴重算大腦...");
     await calculateAndWriteBackIndicators(stockIds);
 
     console.log("🎉 【31檔失敗個股・歷史補件完全體】全數完美收官！");
@@ -170,7 +171,7 @@ async function run() {
   }
 }
 
-// 完整保留繼承自 v2 的指標演算大腦[cite: 7]
+// 完整保留繼承自 v2 的指標演算大腦
 async function calculateAndWriteBackIndicators(stockList) {
   for (let i = 0; i < stockList.length; i++) {
     const sId = String(stockList[i]).trim();
@@ -232,7 +233,7 @@ async function calculateAndWriteBackIndicators(stockList) {
 
       if (rowUpdates.length > 0) {
         await supabase.from('stock_chips_daily').upsert(rowUpdates, { onConflict: 'stock_id,date' });
-        console.log(`[補件指標演算完畢] ${sId}[cite: 7]`);
+        console.log(`[補件指標演算完畢] ${sId}`);
       }
     } catch (singleErr) {
       console.error(`❌ 演算異常: ${singleErr.message}`);
