@@ -1,0 +1,42 @@
+name: 🐮 牛牛大帳本 v3・Part1 天天自動同步 (價量籌碼與基礎指標)
+
+on:
+  schedule:
+    # 🟢 台灣時間 16:30 = UTC 08:30 (Cron: 30 8 * * *)
+    - cron: '30 8 * * *' 
+  workflow_dispatch: # 保留網頁手動按鈕，方便您臨時隨時點擊測試
+
+permissions:
+  contents: write # 賦予 GitHub 工人部署與推送靜態網頁成果的實體寫入權限
+
+jobs:
+  build-and-sync-part1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository Code
+        uses: actions/checkout@v4.2.2
+
+      - name: ⚙️ Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with: 
+          node-version: '22' # 保持 Node 22 穩定長效環境
+
+      - name: 📦 Install Project Dependencies
+        run: npm install axios xlsx @supabase/supabase-js dotenv
+
+      - name: 🚀 執行 Part1 價量法人籌碼同步腳本
+        run: node backend-sync-v3-part1.js
+        env:
+          TZ: Asia/Taipei
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+
+      # 💡 物理級部署：Part1 執行完畢後立刻刷新前台網頁，讓使用者下午 16:30 就能看到最新的 90% K 線線條！
+      - name: 🚀 物理級直接部署至 GitHub Pages 分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: '.' 
+          force_orphan: true # 每次都清空殘留快取髒資料
