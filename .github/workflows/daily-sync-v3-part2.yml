@@ -1,0 +1,42 @@
+name: 🐮 牛牛大帳本 v3・Part2 天天自動同步 (信用資券與核心策略校準)
+
+on:
+  schedule:
+    # 🟢 台灣時間 21:30 = UTC 13:30 (Cron: 30 13 * * *)
+    - cron: '30 13 * * *' 
+  workflow_dispatch: # 保留網頁手動按鈕
+
+permissions:
+  contents: write # 賦予實體寫入權限
+
+jobs:
+  build-and-sync-part2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository Code
+        uses: actions/checkout@v4.2.2
+
+      - name: ⚙️ Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with: 
+          node-version: '22' 
+
+      - name: 📦 Install Project Dependencies
+        run: npm install axios xlsx @supabase/supabase-js dotenv
+
+      - name: 🚀 執行 Part2 信用交易資券無損填補腳本
+        run: node backend-sync-v3-part2.js
+        env:
+          TZ: Asia/Taipei
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+
+      # 💡 最終刷新：當晚上 21:30 融資券融合演算校準完畢後，再次刷新前端網頁，完美通車！
+      - name: 🚀 物理級直接部署至 GitHub Pages 分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: '.' 
+          force_orphan: true
