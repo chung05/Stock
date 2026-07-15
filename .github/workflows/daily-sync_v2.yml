@@ -1,9 +1,7 @@
 name: 主力固定成分股大帳本天天自動同步v2(3種資料)
 
+# 🎯 核心修正：將原本的定時 schedule 移除，改為完全由手動觸發 (workflow_dispatch)
 on:
-  schedule:
-    # 🟢 台灣時間 21:30 = UTC 13:30 (Cron: 30 13 * * *)
-    - cron: '30 13 * * *' 
   workflow_dispatch: 
 
 permissions:
