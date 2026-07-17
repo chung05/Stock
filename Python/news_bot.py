@@ -58,9 +58,9 @@ def filter_rss_news(url, source_name, start_time, end_time):
     return articles
 
 def ai_generate_report(news_list):
-    """將新聞送交 Gemini AI 進行台股專業結構化分析（已修正為官方正式版 v1 網址）"""
-    # 💡 核心修正：將網址改為官方正式穩定的 v1 版本，並呼叫 gemini-1.5-flash 基礎模型
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    """將新聞送交 Gemini AI 進行台股專業結構化分析（已更新為最新穩定的 v1/gemini-2.5-flash 路徑）"""
+    # 💡 終極修正：改用 v1 版本最新的主力模型 gemini-2.5-flash，徹底消滅 404 找不到模型的錯誤
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
     news_context = ""
