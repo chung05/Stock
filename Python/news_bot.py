@@ -58,8 +58,9 @@ def filter_rss_news(url, source_name, start_time, end_time):
     return articles
 
 def ai_generate_report(news_list):
-    """將新聞送交 Gemini AI 進行台股專業結構化分析（內建安全防護與錯誤捕捉）"""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    """將新聞送交 Gemini AI 進行台股專業結構化分析（已修正最新 API 模型路徑）"""
+    # 💡 核心修正：將模型代號改為 gemini-1.5-flash-latest，徹底解決 404 找不到模型的問題
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
     news_context = ""
@@ -77,7 +78,6 @@ def ai_generate_report(news_list):
         f"新聞資料來源如下：\n{news_context}"
     )
     
-    # 💡 核心修正：加入放寬安全防護設定（BLOCK_NONE），強制讓 AI 處理含有敏感字詞的財經新聞
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "safetySettings": [
@@ -92,7 +92,6 @@ def ai_generate_report(news_list):
         res = requests.post(url, json=payload, headers=headers, timeout=30)
         res_json = res.json()
         
-        # 💡 防禦性檢查：確認有 candidates 欄位才讀取，避免直接發生 'candidates' KeyError 錯誤
         if 'candidates' in res_json and len(res_json['candidates']) > 0:
             return res_json['candidates'][0]['content']['parts'][0]['text']
         else:
@@ -106,7 +105,6 @@ def save_to_html(ai_content, news_list, target_date_str):
     target_dir = os.path.join("..", "docs")
     os.makedirs(target_dir, exist_ok=True)
     
-    # 動態產生「今日參考新聞來源」的 HTML 列表與超連結
     sources_html = "<h2>🔗 今日參考新聞來源（可點選查看完整資訊）</h2><ul>"
     for news in news_list:
         sources_html += f'<li>[{news["source"]}] <a href="{news["link"]}" target="_blank" style="color: #0056b3; text-decoration: none;">{news["title"]}</a></li>'
