@@ -58,7 +58,7 @@ def filter_rss_news(url, source_name, start_time, end_time):
     return articles
 
 def ai_generate_report(news_list):
-    """將新聞送交 Gemini AI 進行台股專業結構化分析"""
+    """將新聞送交 Gemini AI 進行台股專業結構化分析（內建安全防護與錯誤捕捉）"""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
@@ -77,19 +77,36 @@ def ai_generate_report(news_list):
         f"新聞資料來源如下：\n{news_context}"
     )
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    # 💡 核心修正：加入放寬安全防護設定（BLOCK_NONE），強制讓 AI 處理含有敏感字詞的財經新聞
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
+    }
+    
     try:
         res = requests.post(url, json=payload, headers=headers, timeout=30)
-        return res.json()['candidates'][0]['content']['parts'][0]['text']
+        res_json = res.json()
+        
+        # 💡 防禦性檢查：確認有 candidates 欄位才讀取，避免直接發生 'candidates' KeyError 錯誤
+        if 'candidates' in res_json and len(res_json['candidates']) > 0:
+            return res_json['candidates'][0]['content']['parts'][0]['text']
+        else:
+            print(f"❌ Gemini 回傳異常（可能是安全機制或無效內容）：{res_json}")
+            return "<h2>⚠️ AI 報告暫時無法生成</h2><p>今日部分財經新聞文字可能誤觸了 AI 的安全保護機制。請直接參考下方完整的原始新聞來源連結。</p>"
     except Exception as e:
-        return f"<h2>AI 報告生成失敗</h2><p>{e}</p>"
+        return f"<h2>❌ AI 連線分析失敗</h2><p>原因：{e}</p>"
 
 def save_to_html(ai_content, news_list, target_date_str):
     """將 AI 報告與原始新聞超連結來源一起包裝成網頁"""
     target_dir = os.path.join("..", "docs")
     os.makedirs(target_dir, exist_ok=True)
     
-    # 💡 在網頁末端，利用 Python 自動動態產生「今日參考新聞來源」的 HTML 列表與超連結
+    # 動態產生「今日參考新聞來源」的 HTML 列表與超連結
     sources_html = "<h2>🔗 今日參考新聞來源（可點選查看完整資訊）</h2><ul>"
     for news in news_list:
         sources_html += f'<li>[{news["source"]}] <a href="{news["link"]}" target="_blank" style="color: #0056b3; text-decoration: none;">{news["title"]}</a></li>'
@@ -121,12 +138,12 @@ def save_to_html(ai_content, news_list, target_date_str):
             ⏱️ 資料統計範圍：昨日 14:00 至 今日 07:00
         </div>
         
-        <!-- 這裡放置 AI 深度整理分析出來的內容 -->
+        <!-- AI 深度分析區塊 -->
         {ai_content}
         
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
         
-        <!-- 這裡放置 Python 自動生成的原始出處與可點選超連結 -->
+        <!-- 原始出處超連結區塊 -->
         {sources_html}
         
         <footer>
