@@ -1,24 +1,30 @@
-name: Manual LINE Notification
+name: Manual LINE Notification to List
 
-# 改為手動觸發
 on:
   workflow_dispatch:
 
 jobs:
   send-line-message:
     runs-on: ubuntu-latest
+    # 在這裡設定您的發送名單，空格隔開每個 ID
+    env:
+      USER_LIST: "U1d55204debbb0af1f992ec1d9a358f93 U3fd5afc17e5869f39772e6d55cec31e0 C7040d04f3e87e987cbaf7d2085fc3593"
+    
     steps:
-      - name: Send Post Request to LINE API
+      - name: Loop through User List
         run: |
-          curl -X POST https://api.line.me/v2/bot/message/push \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
-            -d '{
-              "to": "${{ secrets.LINE_USER_ID }}",
-              "messages": [
-                {
-                  "type": "text",
-                  "text": "📢 GitHub 手動測試通知！\n\n這是一則由 ${{ github.actor }} 手動觸發的 LINE 通知測試。 成功！"
-                }
-              ]
-            }'
+          for USER_ID in $USER_LIST; do
+            echo "Sending to $USER_ID"
+            curl -X POST https://api.line.me/v2/bot/message/push \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
+              -d "{
+                \"to\": \"$USER_ID\",
+                \"messages\": [
+                  {
+                    \"type\": \"text\",
+                    \"text\": \"📢 這是一則發送給名單成員的通知測試。\"
+                  }
+                ]
+              }"
+          done
