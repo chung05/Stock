@@ -1,0 +1,24 @@
+name: Manual LINE Notification
+
+# 改為手動觸發
+on:
+  workflow_dispatch:
+
+jobs:
+  send-line-message:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Post Request to LINE API
+        run: |
+          curl -X POST https://api.line.me/v2/bot/message/push \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
+            -d '{
+              "to": "${{ secrets.LINE_USER_ID }}",
+              "messages": [
+                {
+                  "type": "text",
+                  "text": "📢 GitHub 手動測試通知！\n\n這是一則由 ${{ github.actor }} 手動觸發的 LINE 通知測試。 成功！"
+                }
+              ]
+            }'
