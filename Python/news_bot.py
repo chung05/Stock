@@ -28,6 +28,7 @@ def filter_cnyes_news(start_time, end_time):
             data_list = res.json().get('items', {}).get('data', [])
             for item in data_list:
                 articles.append({
+                    "source": "鉅亨網",
                     "title": item.get('title'),
                     "content": item.get('summary', ''),
                     "link": f"https://news.cnyes.com/news/id/{item.get('newsId')}"
@@ -36,7 +37,7 @@ def filter_cnyes_news(start_time, end_time):
         print(f"鉅亨網抓取失敗: {e}")
     return articles
 
-def filter_rss_news(url, start_time, end_time):
+def filter_rss_news(url, source_name, start_time, end_time):
     """抓取並過濾標準 RSS 新聞（自由時報、Yahoo股市）"""
     articles = []
     try:
@@ -47,12 +48,13 @@ def filter_rss_news(url, start_time, end_time):
                 pub_time_tw = utc_dt.astimezone(TW_TZ)
                 if start_time <= pub_time_tw <= end_time:
                     articles.append({
+                        "source": source_name,
                         "title": entry.title,
                         "content": entry.summary if 'summary' in entry else entry.title,
                         "link": entry.link
                     })
     except Exception as e:
-        print(f"RSS 抓取失敗: {e}")
+        print(f"{source_name} 抓取失敗: {e}")
     return articles
 
 def ai_generate_report(news_list):
@@ -62,7 +64,7 @@ def ai_generate_report(news_list):
     
     news_context = ""
     for i, news in enumerate(news_list, 1):
-        news_context += f"新聞 {i}. 標題：{news['title']}\n摘要：{news['content']}\n\n"
+        news_context += f"新聞 {i} [{news['source']}]：{news['title']}\n摘要：{news['content']}\n\n"
     
     prompt = (
         "你是一位資深的台股專業分析師。請仔細閱讀以下涵蓋『昨日下午2點至今日早上7點』的台股與國際財經新聞。\n"
@@ -82,11 +84,16 @@ def ai_generate_report(news_list):
     except Exception as e:
         return f"<h2>AI 報告生成失敗</h2><p>{e}</p>"
 
-def save_to_html(html_content, target_date_str):
-    """將結果包裝成網頁，並儲存到最外層的 docs 目錄下"""
-    # 💡 核心修正：因指令在 Python/ 資料夾下執行，故使用 .. 往外推回根目錄的 docs
+def save_to_html(ai_content, news_list, target_date_str):
+    """將 AI 報告與原始新聞超連結來源一起包裝成網頁"""
     target_dir = os.path.join("..", "docs")
     os.makedirs(target_dir, exist_ok=True)
+    
+    # 💡 在網頁末端，利用 Python 自動動態產生「今日參考新聞來源」的 HTML 列表與超連結
+    sources_html = "<h2>🔗 今日參考新聞來源（可點選查看完整資訊）</h2><ul>"
+    for news in news_list:
+        sources_html += f'<li>[{news["source"]}] <a href="{news["link"]}" target="_blank" style="color: #0056b3; text-decoration: none;">{news["title"]}</a></li>'
+    sources_html += "</ul>"
     
     full_html = f"""<!DOCTYPE html>
 <html lang="zh-TW">
@@ -99,8 +106,9 @@ def save_to_html(html_content, target_date_str):
         .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
         h1 {{ color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 0; font-size: 24px; }}
         h2 {{ color: #0056b3; margin-top: 25px; font-size: 18px; border-left: 4px solid #0056b3; padding-left: 10px; }}
-        p, li {{ line-height: 1.8; font-size: 16px; }}
+        p, li {{ line-height: 1.8; font-size: 16px; margin-bottom: 8px; }}
         ul {{ padding-left: 20px; }}
+        a:hover {{ text-decoration: underline !important; }}
         .meta {{ color: #666; font-size: 14px; margin-bottom: 20px; background: #eef2f7; padding: 10px; border-radius: 6px; }}
         footer {{ margin-top: 40px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }}
     </style>
@@ -112,7 +120,15 @@ def save_to_html(html_content, target_date_str):
             📌 報告日期：{target_date_str}<br>
             ⏱️ 資料統計範圍：昨日 14:00 至 今日 07:00
         </div>
-        {html_content}
+        
+        <!-- 這裡放置 AI 深度整理分析出來的內容 -->
+        {ai_content}
+        
+        <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <!-- 這裡放置 Python 自動生成的原始出處與可點選超連結 -->
+        {sources_html}
+        
         <footer>
             本網頁由 GitHub Actions 機器人與 Gemini AI 自動生成，僅供參考。<br>
             © {datetime.now(TW_TZ).year} 台股盤前自動化情報站
@@ -133,12 +149,12 @@ if __name__ == "__main__":
     print(f"🚀 開始蒐集 {date_str} 盤前新聞...")
     all_news = []
     all_news.extend(filter_cnyes_news(start_tw, end_tw))
-    all_news.extend(filter_rss_news("[https://news.ltn.com.tw/rss/business.xml](https://news.ltn.com.tw/rss/business.xml)", start_tw, end_tw))
-    all_news.extend(filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", start_tw, end_tw))
+    all_news.extend(filter_rss_news("[https://news.ltn.com.tw/rss/business.xml](https://news.ltn.com.tw/rss/business.xml)", "自由財經", start_tw, end_tw))
+    all_news.extend(filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", start_tw, end_tw))
     
     if all_news:
         print(f"📊 成功篩選出 {len(all_news)} 筆新聞，正在產生 AI 報告網頁...")
         report_html = ai_generate_report(all_news)
-        save_to_html(report_html, date_str)
+        save_to_html(report_html, all_news, date_str)
     else:
         print("😴 沒有找到新的台股新聞，跳過本次更新。")
