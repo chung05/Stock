@@ -130,10 +130,10 @@ def save_to_html(ai_content, news_list, target_date_str):
 </head>
 <body>
     <div class="container">
-        <h1>📈 台股盤前情報與 AI 焦點分析報告</h1>
+        <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">牛牛盤前情報AI分析</h1>
         <div class="meta">
-            📌 報告日期：{target_date_str}<br>
-            ⏱️ 資料統計範圍：昨日 14:00 至 今日 07:00
+            📌 日期：{target_date_str}<br>
+            ⏱️ 範圍：昨日 14:00 至 今日 07:00
         </div>
         
         <!-- AI 深度分析區塊 -->
@@ -145,8 +145,7 @@ def save_to_html(ai_content, news_list, target_date_str):
         {sources_html}
         
         <footer>
-            本網頁由 GitHub Actions 機器人與 Gemini AI 自動生成，僅供參考。<br>
-            © {datetime.now(TW_TZ).year} 台股盤前自動化情報站
+            本網頁由©<img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">牛牛分析站 AI 自動生成，僅供參考。<br>
         </footer>
     </div>
 </body>
