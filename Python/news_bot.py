@@ -57,7 +57,6 @@ def fetch_full_content(url, source_name):
         paragraphs = []
         
         if source_name == "鉅亨網":
-            # 鉅亨網內文區塊
             text_area = soup.find('div', itemprop='articleBody')
             if text_area:
                 for p in text_area.find_all('p'):
@@ -77,7 +76,6 @@ def fetch_full_content(url, source_name):
                     paragraphs.append(p.text.strip())
                     
         full_text = "\n".join([p for p in paragraphs if p])
-        # 截取前 800 字，避免長度爆量
         return full_text[:800] if full_text else ""
         
     except Exception as e:
@@ -108,7 +106,6 @@ def filter_cnyes_news(start_time, end_time):
                 print(f"  蛛 [鉅亨網] 正在爬取內文 [{time_match_count}]: {item.get('title', '')[:15]}...")
                 full_content = fetch_full_content(news_link, "鉅亨網")
                 
-                # 防呆機制：若抓取失敗，降級使用 API 自帶的 summary
                 if not full_content:
                     full_content = item.get('summary', '')
                 
@@ -124,23 +121,30 @@ def filter_cnyes_news(start_time, end_time):
         print(f"❌ [鉅亨網] 抓取或解析失敗: {e}")
     return articles
 
-def filter_rss_news(url, source_name, filename, start_time, end_time):
-    """抓取過濾標準 RSS 新聞，並自動點入連結爬取完整內文"""
+def filter_rss_news(raw_url, source_name, filename, start_time, end_time):
+    """抓取過濾標準 RSS 新聞，並自動點入連結爬取完整內文（內建超強網址洗淨機制）"""
     articles = []
     
+    # 🎯 終極防禦：利用正規表達式，把夾雜在 Markdown 或中括號裡的真實 https 網址挖出來
+    clean_url_match = re.search(r'(https?://[^\s\)\]]+)', raw_url)
+    if clean_url_match:
+        url = clean_url_match.group(1).strip()
+    else:
+        url = raw_url.strip()
+
     print(f"📡 [{source_name}] 開始抓取 RSS 網址: {url}")
     
     try:
         response = requests.get(url, headers=HEADERS, timeout=15)
         if response.status_code != 200:
-            print(f"❌ [{source_name}] 抓取失敗，狀態碼錯誤。")
+            print(f"❌ [{source_name}] 抓取失敗，狀態碼錯誤: {response.status_code}")
             return articles
             
         feed = feedparser.parse(response.content)
         print(f"📡 [{source_name}] RSS 回傳原始新聞總數: {len(feed.entries)} 筆")
         
         time_match_count = 0
-        skip_count = 0  # 統計因時間不符被跳過的筆數
+        skip_count = 0
         
         for entry in feed.entries:
             if 'published_parsed' in entry:
@@ -164,7 +168,7 @@ def filter_rss_news(url, source_name, filename, start_time, end_time):
                         "link": news_link
                     })
                 else:
-                    skip_count += 1  # 時間不符，記錄下來
+                    skip_count += 1
                     
         print(f"✨ [{source_name}] 解析完畢：符合時間 {time_match_count} 筆，非此區間(已跳過) {skip_count} 筆。")
         save_debug_json(filename, articles)
@@ -184,7 +188,7 @@ def ai_generate_report(news_list):
     prompt = (
         "你是一位資深的台股專業分析師。請仔細閱讀以下涵蓋『昨日下午2點至今日早上7點』的台股與國際財經新聞細節。\n"
         "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-        "由於目前所有新聞來源均已包含完整的內文，請務必深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
+        "由於目前所有新聞來源均已包含完整的內文，請務必深入解傷個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
         "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
         "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台計電ADR動態）。\n"
         "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因）。\n"
@@ -206,7 +210,6 @@ def ai_generate_report(news_list):
     try:
         res = requests.post(url, json=payload, headers=headers, timeout=40)
         res_json = res.json()
-        
         if 'candidates' in res_json and len(res_json['candidates']) > 0:
             return res_json['candidates'][0]['content']['parts'][0]['text']
         else:
@@ -251,12 +254,9 @@ def save_to_html(ai_content, news_list, target_date_str):
             ⏱️ 範圍：昨日 14:00 至 今日 07:00
         </div>
         
-        <!-- AI 深度分析區塊 -->
         {ai_content}
         
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
-        
-        <!-- 原始出處超連結區塊 -->
         {sources_html}
         
         <footer>
@@ -284,11 +284,11 @@ if __name__ == "__main__":
     cnyes_news = filter_cnyes_news(start_tw, end_tw)
     all_news.extend(cnyes_news)
     
-    # 2. 抓取自由財經（洗淨後的純淨 RSS 網址）
+    # 2. 抓取自由財經（底層字串雙重防護）
     ltn_news = filter_rss_news("[https://news.ltn.com.tw/rss/business.xml](https://news.ltn.com.tw/rss/business.xml)", "自由財經", "debug_ltn.json", start_tw, end_tw)
     all_news.extend(ltn_news)
     
-    # 3. 抓取Yahoo股市（洗淨後的純淨 RSS 網址）
+    # 3. 抓取Yahoo股市（底層字串雙重防護）
     yahoo_news = filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", "debug_yahoo.json", start_tw, end_tw)
     all_news.extend(yahoo_news)
     
