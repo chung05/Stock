@@ -7,12 +7,12 @@ import feedparser
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from dateutil import parser as date_parser  # 💡 新增：強大的時間解析器
 
 # --- 環境變數與設定 ---
 TW_TZ = ZoneInfo("Asia/Taipei")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# 統一的瀏覽器標頭偽裝
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -43,15 +43,11 @@ def fetch_full_content(url, source_name):
     """根據不同媒體的網頁結構，點擊進入連結並爬取完整新聞內文"""
     if not url:
         return ""
-    
-    # 稍微緩衝，避免請求過於頻繁
     time.sleep(1)
-    
     try:
         res = requests.get(url, headers=HEADERS, timeout=10)
         if res.status_code != 200:
             return ""
-        
         res.encoding = res.apparent_encoding
         soup = BeautifulSoup(res.text, 'html.parser')
         paragraphs = []
@@ -61,14 +57,12 @@ def fetch_full_content(url, source_name):
             if text_area:
                 for p in text_area.find_all('p'):
                     paragraphs.append(p.text.strip())
-                    
         elif source_name == "自由財經":
             text_area = soup.find('div', class_='text')
             if text_area:
                 for p in text_area.find_all('p', recursive=False):
                     if not p.find('a', class_='app_link') and "請繼續往下閱讀" not in p.text:
                         paragraphs.append(p.text.strip())
-                        
         elif source_name == "Yahoo股市":
             text_area = soup.find('div', class_='caas-body')
             if text_area:
@@ -77,13 +71,12 @@ def fetch_full_content(url, source_name):
                     
         full_text = "\n".join([p for p in paragraphs if p])
         return full_text[:800] if full_text else ""
-        
     except Exception as e:
         print(f"⚠️ [內文爬取警告] 無法由連結獲取 {source_name} 完整內文: {url}, 原因: {e}")
         return ""
 
 def filter_cnyes_news(start_time, end_time):
-    """抓取並過濾鉅亨網 API 新聞（深度爬取完整內文與 Log 顯示）"""
+    """抓取並過濾鉅亨網 API 新聞"""
     start_ts = int(start_time.timestamp())
     end_ts = int(end_time.timestamp())
     url = f"https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?startAt={start_ts}&endAt={end_ts}&limit=40"
@@ -122,15 +115,11 @@ def filter_cnyes_news(start_time, end_time):
     return articles
 
 def filter_rss_news(raw_url, source_name, filename, start_time, end_time):
-    """抓取過濾標準 RSS 新聞，並自動點入連結爬取完整內文（內建超強網址洗淨機制）"""
+    """抓取過濾標準 RSS 新聞，採用 dateutil 進行精準時區比對"""
     articles = []
     
-    # 🎯 終極防禦：利用正規表達式，把夾雜在 Markdown 或中括號裡的真實 https 網址挖出來
     clean_url_match = re.search(r'(https?://[^\s\)\]]+)', raw_url)
-    if clean_url_match:
-        url = clean_url_match.group(1).strip()
-    else:
-        url = raw_url.strip()
+    url = clean_url_match.group(1).strip() if clean_url_match else raw_url.strip()
 
     print(f"📡 [{source_name}] 開始抓取 RSS 網址: {url}")
     
@@ -147,28 +136,51 @@ def filter_rss_news(raw_url, source_name, filename, start_time, end_time):
         skip_count = 0
         
         for entry in feed.entries:
-            if 'published_parsed' in entry:
-                utc_dt = datetime(*entry.published_parsed[:6], tzinfo=ZoneInfo("UTC"))
-                pub_time_tw = utc_dt.astimezone(TW_TZ)
+            pub_time_tw = None
+            
+            # 💡 【核心修復機制】：優先使用原始時間字串進行強力精準解析
+            raw_pub_str = entry.get('published') or entry.get('updated')
+            
+            if raw_pub_str:
+                try:
+                    # date_parser 會自動辨識 GMT, +08:00 等格式
+                    dt_parsed = date_parser.parse(raw_pub_str)
+                    if dt_parsed.tzinfo is None:
+                        # 如果完全沒有時區資訊，通常台灣媒體預設為台北時區
+                        dt_parsed = dt_parsed.replace(tzinfo=TW_TZ)
+                    pub_time_tw = dt_parsed.astimezone(TW_TZ)
+                except Exception:
+                    pub_time_tw = None
+
+            # 備援機制：如果字串解析失敗，才退回原本的 feedparser struct
+            if pub_time_tw is None and 'published_parsed' in entry:
+                try:
+                    utc_dt = datetime(*entry.published_parsed[:6], tzinfo=ZoneInfo("UTC"))
+                    pub_time_tw = utc_dt.astimezone(TW_TZ)
+                except Exception:
+                    pub_time_tw = None
+
+            # 執行時間交叉比對
+            if pub_time_tw and (start_time <= pub_time_tw <= end_time):
+                time_match_count += 1
+                news_link = entry.get("link", "")
                 
-                if start_time <= pub_time_tw <= end_time:
-                    time_match_count += 1
-                    
-                    news_link = entry.get("link", "")
-                    print(f"  🕷️ [{source_name}] 正在爬取內文 [{time_match_count}]: {entry.title[:15]}...")
-                    full_content = fetch_full_content(news_link, source_name)
-                    
-                    if not full_content:
-                        full_content = entry.summary if 'summary' in entry else entry.title
-                    
-                    articles.append({
-                        "source": source_name,
-                        "title": entry.title,
-                        "content": full_content,
-                        "link": news_link
-                    })
-                else:
-                    skip_count += 1
+                print(f"  🕷️ [{source_name}] 正在爬取內文 [{time_match_count}]: {entry.title[:15]}... ({pub_time_tw.strftime('%m/%d %H:%M')})")
+                full_content = fetch_full_content(news_link, source_name)
+                
+                if not full_content:
+                    full_content = entry.summary if 'summary' in entry else entry.title
+                
+                articles.append({
+                    "source": source_name,
+                    "title": entry.title,
+                    "content": full_content,
+                    "link": news_link
+                })
+            else:
+                skip_count += 1
+                # 如果你想在 log 裡偷看被跳過的時間，可以解開下一行的註解：
+                # print(f"  🚫 跳過: {entry.title[:10]}... 時間是: {pub_time_tw}")
                     
         print(f"✨ [{source_name}] 解析完畢：符合時間 {time_match_count} 筆，非此區間(已跳過) {skip_count} 筆。")
         save_debug_json(filename, articles)
@@ -188,9 +200,9 @@ def ai_generate_report(news_list):
     prompt = (
         "你是一位資深的台股專業分析師。請仔細閱讀以下涵蓋『昨日下午2點至今日早上7點』的台股與國際財經新聞細節。\n"
         "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-        "由於目前所有新聞來源均已包含完整的內文，請務必深入解傷個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
+        "由於目前所有新聞來源均已包含完整的內文，請務必深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
         "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
-        "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台計電ADR動態）。\n"
+        "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態）。\n"
         "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因）。\n"
         "3. ⚠️ 今日重大個股利空（提及的公司、代號、潛在風險或利空原因）。\n"
         "4. 💡 操盤手筆記（綜合以上資訊，今天開盤需注意的整體市場氛圍或族群趨勢）。\n\n"
@@ -284,11 +296,11 @@ if __name__ == "__main__":
     cnyes_news = filter_cnyes_news(start_tw, end_tw)
     all_news.extend(cnyes_news)
     
-    # 2. 抓取自由財經（底層字串雙重防護）
+    # 2. 抓取自由財經
     ltn_news = filter_rss_news("[https://news.ltn.com.tw/rss/business.xml](https://news.ltn.com.tw/rss/business.xml)", "自由財經", "debug_ltn.json", start_tw, end_tw)
     all_news.extend(ltn_news)
     
-    # 3. 抓取Yahoo股市（底層字串雙重防護）
+    # 3. 抓取Yahoo股市
     yahoo_news = filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", "debug_yahoo.json", start_tw, end_tw)
     all_news.extend(yahoo_news)
     
