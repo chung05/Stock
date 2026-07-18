@@ -23,7 +23,9 @@ jobs:
 
     - name: 安裝套件
       run: |
-        pip install requests feedparser
+          python -m pip install --upgrade pip
+          pip install requests feedparser zoneinfo
+          pip install beautifulsoup4  # ✨ 終極修正：補上這一行安裝 bs4 套件
 
     - name: 執行新聞抓取與產生網頁檔案
       env:
