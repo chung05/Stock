@@ -52,29 +52,32 @@ def fetch_full_content(url, source_name):
         if res.status_code != 200:
             return ""
         
-        # 解決中文字碼解析問題
         res.encoding = res.apparent_encoding
         soup = BeautifulSoup(res.text, 'html.parser')
         paragraphs = []
         
-        if source_name == "自由財經":
-            # 自由時報內文通常在 class="text" 的 div 區塊內
+        if source_name == "鉅亨網":
+            # 💡 升級：鉅亨網內文區塊
+            text_area = soup.find('div', itemprop='articleBody')
+            if text_area:
+                for p in text_area.find_all('p'):
+                    paragraphs.append(p.text.strip())
+                    
+        elif source_name == "自由財經":
             text_area = soup.find('div', class_='text')
             if text_area:
-                # 抓取內文所有的 p 標籤，並排除帶有特定 class 的相關新聞或廣告
                 for p in text_area.find_all('p', recursive=False):
                     if not p.find('a', class_='app_link') and "請繼續往下閱讀" not in p.text:
                         paragraphs.append(p.text.strip())
                         
         elif source_name == "Yahoo股市":
-            # Yahoo 新聞內文通常在 class="caas-body" 的 div 區塊內
             text_area = soup.find('div', class_='caas-body')
             if text_area:
                 for p in text_area.find_all('p'):
                     paragraphs.append(p.text.strip())
                     
         full_text = "\n".join([p for p in paragraphs if p])
-        # 如果成功爬到內文，截取前 800 字（避免單篇字數過長撐爆 AI 的 Context）
+        # 截取前 800 字，避免長度爆量
         return full_text[:800] if full_text else ""
         
     except Exception as e:
@@ -82,7 +85,7 @@ def fetch_full_content(url, source_name):
         return ""
 
 def filter_cnyes_news(start_time, end_time):
-    """抓取並過濾鉅亨網 API 新聞（鉅亨網本身自帶足夠摘要，免進內文爬取）"""
+    """抓取並過濾鉅亨網 API 新聞（升級版：點擊進入網頁深度爬取完整內文與 Log 顯示）"""
     start_ts = int(start_time.timestamp())
     end_ts = int(end_time.timestamp())
     url = f"https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?startAt={start_ts}&endAt={end_ts}&limit=40"
@@ -96,14 +99,27 @@ def filter_cnyes_news(start_time, end_time):
             data_list = res_data.get('items', {}).get('data', [])
             print(f"📡 [鉅亨網] API 回傳原始新聞總數: {len(data_list)} 筆")
             
+            time_match_count = 0
             for item in data_list:
+                time_match_count += 1
+                news_id = item.get('newsId')
+                news_link = f"https://news.cnyes.com/news/id/{news_id}"
+                
+                # 💡 升級：顯示 Log 並調用爬蟲深度抓取內文
+                print(f"  蛛 [鉅亨網] 正在爬取內文 [{time_match_count}]: {item.get('title', '')[:15]}...")
+                full_content = fetch_full_content(news_link, "鉅亨網")
+                
+                # 防呆機制：若抓取失敗，降級使用 API 自帶的 summary
+                if not full_content:
+                    full_content = item.get('summary', '')
+                
                 articles.append({
                     "source": "鉅亨網",
                     "title": item.get('title'),
-                    "content": item.get('summary', ''),
-                    "link": f"https://news.cnyes.com/news/id/{item.get('newsId')}"
+                    "content": full_content,
+                    "link": news_link
                 })
-            print(f"✨ [鉅亨網] 成功解析出 {len(articles)} 筆新聞")
+            print(f"✨ [鉅亨網] 成功深化爬取 {len(articles)} 筆內文")
             save_debug_json("debug_cnyes.json", articles)
     except Exception as e:
         print(f"❌ [鉅亨網] 抓取或解析失敗: {e}")
@@ -138,12 +154,10 @@ def filter_rss_news(url, source_name, filename, start_time, end_time):
                 if start_time <= pub_time_tw <= end_time:
                     time_match_count += 1
                     
-                    # 💡 進階核心：獲取原始連結並進入網頁爬取完整內文
                     news_link = entry.get("link", "")
-                    print(f"  🕷️ 正在爬取內文 [{time_match_count}]: {entry.title[:15]}...")
+                    print(f"  🕷️ [{source_name}] 正在爬取內文 [{time_match_count}]: {entry.title[:15]}...")
                     full_content = fetch_full_content(news_link, source_name)
                     
-                    # 防呆機制：如果深層內文爬失敗，沿用 RSS 內建的摘要或標題
                     if not full_content:
                         full_content = entry.summary if 'summary' in entry else entry.title
                     
@@ -167,14 +181,14 @@ def ai_generate_report(news_list):
     
     news_context = ""
     for i, news in enumerate(news_list, 1):
-        news_context += f"新聞 {i} [{news['source']}]：{news['title']}\n內文摘要：{news['content']}\n\n"
+        news_context += f"新聞 {i} [{news['source']}]：{news['title']}\n內文細節：{news['content']}\n\n"
     
     prompt = (
         "你是一位資深的台股專業分析師。請仔細閱讀以下涵蓋『昨日下午2點至今日早上7點』的台股與國際財經新聞細節。\n"
         "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-        "因為你現在擁有部分新聞的詳細內文，請多加留意個股利多與利空區塊中的關鍵財務數據（如營收、毛利率、展望數字等）。\n\n"
+        "由於目前所有新聞來源均已包含完整的內文，請務必深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
         "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
-        "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態）。\n"
+        "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台計電ADR動態）。\n"
         "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因）。\n"
         "3. ⚠️ 今日重大個股利空（提及的公司、代號、潛在風險或利空原因）。\n"
         "4. 💡 操盤手筆記（綜合以上資訊，今天開盤需注意的整體市場氛圍或族群趨勢）。\n\n"
@@ -263,12 +277,12 @@ if __name__ == "__main__":
     start_tw, end_tw = get_time_range()
     date_str = end_tw.strftime("%Y-%m-%d")
     
-    print(f"🚀 [進階內文爬取版] 開始蒐集 {date_str} 盤前新聞與深層內文...")
+    print(f"🚀 [全方位內文深化版] 開始蒐集 {date_str} 盤前新聞與深層內文...")
     print(f"⏰ [篩選時間軸區間] 台灣時間 {start_tw} 到 {end_tw}")
     
     all_news = []
     
-    # 1. 抓取鉅亨網
+    # 1. 抓取鉅亨網（已調整為：由 API 拿到新聞列表後，點入網頁深層爬取完整內文）
     cnyes_news = filter_cnyes_news(start_tw, end_tw)
     all_news.extend(cnyes_news)
     
@@ -283,7 +297,7 @@ if __name__ == "__main__":
     print(f"📊 [統計] 各來源最終成功納入總數：鉅亨網({len(cnyes_news)})、自由財經({len(ltn_news)})、Yahoo股市({len(yahoo_news)})")
     
     if all_news:
-        print(f"📊 成功篩選出總共 {len(all_news)} 筆具備內文之新聞，正在產生深度 AI 報告網頁...")
+        print(f"📊 成功篩選出總共 {len(all_news)} 筆具備完整內文之新聞，正在產生深度 AI 報告網頁...")
         report_html = ai_generate_report(all_news)
         save_to_html(report_html, all_news, date_str)
     else:
