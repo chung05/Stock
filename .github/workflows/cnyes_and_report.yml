@@ -1,0 +1,46 @@
+name: Morning CNBC News and AI Report Generator
+
+on:
+  schedule:
+    # 台灣早上 07:30 = UTC 前一天晚上 23:30
+    - cron: '30 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-report:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4
+
+    - name: 1. 抓取鉅亨網指定區間新聞
+      run: |
+        cd Python
+        python fetch_cnyes.py
+
+    - name: 2. 啟動 Gemini AI 彙整分析並產出網頁
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        cd Python
+        python generate_report.py
+
+    - name: 3. 將新產生的 JSON 與 HTML 推回儲存庫
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/*
+        git diff-index --quiet HEAD || (git commit -m "📊 盤前特刊：鉅亨網存檔與 newsai.html 自動生成" && git push)
