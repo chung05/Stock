@@ -23,8 +23,8 @@ jobs:
 
     - name: 安裝套件
       run: |
-          pip install requests feedparser zoneinfo
-          pip install beautifulsoup4  # ✨ 終極修正：補上這一行安裝 bs4 套件
+        python -m pip install --upgrade pip
+        pip install requests feedparser beautifulsoup4
 
     - name: 執行新聞抓取與產生網頁檔案
       env:
@@ -37,7 +37,7 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         # 由於 Python 已自動將檔案產出在外層的 docs/ 內，此處正常 add 即可
-        git add docs/
+        git add ../docs/
         git diff-index --quiet HEAD || git commit -m "更新今日台股盤前報告網頁"
         git push
 
