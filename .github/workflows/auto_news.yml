@@ -29,16 +29,12 @@ jobs:
     - name: 執行新聞抓取與產生網頁檔案
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      working-directory: ./Python # 💡 修正：進入 Python 資料夾執行腳本
-      run: python news_bot.py
+      run: python Python/news_bot.py
 
     - name: 自動將網頁檔案提交回 GitHub
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        # 由於 Python 已自動將檔案產出在外層的 docs/ 內，此處正常 add 即可
-        git add ../docs/
-        git diff-index --quiet HEAD || git commit -m "更新今日台股盤前報告網頁"
+        git add docs/
+        git diff-index --quiet HEAD || git commit -m "更新今日台股盤前報告網頁 (全方位內文深化版)"
         git push
-
-    # 💡 你原本處理 LINE 通知的步驟，可以直接加在下方作為此 Job 的最後一步
