@@ -28,14 +28,14 @@ def get_time_range():
     return start_tw, end_tw
 
 def save_debug_json(filename, data):
-    """將各來源的最終篩選結果（含完整內文）寫入 docs 目錄供驗證"""
+    """將資料寫入 docs 目錄供驗證"""
     try:
         target_dir = os.path.join("..", "docs")
         os.makedirs(target_dir, exist_ok=True)
         file_path = os.path.join(target_dir, filename)
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
-        print(f"🐛 [Debug 存檔成功] 已將含完整內文的資料寫入 docs/{filename}")
+        print(f"🐛 [Debug 存檔成功] 已將資料寫入 docs/{filename}")
     except Exception as e:
         print(f"❌ [Debug 存檔失敗] 無法寫入 {filename}: {e}")
 
@@ -79,7 +79,6 @@ def filter_cnyes_news(start_time, end_time):
     """抓取並過濾鉅亨網 API 新聞（全面導入逐筆透明化檢查機制）"""
     start_ts = int(start_time.timestamp())
     end_ts = int(end_time.timestamp())
-    # 擴大範圍拉取，確保跨日前後的時間點都有被捕捉
     url = f"https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?startAt={start_ts - 86400}&endAt={end_ts + 86400}&limit=50"
     articles = []
     
@@ -227,11 +226,12 @@ def ai_generate_report(news_list):
         f"新聞資料來源如下：\n{news_context}"
     )
     
+    # 修正拼字錯誤: HATE_SHEECH -> HATE_SPEECH
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "safetySettings": [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SHEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
         ]
@@ -243,10 +243,10 @@ def ai_generate_report(news_list):
         if 'candidates' in res_json and len(res_json['candidates']) > 0:
             return res_json['candidates'][0]['content']['parts'][0]['text']
         else:
-            print(f"❌ Gemini 回傳異常：{res_json}")
-            return "<h2>⚠️ AI 報告暫時無法生成</h2><p>今日部分財經新聞文字可能誤觸了 AI 的安全保護機制。請直接參考下方完整的原始新聞來源連結。</p>"
+            # 發生異常直接中斷，阻止程式傻傻往下寫入 index.html
+            raise RuntimeError(f"Gemini 回傳異常內容: {res_json}")
     except Exception as e:
-        return f"<h2>❌ AI 連線分析失敗</h2><p>原因：{e}</p>"
+        raise RuntimeError(f"AI 連線或解析失敗原因: {e}")
 
 def save_to_html(ai_content, news_list, target_date_str):
     """將 AI 報告與原始新聞超連結來源一起包裝成網頁"""
@@ -322,12 +322,15 @@ if __name__ == "__main__":
     yahoo_news = filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", "debug_yahoo.json", start_tw, end_tw)
     all_news.extend(yahoo_news)
     
-    print(f"\n📊 [統計] 各來源最終成功納入總數：綜合打包了 鉅亨網({len(cnyes_news)})、自由財經({len(ltn_news)})、Yahoo股市({len(yahoo_news)})")
-    print(f"🔥 [強制啟動] 當前共計有 {len(all_news)} 筆符合時段的新聞。立刻打破限制，全面交付 AI 生成最新報告網頁...")
+    print(f"\n📊 [統計] 各來源最終成功納入總數：鉅亨網({len(cnyes_news)})、自由財經({len(ltn_news)})、Yahoo股市({len(yahoo_news)})")
     
-    # 🚀 終極修正：只要總數大於 0，就一定要進行更新，絕對不跳過
+    # 🚀 重點追加：將合併後的所有新聞（那 38 筆），強制保存成一個完整的大 JSON 檔
+    print(f"📦 [正在彙整] 將全部共 {len(all_news)} 筆符合時段的新聞彙整包，寫入 docs/debug_all_news.json...")
+    save_debug_json("debug_all_news.json", all_news)
+    
     if len(all_news) > 0:
+        print(f"🔥 [全面啟動] 交付 AI 生成最新報告網頁...")
         report_html = ai_generate_report(all_news)
         save_to_html(report_html, all_news, date_str)
     else:
-        print("😴 全數來源均完全沒有任何符合時段的新聞，故未執行刷新。")
+        print("😴 全數來源均完全沒有任何符合時段的新聞，未執行網頁更新。")
