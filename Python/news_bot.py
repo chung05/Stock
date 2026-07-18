@@ -1,44 +1,13 @@
-name: Daily Stock News Page Generator
+import os
+import json
+import re
+import time
+import requests
+import feedparser
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
-on:
-  schedule:
-    # 台灣時間早上 07:00 = UTC 時間前一天晚上 23:00
-    - cron: '0 23 * * *'
-  workflow_dispatch: # 允許在 GitHub 介面上手動點擊按鈕觸發測試
-
-permissions:
-  contents: write
-
-jobs:
-  generate-page:
-    runs-on: ubuntu-latest
-    steps:
-    - name: 檢查原始碼
-      uses: actions/checkout@v4
-
-    - name: 設定 Python 環境
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-
-    - name: 安裝套件
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests feedparser beautifulsoup4
-
-    - name: 執行新聞抓取與產生網頁檔案
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      # ✨ 修正：不切換工作目錄，直接在根目錄呼叫 Python/news_bot.py
-      run: python Python/news_bot.py
-
-    - name: 自動將網頁檔案提交回 GitHub
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        # ✨ 修正：此時百分之百在根目錄，直接 add docs/ 絕對不會超出 repository
-        git add docs/
-        git diff-index --quiet HEAD || git commit -m "更新今日台股盤前報告網頁 (全方位內文深化版)"
-        git push
-
-    # 💡 你原本處理 LINE 通知的步驟，可以直接加在下方作為此 Job 的最後一步
+# --- 環境變數與設定 ---
+TW_TZ = ZoneInfo("Asia/Taipei")
+# ... 往下接後面完整的 Python 程式碼 ...
