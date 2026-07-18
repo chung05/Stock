@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import requests
 import feedparser
 from datetime import datetime, timedelta
@@ -60,11 +61,20 @@ def filter_cnyes_news(start_time, end_time):
     return articles
 
 def filter_rss_news(url, source_name, filename, start_time, end_time):
-    """抓取並過濾標準 RSS 新聞（升級版：偽裝成 Chrome 瀏覽器繞過 GitHub 被擋的問題）"""
+    """抓取並過濾標準 RSS 新聞（內建 Markdown 網址防呆防污染機制）"""
     articles = []
+    
+    # 💡 防呆機制：若網址內包含 Markdown 格式 [text](url)，用正規表達式自動還原成純 URL
+    if "[" in url and "]" in url:
+        match = re.search(r'\((https?://[^\)]+)\)', url)
+        if match:
+            url = match.group(1)
+        else:
+            # 備用方案：直接把中括號、小括號等雜質濾掉
+            url = url.replace("[", "").replace("]", "").split("(")[0].strip()
+
     print(f"📡 [{source_name}] 開始抓取 RSS 網址: {url}")
     
-    # 💡 終極修正：加入標準瀏覽器 Header，偽裝成一般的 Windows Chrome 瀏覽器
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/rss+xml, application/xml, text/xml, */*",
@@ -72,21 +82,17 @@ def filter_rss_news(url, source_name, filename, start_time, end_time):
     }
     
     try:
-        # 先用 requests 偽裝身份把 XML 文本抓下來
         response = requests.get(url, headers=headers, timeout=15)
         print(f"📡 [{source_name}] 伺服器回應狀態碼: {response.status_code}")
         
         if response.status_code != 200:
-            print(f"❌ [{source_name}] 抓取失敗，狀態碼錯誤，可能被強烈封鎖。")
+            print(f"❌ [{source_name}] 抓取失敗，狀態碼錯誤。")
             return articles
             
-        # 再把 XML 文本丟給 feedparser 解析
         feed = feedparser.parse(response.content)
-        
         print(f"📡 [{source_name}] RSS 標題: {feed.feed.get('title', '無標題')}")
         print(f"📡 [{source_name}] RSS 回傳原始新聞總數: {len(feed.entries)} 筆")
         
-        # 儲存全量原始資料供檢查
         serializable_entries = []
         for entry in feed.entries:
             serializable_entries.append({
@@ -227,11 +233,11 @@ if __name__ == "__main__":
     cnyes_news = filter_cnyes_news(start_tw, end_tw)
     all_news.extend(cnyes_news)
     
-    # 2. 抓取自由財經（已升級偽裝）
+    # 2. 抓取自由財經（手動修正網址，且內建自動過濾清洗）
     ltn_news = filter_rss_news("[https://news.ltn.com.tw/rss/business.xml](https://news.ltn.com.tw/rss/business.xml)", "自由財經", "debug_ltn.json", start_tw, end_tw)
     all_news.extend(ltn_news)
     
-    # 3. 抓取Yahoo股市（已升級偽裝）
+    # 3. 抓取Yahoo股市（手動修正網址，且內建自動過濾清洗）
     yahoo_news = filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", "debug_yahoo.json", start_tw, end_tw)
     all_news.extend(yahoo_news)
     
