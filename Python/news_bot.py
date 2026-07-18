@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 import feedparser
 from datetime import datetime, timedelta
@@ -16,16 +17,37 @@ def get_time_range():
     start_tw = yesterday.replace(hour=14, minute=0, second=0, microsecond=0)
     return start_tw, end_tw
 
+def save_debug_json(filename, data):
+    """將各來源的原始抓取結果寫入 docs 目錄供 Debug 驗證"""
+    try:
+        target_dir = os.path.join("..", "docs")
+        os.makedirs(target_dir, exist_ok=True)
+        file_path = os.path.join(target_dir, filename)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        print(f"🐛 [Debug 存檔成功] 已將原始資料寫入 docs/{filename}")
+    except Exception as e:
+        print(f"❌ [Debug 存檔失敗] 無法寫入 {filename}: {e}")
+
 def filter_cnyes_news(start_time, end_time):
     """抓取並過濾鉅亨網 API 新聞"""
     start_ts = int(start_time.timestamp())
     end_ts = int(end_time.timestamp())
     url = f"https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?startAt={start_ts}&endAt={end_ts}&limit=40"
     articles = []
+    
+    print(f"📡 [鉅亨網] 開始連線 API: {url}")
     try:
         res = requests.get(url, timeout=10)
+        print(f"📡 [鉅亨網] 伺服器回應狀態碼: {res.status_code}")
         if res.status_code == 200:
-            data_list = res.json().get('items', {}).get('data', [])
+            res_data = res.json()
+            data_list = res_data.get('items', {}).get('data', [])
+            print(f"📡 [鉅亨網] API 回傳原始新聞總數: {len(data_list)} 筆")
+            
+            # 儲存全量原始資料供檢查
+            save_debug_json("debug_cnyes.json", data_list)
+            
             for item in data_list:
                 articles.append({
                     "source": "鉅亨網",
@@ -33,28 +55,49 @@ def filter_cnyes_news(start_time, end_time):
                     "content": item.get('summary', ''),
                     "link": f"https://news.cnyes.com/news/id/{item.get('newsId')}"
                 })
+            print(f"✨ [鉅亨網] 成功解析出 {len(articles)} 筆新聞")
     except Exception as e:
-        print(f"鉅亨網抓取失敗: {e}")
+        print(f"❌ [鉅亨網] 抓取或解析失敗: {e}")
     return articles
 
-def filter_rss_news(url, source_name, start_time, end_time):
-    """抓取並過濾標準 RSS 新聞（自由時報、Yahoo股市）"""
+def filter_rss_news(url, source_name, filename, start_time, end_time):
+    """抓取並過濾標準 RSS 新聞（自由時報、Yahoo股市），包含詳細 Debug 日誌"""
     articles = []
+    print(f"📡 [{source_name}] 開始解析 RSS 網址: {url}")
     try:
         feed = feedparser.parse(url)
+        print(f"📡 [{source_name}] RSS 標題: {feed.feed.get('title', '無標題')}")
+        print(f"📡 [{source_name}] RSS 回傳原始新聞總數: {len(feed.entries)} 筆")
+        
+        # 儲存全量原始資料供檢查（將 feed 轉換為可序列化字典）
+        serializable_entries = []
+        for entry in feed.entries:
+            serializable_entries.append({
+                "title": entry.get("title", ""),
+                "link": entry.get("link", ""),
+                "published": entry.get("published", ""),
+                "summary": entry.get("summary", "")
+            })
+        save_debug_json(filename, serializable_entries)
+        
+        time_match_count = 0
         for entry in feed.entries:
             if 'published_parsed' in entry:
                 utc_dt = datetime(*entry.published_parsed[:6], tzinfo=ZoneInfo("UTC"))
                 pub_time_tw = utc_dt.astimezone(TW_TZ)
+                
+                # Debug 印出每篇新聞的時間對比
                 if start_time <= pub_time_tw <= end_time:
+                    time_match_count += 1
                     articles.append({
                         "source": source_name,
                         "title": entry.title,
                         "content": entry.summary if 'summary' in entry else entry.title,
                         "link": entry.link
                     })
+        print(f"✨ [{source_name}] 時間範圍相符的新聞有 {time_match_count} 筆，最終成功納入 {len(articles)} 筆")
     except Exception as e:
-        print(f"{source_name} 抓取失敗: {e}")
+        print(f"❌ [{source_name}] RSS 抓取或解析失敗: {e}")
     return articles
 
 def ai_generate_report(news_list):
@@ -71,7 +114,7 @@ def ai_generate_report(news_list):
         "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n\n"
         "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
         "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態）。\n"
-        "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利開原因）。\n"
+        "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因）。\n"
         "3. ⚠️ 今日重大個股利空（提及的公司、代號、潛在風險或利空原因）。\n"
         "4. 💡 操盤手筆記（綜合以上資訊，今天開盤需注意的整體市場氛圍或族群趨勢）。\n\n"
         f"新聞資料來源如下：\n{news_context}"
@@ -159,18 +202,27 @@ if __name__ == "__main__":
     start_tw, end_tw = get_time_range()
     date_str = end_tw.strftime("%Y-%m-%d")
     
-    print(f"🚀 開始蒐集 {date_str} 盤前新聞...")
+    print(f"🚀 [Debug 開始] 正在蒐集 {date_str} 盤前新聞...")
+    print(f"⏰ [Debug 篩選時間軸區間] 台灣時間 {start_tw} 到 {end_tw}")
+    
     all_news = []
     
-    # 抓取各來源新聞
-    all_news.extend(filter_cnyes_news(start_tw, end_tw))
+    # 1. 抓取鉅亨網
+    cnyes_news = filter_cnyes_news(start_tw, end_tw)
+    all_news.extend(cnyes_news)
     
-    # 💡 核心修正：移除多餘的 Markdown 格式，還原為正確的純網址字串
-    all_news.extend(filter_rss_news("[https://news.ltn.com.tw/rss/business.xml](https://news.ltn.com.tw/rss/business.xml)", "自由財經", start_tw, end_tw))
-    all_news.extend(filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", start_tw, end_tw))
+    # 2. 抓取自由財經
+    ltn_news = filter_rss_news("[https://news.ltn.com.tw/rss/business.xml](https://news.ltn.com.tw/rss/business.xml)", "自由財經", "debug_ltn.json", start_tw, end_tw)
+    all_news.extend(ltn_news)
+    
+    # 3. 抓取Yahoo股市
+    yahoo_news = filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", "debug_yahoo.json", start_tw, end_tw)
+    all_news.extend(yahoo_news)
+    
+    print(f"📊 [Debug 統計] 各來源最終成功納入總數：鉅亨網({len(cnyes_news)})、自由財經({len(ltn_news)})、Yahoo股市({len(yahoo_news)})")
     
     if all_news:
-        print(f"📊 成功篩選出 {len(all_news)} 筆新聞，正在產生 AI 報告網頁...")
+        print(f"📊 成功篩選出總共 {len(all_news)} 筆新聞，正在產生 AI 報告網頁...")
         report_html = ai_generate_report(all_news)
         save_to_html(report_html, all_news, date_str)
     else:
