@@ -7,12 +7,13 @@ import feedparser
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from dateutil import parser as date_parser  # 💡 新增：強大的時間解析器
+from dateutil import parser as date_parser
 
 # --- 環境變數與設定 ---
 TW_TZ = ZoneInfo("Asia/Taipei")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+# 統一的瀏覽器標頭偽裝
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -76,52 +77,71 @@ def fetch_full_content(url, source_name):
         return ""
 
 def filter_cnyes_news(start_time, end_time):
-    """抓取並過濾鉅亨網 API 新聞"""
+    """抓取並過濾鉅亨網 API 新聞（全面導入逐筆透明化檢查機制）"""
     start_ts = int(start_time.timestamp())
     end_ts = int(end_time.timestamp())
-    url = f"https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?startAt={start_ts}&endAt={end_ts}&limit=40"
+    # 擴大拉取數量，以便在清單中檢視更多時間點的新聞
+    url = f"https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?startAt={start_ts - 86400}&endAt={end_ts + 86400}&limit=50"
     articles = []
     
-    print(f"📡 [鉅亨網] 開始連線 API: {url}")
+    print(f"\n📡 [鉅亨網] 開始連線 API: {url}")
     try:
         res = requests.get(url, timeout=10)
         if res.status_code == 200:
             res_data = res.json()
             data_list = res_data.get('items', {}).get('data', [])
-            print(f"📡 [鉅亨網] API 回傳原始新聞總數: {len(data_list)} 筆")
+            total_entries = len(data_list)
+            print(f"📡 [鉅亨網] API 回傳原始新聞總數: {total_entries} 筆")
+            print(f"📋 --- [鉅亨網] 完整時間比對清單開始 ---")
             
             time_match_count = 0
-            for item in data_list:
-                time_match_count += 1
-                news_id = item.get('newsId')
-                news_link = f"https://news.cnyes.com/news/id/{news_id}"
+            skip_count = 0
+            
+            for idx, item in enumerate(data_list, 1):
+                publish_ts = item.get('publishAt')
+                pub_time_tw = None
+                if publish_ts:
+                    pub_time_tw = datetime.fromtimestamp(publish_ts, tz=TW_TZ)
                 
-                print(f"  蛛 [鉅亨網] 正在爬取內文 [{time_match_count}]: {item.get('title', '')[:15]}...")
-                full_content = fetch_full_content(news_link, "鉅亨網")
+                time_str = pub_time_tw.strftime('%Y-%m-%d %H:%M:%S') if pub_time_tw else "無法解析時間"
+                title_preview = item.get('title', '')[:18]
                 
-                if not full_content:
-                    full_content = item.get('summary', '')
-                
-                articles.append({
-                    "source": "鉅亨網",
-                    "title": item.get('title'),
-                    "content": full_content,
-                    "link": news_link
-                })
-            print(f"✨ [鉅亨網] 成功深化爬取 {len(articles)} 筆內文")
+                if pub_time_tw and (start_time <= pub_time_tw <= end_time):
+                    time_match_count += 1
+                    print(f"  [✅ 符合] ({idx}/{total_entries}) 時間: {time_str} | 標題: {title_preview}...")
+                    
+                    news_id = item.get('newsId')
+                    news_link = f"https://news.cnyes.com/news/id/{news_id}"
+                    full_content = fetch_full_content(news_link, "鉅亨網")
+                    
+                    if not full_content:
+                        full_content = item.get('summary', '')
+                    
+                    articles.append({
+                        "source": "鉅亨網",
+                        "title": item.get('title'),
+                        "content": full_content,
+                        "link": news_link
+                    })
+                else:
+                    skip_count += 1
+                    print(f"  [🚫 不符合] ({idx}/{total_entries}) 時間: {time_str} | 標題: {title_preview}...")
+            
+            print(f"📋 --- [鉅亨網] 完整時間比對清單結束 ---")
+            print(f"✨ [鉅亨網] 解析完畢：最終納入 {time_match_count} 筆，跳過不符區間 {skip_count} 筆。")
             save_debug_json("debug_cnyes.json", articles)
     except Exception as e:
         print(f"❌ [鉅亨網] 抓取或解析失敗: {e}")
     return articles
 
 def filter_rss_news(raw_url, source_name, filename, start_time, end_time):
-    """抓取過濾標準 RSS 新聞，採用 dateutil 進行精準時區比對"""
+    """抓取過濾標準 RSS 新聞（全面導入逐筆透明化檢查機制）"""
     articles = []
     
     clean_url_match = re.search(r'(https?://[^\s\)\]]+)', raw_url)
     url = clean_url_match.group(1).strip() if clean_url_match else raw_url.strip()
 
-    print(f"📡 [{source_name}] 開始抓取 RSS 網址: {url}")
+    print(f"\n📡 [{source_name}] 開始抓取 RSS 網址: {url}")
     
     try:
         response = requests.get(url, headers=HEADERS, timeout=15)
@@ -130,29 +150,26 @@ def filter_rss_news(raw_url, source_name, filename, start_time, end_time):
             return articles
             
         feed = feedparser.parse(response.content)
-        print(f"📡 [{source_name}] RSS 回傳原始新聞總數: {len(feed.entries)} 筆")
+        total_entries = len(feed.entries)
+        print(f"📡 [{source_name}] RSS 回傳原始新聞總數: {total_entries} 筆")
+        print(f"📋 --- [{source_name}] 完整時間比對清單開始 ---")
         
         time_match_count = 0
         skip_count = 0
         
-        for entry in feed.entries:
+        for idx, entry in enumerate(feed.entries, 1):
             pub_time_tw = None
-            
-            # 💡 【核心修復機制】：優先使用原始時間字串進行強力精準解析
             raw_pub_str = entry.get('published') or entry.get('updated')
             
             if raw_pub_str:
                 try:
-                    # date_parser 會自動辨識 GMT, +08:00 等格式
                     dt_parsed = date_parser.parse(raw_pub_str)
                     if dt_parsed.tzinfo is None:
-                        # 如果完全沒有時區資訊，通常台灣媒體預設為台北時區
                         dt_parsed = dt_parsed.replace(tzinfo=TW_TZ)
                     pub_time_tw = dt_parsed.astimezone(TW_TZ)
                 except Exception:
                     pub_time_tw = None
 
-            # 備援機制：如果字串解析失敗，才退回原本的 feedparser struct
             if pub_time_tw is None and 'published_parsed' in entry:
                 try:
                     utc_dt = datetime(*entry.published_parsed[:6], tzinfo=ZoneInfo("UTC"))
@@ -160,12 +177,14 @@ def filter_rss_news(raw_url, source_name, filename, start_time, end_time):
                 except Exception:
                     pub_time_tw = None
 
-            # 執行時間交叉比對
+            time_str = pub_time_tw.strftime('%Y-%m-%d %H:%M:%S') if pub_time_tw else "無法解析時間"
+            title_preview = entry.title[:18]
+
             if pub_time_tw and (start_time <= pub_time_tw <= end_time):
                 time_match_count += 1
-                news_link = entry.get("link", "")
+                print(f"  [✅ 符合] ({idx}/{total_entries}) 時間: {time_str} | 標題: {title_preview}...")
                 
-                print(f"  🕷️ [{source_name}] 正在爬取內文 [{time_match_count}]: {entry.title[:15]}... ({pub_time_tw.strftime('%m/%d %H:%M')})")
+                news_link = entry.get("link", "")
                 full_content = fetch_full_content(news_link, source_name)
                 
                 if not full_content:
@@ -179,10 +198,10 @@ def filter_rss_news(raw_url, source_name, filename, start_time, end_time):
                 })
             else:
                 skip_count += 1
-                # 如果你想在 log 裡偷看被跳過的時間，可以解開下一行的註解：
-                # print(f"  🚫 跳過: {entry.title[:10]}... 時間是: {pub_time_tw}")
+                print(f"  [🚫 不符合] ({idx}/{total_entries}) 時間: {time_str} | 標題: {title_preview}...")
                     
-        print(f"✨ [{source_name}] 解析完畢：符合時間 {time_match_count} 筆，非此區間(已跳過) {skip_count} 筆。")
+        print(f"📋 --- [{source_name}] 完整時間比對清單結束 ---")
+        print(f"✨ [{source_name}] 解析完畢：最終納入 {time_match_count} 筆，跳過不符區間 {skip_count} 筆。")
         save_debug_json(filename, articles)
     except Exception as e:
         print(f"❌ [{source_name}] RSS 抓取或進階解析失敗: {e}")
@@ -304,7 +323,7 @@ if __name__ == "__main__":
     yahoo_news = filter_rss_news("[https://tw.stock.yahoo.com/rss?category=tw-market](https://tw.stock.yahoo.com/rss?category=tw-market)", "Yahoo股市", "debug_yahoo.json", start_tw, end_tw)
     all_news.extend(yahoo_news)
     
-    print(f"📊 [統計] 各來源最終成功納入總數：鉅亨網({len(cnyes_news)})、自由財經({len(ltn_news)})、Yahoo股市({len(yahoo_news)})")
+    print(f"\n📊 [統計] 各來源最終成功納入總數：鉅亨網({len(cnyes_news)})、自由財經({len(ltn_news)})、Yahoo股市({len(yahoo_news)})")
     
     if all_news:
         print(f"📊 成功篩選出總共 {len(all_news)} 筆具備完整內文之新聞，正在產生深度 AI 報告網頁...")
