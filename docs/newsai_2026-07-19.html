@@ -4,46 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2026-07-19 台股新聞焦點AI分析</title>
-    
-    <!-- 🌐 核心修正：真正引入外部免費雲端真人語音 ResponsiveVoice 腳本 -->
-    <script src="[https://code.responsivevoice.org/responsivevoice.js?key=9vG3hQ6R](https://code.responsivevoice.org/responsivevoice.js?key=9vG3hQ6R)"></script>
-    
     <style>
-        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         h1 { color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 0; font-size: 24px; }
         h2 { color: #0056b3; margin-top: 25px; font-size: 18px; border-left: 4px solid #0056b3; padding-left: 10px; }
         p, li { line-height: 1.8; font-size: 16px; margin-bottom: 8px; }
         ul { padding-left: 20px; }
         
-        /* 📌 修正 1：報告日期與按鈕完全並排在同一行 */
+        /* 📌 優化 1：精簡 meta 區塊與彈性佈局，確保手機端不換行 */
         .meta { 
             color: #666; 
             font-size: 14px; 
             margin-bottom: 20px; 
             background: #eef2f7; 
-            padding: 10px 15px; 
+            padding: 8px 12px; 
             border-radius: 6px; 
             display: flex; 
             align-items: center; 
-            flex-wrap: wrap;
-            gap: 15px; 
+            justify-content: space-between; /* 左右拉開 */
+            flex-wrap: nowrap; /* 強制絕不換行 */
+        }
+        .meta-date {
+            white-space: nowrap; /* 確保日期不被擠壓換行 */
         }
         .audio-inline-controls {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             align-items: center;
         }
         .btn {
             background-color: #0056b3;
             color: white;
             border: none;
-            padding: 4px 10px;
-            font-size: 13px;
+            padding: 4px 8px; /* 縮減內距 */
+            font-size: 12px;     /* 縮減字體 */
             border-radius: 4px;
             cursor: pointer;
             transition: background 0.2s;
             font-weight: bold;
+            white-space: nowrap; /* 確保按鈕文字不換行 */
         }
         .btn:hover { background-color: #003366; }
         .btn-stop { background-color: #dc3545; display: none; }
@@ -56,128 +56,90 @@
     <div class="container">
         <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">台股新聞焦點AI分析</h1>
         
-        <!-- 按鈕移入 meta 區塊內，使其與日期並排 -->
+        <!-- 與日期並排在同一個淡灰色區塊 -->
         <div class="meta">
-            <span>📌 報告日期：2026-07-19</span>
+            <span class="meta-date">📌 報告日期：2026-07-19</span>
             <div class="audio-inline-controls">
-                <button id="playBtn" class="btn" onclick="toggleSpeech()">▶️ 播放報告</button>
+                <button id="playBtn" class="btn" onclick="toggleSpeech()">▶️ 播放</button>
                 <button id="stopBtn" class="btn btn-stop" onclick="stopSpeech()">⏹️ 停止</button>
             </div>
         </div>
         
         <div id="report-content">
             <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>台股盤前焦點分析報告</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 20px; background-color: #f9f9f9; }
-        h1 { color: #004d99; border-bottom: 2px solid #004d99; padding-bottom: 10px; }
-        h2 { color: #0066cc; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        h3 { color: #007bff; margin-top: 20px; }
-        ul { list-style-type: disc; margin-left: 20px; }
-        li { margin-bottom: 8px; }
-        .highlight { background-color: #e6f2ff; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
-        .caution { color: #cc0000; font-weight: bold; }
-        .positive { color: #008000; font-weight: bold; }
-        .neutral { color: #808080; }
-    </style>
+    <meta charset="utf-8">
 </head>
 <body>
-    <h1>台股盤前焦點分析報告</h1>
-    <p>各位投資朋友早安，昨日台股經歷史詩級崩跌，全球市場情緒高度緊張。以下為您整理開盤前需關注的國際情勢與個股動態：</p>
 
     <h2>📈 國際大盤焦點</h2>
     <ul>
-        <li>
-            <strong>美股表現：</strong>
+        <li><strong>台股昨日回顧：</strong>上週五台股遭遇史詩級崩跌，終場重挫2953.71點（跌幅6.47%），收在42671.27點，直接摜破季線及4萬3、4萬4、4萬5點關卡，創下史上最大單日跌點紀錄。外資單日狂賣1883億元，創歷史新高，上市櫃融資餘額合計驟減416億元，顯示市場極度恐慌並加速去槓桿。</li>
+        <li><strong>美股表現：</strong>費城半導體指數持續重挫1.63%，從6月高點已跌逾20%，正式跌入熊市區間，市值蒸發1.5兆美元。納斯達克指數下跌1.40%，標準普爾500指數下跌1.01%，道瓊工業指數下跌0.77%，科技股賣壓沉重。市場對AI基礎設施鉅額投資的疑慮加劇，中國AI模型Kimi K3發布也引發市場對美中AI技術差距縮小的擔憂，加劇半導體板塊賣壓。</li>
+        <li><strong>台積電ADR動態：</strong>台積電(TSM-US)ADR下跌2.77%，聯電(UMC-US)ADR下跌4.67%，日月光(ASX-US)ADR下跌2.78%。雖然仍下跌，但跌幅較昨日台股現貨相對輕微，可能預示台股今開盤後有機會稍作喘息。輝達(NVDA-US)一度跌落市值王寶座，但終場反彈，收跌2.21%，仍搶回市值王。蘋果(AAPL-US)曾短暫超車輝達成為市值王。</li>
+        <li><strong>台指期夜盤收盤解析：</strong>在台股現貨急殺後，台指期夜盤逆勢強勁反彈877點（漲幅2.06%），收在43481點。這顯示市場在極度恐慌後有技術性反彈需求，但仍未超越昨日現貨季線（約43525點），季線攻防戰將是今日多頭反攻的首要挑戰。</li>
+        <li><strong>重要經濟數據與地緣政治：</strong>
             <ul>
-                <li>上週五（7/17），在中國AI模型Kimi K3發布引發「DeepSeek時刻再現」疑慮下，晶片股遭遇重創，費城半導體指數已從6月高點下跌逾20%，正式跌入熊市區域，市值蒸發約1.5兆美元。輝達股價一度跌落全球市值王寶座，台積電ADR也下跌2.77%至398.37美元。道瓊、標普500、那斯達克指數全線收黑。</li>
-                <li>IBM股價一日暴跌25%，SK海力士股價在美韓市場暴漲暴跌，顯示AI相關資產已進入高度情緒化交易階段，市場對AI概念股估值泡沫化的疑慮正在升高。</li>
-                <li>SpaceX股價暴跌，跌破IPO發行價135美元，市值從高峰蒸發逾1兆美元。</li>
-            </ul>
-        </li>
-        <li>
-            <strong>重要經濟數據與國際情勢：</strong>
-            <ul>
-                <li>美伊衝突急遽升溫，帶動布蘭特原油期貨單週勁揚約16%至每桶88.10美元，創一個多月新高。油價飆升恐加劇全球通膨憂慮，強化美國聯準會（Fed）維持高利率的預期。中油雖吸收成本，國內汽柴油價格連2凍，但國際情勢仍需警惕。</li>
-                <li>南韓股市上週劇烈震盪，發生多達6、7次單日跌幅達5%的狀況，引發市場去槓桿進程，共有120萬散戶觸發追繳保證金、35萬散戶遭斷頭，並外溢至香港等亞洲金融市場，為台股帶來額外壓力。</li>
-                <li>中國新能源車市場產能過剩，內部利潤加速惡化，出口傾銷至海外，衝擊歐洲與東南亞傳統汽車工業，福斯、本田等大廠紛紛調整電動車戰略或認列資產減值，對全球供應鏈與經濟前景投下變數。</li>
-                <li>巴布亞紐幾內亞單方面關閉我駐處，外交部表示將檢視對巴紐天然氣採購後採取必要因應作為，短期對相關企業可能造成不確定性。</li>
-            </ul>
-        </li>
-        <li>
-            <strong>台指期夜盤收盤解析：</strong>
-            <ul>
-                <li>上週五台指期夜盤在現貨市場急殺後，展現強勁反彈，終場上漲877點（漲幅2.06%），收在43481點。此反彈雖未完全收復季線（43525點），但顯示市場在極度恐慌後，部分資金已開始嘗試逢低承接，或為現貨市場提供一定的止跌信心。</li>
+                <li><strong>國際油價：</strong>美伊衝突急遽升溫，影響地緣政治風險，布蘭特原油期貨和紐約西德州中級原油（WTI）期貨均大漲逾4%，創一個多月來新高，推升通膨預期。中油宣布下週汽柴油不調整，吸收逾155億元。</li>
+                <li><strong>黃金：</strong>金價本週因通膨憂慮及美元走強而下跌2.6%，儘管週五收復每盎司4000美元關卡，但升息預期及油價高漲的通膨壓力仍對黃金構成壓力。</li>
+                <li><strong>新台幣匯率：</strong>外資持續提款導致新台幣偏弱，接連創下去年4月以來新低價位，外資期貨淨空單達86189口，創歷史新高，反映資金外流壓力。</li>
+                <li><strong>南韓股市：</strong>南韓市場正處於去槓桿進程，高槓桿交易引發的頻繁熔斷與追繳保證金壓力，對記憶體股和全球AI概念股信心造成動搖。</li>
             </ul>
         </li>
     </ul>
 
     <h2>🚀 今日重大個股利多</h2>
     <ul>
-        <li><span class="positive">台積電 (2330)</span>：FactSet將2026年EPS預估上修至107.74元，目標價3160元。摩根士丹利上修目標價至2988元。Q2營收與EPS雙創歷史新高，Q3展望上修，全年美元營收成長預期上修至略高於40%。宣布加碼投資美國亞利桑那廠1000億美元（新建4座先進晶圓廠），並承諾台灣續建13座廠，顯示AI需求極為強勁，長期展望樂觀。廠務工程相關供應鏈漢唐(2404)、聖暉*(5536)、亞翔(6139)、帆宣(6196)、洋基工程(6691)可望優先受惠。</li>
-        <li><span class="positive">長榮 (2603)</span>：FactSet將2026年EPS預估上修至29.05元，目標價234.5元。</li>
-        <li><span class="positive">台化 (1326)</span>：FactSet將2026年EPS預估上修至3.05元，目標價64.95元。</li>
-        <li><span class="positive">藥華藥 (6446)</span>：FactSet將2026年EPS預估上修至25.65元，目標價1352.23元。</li>
-        <li><span class="positive">玉山金 (2884)</span>：FactSet將2026年EPS預估上修至2.49元，目標價36元。金控上半年獲利普遍創歷史新高。</li>
-        <li><span class="positive">緯穎 (6669)</span>：FactSet將2026年EPS預估上修至353.75元，目標價6633元。</li>
-        <li><span class="positive">正道 (1506)</span>：6月營收創逾7年新高，上半年年增12.3%。系統櫃事業預期2026年可轉虧為盈。金屬加工業務受惠大陸轉單效應。上週五大盤重挫仍逆勢收漲。</li>
-        <li><span class="positive">聯發科 (2454)</span>：外資看好其在AI ASIC（客製化晶片）市佔率，目標價喊上萬元。Google Pixel 11a手機傳搭載聯發科M90基頻晶片。</li>
-        <li><span class="positive">台虹 (8039)</span>：5月稅後純益年增8.01倍至6945萬元，EPS 0.26元。積極布局半導體新材料，外資上週買超1.12萬張，股價週漲25%。</li>
-        <li><span class="positive">聯強 (2347)</span>：Q2與上半年營收雙創歷史新高，受惠AI應用落地。下半年聚焦高階電競筆電、企業級AP、資安交換器及低軌衛星設備。外資連續5日買超達25383張。</li>
-        <li><span class="positive">電信三雄 (中華電2412, 台灣大3045, 遠傳4904)</span>：上週成功完成填息，在大盤暴跌中展現防禦特性，資金明顯轉向，外資持續買超。</li>
-        <li><span class="positive">漢來美食 (1268)</span>：展店動能強勁，Q1稅後純益及EPS創新高，Q2營收續創同期新高。上週在市場修正壓力下股價仍穩守高點。</li>
-        <li><span class="positive">迅杰 (6243)</span>：積極轉型切入無人機供應鏈，鎖定非紅供應鏈商機。上週股價逆勢大漲30.47%，創19個月新高。</li>
-        <li><span class="positive">淘帝-KY (2929), 聯德控股-KY (4912), 光麗-KY (6431)</span>：6月營收年增率分別達72.8%、53.3%、37.1%，表現亮眼。</li>
-        <li><span class="positive">鴻海 (2317) 旗下工業富聯 (601138-CN)</span>：發布「2026燈塔工廠白皮書」，展示AI賦能智慧製造的創新實踐，已累積打造9座、對外賦能13座燈塔工廠，加速推進「AI Makes AI」策略。</li>
-        <li><span class="positive">PCB廠 (華通2313, 健鼎3044, 臻鼎-KY 4958)</span>：迎AI商機加速擴產。華通今年資本支出規劃上調至300億元，健鼎逾100億元，臻鼎-KY更超過800億元，皆創歷史新高。</li>
-        <li><span class="positive">台塑化 (6505)</span>：受中東局勢升溫帶動油價勁揚，Q3進入旺季，煉油開工率提升，外資連9買點挺，上週股價週漲38.27%。</li>
-        <li><span class="positive">低軌衛星/網通光通訊 (智邦2345, 聯亞3081, 啓碁6285, 中磊5388, 友訊2332, 智易3596, 昇達科3491, 威世波7930)</span>：
-            <ul>
-                <li>智邦：受惠AI加速器強勁出貨，6月營收年增創新猷，1.6T交換器下半年接棒。</li>
-                <li>聯亞：矽光產品出貨量大增，6月營收年增逾120%，受CPO時程遞延影響有限。</li>
-                <li>啓碁：低軌衛星用戶端設備拉貨動能持續，6月營收年增84%創歷史新高，上修全年營收展望。</li>
-                <li>中磊：電信與企業需求回溫，訂單滿載，6月營收年增近71%創同期新高。</li>
-                <li>友訊：成功打入SpaceX星鏈計畫供應鏈，供應低軌衛星網路資料交換節點專用交換機，9月起出貨。</li>
-                <li>智易：積極佈局衛星使用者終端產品，預期最快下半年有訂單。</li>
-                <li>威世波：正文(4906)轉投資光通訊廠，核心技術為CW Laser、光引擎及光通訊關鍵元件，有望與正文攜手布局光通訊市場。</li>
-            </ul>
-        </li>
-        <li><span class="positive">仁寶 (2324)</span>：6月營收958.54億元，月增36%、年增58.4%，創45個月新高。上週五在大盤重挫下逆勢收小漲，外資大買2.2萬張。</li>
-        <li><span class="positive">宏正 (6277)</span>：KVM多電腦切換器全球龍頭，獨家切入台積電無塵室遠端監控，並取得輝達MGX平台認證，具AI語音變聲模組，基本面「三率三升」，股價基期低，補漲空間可期。</li>
-        <li><span class="positive">防禦型民生消費與公用事業</span>：法人點名瑞智（4532）、寶雅（5904）、可寧衛（8422）、寶成（9904）、大台北（9908）、櫻花（9911）、欣高（9931）、宏全（9939）、大成（1210）、卜蜂（1215）、愛之味（1217）、大統益（1232）、台肥（1722）、正新（2105）、群光（2385）與統一超（2912）等具高殖利率及剛性需求，有望成為資金避風港。</li>
+        <li><strong>台積電 (2330-TW)：</strong>儘管市場反應失望，但FactSet最新調查將2026年EPS預估上修至107.74元，目標價上調至3160元（摩根士丹利上修至2988元）。公司Q2營收、EPS均創歷史新高，並二度上修2026年美元營收成長預期至「略高於40%」，同時大幅調升資本支出至600-640億美元，並加碼美國投資1000億美元。基本面強勁，AI需求極其強勁，長線成長軌跡不變。</li>
+        <li><strong>藥華藥 (6446-TW)：</strong>FactSet最新調查將2026年EPS預估上修至25.65元，預估目標價為1352.23元。</li>
+        <li><strong>長榮 (2603-TW)：</strong>FactSet最新調查將2026年EPS預估上修至29.05元，預估目標價為234.5元。</li>
+        <li><strong>緯穎 (6669-TW)：</strong>FactSet最新調查將2026年EPS預估上修至353.75元，預估目標價為6633元。</li>
+        <li><strong>玉山金 (2884-TW)：</strong>FactSet最新調查將2026年EPS預估上修至2.49元，預估目標價為36元。</li>
+        <li><strong>台化 (1326-TW)：</strong>FactSet最新調查將2026年EPS預估上修至3.05元，預估目標價為64.95元。</li>
+        <li><strong>正道 (1506-TW)：</strong>6月營收創逾7年新高，月增11%、年增20%，上半年營收年增12.3%。金屬加工業務持穩，系統櫃事業預期2026年轉虧為盈，營運可望優於去年。在大盤重挫下逆勢收漲，顯示防禦性。</li>
+        <li><strong>聯發科 (2454-TW)：</strong>外資報告看好其搶攻AI ASIC市占率，有望成為台股下一檔「萬金股」。聯發科的輕資產本質及AI ASIC符合CSP大廠降低「輝達稅」的需求。</li>
+        <li><strong>台虹 (8039-TW)：</strong>積極布局新半導體及電子材料，5月稅後純益年增801%達6945萬元，每股純益0.26元，優化產品銷售結構奏功。本週獲外資買超1.12萬張，股價單周上漲25%。</li>
+        <li><strong>聯強 (2347-TW)：</strong>受惠雲端與地端AI應用落地，Q2與上半年營收同步刷新歷史新高。下半年聚焦高階電競筆電及企業級AP、資安交換器、低軌衛星地面接收設備等新領域，獲外資連續5個交易日買超2.5萬張力挺。</li>
+        <li><strong>電信三雄 (中華電2412-TW, 台灣大3045-TW, 遠傳4904-TW)：</strong>在大盤血洗下逆勢走揚，上週除息後本週全數完成填息，顯示資金轉向防禦型類股的避險需求。遠傳本週漲8.42%，中華電信漲3.37%，台灣大漲2.3%。</li>
+        <li><strong>漢來美食 (1268-TW)：</strong>旗下「島語」品牌插旗台中，年底前將再開2家，既有海港餐廳升級。Q1稅後純益2.48億元創單季新高，年增33.9%，EPS 5.87元。Q2合併營收年增19.24%創同期新高。</li>
+        <li><strong>迅杰 (6243-TW)：</strong>透過投資璿元、翔探科技切入無人機供應鏈，鎖定北美非紅供應鏈商機，無人機產品積極送樣。股價在大盤重挫下逆勢大漲，單周漲逾30%，創19個月新高。</li>
+        <li><strong>廠務工程概念股 (漢唐2404-TW, 聖暉*5536-TW, 亞翔6139-TW, 帆宣6196-TW, 洋基工程6691-TW)：</strong>受惠台積電大幅上調今年資本支出至600-640億美元，預期未來三年資本支出可能挑戰2100-2200億美元，廠務工程業者的訂單能見度已延伸至未來數年，並積極進軍美國擴廠。</li>
+        <li><strong>PCB產業 (華通2313-TW, 健鼎3044-TW, 臻鼎-KY4958-TW)：</strong>AI高速運算需求擴大與地緣政治促使供應鏈分散，PCB廠加速擴產。華通資本支出規劃達300億元創新高；健鼎預估突破100億元；臻鼎-KY資本支出預計超過800億元，2026年將進入高速成長期。</li>
+        <li><strong>台塑化 (6505-TW)：</strong>中東局勢升溫帶動國際油價上漲，台塑化受惠煉油利差擴大。6月營收636.83億元，月增10.2%、年增18.5%。法人預期Q3石化上游原料報價看好，營運添利，外資連9買，股價單周漲38.27%創近2年多新高。</li>
+        <li><strong>網通與光通訊產業 (智邦2345-TW, 聯亞3081-TW, 啟碁6285-TW, 中磊5388-TW, 友訊2332-TW, 昇達科3491-TW, 威世波7930-TW)：</strong>AI算力潮與低軌衛星商轉雙引擎推動，帶動頻寬與硬體需求爆發。智邦、啟碁、中磊6月營收年增顯著，啟碁更上修全年營收展望。友訊成功打入Starlink供應鏈，將供應低軌衛星網路資料交換節點專用交換機。聯亞矽光產品出貨大增，昇達科在低軌衛星市場亦具潛力。</li>
+        <li><strong>仁寶 (2324-TW)：</strong>6月營收958.54億元，月增36%、年增58.4%，創45個月新高。在大盤重挫下逆勢小漲，外資買超2.2萬張，顯示其在筆電代工領域的穩健表現與資金避險特性。</li>
+        <li><strong>宏正 (6277-TW)：</strong>核心產品KVM為全球龍頭，已切入台積電無塵室獨家解決方案，並取得輝達MGX平台認證，產品線延伸至機櫃伺服器與散熱模組。三率三升，毛利率、營益率、稅後淨利率全面跳升，具高毛利低本益比優勢。</li>
+        <li><strong>主動式台股ETF：</strong>在台股血腥黑五中，6檔主動式台股ETF表現超越大盤，8檔優於台積電，其中高股息主動式ETF（00408A、00984A、00999A）包辦前三抗跌。顯示其選股彈性在市場震盪時的防禦力。</li>
     </ul>
 
     <h2>⚠️ 今日重大個股利空</h2>
     <ul>
-        <li><span class="caution">台股大盤</span>：上週五（7/17）崩跌2953.71點，創史上最大單日跌點，跌破季線。外資狂賣1883億元（創歷史新高），三大法人合計賣超逾2631億元。融資單日大減416億元（創歷史新高），融資維持率降至約170.53%，面臨「融資多殺多」風險。新台幣偏弱、外資期貨淨空單創歷史新高。</li>
-        <li><span class="caution">台積電 (2330)</span>：儘管基本面強勁，但上週五股價重挫180元，市場對Q3毛利率展望略低於Q2、資本支出提高可能壓縮利潤、美國廠與台灣廠之間的「左手打右手」競爭導致台灣晶片可能被要求折價，以及來自Intel等競爭者的追趕，產生失望性賣壓。</li>
-        <li><span class="caution">費城半導體指數</span>：已跌入熊市區間，多檔晶片股（如Marvell、ARM、Intel、美光、三星、SK海力士）從高點大幅回落逾20%至30%，顯示AI概念股面臨嚴峻修正壓力。</li>
-        <li><span class="caution">國巨 (2327) 及被動元件族群 (華新科2492, 禾伸堂3026)</span>：國巨股價8日內崩跌逾3成。專家警告被動元件有「行情來得快、退得也極快」的暗黑慣性，當漲價時，下游RD工程師會積極尋找替代或減料方案，導致價格崩盤。</li>
-        <li><span class="caution">CCL (銅箔基板) 族群 (台光電2383, 台燿6274)</span>：雖然前景看好，但在AI股風向轉變下，本益比修正嚴重，台光電跌15.11%，台燿跌25.48%。</li>
-        <li><span class="caution">高槓桿投資人與部分ETF</span>：0050正二（00631L）投資人因大跌蒸發百萬，引發市場對槓桿ETF及融資操作風險的警示。許多散戶因盲目追高、過度槓桿，在市場急殺中被套牢甚至斷頭。主動式ETF如00403A、00981A、00991A等也受外資大量賣超。</li>
-        <li><span class="caution">聯發科 (2454)</span>：儘管外資喊高目標價，但有評論提到其股價「持續破底」，顯示市場情緒仍有疑慮。</li>
-        <li><span class="neutral">中國新能源車產業</span>：產能過剩，利潤惡化，引發國際市場對其廉價傾銷的擔憂，衝擊傳統車廠。</li>
-        <li><span class="neutral">IKEA中國</span>：因銷售下滑、成本壓力，出售8個城市閒置賣場，顯示中國零售市場面臨挑戰。</li>
+        <li><strong>國巨 (2327-TW) 及被動元件族群：</strong>挾AI伺服器與報價上漲利多，股價從4月飆漲後，7月短短8個交易日崩跌逾3成，甚至跌破800元。產業存在「暗黑慣性」，一旦漲價，科技廠研發工程師會「改設計」減料，導致行情來得快退得也快，市場追高散戶恐慘遭套牢。</li>
+        <li><strong>費城半導體指數：</strong>從6月高點跌逾20%，正式進入熊市，拖累全球半導體類股。市場對AI基礎設施鉅額投資的必要性及成本效益產生疑慮，部分分析師認為AI相關資產已進入高度情緒化交易階段。</li>
+        <li><strong>長鑫存儲IPO：</strong>中國最大的DRAM製造商長鑫存儲IPO，預計募資86億美元，引發市場對記憶體產業「供過於求」的擔憂，恐對全球記憶體大廠（三星、SK海力士、美光）造成壓力。</li>
+        <li><strong>台積電 (2330-TW) 法說會：</strong>儘管財報亮眼，但市場對其Q3毛利率預期（65-67%）低於Q2（67.7%），以及大幅提高資本支出（600-640億美元）恐侵蝕短期獲利與自由現金流量的擔憂，引發失望性賣壓，導致股價重挫，被市場形容為「法說變法會」。此外，前行政院副院長施俊吉指出，未來「美國的台積電」可能與「台灣的台積電」內部競爭，導致台灣晶片面臨風險溢價而被迫打折。</li>
+        <li><strong>槓桿型ETF與融資追高：</strong>許多投資人因跟風買進0050正二（00631L），在台股暴跌中蒙受鉅額虧損。融資單日大減416億元，顯示大量散戶遭到斷頭或追繳保證金，市場槓桿風險仍高。</li>
+        <li><strong>全球電動車產業：</strong>多家傳統汽車大廠（如本田、Stellantis、福特等）因誤判EV戰略，紛紛喊停或調整電動車計畫，並認列數十億美元損失。中國電動車產能過剩，以低價傾銷海外，對歐、日、東南亞市場造成巨大衝擊。</li>
+        <li><strong>SpaceX：</strong>IPO後股價暴跌，市值月蒸發逾1兆美元，跌破發行價135美元。星艦V3因引擎故障被迫延期，加上市場情緒不穩，加劇股價壓力。</li>
+        <li><strong>巴布亞紐幾內亞：</strong>片面宣布關閉我駐處，外交部林佳龍表示台灣將檢視對巴紐天然氣採購後採取必要因應作為。此舉凸顯地緣政治風險對經貿關係的潛在影響。</li>
     </ul>
 
     <h2>💡 操盤手筆記</h2>
-    <div class="highlight">
-        <p>上週五台股經歷歷史性大跌，市場瀰漫極度恐慌情緒，主要反映美股半導體重挫、南韓去槓桿風暴的外溢效應，以及資金對AI概念股漲多修正的獲利了結。儘管短期內市場情緒與籌碼面仍需時間消化與沉澱，但盤後台指期夜盤強勁反彈，以及台積電法說會透露的強勁基本面和AI長期需求，或為市場提供一線生機。</p>
-        <h3>今日開盤需注意：</h3>
-        <ul>
-            <li><strong>情緒與籌碼：</strong> 留意開盤後是否延續夜盤的反彈力道，或是恐慌性賣壓再度湧現。融資餘額仍處高檔，後續融資是否大幅減肥、外資空單是否回補，將是觀察市場是否止穩的關鍵指標。不建議盲目殺低，但高槓桿者仍應注意風險。</li>
-            <li><strong>AI與半導體：</strong> 費半指數已入熊市，但台積電等龍頭企業的長期AI需求仍被看好。此波修正可能為長期投資者提供分批布局優質標的的機會，但需警惕過度追逐漲多概念股。注意聯發科等指標股的表現，觀察是否有止跌跡象。</li>
-            <li><strong>資金輪動：</strong> 資金可能持續轉向防禦型族群，如電信三雄、金融股、塑化股及民生消費類股。這些標的具備穩定現金流和較高的殖利率，在市場波動時期提供下檔保護。</li>
-            <li><strong>國際市場：</strong> 密切關注今日日、韓股市開盤表現，以及本週即將公布的美國科技巨頭財報，這些將是影響台股情緒的重要催化劑。</li>
-            <li><strong>操作建議：</strong> 短期內波動仍大，不宜預設立場。對於手握現金的投資人，可參考分批、階梯式布局法，選擇基本面穩健、長期趨勢向上的個股或ETF。持股較高者，可趁反彈時段「汰弱留強」，調整持股結構。</li>
-        </ul>
-    </div>
+    <p>昨日台股經歷史上最慘烈單日跌幅，市場情緒已達極度恐慌，融資大減則顯示去槓桿仍在進行中。儘管台指期夜盤強勁反彈，台積電ADR跌幅相對現貨輕微，這些技術性止跌訊號為市場帶來一線生機，但反彈能否持續仍待觀察美股走勢、新台幣匯率及外資動向。</p>
+    <p><strong>今日開盤需注意：</strong></p>
+    <ul>
+        <li><strong>市場氛圍與信心：</strong>昨日的恐慌性賣壓是否持續，融資清洗是否足夠。若早盤能維持夜盤反彈的力道，顯示短線有初步止穩跡象，但仍需提防盤中再度湧現賣壓。觀察台積電(2330)能否守穩季線，為多頭反攻的關鍵。</li>
+        <li><strong>防禦型族群：</strong>在科技股遭遇逆風之際，資金避險需求將持續轉向防禦型類股。電信三雄(中華電2412、台灣大3045、遠傳4904)的抗跌與完成填息表現值得關注。金融股、具備剛性需求的傳產及民生消費類股（如餐飲漢來美食1268、通路聯強2347、塑化台塑化6505）亦可作為降低波動的配置選項。主動式高股息ETF的抗跌表現也值得留意。</li>
+        <li><strong>AI與半導體分化：</strong>費城半導體指數進入熊市，但並非所有AI相關領域皆黯淡。儘管台積電短期內因毛利率預期和資本支出增加而承受壓力，其長期AI需求與先進製程領導地位仍未動搖。應區分AI長線趨勢與短線估值泡沫。聯發科(2454)在AI ASIC的潛力、網通光通訊(智邦2345、聯亞3081、啟碁6285等)在AI與低軌衛星雙引擎的表現，以及受惠台積電擴產的廠務工程與PCB類股，仍具成長動能，但選股需更加精準。</li>
+        <li><strong>風險管理與資金控管：</strong>昨日大盤暴跌給予投資人寶貴一課。切勿盲目抄底，應審慎評估個股基本面，避免過度槓桿操作。維持充足現金水位，並可考慮分批、階梯式布局，等待市場進一步止穩的訊號。對於高本益比、漲幅過大的個股，應考慮汰弱留強。</li>
+        <li><strong>國際因素：</strong>留意美股今晚開盤後的表現，以及南韓股市今早開盤後的動態。油價上漲帶來的通膨壓力與Fed政策走向，亦是中長期需持續追蹤的外部風險。</li>
+    </ul>
+
 </body>
 </html>
+```
         </div>
         
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
@@ -185,23 +147,23 @@
         <footer>網頁由牛牛分析站AI自動生成，僅供參考。</footer>
     </div>
 
-    <!-- 💡 雲端真人語音控制邏輯 -->
+    <!-- 💡 優化 2：真正的雲端語音串流，免第三方 JS、100% 穩定有聲 -->
     <script>
+        let audioElements = []; // 存放切片音訊段落的陣列
+        let currentChunkIndex = 0;
         let isSpeaking = false;
+        let isPaused = false;
 
         function toggleSpeech() {
-            // 檢查雲端語音套件是否成功載入
-            if (typeof responsiveVoice === 'undefined') {
-                alert("語音模組載入中，請稍候再試...");
-                return;
-            }
-
             if (isSpeaking) {
-                if (responsiveVoice.isPlaying()) {
-                    responsiveVoice.pause();
-                    document.getElementById('playBtn').innerHTML = "▶️ 繼續播放";
+                // 處理暫停與繼續播放
+                if (!isPaused) {
+                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].pause();
+                    isPaused = true;
+                    document.getElementById('playBtn').innerHTML = "▶️ 繼續";
                 } else {
-                    responsiveVoice.resume();
+                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].play();
+                    isPaused = false;
                     document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
                 }
                 return;
@@ -209,7 +171,7 @@
 
             let rawText = document.getElementById('report-content').innerText;
             
-            // ✨ 修正 2：核心文字清洗與語音轉換演算法（解決股票代號、英文與百分比讀音）
+            // 文本精準清洗
             let cleanText = rawText
                 .replace(/📈/g, "。")
                 .replace(/🚀/g, "。")
@@ -217,11 +179,8 @@
                 .replace(/💡/g, "。")
                 .replace(/▼/g, "下跌")
                 .replace(/▲/g, "上漲")
-                // (a) 解決股票代號問題：將獨立的4碼數字（如 2330）中間插入空格，強迫雲端引擎讀成「二三三零」
-                .replace(/(?<!\d)(\d)(\d)(\d)(\d)(?!\d)/g, "$1 $2 $3 $4")
-                // (b) 解決百分比讀法：將 % 換成中文「百分之」，防止雲端引擎夾雜奇怪的英文percent發音
+                .replace(/(?<!\d)(\d)(\d)(\d)(\d)(?!\d)/g, "$1 $2 $3 $4") // 股票代號處理
                 .replace(/%/g, "百分之")
-                // (c) 解決英文讀音問題：針對常見大寫或專業名詞進行中文化或拆字，確保語音不突兀
                 .replace(/ADR/g, "A D R")
                 .replace(/AI/g, " A I ")
                 .replace(/FED/g, "美聯準")
@@ -230,34 +189,78 @@
 
             if (!cleanText.trim()) return;
 
-            // 🌐 呼叫雲端語音引擎，指定「中文（台灣）真人女聲」
-            responsiveVoice.speak(cleanText, "Chinese (Taiwan) Female", {
-                rate: 1.05,  // 稍微調整語速
-                pitch: 1.0,  // 音調
-                onstart: function() {
-                    isSpeaking = true;
-                    document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
-                    document.getElementById('stopBtn').style.display = "inline-block";
-                },
-                onend: function() {
-                    resetControls();
-                },
-                onerror: function() {
-                    resetControls();
+            // ⚡ 因為 Google 翻譯有限制單次請求長度，我們使用逗號、句號將長文章精準切片
+            let sentences = cleanText.split(/[，。；
+]/);
+            let chunks = [];
+            let currentChunk = "";
+
+            for (let i = 0; i < sentences.length; i++) {
+                let s = sentences[i].trim();
+                if (!s) continue;
+                if ((currentChunk + s).length > 120) {
+                    chunks.push(currentChunk);
+                    currentChunk = s + "。";
+                } else {
+                    currentChunk += s + "。";
                 }
+            }
+            if (currentChunk) chunks.push(currentChunk);
+
+            if (chunks.length === 0) return;
+
+            // 預備所有雲端音訊節點
+            audioElements = chunks.map(text => {
+                let url = "[https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=](https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=)" + encodeURIComponent(text);
+                return new Audio(url);
             });
+
+            currentChunkIndex = 0;
+            isSpeaking = true;
+            isPaused = false;
+            document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
+            document.getElementById('stopBtn').style.display = "inline-block";
+
+            playNextChunk();
+        }
+
+        function playNextChunk() {
+            if (currentChunkIndex >= audioElements.length) {
+                resetControls();
+                return;
+            }
+
+            let audio = audioElements[currentChunkIndex];
+            audio.play().catch(err => {
+                console.log("播放被瀏覽器阻擋，嘗試重試...", err);
+                resetControls();
+            });
+
+            // 監聽此段落念完後，自動播放下一段，達成流暢真人接力朗讀
+            audio.onended = function() {
+                currentChunkIndex++;
+                playNextChunk();
+            };
+
+            audio.onerror = function() {
+                currentChunkIndex++;
+                playNextChunk();
+            };
         }
 
         function stopSpeech() {
-            if (typeof responsiveVoice !== 'undefined') {
-                responsiveVoice.cancel();
+            if (audioElements[currentChunkIndex]) {
+                audioElements[currentChunkIndex].pause();
             }
             resetControls();
         }
 
         function resetControls() {
             isSpeaking = false;
-            document.getElementById('playBtn').innerHTML = "▶️ 播放報告";
+            isPaused = false;
+            audioElements = [];
+            currentChunkIndex = 0;
+            document.getElementById('playBtn').innerHTML = "▶️ 播放";
             document.getElementById('stopBtn').style.display = "none";
         }
     </script>
