@@ -1,8 +1,11 @@
 import os
 import json
 import requests
+import re
+import asyncio
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import edge_tts
 
 TW_TZ = ZoneInfo("Asia/Taipei")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -54,12 +57,53 @@ def ai_generate_report(news_list, market_data, target_date):
         return res_json['candidates'][0]['content']['parts'][0]['text']
     raise RuntimeError(f"Gemini 生成異常: {res_json}")
 
-def save_to_html(ai_content, news_list, today_str):
+async def generate_microsoft_tts(html_content, target_date):
+    """使用微軟最強 Edge-TTS 在後端直接生成高質感真人 MP3 音訊檔"""
+    target_dir = os.path.join("..", "docs")
+    os.makedirs(target_dir, exist_ok=True)
+    audio_filename = f"audio_{target_date}.mp3"
+    audio_path = os.path.join(target_dir, audio_filename)
+    
+    # 1. 清洗文字：移除所有 HTML 標籤
+    text = re.sub(r'<[^>]+>', ' ', html_content)
+    
+    # 2. 財經詞彙發音極致校正
+    text = text.replace("📈", "。").replace("🚀", "。").replace("⚠️", "。").replace("💡", "。")
+    text = text.replace("▼", "下跌").replace("▲", "上漲").replace("%", "百分之")
+    
+    # 核心：將獨立 4 碼股票代號（如 2330）中間插入空格，強迫微軟念成「二三三零」
+    text = re.sub(r'(?<!\d)(\d)(\d)(\d)(\d)(?!\d)', r'\1 \2 \3 \4', text)
+    
+    # 英文縮寫優化
+    text = text.replace("ADR", "A D R").replace("AI", " A I ").replace("FED", "美聯準").replace("TSMC", "台積電").replace("NVIDIA", "輝達")
+    
+    print(f"🎙️ 微軟 Edge-TTS 開始於後端合成真人語音 (字數: {len(text)})...")
+    try:
+        # 使用微軟極受歡迎的台灣真人女聲「曉臻 (HsiaoChen)」
+        communicate = edge_tts.Communicate(text, "zh-TW-HsiaoChenNeural", rate="+5%")
+        await communicate.save(audio_path)
+        print(f"🎵 真人語音檔案生成成功: docs/{audio_filename}")
+        return audio_filename
+    except Exception as e:
+        print(f"⚠️ 微軟 TTS 後端生成失敗: {e}")
+        return None
+
+def save_to_html(ai_content, news_list, today_str, audio_filename=None):
     target_dir = os.path.join("..", "docs")
     sources_html = "<h2>🔗 今日參考新聞來源</h2><ul>"
     for news in news_list:
         sources_html += f'<li>[{news["source"]}] <a href="{news["link"]}" target="_blank" style="color: #0056b3; text-decoration: none;">{news["title"]}</a> ({news["time"]})</li>'
     sources_html += "</ul>"
+    
+    # 判斷後端是否有成功生成實體 MP3 語音檔，若有，直接嵌入標準的原生播放控制條
+    audio_html = ""
+    if audio_filename:
+        audio_html = f"""
+        <div class="audio-inline-controls">
+            <span style="font-size: 13px; font-weight: bold; color: #003366; white-space: nowrap;">🎧 語音導讀：</span>
+            <audio src="{audio_filename}" controls style="height: 28px; max-width: 220px;"></audio>
+        </div>
+        """
     
     full_html = f"""<!DOCTYPE html>
 <html lang="zh-TW">
@@ -68,14 +112,14 @@ def save_to_html(ai_content, news_list, today_str):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{today_str} 台股新聞焦點AI分析</title>
     <style>
-        body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }}
+        body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
         .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
         h1 {{ color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 0; font-size: 24px; }}
         h2 {{ color: #0056b3; margin-top: 25px; font-size: 18px; border-left: 4px solid #0056b3; padding-left: 10px; }}
         p, li {{ line-height: 1.8; font-size: 16px; margin-bottom: 8px; }}
         ul {{ padding-left: 20px; }}
         
-        /* 📌 優化 1：精簡 meta 區塊與彈性佈局，確保手機端不換行 */
+        /* 📌 報告日期與微軟原生播放器完美並排 */
         .meta {{ 
             color: #666; 
             font-size: 14px; 
@@ -85,33 +129,17 @@ def save_to_html(ai_content, news_list, today_str):
             border-radius: 6px; 
             display: flex; 
             align-items: center; 
-            justify-content: space-between; /* 左右拉開 */
-            flex-wrap: nowrap; /* 強制絕不換行 */
+            justify-content: space-between; 
+            flex-wrap: nowrap; 
         }}
         .meta-date {{
-            white-space: nowrap; /* 確保日期不被擠壓換行 */
+            white-space: nowrap; 
         }}
         .audio-inline-controls {{
             display: flex;
             gap: 4px;
             align-items: center;
         }}
-        .btn {{
-            background-color: #0056b3;
-            color: white;
-            border: none;
-            padding: 4px 8px; /* 縮減內距 */
-            font-size: 12px;     /* 縮減字體 */
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-            font-weight: bold;
-            white-space: nowrap; /* 確保按鈕文字不換行 */
-        }}
-        .btn:hover {{ background-color: #003366; }}
-        .btn-stop {{ background-color: #dc3545; display: none; }}
-        .btn-stop:hover {{ background-color: #bd2130; }}
-        
         footer {{ margin-top: 40px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }}
     </style>
 </head>
@@ -119,13 +147,9 @@ def save_to_html(ai_content, news_list, today_str):
     <div class="container">
         <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">台股新聞焦點AI分析</h1>
         
-        <!-- 與日期並排在同一個淡灰色區塊 -->
         <div class="meta">
             <span class="meta-date">📌 報告日期：{today_str}</span>
-            <div class="audio-inline-controls">
-                <button id="playBtn" class="btn" onclick="toggleSpeech()">▶️ 播放</button>
-                <button id="stopBtn" class="btn btn-stop" onclick="stopSpeech()">⏹️ 停止</button>
-            </div>
+            {audio_html}
         </div>
         
         <div id="report-content">
@@ -136,123 +160,6 @@ def save_to_html(ai_content, news_list, today_str):
         {sources_html}
         <footer>網頁由牛牛分析站AI自動生成，僅供參考。</footer>
     </div>
-
-    <!-- 💡 優化 2：真正的雲端語音串流，免第三方 JS、100% 穩定有聲 -->
-    <script>
-        let audioElements = []; // 存放切片音訊段落的陣列
-        let currentChunkIndex = 0;
-        let isSpeaking = false;
-        let isPaused = false;
-
-        function toggleSpeech() {{
-            if (isSpeaking) {{
-                // 處理暫停與繼續播放
-                if (!isPaused) {{
-                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].pause();
-                    isPaused = true;
-                    document.getElementById('playBtn').innerHTML = "▶️ 繼續";
-                }} else {{
-                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].play();
-                    isPaused = false;
-                    document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
-                }}
-                return;
-            }}
-
-            let rawText = document.getElementById('report-content').innerText;
-            
-            // 文本精準清洗
-            let cleanText = rawText
-                .replace(/📈/g, "。")
-                .replace(/🚀/g, "。")
-                .replace(/⚠️/g, "。")
-                .replace(/💡/g, "。")
-                .replace(/▼/g, "下跌")
-                .replace(/▲/g, "上漲")
-                .replace(/(?<!\d)(\d)(\d)(\d)(\d)(?!\d)/g, "$1 $2 $3 $4") // 股票代號處理
-                .replace(/%/g, "百分之")
-                .replace(/ADR/g, "A D R")
-                .replace(/AI/g, " A I ")
-                .replace(/FED/g, "美聯準")
-                .replace(/TSMC/g, "台積電")
-                .replace(/NVIDIA/g, "輝達");
-
-            if (!cleanText.trim()) return;
-
-            // ⚡ 因為 Google 翻譯有限制單次請求長度，我們使用逗號、句號將長文章精準切片
-            let sentences = cleanText.split(/[，。；\n]/);
-            let chunks = [];
-            let currentChunk = "";
-
-            for (let i = 0; i < sentences.length; i++) {{
-                let s = sentences[i].trim();
-                if (!s) continue;
-                if ((currentChunk + s).length > 120) {{
-                    chunks.push(currentChunk);
-                    currentChunk = s + "。";
-                }} else {{
-                    currentChunk += s + "。";
-                }}
-            }}
-            if (currentChunk) chunks.push(currentChunk);
-
-            if (chunks.length === 0) return;
-
-            // 預備所有雲端音訊節點
-            audioElements = chunks.map(text => {{
-                let url = "[https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=](https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=)" + encodeURIComponent(text);
-                return new Audio(url);
-            }});
-
-            currentChunkIndex = 0;
-            isSpeaking = true;
-            isPaused = false;
-            document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
-            document.getElementById('stopBtn').style.display = "inline-block";
-
-            playNextChunk();
-        }}
-
-        function playNextChunk() {{
-            if (currentChunkIndex >= audioElements.length) {{
-                resetControls();
-                return;
-            }}
-
-            let audio = audioElements[currentChunkIndex];
-            audio.play().catch(err => {{
-                console.log("播放被瀏覽器阻擋，嘗試重試...", err);
-                resetControls();
-            }});
-
-            // 監聽此段落念完後，自動播放下一段，達成流暢真人接力朗讀
-            audio.onended = function() {{
-                currentChunkIndex++;
-                playNextChunk();
-            }};
-
-            audio.onerror = function() {{
-                currentChunkIndex++;
-                playNextChunk();
-            }};
-        }}
-
-        function stopSpeech() {{
-            if (audioElements[currentChunkIndex]) {{
-                audioElements[currentChunkIndex].pause();
-            }}
-            resetControls();
-        }}
-
-        function resetControls() {{
-            isSpeaking = false;
-            isPaused = false;
-            audioElements = [];
-            currentChunkIndex = 0;
-            document.getElementById('playBtn').innerHTML = "▶️ 播放";
-            document.getElementById('stopBtn').style.display = "none";
-        }}
-    </script>
 </body>
 </html>"""
     
@@ -294,7 +201,12 @@ def main():
     if all_combined_news:
         print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆彙整新聞並帶入夜盤市場數據...")
         content = ai_generate_report(all_combined_news, market_data, today_str)
-        save_to_html(content, all_combined_news, today_str)
+        
+        # ⚡ 執行微軟 Edge-TTS 非同步語音生成任務
+        audio_file = asyncio.run(generate_microsoft_tts(content, today_str))
+        
+        # 將生成的 MP3 檔名傳入，用以渲染原生網頁播放條
+        save_to_html(content, all_combined_news, today_str, audio_filename=audio_file)
     else:
         print(f"😴 找不到前一日 ({yesterday_str}) 的新聞快取資料，未生成報告。")
 
