@@ -61,7 +61,7 @@ def save_to_html(ai_content, news_list, today_str):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{today_str} 台股盤前 AI 焦點分析</title>
+    <title>{today_str} 台股新聞焦點AI分析</title>
     <style>
         body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
         .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
@@ -75,12 +75,12 @@ def save_to_html(ai_content, news_list, today_str):
 </head>
 <body>
     <div class="container">
-        <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">牛牛盤前情報AI分析</h1>
-        <div class="meta">📌 報告產出日期：{today_str} 盤前分析</div>
+        <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">台股新聞焦點AI分析</h1>
+        <div class="meta">📌 報告日期：{today_str} </div>
         {ai_content}
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
         {sources_html}
-        <footer>本網頁由 牛牛分析站 AI 自動生成，僅供參考。</footer>
+        <footer>網頁由牛牛分析站AI自動生成，僅供參考。</footer>
     </div>
 </body>
 </html>"""
