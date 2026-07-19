@@ -1,10 +1,12 @@
 name: Daily Auto LINE Notification to List
 
 on:
- # schedule:
- #   # 💡 這裡就是台灣時間每天早上 07:10 自動執行 (等於 UTC 前一天晚上 23:10)
- #   - cron: '10 22 * * *'
-  workflow_dispatch: # 保留手動觸發按鈕，方便你隨時測試
+  # // 暫時關閉每天早上的自動 LINE 通知，改為備註
+  # schedule:
+  #   - cron: '10 22 * * *'
+  
+  # // 保留手動觸發按鈕，方便你隨時測試
+  workflow_dispatch:
 
 jobs:
   send-line-message:
@@ -15,8 +17,15 @@ jobs:
     steps:
       - name: Loop through User List
         run: |
+          # ✨ 核心優化：取得台灣時間（+8）的今天日期字串 (例如 2026-07-19)
+          TODAY_STR=$(TZ="Asia/Taipei" date +'%Y-%m-%d')
+          # ✨ 取得適合放在標題的月/日格式 (例如 7/19)
+          TITLE_DATE=$(TZ="Asia/Taipei" date +'%*-m/%*-d' | sed 's/\*//g')
+          
           for USER_ID in $USER_LIST; do
-            echo "Sending to $USER_ID"
+            echo "Sending to $USER_ID for date $TODAY_STR"
+            
+            # // 呼叫 LINE API，訊息文字與連結均已動態帶入當天日期
             curl -X POST https://api.line.me/v2/bot/message/push \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
@@ -25,7 +34,7 @@ jobs:
                 \"messages\": [
                   {
                     \"type\": \"text\",
-                    \"text\": \"📊 台股新聞\n\n今日最新的 AI 盤前情報分析報告已出爐，請點選下方連結查看完整資訊：\nhttps://chung05.github.io/Stock/docs/index.html\"
+                    \"text\": \"📊 台股最新($TITLE_DATE)新聞AI 盤前情報分析，請點選下方連結查看完整資訊：\nhttps://chung05.github.io/Stock/docs/newsai_$TODAY_STR.html\"
                   }
                 ]
               }"
