@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2026-07-19 台股新聞焦點AI分析</title>
     <style>
-        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         h1 { color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 0; font-size: 24px; }
         h2 { color: #0056b3; margin-top: 25px; font-size: 18px; border-left: 4px solid #0056b3; padding-left: 10px; }
         p, li { line-height: 1.8; font-size: 16px; margin-bottom: 8px; }
         ul { padding-left: 20px; }
         
-        /* 📌 優化 1：精簡 meta 區塊與彈性佈局，確保手機端不換行 */
+        /* 📌 報告日期與微軟原生播放器完美並排 */
         .meta { 
             color: #666; 
             font-size: 14px; 
@@ -22,33 +22,17 @@
             border-radius: 6px; 
             display: flex; 
             align-items: center; 
-            justify-content: space-between; /* 左右拉開 */
-            flex-wrap: nowrap; /* 強制絕不換行 */
+            justify-content: space-between; 
+            flex-wrap: nowrap; 
         }
         .meta-date {
-            white-space: nowrap; /* 確保日期不被擠壓換行 */
+            white-space: nowrap; 
         }
         .audio-inline-controls {
             display: flex;
             gap: 4px;
             align-items: center;
         }
-        .btn {
-            background-color: #0056b3;
-            color: white;
-            border: none;
-            padding: 4px 8px; /* 縮減內距 */
-            font-size: 12px;     /* 縮減字體 */
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-            font-weight: bold;
-            white-space: nowrap; /* 確保按鈕文字不換行 */
-        }
-        .btn:hover { background-color: #003366; }
-        .btn-stop { background-color: #dc3545; display: none; }
-        .btn-stop:hover { background-color: #bd2130; }
-        
         footer { margin-top: 40px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
     </style>
 </head>
@@ -56,213 +40,110 @@
     <div class="container">
         <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">台股新聞焦點AI分析</h1>
         
-        <!-- 與日期並排在同一個淡灰色區塊 -->
         <div class="meta">
             <span class="meta-date">📌 報告日期：2026-07-19</span>
-            <div class="audio-inline-controls">
-                <button id="playBtn" class="btn" onclick="toggleSpeech()">▶️ 播放</button>
-                <button id="stopBtn" class="btn btn-stop" onclick="stopSpeech()">⏹️ 停止</button>
-            </div>
+            
+        <div class="audio-inline-controls">
+            <span style="font-size: 13px; font-weight: bold; color: #003366; white-space: nowrap;">🎧 語音導讀：</span>
+            <audio src="audio_2026-07-19.mp3" controls style="height: 28px; max-width: 220px;"></audio>
+        </div>
+        
         </div>
         
         <div id="report-content">
-            <!DOCTYPE html>
-<html>
-<head>
-    <title>台股盤前焦點分析報告</title>
-    <meta charset="utf-8">
-</head>
-<body>
+            <h2>📈 國際大盤焦點</h2>
+<p>儘管未取得昨日美股與台指期夜盤最終收盤數據，但根據早晨最新新聞資訊，國際市場氛圍仍顯嚴峻，台股上週五經歷「史詩級大屠殺」後，市場情緒高度緊繃。</p>
+<ul>
+    <li><strong>美股表現：</strong>費城半導體指數（SOX）自6月高點已跌逾20%，正式宣告進入熊市區間，包括Marvell、安謀（ARM）和英特爾（Intel）等晶片股均從近期高點下跌超過30%。輝達（NVIDIA）股價震盪，一度失守全球市值王寶座（被蘋果Apple短暫超越）。IBM股價甚至單日暴跌25%，顯示AI相關資產估值面臨嚴峻考驗，市場對AI泡沫的擔憂加劇。</li>
+    <li><strong>台積電ADR動態：</strong>新聞顯示，台積電ADR昨日下跌2.77%，相較於台股現貨（大跌7.29%）跌幅較輕，此相對抗跌表現可能為今日台股帶來部分反彈契機，但仍需觀察美股開盤後走勢。</li>
+    <li><strong>台指期夜盤收盤解析：</strong>台指期夜盤在現貨急殺後展開強勁反彈，上漲877點，漲幅2.06%，收在43481點。然而，此點位仍未超越台股現貨季線所在的43525點，顯示季線攻防將是多頭反攻的首要關卡。</li>
+    <li><strong>重要經濟數據與地緣政治：</strong>
+        <ul>
+            <li><strong>國際油價：</strong>受美伊衝突急遽升溫及波斯灣局勢影響，布蘭特原油期貨單日大漲4.59%至每桶88.10美元，紐約西德州中級原油（WTI）上漲4.48%至每桶82.49美元，兩者本週漲幅均達16%。油價飆升恐推高通膨預期，加劇聯準會（Fed）維持高利率甚至進一步收緊政策的壓力。</li>
+            <li><strong>黃金：</strong>儘管地緣政治風險提供避險支撐，黃金價格回升至每盎司4000美元上方，但受強勢美元及高利率預期影響，本週仍下跌2.6%。</li>
+            <li><strong>韓國市場：</strong>韓股因高度槓桿交易引發的「去槓桿化」進程持續，據報導高達120萬散戶面臨追繳保證金，35萬散戶遭斷頭，加劇了亞洲市場的波動性及恐慌情緒。</li>
+            <li><strong>中國AI與電動車衝擊：</strong>中國新AI模型Kimi K3技術水準逼近美國頂級產品，引發市場對AI基礎設施投資報酬率的疑慮。此外，中國新能源車產能過剩，前5月汽車製造業利潤年減近20%，正將「內捲」壓力輸出海外，對全球汽車產業造成衝擊。</li>
+        </ul>
+    </li>
+</ul>
 
-    <h2>📈 國際大盤焦點</h2>
-    <ul>
-        <li><strong>台股昨日回顧：</strong>上週五台股遭遇史詩級崩跌，終場重挫2953.71點（跌幅6.47%），收在42671.27點，直接摜破季線及4萬3、4萬4、4萬5點關卡，創下史上最大單日跌點紀錄。外資單日狂賣1883億元，創歷史新高，上市櫃融資餘額合計驟減416億元，顯示市場極度恐慌並加速去槓桿。</li>
-        <li><strong>美股表現：</strong>費城半導體指數持續重挫1.63%，從6月高點已跌逾20%，正式跌入熊市區間，市值蒸發1.5兆美元。納斯達克指數下跌1.40%，標準普爾500指數下跌1.01%，道瓊工業指數下跌0.77%，科技股賣壓沉重。市場對AI基礎設施鉅額投資的疑慮加劇，中國AI模型Kimi K3發布也引發市場對美中AI技術差距縮小的擔憂，加劇半導體板塊賣壓。</li>
-        <li><strong>台積電ADR動態：</strong>台積電(TSM-US)ADR下跌2.77%，聯電(UMC-US)ADR下跌4.67%，日月光(ASX-US)ADR下跌2.78%。雖然仍下跌，但跌幅較昨日台股現貨相對輕微，可能預示台股今開盤後有機會稍作喘息。輝達(NVDA-US)一度跌落市值王寶座，但終場反彈，收跌2.21%，仍搶回市值王。蘋果(AAPL-US)曾短暫超車輝達成為市值王。</li>
-        <li><strong>台指期夜盤收盤解析：</strong>在台股現貨急殺後，台指期夜盤逆勢強勁反彈877點（漲幅2.06%），收在43481點。這顯示市場在極度恐慌後有技術性反彈需求，但仍未超越昨日現貨季線（約43525點），季線攻防戰將是今日多頭反攻的首要挑戰。</li>
-        <li><strong>重要經濟數據與地緣政治：</strong>
-            <ul>
-                <li><strong>國際油價：</strong>美伊衝突急遽升溫，影響地緣政治風險，布蘭特原油期貨和紐約西德州中級原油（WTI）期貨均大漲逾4%，創一個多月來新高，推升通膨預期。中油宣布下週汽柴油不調整，吸收逾155億元。</li>
-                <li><strong>黃金：</strong>金價本週因通膨憂慮及美元走強而下跌2.6%，儘管週五收復每盎司4000美元關卡，但升息預期及油價高漲的通膨壓力仍對黃金構成壓力。</li>
-                <li><strong>新台幣匯率：</strong>外資持續提款導致新台幣偏弱，接連創下去年4月以來新低價位，外資期貨淨空單達86189口，創歷史新高，反映資金外流壓力。</li>
-                <li><strong>南韓股市：</strong>南韓市場正處於去槓桿進程，高槓桿交易引發的頻繁熔斷與追繳保證金壓力，對記憶體股和全球AI概念股信心造成動搖。</li>
-            </ul>
-        </li>
-    </ul>
+<h2>🚀 今日重大個股利多</h2>
+<ul>
+    <li><strong>台積電 (2330)</strong>：
+        <ul>
+            <li>FactSet最新調查將2026年EPS預估上修至107.74元，目標價3160元。</li>
+            <li>Q2財報營收達1.27兆新台幣，年增36.0%，EPS 27.25元創歷史新高。</li>
+            <li>上修2026年美元營收成長預期至「略高於40%」（原先預期超過30%），管理層稱AI需求「極其強勁」。</li>
+            <li>摩根士丹利將目標價由2888元上調至2988元，並上修未來三年獲利預測。</li>
+            <li>調升2026年資本支出目標至600億至640億美元（原預估520-560億美元），其中70%-80%投入先進製程。預期未來三年資本支出可能挑戰2100-2200億美元。</li>
+            <li>加碼投資美國亞利桑那州1000億美元，總投資額達2650億美元，將新建數座2奈米及更先進製程晶圓廠與先進封裝廠。強調未來幾年也將在台灣建造13座領先製程與先進封裝廠。</li>
+            <li>iPhone 18 Pro系列將搭載採用台積電2奈米（2nm）先進製程打造的A20 Pro晶片，將顯著提升運算效能與能源效率。</li>
+        </ul>
+    </li>
+    <li><strong>緯穎 (6669)</strong>：FactSet最新調查將2026年EPS預估上修至353.75元，目標價6633元。</li>
+    <li><strong>藥華藥 (6446)</strong>：FactSet最新調查將2026年EPS預估上修至25.65元，目標價1352.23元。</li>
+    <li><strong>長榮 (2603)</strong>：FactSet最新調查將2026年EPS預估上修至29.05元，目標價234.5元。</li>
+    <li><strong>玉山金 (2884)</strong>：FactSet最新調查將2026年EPS預估上修至2.49元，目標價36元。同時，上半年上市金控累計獲利狂飆至4408.75億元，年增1倍，創歷史同期新高。</li>
+    <li><strong>台化 (1326)</strong>：FactSet最新調查將2026年EPS預估上修至3.05元，目標價64.95元。</li>
+    <li><strong>正道 (1506)</strong>：6月營收1.18億元，創逾7年單月新高，月增11%、年增20%；上半年營收6.16億元，年增12.3%。預期2026年系統櫃業務可轉虧為盈，金屬加工業務受惠新機種開發及大陸轉單效應。</li>
+    <li><strong>聯發科 (2454)</strong>：外資看好其搶攻AI ASIC（客製化晶片）市占率，目標價甚至喊上驚人的「一萬元」，認為其ASIC晶片切中科技巨頭不想再繳「輝達稅」的痛點。谷歌Pixel 11a手機將採用聯發科M90基頻晶片。</li>
+    <li><strong>台虹 (8039)</strong>：積極布局新半導體及電子材料，獲外資週買超1.12萬張，股價單週上漲25%。5月稅後純益達6945萬元，年增8.01倍，EPS 0.26元，主要歸因於優化產品銷售結構。PTFE填料型高速銅箔基板及雷射接著材料開發進度符合預期，細線路高階軟板材料銷售出色。</li>
+    <li><strong>聯強 (2347)</strong>：受惠於雲端與地端AI應用全面落地，Q2與上半年營收同步刷新歷史新高。下半年營運聚焦高階電競筆電、企業級AP、資安交換器及低軌衛星地面接收設備等新領域，外資連續5日買超25383張力挺。</li>
+    <li><strong>電信三雄 (中華電2412、台灣大3045、遠傳4904)</strong>：在台股血洗中逆勢走揚，上週除息後，本週全數完成填息，顯示資金轉向防禦類股。遠傳週漲8.42%、台灣大週漲2.3%、中華電信週漲3.37%。</li>
+    <li><strong>漢來美食 (1268)</strong>：展店動能強勁，高端自助餐品牌「島語」插旗台中，年底前還要再開2家。Q1稅後純益2.48億元，年增33.9%，EPS 5.87元創單季獲利新高。Q2合併營收續創同期新高，年增19.24%。</li>
+    <li><strong>迅杰 (6243)</strong>：透過投資璿元科技與翔探科技切入無人機供應鏈，受非紅供應鏈需求發酵看好，股價在台股崩跌下逆勢大漲7%，單週大漲30.47%，創19個月新高。無人機產品正積極送樣，預期明年有營收貢獻。</li>
+    <li><strong>廠務工程類股 (漢唐2404、聖暉*5536、亞翔6139、帆宣6196、洋基工程6691)</strong>：台積電大幅上調資本支出且未來三年資本支出規模可能挑戰2100億-2200億美元，這些廠務工程廠可望優先受惠。漢唐為台積電亞利桑那州廠主要夥伴，帆宣、聖暉集團、洋基工程也積極布局美國建廠商機。</li>
+    <li><strong>正文 (4906) 轉投資威世波 (7930)</strong>：威世波登錄興櫃，核心技術在CW Laser、光引擎及光通訊關鍵元件開發。正文為威世波第一大股東，雙方在AI光通訊發展上有望提供更大的合作空間，正文可能成為威世波客戶與代工夥伴。</li>
+    <li><strong>PCB廠 (華通2313、健鼎3044、臻鼎-KY 4958)</strong>：迎AI商機加速擴產。華通規劃2026年資本支出達300億元，健鼎估突破100億元，臻鼎-KY資本支出預計超過800億元，多個廠區同步動工，預期2026年PCB產業資本支出將創歷史新高。</li>
+    <li><strong>台塑化 (6505)</strong>：受中東局勢升溫帶動油價勁揚，外資連續9買，股價單週大漲38.27%，創近2年多新高。預期Q3進入塑化旺季，煉油開工率估升至87%，乙烯、丙烯報價看好。</li>
+    <li><strong>網通低軌衛星概念股 (啓碁6285、智易3596、友訊2332、昇達科3491、智邦2345、聯亞3081、中磊5388)</strong>：AI算力擴張與低軌衛星加速商轉推動通訊設備需求爆發。
+        <ul>
+            <li><strong>友訊</strong>打入美國SpaceX星鏈計畫供應鏈，9月起出貨網路資料交換節點專用交換機。</li>
+            <li><strong>啓碁</strong>受惠Service Provider客戶拉貨，6月營收年增84%創歷史新高，上修全年營收展望至1480-1500億元，低軌衛星產品線佔營收比重將達46.8%。</li>
+            <li><strong>智易</strong>揮軍衛星產業打造使用者終端產品，預期最快下半年有訂單。</li>
+            <li><strong>智邦</strong>受惠AI加速器強勁出貨，6月營收年增締造新猷，1.6T交換器有望下半年接棒。</li>
+            <li><strong>聯亞</strong>矽光產品出貨量大增，帶動6月營收年增超過120%。</li>
+            <li><strong>中磊</strong>受惠電信與企業需求回溫，訂單滿載，6月營收年增近71%創同期新高。</li>
+            <li><strong>昇達科</strong>雖短期因客戶產品改版暫停出貨，但獲得補償費用確保獲利，後續拉貨動能穩健。</li>
+        </ul>
+    </li>
+    <li><strong>仁寶 (2324)</strong>：在台股崩跌近3000點的背景下逆勢小漲0.05元，終場收36元。6月營收958.54億元，月增36%、年增58.4%，創45個月新高。外資大買約2.2萬張。</li>
+    <li><strong>宏正 (6277)</strong>：核心產品KVM多電腦切換器為全球龍頭，已切入美國政府與國防相關資安專案。獨家以外接硬體方案解決台積電無塵室遠端監控需求，技術門檻極高。已取得輝達MGX平台認證，產品線延伸至AI語音變聲模組。去年Q4至今年Q1三率三升，基本面加速向上。</li>
+</ul>
 
-    <h2>🚀 今日重大個股利多</h2>
-    <ul>
-        <li><strong>台積電 (2330-TW)：</strong>儘管市場反應失望，但FactSet最新調查將2026年EPS預估上修至107.74元，目標價上調至3160元（摩根士丹利上修至2988元）。公司Q2營收、EPS均創歷史新高，並二度上修2026年美元營收成長預期至「略高於40%」，同時大幅調升資本支出至600-640億美元，並加碼美國投資1000億美元。基本面強勁，AI需求極其強勁，長線成長軌跡不變。</li>
-        <li><strong>藥華藥 (6446-TW)：</strong>FactSet最新調查將2026年EPS預估上修至25.65元，預估目標價為1352.23元。</li>
-        <li><strong>長榮 (2603-TW)：</strong>FactSet最新調查將2026年EPS預估上修至29.05元，預估目標價為234.5元。</li>
-        <li><strong>緯穎 (6669-TW)：</strong>FactSet最新調查將2026年EPS預估上修至353.75元，預估目標價為6633元。</li>
-        <li><strong>玉山金 (2884-TW)：</strong>FactSet最新調查將2026年EPS預估上修至2.49元，預估目標價為36元。</li>
-        <li><strong>台化 (1326-TW)：</strong>FactSet最新調查將2026年EPS預估上修至3.05元，預估目標價為64.95元。</li>
-        <li><strong>正道 (1506-TW)：</strong>6月營收創逾7年新高，月增11%、年增20%，上半年營收年增12.3%。金屬加工業務持穩，系統櫃事業預期2026年轉虧為盈，營運可望優於去年。在大盤重挫下逆勢收漲，顯示防禦性。</li>
-        <li><strong>聯發科 (2454-TW)：</strong>外資報告看好其搶攻AI ASIC市占率，有望成為台股下一檔「萬金股」。聯發科的輕資產本質及AI ASIC符合CSP大廠降低「輝達稅」的需求。</li>
-        <li><strong>台虹 (8039-TW)：</strong>積極布局新半導體及電子材料，5月稅後純益年增801%達6945萬元，每股純益0.26元，優化產品銷售結構奏功。本週獲外資買超1.12萬張，股價單周上漲25%。</li>
-        <li><strong>聯強 (2347-TW)：</strong>受惠雲端與地端AI應用落地，Q2與上半年營收同步刷新歷史新高。下半年聚焦高階電競筆電及企業級AP、資安交換器、低軌衛星地面接收設備等新領域，獲外資連續5個交易日買超2.5萬張力挺。</li>
-        <li><strong>電信三雄 (中華電2412-TW, 台灣大3045-TW, 遠傳4904-TW)：</strong>在大盤血洗下逆勢走揚，上週除息後本週全數完成填息，顯示資金轉向防禦型類股的避險需求。遠傳本週漲8.42%，中華電信漲3.37%，台灣大漲2.3%。</li>
-        <li><strong>漢來美食 (1268-TW)：</strong>旗下「島語」品牌插旗台中，年底前將再開2家，既有海港餐廳升級。Q1稅後純益2.48億元創單季新高，年增33.9%，EPS 5.87元。Q2合併營收年增19.24%創同期新高。</li>
-        <li><strong>迅杰 (6243-TW)：</strong>透過投資璿元、翔探科技切入無人機供應鏈，鎖定北美非紅供應鏈商機，無人機產品積極送樣。股價在大盤重挫下逆勢大漲，單周漲逾30%，創19個月新高。</li>
-        <li><strong>廠務工程概念股 (漢唐2404-TW, 聖暉*5536-TW, 亞翔6139-TW, 帆宣6196-TW, 洋基工程6691-TW)：</strong>受惠台積電大幅上調今年資本支出至600-640億美元，預期未來三年資本支出可能挑戰2100-2200億美元，廠務工程業者的訂單能見度已延伸至未來數年，並積極進軍美國擴廠。</li>
-        <li><strong>PCB產業 (華通2313-TW, 健鼎3044-TW, 臻鼎-KY4958-TW)：</strong>AI高速運算需求擴大與地緣政治促使供應鏈分散，PCB廠加速擴產。華通資本支出規劃達300億元創新高；健鼎預估突破100億元；臻鼎-KY資本支出預計超過800億元，2026年將進入高速成長期。</li>
-        <li><strong>台塑化 (6505-TW)：</strong>中東局勢升溫帶動國際油價上漲，台塑化受惠煉油利差擴大。6月營收636.83億元，月增10.2%、年增18.5%。法人預期Q3石化上游原料報價看好，營運添利，外資連9買，股價單周漲38.27%創近2年多新高。</li>
-        <li><strong>網通與光通訊產業 (智邦2345-TW, 聯亞3081-TW, 啟碁6285-TW, 中磊5388-TW, 友訊2332-TW, 昇達科3491-TW, 威世波7930-TW)：</strong>AI算力潮與低軌衛星商轉雙引擎推動，帶動頻寬與硬體需求爆發。智邦、啟碁、中磊6月營收年增顯著，啟碁更上修全年營收展望。友訊成功打入Starlink供應鏈，將供應低軌衛星網路資料交換節點專用交換機。聯亞矽光產品出貨大增，昇達科在低軌衛星市場亦具潛力。</li>
-        <li><strong>仁寶 (2324-TW)：</strong>6月營收958.54億元，月增36%、年增58.4%，創45個月新高。在大盤重挫下逆勢小漲，外資買超2.2萬張，顯示其在筆電代工領域的穩健表現與資金避險特性。</li>
-        <li><strong>宏正 (6277-TW)：</strong>核心產品KVM為全球龍頭，已切入台積電無塵室獨家解決方案，並取得輝達MGX平台認證，產品線延伸至機櫃伺服器與散熱模組。三率三升，毛利率、營益率、稅後淨利率全面跳升，具高毛利低本益比優勢。</li>
-        <li><strong>主動式台股ETF：</strong>在台股血腥黑五中，6檔主動式台股ETF表現超越大盤，8檔優於台積電，其中高股息主動式ETF（00408A、00984A、00999A）包辦前三抗跌。顯示其選股彈性在市場震盪時的防禦力。</li>
-    </ul>
+<h2>⚠️ 今日重大個股利空</h2>
+<ul>
+    <li><strong>被動元件股 (國巨2327、華新科2492、禾伸堂3026)</strong>：國巨股價從歷史新天價1220元暴跌超過3成，甚至跌破800元大關。產業專家指出，被動元件存在「行情來得快，退得也極快」的慣性，一旦漲價，科技廠RD工程師會「改設計」減料，導致需求快速下滑。華新科、禾伸堂跌幅也超過三成。</li>
+    <li><strong>CCL（銅箔基板）廠 (台光電2383、台燿6274)</strong>：受AI股風向轉變影響，本益比面臨嚴重修正。台光電跌15.11%，台燿更是大跌25.48%。</li>
+    <li><strong>槓桿型ETF (0050正二/00631L)</strong>：有散戶因跟風買進0050正二，在台股大跌中一日蒸發百萬，顯示槓桿型ETF波動耗損大，不適合缺乏風險意識的投資人長期持有。</li>
+    <li><strong>SpaceX</strong>：股價暴跌，預計市值從最高點蒸發逾1兆美元，已跌破發行價135美元。主要受「星艦V3」引擎故障被迫延期及市場情緒影響。</li>
+    <li><strong>IKEA中國市場</strong>：因全球經濟環境不確定性、數位化浪潮及消費者行為改變，IKEA近期關閉部分大型商場，並一次性出售中國8個城市的閒置賣場，為近30年來最大規模調整。2024會計年度銷售額年減7.6%，較2019年高峰縮水逾3成。</li>
+    <li><strong>中國新能源車產業鏈衝擊</strong>：中國新能源車前5月汽車製造業利潤年減近20%，經銷商虧損比例達55.7%，庫存壓力加劇，多數賠錢賣車。龐大產能只能「流血倒海外」，對歐盟、東南亞市場造成衝擊，甚至日本大阪世博期間，斥資90億日圓購入的190輛中國製電動巴士狂爆832起故障，130輛已被送到廢棄物處理場。</li>
+</ul>
 
-    <h2>⚠️ 今日重大個股利空</h2>
-    <ul>
-        <li><strong>國巨 (2327-TW) 及被動元件族群：</strong>挾AI伺服器與報價上漲利多，股價從4月飆漲後，7月短短8個交易日崩跌逾3成，甚至跌破800元。產業存在「暗黑慣性」，一旦漲價，科技廠研發工程師會「改設計」減料，導致行情來得快退得也快，市場追高散戶恐慘遭套牢。</li>
-        <li><strong>費城半導體指數：</strong>從6月高點跌逾20%，正式進入熊市，拖累全球半導體類股。市場對AI基礎設施鉅額投資的必要性及成本效益產生疑慮，部分分析師認為AI相關資產已進入高度情緒化交易階段。</li>
-        <li><strong>長鑫存儲IPO：</strong>中國最大的DRAM製造商長鑫存儲IPO，預計募資86億美元，引發市場對記憶體產業「供過於求」的擔憂，恐對全球記憶體大廠（三星、SK海力士、美光）造成壓力。</li>
-        <li><strong>台積電 (2330-TW) 法說會：</strong>儘管財報亮眼，但市場對其Q3毛利率預期（65-67%）低於Q2（67.7%），以及大幅提高資本支出（600-640億美元）恐侵蝕短期獲利與自由現金流量的擔憂，引發失望性賣壓，導致股價重挫，被市場形容為「法說變法會」。此外，前行政院副院長施俊吉指出，未來「美國的台積電」可能與「台灣的台積電」內部競爭，導致台灣晶片面臨風險溢價而被迫打折。</li>
-        <li><strong>槓桿型ETF與融資追高：</strong>許多投資人因跟風買進0050正二（00631L），在台股暴跌中蒙受鉅額虧損。融資單日大減416億元，顯示大量散戶遭到斷頭或追繳保證金，市場槓桿風險仍高。</li>
-        <li><strong>全球電動車產業：</strong>多家傳統汽車大廠（如本田、Stellantis、福特等）因誤判EV戰略，紛紛喊停或調整電動車計畫，並認列數十億美元損失。中國電動車產能過剩，以低價傾銷海外，對歐、日、東南亞市場造成巨大衝擊。</li>
-        <li><strong>SpaceX：</strong>IPO後股價暴跌，市值月蒸發逾1兆美元，跌破發行價135美元。星艦V3因引擎故障被迫延期，加上市場情緒不穩，加劇股價壓力。</li>
-        <li><strong>巴布亞紐幾內亞：</strong>片面宣布關閉我駐處，外交部林佳龍表示台灣將檢視對巴紐天然氣採購後採取必要因應作為。此舉凸顯地緣政治風險對經貿關係的潛在影響。</li>
-    </ul>
-
-    <h2>💡 操盤手筆記</h2>
-    <p>昨日台股經歷史上最慘烈單日跌幅，市場情緒已達極度恐慌，融資大減則顯示去槓桿仍在進行中。儘管台指期夜盤強勁反彈，台積電ADR跌幅相對現貨輕微，這些技術性止跌訊號為市場帶來一線生機，但反彈能否持續仍待觀察美股走勢、新台幣匯率及外資動向。</p>
-    <p><strong>今日開盤需注意：</strong></p>
-    <ul>
-        <li><strong>市場氛圍與信心：</strong>昨日的恐慌性賣壓是否持續，融資清洗是否足夠。若早盤能維持夜盤反彈的力道，顯示短線有初步止穩跡象，但仍需提防盤中再度湧現賣壓。觀察台積電(2330)能否守穩季線，為多頭反攻的關鍵。</li>
-        <li><strong>防禦型族群：</strong>在科技股遭遇逆風之際，資金避險需求將持續轉向防禦型類股。電信三雄(中華電2412、台灣大3045、遠傳4904)的抗跌與完成填息表現值得關注。金融股、具備剛性需求的傳產及民生消費類股（如餐飲漢來美食1268、通路聯強2347、塑化台塑化6505）亦可作為降低波動的配置選項。主動式高股息ETF的抗跌表現也值得留意。</li>
-        <li><strong>AI與半導體分化：</strong>費城半導體指數進入熊市，但並非所有AI相關領域皆黯淡。儘管台積電短期內因毛利率預期和資本支出增加而承受壓力，其長期AI需求與先進製程領導地位仍未動搖。應區分AI長線趨勢與短線估值泡沫。聯發科(2454)在AI ASIC的潛力、網通光通訊(智邦2345、聯亞3081、啟碁6285等)在AI與低軌衛星雙引擎的表現，以及受惠台積電擴產的廠務工程與PCB類股，仍具成長動能，但選股需更加精準。</li>
-        <li><strong>風險管理與資金控管：</strong>昨日大盤暴跌給予投資人寶貴一課。切勿盲目抄底，應審慎評估個股基本面，避免過度槓桿操作。維持充足現金水位，並可考慮分批、階梯式布局，等待市場進一步止穩的訊號。對於高本益比、漲幅過大的個股，應考慮汰弱留強。</li>
-        <li><strong>國際因素：</strong>留意美股今晚開盤後的表現，以及南韓股市今早開盤後的動態。油價上漲帶來的通膨壓力與Fed政策走向，亦是中長期需持續追蹤的外部風險。</li>
-    </ul>
-
-</body>
-</html>
-```
+<h2>💡 操盤手筆記</h2>
+<p>台股上週五的「史詩級大屠殺」反映了市場在AI狂潮後，對高估值科技股的獲利了結，以及國際上，特別是韓國市場「去槓桿化」的連鎖效應。儘管台積電法說會基本面表現亮眼，但市場解讀仍偏保守，引發晶片股全面修正，費半指數更已進入熊市，對台灣科技島而言，無疑是個警訊。</p>
+<p><strong>今日開盤需注意的整體市場氛圍：</strong></p>
+<ul>
+    <li><strong>市場情緒仍偏恐慌：</strong>儘管台指期夜盤有所反彈，但尚未站回季線，且國際半導體市場仍面臨拋售壓力，預期今日早盤仍將波動劇烈。散戶融資單日大減但餘額仍高，意味著籌碼清洗可能尚未完全結束。</li>
+    <li><strong>AI概念股短期面臨壓力：</strong>「漲多就是最大利空」的論點，在AI概念股上尤其顯著。雖然長期趨勢不變，但短期市場對獲利預期與估值產生疑慮，部分個股本益比修正幅度劇烈。投資人應避免盲目追高，對於籌碼面混亂、漲幅過大的AI相關個股需特別謹慎。</li>
+    <li><strong>防禦型類股受資金青睞：</strong>在科技股大跌之際，資金明顯轉向高殖利率且具剛性需求的防禦型產業。電信三雄已完成填息，金融股上半年獲利大增，傳產如塑化（受油價上漲利多）、以及民生消費相關個股（如食品、百貨）可能成為資金避風港，值得留意其抗跌表現。</li>
+    <li><strong>國際動態牽動台股：</strong>本週美股將有多家巨頭公布財報，其展望將成為市場關注焦點。國際油價因地緣政治風險飆升，可能加劇通膨壓力，影響全球央行政策走向。韓國市場的去槓桿化進程，仍可能對亞洲股市造成外溢影響，需持續觀察。</li>
+</ul>
+<p><strong>族群趨勢：</strong></p>
+<ul>
+    <li><strong>半導體供應鏈：</strong>台積電擴大資本支出，長期看好廠務工程（漢唐、聖暉*、亞翔、帆宣、洋基工程）及PCB廠（華通、健鼎、臻鼎-KY）的訂單能見度。然而，市場對台積電法說的毛利率承壓、新廠產能不足等疑慮，可能導致其股價短線仍有壓力。</li>
+    <li><strong>AI ASIC / 光通訊 / 低軌衛星：</strong>聯發科在AI ASIC領域的潛力，以及網通廠（啓碁、智易、友訊、昇達科、智邦、聯亞、中磊）在AI算力擴張和低軌衛星商轉下的業務成長，仍是長期具前景的族群，但短期可能受大盤情緒影響。</li>
+    <li><strong>傳統產業與民生消費：</strong>油價上漲對塑化股（台塑化）形成利多。餐飲（漢來美食）、貿易百貨（淘帝-KY）等在台灣內需市場穩定或展店動能強勁的個股，有望展現較強韌性。</li>
+    <li><strong>無人機概念股：</strong>在「非紅供應鏈」趨勢下，迅杰（6243）等無人機概念股受市場看好，股價逆勢走強，但需留意題材發酵的持續性。</li>
+</ul>
+<p><strong>操盤建議：</strong></p>
+<p>資深分析師們普遍認為，此波修正屬於「漲多後的獲利了結」與「市場籌碼的清洗」，台股基本面並未反轉，AI的長期趨勢依然存在。對於穩健型投資人，不宜在恐慌中殺低，應趁回檔檢視持股，落實「汰弱留強」。手握現金者可考慮採取「分批、階梯式」布局策略，逢低承接如台積電、0050、0056等基本面穩健的優質標的。同時，配置部分資金於防禦型與具剛性需求的產業，以降低整體投資組合的波動風險。高槓桿操作的投資人則應優先降低槓桿，控制風險。</p>
         </div>
         
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
         <h2>🔗 今日參考新聞來源</h2><ul><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539419" target="_blank" style="color: #0056b3; text-decoration: none;">鉅亨速報 - Factset 最新調查：台化(1326-TW)EPS預估上修至3.05元，預估目標價為64.95元</a> (2026-07-19 08:11:15)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539418" target="_blank" style="color: #0056b3; text-decoration: none;">鉅亨速報 - Factset 最新調查：藥華藥(6446-TW)EPS預估上修至25.65元，預估目標價為1352.23元</a> (2026-07-19 08:11:13)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539417" target="_blank" style="color: #0056b3; text-decoration: none;">鉅亨速報 - Factset 最新調查：玉山金(2884-TW)EPS預估上修至2.49元，預估目標價為36元</a> (2026-07-19 08:11:11)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539416" target="_blank" style="color: #0056b3; text-decoration: none;">鉅亨速報 - Factset 最新調查：長榮(2603-TW)EPS預估上修至29.05元，預估目標價為234.5元</a> (2026-07-19 08:11:09)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539415" target="_blank" style="color: #0056b3; text-decoration: none;">鉅亨速報 - Factset 最新調查：台積電(2330-TW)EPS預估上修至107.74元，預估目標價為3160元</a> (2026-07-19 08:11:06)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539365" target="_blank" style="color: #0056b3; text-decoration: none;">〈熱門股〉正道無懼大盤重挫 逆勢收漲站回半年線</a> (2026-07-18 21:23:31)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539362" target="_blank" style="color: #0056b3; text-decoration: none;">散戶死在殺盤區？股魚驚爆：賺最多的其實是「小孩帳戶」！台股高檔震盪，刪看盤APP靠這兩招抱走Q4暴利！</a> (2026-07-18 21:00:08)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539353" target="_blank" style="color: #0056b3; text-decoration: none;">聯發科、大立光誰先衝破「萬金股」？股魚曝1關鍵：ASIC正在複製當年「挖礦機」印鈔狂潮！</a> (2026-07-18 20:30:15)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539347" target="_blank" style="color: #0056b3; text-decoration: none;">配息飆18%快歐印？股魚戳破ETF「年化殖利率」幻象！00929、00934、00961大PK，滿手科技股改存這檔！</a> (2026-07-18 20:00:11)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539346" target="_blank" style="color: #0056b3; text-decoration: none;">國巨(2327)暴跌3成散戶慘套！外資報告沒說的秘密...股魚急勸：被動元件「暗黑慣性」曝光，沒這本事快逃！</a> (2026-07-18 20:00:10)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6538966" target="_blank" style="color: #0056b3; text-decoration: none;">老乾杯、Muji都在用！新加坡零工新創Flexii在台成長爆發 攜一卡通電支即時領薪</a> (2026-07-18 12:47:51)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539250" target="_blank" style="color: #0056b3; text-decoration: none;">大摩調升台積電目標價！AI擴產能否撐住毛利率？</a> (2026-07-18 12:16:08)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539211" target="_blank" style="color: #0056b3; text-decoration: none;">〈熱門股〉台虹布局新半導體材料 外資周買超1.12萬張助漲25%</a> (2026-07-18 11:28:36)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539105" target="_blank" style="color: #0056b3; text-decoration: none;">〈熱門股〉聯強下半年擁AI與半導體展望亮眼 外資本周天天買力挺</a> (2026-07-18 11:24:16)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539230" target="_blank" style="color: #0056b3; text-decoration: none;">台股血腥黑五！6檔主動式ETF打敗大盤展抗跌力 高息型包辦前三</a> (2026-07-18 11:14:38)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539108" target="_blank" style="color: #0056b3; text-decoration: none;">台積電法說、新青安3.0來了、台股史詩級崩跌2953點 本周大事回顧</a> (2026-07-18 10:42:45)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539099" target="_blank" style="color: #0056b3; text-decoration: none;">〈熱門股〉台股遭血洗 防禦型電信三雄吃香 本周順利走完填息路</a> (2026-07-18 10:37:45)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539225" target="_blank" style="color: #0056b3; text-decoration: none;">鉅亨速報 - Factset 最新調查：緯穎(6669-TW)EPS預估上修至353.75元，預估目標價為6633元</a> (2026-07-18 10:10:31)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539078" target="_blank" style="color: #0056b3; text-decoration: none;">〈熱門股〉漢來美食展店動能強 周線收紅穩守2個月來波段高</a> (2026-07-18 09:33:04)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6538682" target="_blank" style="color: #0056b3; text-decoration: none;">〈熱門股〉迅杰無人機題材燒旺 股價逆風飛高 周漲3成創19個月新高</a> (2026-07-18 09:23:02)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539192" target="_blank" style="color: #0056b3; text-decoration: none;">營收速報 - 2026年7月18日台股中小型公司6月營收一覽（新增5家）</a> (2026-07-18 07:55:10)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539462" target="_blank" style="color: #0056b3; text-decoration: none;">工業富聯發布2026燈塔工廠白皮書 加速推進「AI Makes AI」策略</a> (2026-07-19 13:24:44)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539452" target="_blank" style="color: #0056b3; text-decoration: none;">產險公會拍板不便險滯留海外理賠從寬認定 富邦產響應：4月後保單皆適用</a> (2026-07-19 13:22:47)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539381" target="_blank" style="color: #0056b3; text-decoration: none;">〈台股風向球〉史詩級大屠殺後台指期先行反彈 止跌回穩須守住4萬2拚收復季線</a> (2026-07-19 13:21:40)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6538859" target="_blank" style="color: #0056b3; text-decoration: none;">台積電未來三年資本支出逾2千億美元 廠務工程第一波受惠</a> (2026-07-19 12:10:02)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539432" target="_blank" style="color: #0056b3; text-decoration: none;">威世波迎合AI時代高速傳播 有望與正文攜手布局光通訊市場</a> (2026-07-19 11:28:55)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539403" target="_blank" style="color: #0056b3; text-decoration: none;">PCB廠迎AI商機加速擴產 華通、健鼎及臻鼎資本支出快速攀高</a> (2026-07-19 11:21:43)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539427" target="_blank" style="color: #0056b3; text-decoration: none;">〈熱門股〉中東局勢升溫油價勁揚 外資連9買點挺台塑化周漲38.27%</a> (2026-07-19 11:18:12)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539382" target="_blank" style="color: #0056b3; text-decoration: none;">健保規模年增6.5%首破兆！卓揆：下半年撥30億調高「急重難罕兒產」各科給付</a> (2026-07-19 11:16:41)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6539110" target="_blank" style="color: #0056b3; text-decoration: none;">低軌衛星用戶端需求引爆 台系網通廠搶攻太空商機</a> (2026-07-19 11:15:15)</li><li>[鉅亨網] <a href="https://news.cnyes.com/news/id/6538813" target="_blank" style="color: #0056b3; text-decoration: none;">AI加持、衛星上天！網通光通訊迎黃金盛世，法人敲底卡位！</a> (2026-07-19 09:10:02)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509975" target="_blank" style="color: #0056b3; text-decoration: none;">金價收復每盎司4000美元安了？外媒急喊3朵烏雲未散</a> (2026-07-18 22:19:20)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509933" target="_blank" style="color: #0056b3; text-decoration: none;">DeepSeek時刻再現！中國最新AI模型重創費半 專家：美中差距縮到6~9個月</a> (2026-07-18 21:11:47)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509913" target="_blank" style="color: #0056b3; text-decoration: none;">土耳其樂翻天！「這水果」出口大爆發激增169％</a> (2026-07-18 21:09:46)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509897" target="_blank" style="color: #0056b3; text-decoration: none;">「液體黃金」降價潮來了？外媒爆橄欖油價格大跌近6成</a> (2026-07-18 19:58:14)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509866" target="_blank" style="color: #0056b3; text-decoration: none;">日網友狂推「租屋族神物」！MUJI壁掛家具免鑽牆、小宅收納一次解決</a> (2026-07-18 19:08:00)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509821" target="_blank" style="color: #0056b3; text-decoration: none;">情義相挺！台灣爆買1友邦豬肉 上半年掃貨逾9億飆增8成</a> (2026-07-18 19:04:45)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509860" target="_blank" style="color: #0056b3; text-decoration: none;">資生堂遮瑕膏誕生竟源自原爆傷者！揭百年品牌最暖起點</a> (2026-07-18 18:46:59)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509859" target="_blank" style="color: #0056b3; text-decoration: none;">不靠明星代言賣更好？阿蒂仙之香熱賣50年 揭「品味」圈粉關鍵</a> (2026-07-18 18:42:08)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509738" target="_blank" style="color: #0056b3; text-decoration: none;">正能量阿嬤！未滿16歲當媽命運坎坷   她62歲扛養孫重擔不喊苦</a> (2026-07-18 17:43:25)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509730" target="_blank" style="color: #0056b3; text-decoration: none;">IKEA中國大撤退？一口氣出售8個城市賣場 近30年來最大調整</a> (2026-07-18 16:41:22)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509727" target="_blank" style="color: #0056b3; text-decoration: none;">煎熬一週！韓國35萬「螞蟻」散戶被斷頭  120萬人遭追繳保證金</a> (2026-07-18 16:30:13)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509638" target="_blank" style="color: #0056b3; text-decoration: none;">台灣砸了多少錢向巴紐買東西？數據全曝光了</a> (2026-07-18 16:08:45)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509480" target="_blank" style="color: #0056b3; text-decoration: none;">63歲退休師整天看YouTube影片投資買股 結果退休金少了一半</a> (2026-07-18 15:43:58)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509613" target="_blank" style="color: #0056b3; text-decoration: none;">黃仁勳與日企巨頭現身居酒屋！現已推出同款套餐價格不到1000元</a> (2026-07-18 15:11:39)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509640" target="_blank" style="color: #0056b3; text-decoration: none;">中國衝擊4》燃油車廠誤判EV戰略 2.3兆投資打水漂</a> (2026-07-18 14:56:06)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509406" target="_blank" style="color: #0056b3; text-decoration: none;">68歲退休翁嫌定期定額賺太慢！看到半導體股狂飆就衝了 下場曝光</a> (2026-07-18 14:22:23)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509590" target="_blank" style="color: #0056b3; text-decoration: none;">油價連2凍！下週汽柴油不調整 中油吸收逾155億</a> (2026-07-18 14:13:22)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509561" target="_blank" style="color: #0056b3; text-decoration: none;">台灣有事全球經濟比大蕭條還慘！英特爾前CEO季辛格示警1事</a> (2026-07-18 14:11:10)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509543" target="_blank" style="color: #0056b3; text-decoration: none;">純舊制勞工開放自提退休金  QA一次看</a> (2026-07-18 13:39:37)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509545" target="_blank" style="color: #0056b3; text-decoration: none;">竹科效應降溫？竹市Q1買賣移轉棟數年減21.2％</a> (2026-07-18 13:39:34)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509273" target="_blank" style="color: #0056b3; text-decoration: none;">中國車打進英國！從384輛賣到破28萬輛  買單原因曝光</a> (2026-07-18 13:00:34)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509454" target="_blank" style="color: #0056b3; text-decoration: none;">慘！巨資購入190輛中國電動巴士 大阪世博期間狂爆832起故障</a> (2026-07-18 12:32:57)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509423" target="_blank" style="color: #0056b3; text-decoration: none;">日本茶鄉不只純賣茶！「製茶體驗」拚地方創生  年吸百萬旅客</a> (2026-07-18 11:32:00)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509381" target="_blank" style="color: #0056b3; text-decoration: none;">黃仁勳來台灣穿的「招牌黑皮衣」拍賣 破3000萬元天價成交</a> (2026-07-18 10:52:12)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509332" target="_blank" style="color: #0056b3; text-decoration: none;">黃金本週跌慘了 背後原因揭曉</a> (2026-07-18 09:50:23)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509302" target="_blank" style="color: #0056b3; text-decoration: none;">中國衝擊3》昨日美國底特律 今日德國狼堡</a> (2026-07-18 09:27:11)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509301" target="_blank" style="color: #0056b3; text-decoration: none;">中國衝擊2》「新三樣」外強中乾  新能源車淪新過剩產業</a> (2026-07-18 09:26:14)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509299" target="_blank" style="color: #0056b3; text-decoration: none;">中國衝擊1》電動車流血倒海外！歐盟海嘯首排、日本後院著火</a> (2026-07-18 09:24:05)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509295" target="_blank" style="color: #0056b3; text-decoration: none;">美伊互轟！油輪恐不敢進波斯灣...國際油價本週漲瘋了</a> (2026-07-18 09:15:26)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509107" target="_blank" style="color: #0056b3; text-decoration: none;">無人機地方隊》中國奪全球市場8成 台灣立基在「非紅」</a> (2026-07-18 08:37:31)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509271" target="_blank" style="color: #0056b3; text-decoration: none;">股民注意！台指期夜盤反彈了 逆勢上漲877點</a> (2026-07-18 08:36:37)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509106" target="_blank" style="color: #0056b3; text-decoration: none;">無人機地方隊》美軍無人機零件「一顆中國製」都不要！台中隊爭搶「非紅」供應</a> (2026-07-18 08:35:54)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509267" target="_blank" style="color: #0056b3; text-decoration: none;">不怕台股慘跌近3千點！阮慕驊曝持續逢低布局：下週再跌會再買</a> (2026-07-18 08:35:53)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5508715" target="_blank" style="color: #0056b3; text-decoration: none;">MUJI新品被封「專櫃平替」！香味高級還不影響睡眠 日網狂推一優點</a> (2026-07-18 07:00:00)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509122" target="_blank" style="color: #0056b3; text-decoration: none;">56歲主管因1事突遭降職減薪4成   近400萬退休金蒸發心酸嘆1句</a> (2026-07-18 06:25:26)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509182" target="_blank" style="color: #0056b3; text-decoration: none;">台股暴跌近3千點 上市櫃融資單日大減416億元</a> (2026-07-18 05:55:32)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509206" target="_blank" style="color: #0056b3; text-decoration: none;">105％飆漲狂歡結束！費半跌入熊市 市值蒸發一個西班牙GDP</a> (2026-07-18 05:54:22)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509187" target="_blank" style="color: #0056b3; text-decoration: none;">跌破發行價續跌！SpaceX 市值月蒸發1兆美元</a> (2026-07-18 05:53:52)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509198" target="_blank" style="color: #0056b3; text-decoration: none;">台灣是第5大貿易夥伴也沒用？澳媒大爆巴紐背後盤算</a> (2026-07-18 05:52:54)</li><li>[自由財經] <a href="https://ec.ltn.com.tw/article/breakingnews/5509159" target="_blank" style="color: #0056b3; text-decoration: none;">蘋果超車輝達奪回「市值王」寶座  投資專家曝1關鍵</a> (2026-07-18 05:51:36)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E8%A1%80%E6%B4%97%E5%B4%A92953%E9%BB%9E-%E4%BB%96%E7%9B%B2%E8%B8%A9-%E9%80%99%E6%AA%94-%E7%99%BE%E8%90%AC%E8%92%B8%E7%99%BC-%E7%B6%B2%E5%90%90%E6%A7%BD-155500883.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股血洗崩2953點！他盲踩「這檔」百萬蒸發　網吐槽：沒這心臟就存銀行</a> (2026-07-18 23:55:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E6%B2%88%E7%8E%89%E7%90%B3%E9%A9%9A%E4%BA%BA%E6%9C%88%E5%85%A5%E6%9B%9D%E4%B8%BB%E6%8C%81%E7%95%8C%E5%8F%B0%E7%A9%8D%E9%9B%BB-%E5%90%88%E9%AB%94%E5%8D%9A%E6%81%A9-%E5%90%8A%E8%BB%8A%E5%A4%A7%E7%8E%8B-%E5%85%A8%E6%BC%94%E8%97%9D%E5%9C%88%E6%88%91%E6%9C%80%E6%87%82%E4%BB%96-152041094.html" target="_blank" style="color: #0056b3; text-decoration: none;">沈玉琳驚人月入曝主持界台積電 合體博恩、吊車大王：全演藝圈我最懂他</a> (2026-07-18 23:20:41)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E8%A1%80%E6%B4%97%E6%9A%B4%E8%B7%8C%E8%AE%8A%E9%80%B1%E5%B9%B4%E6%85%B6-%E5%AD%98%E8%82%A1%E6%97%8F%E9%96%8B%E5%BF%83%E5%97%A8%E8%B2%B7-%E9%80%992%E6%AA%94-%E5%86%8D-%E6%A1%B6%E9%87%91%E4%B8%8B%E5%8E%BB-140600897.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股血洗暴跌變週年慶？存股族開心嗨買「這2檔」：再一桶金下去</a> (2026-07-18 22:06:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E4%B8%8B%E7%8F%AD%E5%9C%8B%E9%9A%9B%E7%B7%9A-ai%E7%89%9B%E5%B8%82%E9%96%8B%E5%A7%8B%E5%A4%B1%E6%8E%A7-ibm-%E5%A4%9C%E6%9A%B4%E8%B7%8C25-sk%E6%B5%B7%E5%8A%9B%E5%A3%AB%E6%9A%B4%E6%BC%B2%E6%9A%B4%E8%B7%8C-140000688.html" target="_blank" style="color: #0056b3; text-decoration: none;">下班國際線》AI牛市開始失控？IBM一夜暴跌25%、SK海力士暴漲暴跌，下一顆泡沫藏在台股？</a> (2026-07-18 22:00:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E9%95%B7%E9%91%AB%E5%AD%98%E5%84%B2ipo%E7%99%BB%E5%A0%B4-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%B3%95%E8%AA%AA%E4%BA%AE%E7%9C%BC%E5%8F%B0%E8%82%A1%E5%8D%BB%E9%87%8D%E6%8C%AB-%E9%99%B3%E9%B3%B3%E9%A6%A8%E6%8F%AD%E5%8D%8A%E5%B0%8E%E9%AB%94%E6%9C%80%E5%A4%A7%E9%9A%B1%E6%86%82-140000139.html" target="_blank" style="color: #0056b3; text-decoration: none;">長鑫存儲IPO登場、台積電法說亮眼台股卻重挫　陳鳳馨揭半導體最大隱憂</a> (2026-07-18 22:00:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E6%9A%B4%E8%B7%8C%E5%85%8D%E9%A9%9A-%E8%B2%A1%E7%B6%93%E5%B0%88%E5%AE%B6%E5%96%8A-%E4%B8%8B%E5%91%A8%E5%86%8D%E8%B7%8C%E9%82%84%E8%B2%B7-134957493.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股暴跌免驚？財經專家喊：下周再跌還買</a> (2026-07-18 21:49:57)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%8F%B2%E8%A9%A9%E7%B4%9A%E5%B4%A9%E8%B7%8C%E8%A9%B2%E5%81%9C%E6%89%A3-%E9%81%94%E4%BA%BA%E6%8F%AD2%E5%A4%A7%E8%BF%B7%E6%80%9D-133607548.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股史詩級崩跌該停扣？達人揭2大迷思</a> (2026-07-18 21:36:07)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E7%B6%B2%E8%A6%8B%E5%8F%B0%E8%82%A1%E5%B4%A9%E8%B7%8C%E5%96%8A%E8%B3%A30050-0056-%E8%B2%A1%E7%B6%93%E4%BD%9C%E5%AE%B6%E5%9B%9E8%E5%AD%97-133300763.html" target="_blank" style="color: #0056b3; text-decoration: none;">網見台股崩跌喊賣0050、0056！財經作家回8字</a> (2026-07-18 21:33:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E4%B8%8B%E7%8F%AD%E5%9C%8B%E9%9A%9B%E7%B7%9A-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%9C%80%E5%A4%A7%E5%B0%8D%E6%89%8B%E7%AB%9F%E6%98%AF%E8%87%AA%E5%B7%B1-%E7%BE%8E%E5%9C%8B%E5%BB%A0%E6%90%B6%E5%96%AE-%E5%8F%B0%E7%81%A3%E6%99%B6%E7%89%87%E8%A2%AB%E8%BF%AB%E6%89%93%E6%8A%98-%E6%96%BD%E4%BF%8A%E5%90%89%E6%8F%AD-130000890.html" target="_blank" style="color: #0056b3; text-decoration: none;">下班國際線》台積電最大對手竟是自己？美國廠搶單、台灣晶片被迫打折，施俊吉揭「左手打右手」危機</a> (2026-07-18 21:00:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E9%87%8D%E6%8C%AB2953%E9%BB%9E-%E4%BB%96%E6%80%A5%E5%95%8F-%E5%8F%AA%E6%98%AF%E6%8A%80%E8%A1%93%E6%80%A7%E8%AA%BF%E6%95%B4%E5%90%A7-%E6%8A%95%E8%B3%87%E4%BA%BA%E7%8B%82%E9%85%B8-%E5%8F%88%E5%9B%9E%E6%AD%B8%E5%9F%BA%E6%9C%AC%E9%9D%A2-124500603.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股重挫2953點！他急問「只是技術性調整吧？」　投資人狂酸：又回歸基本面</a> (2026-07-18 20:45:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E9%87%8D%E6%8C%AB%E6%80%8E%E8%BE%A6-%E5%B0%88%E5%AE%B6%E6%8F%AD2%E7%AD%96%E7%95%A5-%E7%A2%BA%E8%AA%8D%E9%80%991%E7%89%A9%E6%9C%89%E7%84%A1%E6%94%B9%E8%AE%8A%E6%96%B9%E5%90%91-114817890.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股重挫怎辦？專家揭2策略：確認這1物有無改變方向</a> (2026-07-18 19:48:17)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%B4%A9%E8%B7%8C%E8%BF%913%E5%8D%83%E9%BB%9E-%E5%B0%8F%E8%B3%87%E6%97%8F%E9%80%B2%E5%A0%B4%E6%92%BF%E4%BE%BF%E5%AE%9C-0050%E9%9B%B6%E8%82%A1%E7%88%867822%E8%90%AC%E8%82%A1%E8%B6%85%E6%89%AF%E6%88%90%E4%BA%A4%E9%87%8F-114100389.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股崩跌近3千點！小資族進場撿便宜　0050零股爆7822萬股超扯成交量</a> (2026-07-18 19:41:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%A4%A7%E8%B7%8C%E8%B2%A1%E7%B6%93%E5%B0%88%E5%AE%B6%E5%96%8A-%E9%9D%9E%E7%A9%BA%E9%A0%AD%E5%8D%B1%E6%A9%9F-%E7%A0%B88%E4%BD%8D%E6%95%B8%E6%90%B6%E8%B3%BC%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%88%87etf-113726670.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股大跌財經專家喊「非空頭危機」！砸8位數搶購台積電與ETF</a> (2026-07-18 19:37:26)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%A4%A7%E9%80%83%E6%AE%BA%E8%A9%B2%E8%B7%91-%E5%B0%88%E5%AE%B6%E6%9B%9D%E4%B8%8B%E9%80%B1-%E8%A6%81%E6%B3%A8%E6%84%8F%E9%80%99-%E9%BB%9E-112800289.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股大逃殺該跑？專家曝下週「要注意這一點」</a> (2026-07-18 19:28:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%B4%A9%E8%B7%8C-%E9%80%81%E5%88%86%E9%A1%8C-%E5%86%8D%E7%8F%BE-%E5%88%86%E6%9E%90%E5%B8%AB-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E4%B8%8D%E6%98%AF%E4%B8%8B%E8%B7%8C%E5%85%87%E6%89%8B-224600658.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股崩跌「送分題」再現！分析師：台積電不是下跌兇手　布局策略曝光</a> (2026-07-18 18:49:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E4%B8%89%E4%BA%8B%E4%BB%B6%E8%AE%8A%E5%8C%96%E7%89%BD%E5%8B%95%E5%8F%B0%E8%82%A1%E5%BE%8C%E5%B8%82-%E6%B0%B8%E8%B1%90%E6%8A%95%E9%A1%A7-%E5%A4%A7%E7%9B%A443k-%E4%BB%A5%E4%B8%8B%E6%9C%AC%E7%9B%8A%E6%AF%94%E4%BD%8E-%E8%A7%80%E6%9C%9B%E4%B8%8D%E6%AE%BA%E4%BD%8E-104655589.html" target="_blank" style="color: #0056b3; text-decoration: none;">三事件變化牽動台股後市 永豐投顧：大盤43K 以下本益比低 觀望不殺低</a> (2026-07-18 18:46:55)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E7%8B%82%E7%80%892953%E9%BB%9E-%E9%98%AE%E6%85%95%E9%A9%8A%E7%A0%B88%E4%BD%8D%E6%95%B8%E5%87%BA%E6%89%8B%E9%80%99%E5%B9%BE%E6%AA%94-%E4%B8%8B%E5%91%A8%E5%86%8D%E8%B7%8C%E6%88%91%E5%86%8D%E8%B2%B7-101945463.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股狂瀉2953點！阮慕驊砸8位數出手這幾檔：下周再跌我再買</a> (2026-07-18 18:19:45)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E9%81%87-%E5%8F%B0%E8%82%A1%E5%A4%A7%E8%B7%B3%E6%B0%B4-%E8%A9%B2%E8%B3%A3%E5%97%8E-%E5%B0%88%E5%AE%B6%E9%BB%9E2%E6%AA%94etf-%E6%B2%92%E6%8F%90%E9%86%92%E8%A6%81%E8%B3%A3-101132216.html" target="_blank" style="color: #0056b3; text-decoration: none;">遇「台股大跳水」該賣嗎？專家點2檔ETF：沒提醒要賣</a> (2026-07-18 18:11:32)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/iphone-18-pro%E7%88%8612%E5%A4%A7%E5%8D%87%E7%B4%9A-%E5%82%B3%E6%90%AD%E8%BC%89%E5%8F%B0%E7%A9%8D%E9%9B%BB2%E5%A5%88%E7%B1%B3a20-pro-101007628.html" target="_blank" style="color: #0056b3; text-decoration: none;">iPhone 18 Pro爆12大升級！傳搭載台積電2奈米A20 Pro、砍「兩」顏色新增「這一色」</a> (2026-07-18 18:10:07)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E6%85%98%E5%B4%A9%E9%82%84%E8%83%BD%E8%B2%B7%E5%95%A5-%E5%B0%88%E5%AE%B6%E6%9B%9D-1%E6%AA%94%E9%80%86%E5%8B%A2%E7%BF%BB%E7%B4%85-%E5%AD%98%E4%BA%86200%E5%BC%B5-092555466.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股慘崩還能買啥？專家曝「1檔逆勢翻紅」：存了200張</a> (2026-07-18 17:25:55)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E5%B4%A9%E8%BF%913000%E9%BB%9E-%E7%AD%86%E9%9B%BB%E4%BB%A3%E5%B7%A5%E5%A4%A7%E5%BB%A0-%E5%8D%BB%E9%80%86%E5%8B%A2%E6%94%B6%E7%B4%85-%E5%A4%96%E8%B3%87%E5%A4%A7%E8%B2%B72-2%E8%90%AC%E5%BC%B5-090000846.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股崩近3000點「筆電代工大廠」卻逆勢收紅！外資大買2.2萬張　不敗教主抱200張領股息</a> (2026-07-18 17:00:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E8%98%87%E5%A8%81%E5%85%83-%E5%AE%8F%E6%AD%A3%E7%B5%90%E5%90%88%E8%82%A1%E7%8E%8B-%E8%82%A1%E5%90%8E-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E4%B8%89%E5%A4%A7%E5%A4%A2%E5%B9%BB%E9%A1%8C%E6%9D%90-%E9%AB%98%E6%AF%9B%E5%88%A9%E4%BD%8E%E6%9C%AC%E7%9B%8A%E6%AF%94-084240799.html" target="_blank" style="color: #0056b3; text-decoration: none;">蘇威元:宏正結合股王.股后.台積電三大夢幻題材 高毛利低本益比</a> (2026-07-18 16:42:40)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E6%9A%B4%E8%B7%8C-%E4%BB%96-%E9%96%8Bapp%E9%A9%9A%E8%A6%8B-%E9%80%99%E6%AC%BEetf%E5%A4%A7%E8%99%A7101%E8%90%AC-%E5%BE%8C%E6%82%94%E8%B7%9F%E9%A2%A8-081300005.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股暴跌！他一開APP驚見「這款ETF大虧101萬」後悔跟風…存股族卻喊：甜甜價來了</a> (2026-07-18 16:13:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%91%A8%E6%9C%AB%E7%B2%BE%E9%81%B8-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%B3%95%E8%AA%AA%E8%AE%8A%E6%B3%95%E6%9C%83-%E6%96%87%E7%9C%8B%E5%AE%8C9%E5%A4%A7%E7%84%A6%E9%BB%9E%E5%8F%8A%E5%B8%82%E5%A0%B4%E7%96%91%E6%85%AE-230000233.html" target="_blank" style="color: #0056b3; text-decoration: none;">周末精選｜台積電法說變法會！　一文看懂9大焦點及市場疑慮</a> (2026-07-18 16:00:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%A4%96%E5%AA%92%E6%8F%AD%E9%9C%B2%E8%B0%B7%E6%AD%8Cpixel-11a%E6%89%8B%E6%A9%9F%E8%A6%8F%E6%A0%BC%E7%B4%B0%E7%AF%80-%E6%8E%A1%E7%94%A8%E8%81%AF%E7%99%BC%E7%A7%91m90%E5%9F%BA%E9%A0%BB%E6%99%B6%E7%89%87-075000118.html" target="_blank" style="color: #0056b3; text-decoration: none;">外媒揭露谷歌Pixel 11a手機規格細節　採用聯發科M90基頻晶片</a> (2026-07-18 15:50:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%A4%9C%E7%9B%A4%E5%BD%88877%E9%BB%9E%E8%BF%8Ev%E8%BD%89%EF%BC%9F%E5%88%86%E6%9E%90%E5%B8%AB%E6%9B%9D%E5%8F%B0%E7%A9%8D%E9%9B%BB%E9%9D%9E%E6%9A%B4%E8%B7%8C%E5%85%83%E5%87%B6%E3%80%81%E5%BE%8C%E5%B8%82%E7%95%99%E6%84%8F3%E6%8C%87%E6%A8%99-074022376.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股夜盤彈877點迎V轉？分析師曝台積電非暴跌元凶、後市留意3指標</a> (2026-07-18 15:40:22)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1-%E7%8B%82%E6%AE%BA2953%E9%BB%9E-%E8%83%BD%E8%B2%B7-%E5%A5%B9%E8%A6%8B1%E6%AA%94%E7%A0%B4%E5%BA%95-%E6%B2%92%E6%92%BF-071318005.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股「狂殺2953點」能買？她見1檔破底「沒撿」</a> (2026-07-18 15:13:18)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E8%B7%B3%E6%B0%B4%E6%8A%97%E8%B7%8C-%E9%80%99%E6%AA%94-5%E6%9C%88%E7%8D%B2%E5%88%A9%E5%B9%B4%E5%A2%9E8%E5%80%8D-064324911.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股跳水抗跌  「這檔」5月獲利年增8倍</a> (2026-07-18 14:43:24)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E9%87%8D%E6%8C%AB2953%E9%BB%9E-%E7%90%86%E8%B2%A1%E4%BD%9C%E5%AE%B6%E6%9B%9D1%E8%A7%80%E9%BB%9E-%E5%8F%8D%E8%80%8C%E8%A9%B2%E9%96%8B%E5%BF%83-055057927.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股重挫2953點！理財作家曝1觀點：反而該開心</a> (2026-07-18 13:50:57)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E5%8F%B2%E8%A9%A9%E5%B4%A9%E8%B7%8C-%E8%A9%B2%E9%80%B2%E5%A0%B4%E5%97%8E-%E5%B0%88%E5%AE%B6%E6%8F%AD-%E9%AD%8F%E5%93%B2%E5%AE%B69%E5%AD%97%E6%9A%97%E7%A4%BA-%E9%BB%83%E9%87%91%E8%B2%B7%E9%BB%9E%E4%BE%86%E4%BA%86-050503000.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股史詩崩跌「該進場嗎」！專家揭「魏哲家9字暗示」黃金買點來了</a> (2026-07-18 13:35:09)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A15%E8%90%AC%E9%BB%9E%E5%89%8D%E7%95%B6%E6%B2%96%E9%9D%92%E5%B9%B4%E5%85%88%E8%83%8C%E5%82%B5-%E4%BD%9C%E5%AE%B6%E6%8F%AD%E5%8F%B0%E7%81%A3%E7%95%B8%E5%BD%A2%E7%8F%BE%E8%B1%A1-%E5%BE%90%E5%9C%8B%E5%8B%87-%E4%BD%A0%E6%B2%92%E8%B3%BA%E5%97%8E-%E6%88%90%E6%87%BA%E8%A8%80-052042235.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股5萬點前當沖青年先背債？作家揭台灣畸形現象：徐國勇「你沒賺嗎」成懺言</a> (2026-07-18 13:20:42)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%8F%B2%E8%A9%A9%E7%B4%9A%E5%B4%A9%E8%B7%8C-%E5%A4%96%E8%B3%87%E7%8B%82%E7%A0%8D1883%E5%84%84-%E5%B0%88%E5%AE%B6%E6%9B%9D%E4%B8%8B%E9%80%B1%E5%8F%8D%E5%BD%88%E9%97%9C%E9%8D%B5-3%E5%A4%A7%E8%A8%8A%E8%99%9F-050908063.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股史詩級崩跌！外資狂砍1883億　專家曝下週反彈關鍵「3大訊號」</a> (2026-07-18 13:09:08)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E5%B4%A9%E8%B7%8C-%E6%8A%95%E9%A1%A7-%E7%9F%AD%E7%B7%9A%E6%81%90%E4%B8%8B%E6%8E%A242000%E9%BB%9E%E9%97%9C%E5%8D%A1-%E7%95%99%E6%84%8F%E4%B8%89%E5%A4%A7%E6%AD%A2%E8%B7%8C%E8%A8%8A%E8%99%9F-050800311.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股崩跌｜投顧：短線恐下探42000點關卡　留意三大止跌訊號</a> (2026-07-18 13:08:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E8%B1%AA%E7%A0%B83-2%E5%85%86-%E5%8F%B0%E7%A9%8D%E9%9B%BB%E9%9C%B8%E6%B0%A3%E5%8A%A0%E7%A2%BC-%E7%BE%8E%E5%BB%A0%E6%93%B4%E5%A2%9E%E8%87%B310%E5%BA%A7-%E9%AD%8F%E5%93%B2%E5%AE%B6-050700526.html" target="_blank" style="color: #0056b3; text-decoration: none;">豪砸3.2兆！台積電霸氣加碼「美廠擴增至10座」　魏哲家：台灣還要蓋13座</a> (2026-07-18 13:07:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E6%AE%BA%E8%81%B2%E9%9A%86%E9%9A%86%E5%B4%A9%E8%B7%8C2953%E9%BB%9E-%E8%B3%87%E9%87%91%E5%85%A5%E9%98%B2%E7%A6%A6%E9%A1%9E%E8%82%A116%E6%AA%94-050500194.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股殺聲隆隆崩跌2953點　資金入防禦類股16檔</a> (2026-07-18 13:05:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E8%B7%B3%E6%B0%B4%E8%BF%913000%E9%BB%9E-%E8%B2%A1%E7%B6%93%E4%BD%9C%E5%AE%B6%E5%96%8A-%E6%B2%92%E6%8F%90%E9%86%92%E8%A6%81%E8%B3%A3-2%E6%AA%94etf%E6%9C%80%E4%BD%B3%E9%80%B2%E5%A0%B4%E6%99%82%E6%A9%9F%E5%87%BA%E7%88%90-050000503.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股跳水近3000點！財經作家喊「沒提醒要賣」　2檔ETF最佳進場時機出爐</a> (2026-07-18 13:00:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E8%B6%8A%E6%85%98%E8%B6%8A%E6%84%9B%E8%B2%B7-%E5%8F%B0%E8%82%A1%E7%8B%82%E7%80%892953%E9%BB%9E-135%E6%AA%94%E6%AE%BA%E8%B7%8C%E5%81%9C-%E5%B0%88%E5%AE%B6%E6%9B%9D%E6%80%A5%E8%B7%8C%E8%BD%89%E6%A9%9F-%E9%9D%A0-045000260.html" target="_blank" style="color: #0056b3; text-decoration: none;">越慘越愛買？台股狂瀉2953點「135檔殺跌停」 專家曝急跌轉機：靠「這招」撿甜甜價</a> (2026-07-18 12:50:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E6%9A%B4%E8%B7%8C2953%E9%BB%9E-%E9%98%AE%E6%85%95%E9%A9%8A%E9%80%86%E5%8B%A2%E5%8A%A0%E7%A2%BC-%E8%B2%B7%E9%80%B2%E5%8F%B0%E7%A9%8D%E9%9B%BB-%E5%96%8A%E8%A9%B1%E5%86%8D%E8%B7%8C%E5%86%8D%E8%B2%B7-044434025.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股暴跌2953點！阮慕驊逆勢加碼　買進台積電、喊話再跌再買</a> (2026-07-18 12:44:34)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E5%9B%9E%E8%AA%BF%E6%AD%A3%E4%BA%8C%E8%A2%AB%E7%8B%82%E9%85%B8-%E4%BB%96%E5%95%8F-%E6%AD%A3%E4%BA%8C%E5%93%AA%E8%A3%A1%E5%BE%97%E7%BD%AA%E4%BA%BA-%E8%82%A1%E6%B0%91-%E8%A8%8E%E5%8E%AD%E7%9A%84%E6%98%AF%E8%9E%8D%E8%B3%87-042000185.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股回調正二被狂酸！他問「正二哪裡得罪人」 股民：討厭的是融資</a> (2026-07-18 12:20:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E6%85%98%E5%B4%A92953%E9%BB%9E-%E5%B0%88%E5%AE%B6%E6%8F%AD-%E9%80%B2%E5%A0%B42%E6%A2%9D%E4%BB%B6-%E6%9B%9D%E8%87%AA%E8%BA%AB1%E8%B6%85%E5%BC%B7%E6%93%8D%E4%BD%9C-132852368.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股慘崩2953點！專家揭「進場2條件」曝自身1超強操作</a> (2026-07-18 12:19:31)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%A4%A7%E6%91%A9%E8%AA%BF%E5%8D%87%E5%8F%B0%E7%A9%8D%E9%9B%BB%E7%9B%AE%E6%A8%99%E5%83%B9-ai%E6%93%B4%E7%94%A2%E8%83%BD%E5%90%A6%E6%92%90%E4%BD%8F%E6%AF%9B%E5%88%A9%E7%8E%87-041608094.html" target="_blank" style="color: #0056b3; text-decoration: none;">大摩調升台積電目標價！AI擴產能否撐住毛利率？</a> (2026-07-18 12:16:08)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E7%A9%8D%E9%9B%BBadr%E6%B2%92%E6%AE%BA%E5%AE%8C-%E5%A4%9C%E7%9B%A4%E5%8D%BB%E7%8B%82%E9%A3%86877%E9%BB%9E-%E5%B0%88%E5%AE%B6%E6%9B%9D%E4%B8%8B%E5%91%A8-%E9%80%83%E5%91%BD%E6%88%96%E5%A4%A7%E6%92%BF-%E5%94%AF-041030363.html" target="_blank" style="color: #0056b3; text-decoration: none;">台積電ADR沒殺完 夜盤卻狂飆877點！專家曝下周「逃命或大撿」唯一關鍵</a> (2026-07-18 12:10:30)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E8%BC%9D%E9%81%94-%E5%BA%A6%E8%B7%8C%E8%90%BD%E5%B8%82%E5%80%BC%E7%8E%8B-%E6%99%B6%E7%89%87%E8%82%A1%E9%81%AD%E8%A1%80%E6%B4%97%E7%BE%8E%E8%82%A1%E6%94%B6%E9%BB%91-%E5%8F%B0%E7%A9%8D%E9%9B%BBadr%E8%B7%8C%E8%BF%913-040100582.html" target="_blank" style="color: #0056b3; text-decoration: none;">輝達一度跌落市值王！晶片股遭血洗美股收黑　台積電ADR跌近3%</a> (2026-07-18 12:01:00)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E7%A9%8D%E9%9B%BB%E4%B8%8B%E6%AE%BA2290%E5%85%83%E5%BF%AB%E4%B8%8A%E8%BB%8A-%E5%AD%B8%E8%80%85%E6%9B%9D%E5%8F%B0%E8%82%A1%E8%9E%8D%E8%B3%87%E6%AE%BA%E7%9B%A4%E5%BE%8C-%E5%85%A9%E6%AE%B5%E5%88%A9%E6%BD%A4-%E6%B3%95%E4%BA%BA%E5%9C%A8%E5%A3%93%E5%83%B9%E5%BB%BA%E5%80%89-034907834.html" target="_blank" style="color: #0056b3; text-decoration: none;">台積電下殺2290元快上車？學者曝台股融資殺盤後「兩段利潤」：法人在壓價建倉</a> (2026-07-18 11:49:07)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E6%9A%B4%E8%B7%8C2953%E9%BB%9E-%E9%98%AE%E6%85%95%E9%A9%8A%E8%B1%AA%E6%93%B29%E7%99%BE%E8%90%AC%E5%85%83%E9%80%B2%E5%A0%B4%E6%8A%84%E5%BA%95-%E7%A9%A9%E5%81%A5%E6%8A%95%E8%B3%87%E5%BF%83%E6%B3%95%E6%9B%9D%E5%85%89-033400512.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股暴跌2953點！阮慕驊豪擲9百萬元進場抄底　穩健投資心法曝光</a> (2026-07-18 11:34:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E7%A9%8D%E9%9B%BB%E8%B2%A1%E5%A0%B1%E4%BA%AE%E7%9C%BC%E5%8D%BB%E5%A4%B1%E9%9D%88-%E5%88%86%E6%9E%90%E5%B8%AB%E6%8F%AD%E4%B8%89%E5%A4%A7%E9%97%9C%E9%8D%B5-%E5%BE%8C%E5%B8%82%E4%BB%8D%E6%9C%89%E6%92%90-032500082.html" target="_blank" style="color: #0056b3; text-decoration: none;">台積電財報亮眼卻失靈？分析師揭三大關鍵：後市仍有撐</a> (2026-07-18 11:25:00)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E8%82%A1%E8%A1%80%E8%85%A5%E9%BB%91%E4%BA%94-6%E6%AA%94%E4%B8%BB%E5%8B%95%E5%BC%8Fetf%E6%89%93%E6%95%97%E5%A4%A7%E7%9B%A4%E5%B1%95%E6%8A%97%E8%B7%8C%E5%8A%9B-%E9%AB%98%E6%81%AF%E5%9E%8B%E5%8C%85%E8%BE%A6%E5%89%8D%E4%B8%89-031438627.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股血腥黑五！6檔主動式ETF打敗大盤展抗跌力 高息型包辦前三</a> (2026-07-18 11:14:38)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E6%9A%B4%E8%B7%8C-%E5%8A%89%E6%B6%B5%E7%AB%B9%E7%97%9B%E5%AE%9A%E6%80%9D%E7%97%9B%E5%A4%A7%E6%AA%A2%E8%A8%8E-%E8%87%AA%E6%8B%9B%E5%8F%B0%E7%A9%8D%E9%9B%BB-1%E5%A3%9E%E7%BF%92%E6%85%A3-%E5%AE%B3%E6%85%98%E8%87%AA%E5%B7%B1-030938099.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股暴跌！劉涵竹痛定思痛大檢討 自招台積電「1壞習慣」害慘自己：錯失暴富行情</a> (2026-07-18 11:09:38)</li><li>[Yahoo股市] <a href="https://tw.stock.yahoo.com/news/%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%B3%95%E8%AA%AA-%E6%96%B0%E9%9D%92%E5%AE%893-0%E4%BE%86%E4%BA%86-%E5%8F%B0%E8%82%A1%E5%8F%B2%E8%A9%A9%E7%B4%9A%E5%B4%A9%E8%B7%8C2953%E9%BB%9E-%E6%9C%AC%E5%91%A8%E5%A4%A7%E4%BA%8B%E5%9B%9E%E9%A1%A7-024245644.html" target="_blank" style="color: #0056b3; text-decoration: none;">台積電法說、新青安3.0來了、台股史詩級崩跌2953點 本周大事回顧</a> (2026-07-18 10:42:45)</li><li>[Yahoo股市] <a href="https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E6%85%98%E5%B4%A9%E8%BF%913000%E9%BB%9E-%E8%A9%B2%E5%8A%A0%E7%A2%BC%E9%82%84%E6%98%AF%E6%AE%BA%E5%87%BA-%E6%9D%9C%E9%87%91%E9%BE%8D%E6%8F%AD-%E9%80%994%E9%A1%9E%E6%8A%95%E8%B3%87%E4%BA%BA-%E6%93%8D%E4%BD%9C%E7%AD%96%E7%95%A5-023900059.html" target="_blank" style="color: #0056b3; text-decoration: none;">台股慘崩近3000點　該加碼還是殺出？杜金龍揭「這4類投資人」操作策略</a> (2026-07-18 10:39:00)</li></ul>
         <footer>網頁由牛牛分析站AI自動生成，僅供參考。</footer>
     </div>
-
-    <!-- 💡 優化 2：真正的雲端語音串流，免第三方 JS、100% 穩定有聲 -->
-    <script>
-        let audioElements = []; // 存放切片音訊段落的陣列
-        let currentChunkIndex = 0;
-        let isSpeaking = false;
-        let isPaused = false;
-
-        function toggleSpeech() {
-            if (isSpeaking) {
-                // 處理暫停與繼續播放
-                if (!isPaused) {
-                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].pause();
-                    isPaused = true;
-                    document.getElementById('playBtn').innerHTML = "▶️ 繼續";
-                } else {
-                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].play();
-                    isPaused = false;
-                    document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
-                }
-                return;
-            }
-
-            let rawText = document.getElementById('report-content').innerText;
-            
-            // 文本精準清洗
-            let cleanText = rawText
-                .replace(/📈/g, "。")
-                .replace(/🚀/g, "。")
-                .replace(/⚠️/g, "。")
-                .replace(/💡/g, "。")
-                .replace(/▼/g, "下跌")
-                .replace(/▲/g, "上漲")
-                .replace(/(?<!\d)(\d)(\d)(\d)(\d)(?!\d)/g, "$1 $2 $3 $4") // 股票代號處理
-                .replace(/%/g, "百分之")
-                .replace(/ADR/g, "A D R")
-                .replace(/AI/g, " A I ")
-                .replace(/FED/g, "美聯準")
-                .replace(/TSMC/g, "台積電")
-                .replace(/NVIDIA/g, "輝達");
-
-            if (!cleanText.trim()) return;
-
-            // ⚡ 因為 Google 翻譯有限制單次請求長度，我們使用逗號、句號將長文章精準切片
-            let sentences = cleanText.split(/[，。；
-]/);
-            let chunks = [];
-            let currentChunk = "";
-
-            for (let i = 0; i < sentences.length; i++) {
-                let s = sentences[i].trim();
-                if (!s) continue;
-                if ((currentChunk + s).length > 120) {
-                    chunks.push(currentChunk);
-                    currentChunk = s + "。";
-                } else {
-                    currentChunk += s + "。";
-                }
-            }
-            if (currentChunk) chunks.push(currentChunk);
-
-            if (chunks.length === 0) return;
-
-            // 預備所有雲端音訊節點
-            audioElements = chunks.map(text => {
-                let url = "[https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=](https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=)" + encodeURIComponent(text);
-                return new Audio(url);
-            });
-
-            currentChunkIndex = 0;
-            isSpeaking = true;
-            isPaused = false;
-            document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
-            document.getElementById('stopBtn').style.display = "inline-block";
-
-            playNextChunk();
-        }
-
-        function playNextChunk() {
-            if (currentChunkIndex >= audioElements.length) {
-                resetControls();
-                return;
-            }
-
-            let audio = audioElements[currentChunkIndex];
-            audio.play().catch(err => {
-                console.log("播放被瀏覽器阻擋，嘗試重試...", err);
-                resetControls();
-            });
-
-            // 監聽此段落念完後，自動播放下一段，達成流暢真人接力朗讀
-            audio.onended = function() {
-                currentChunkIndex++;
-                playNextChunk();
-            };
-
-            audio.onerror = function() {
-                currentChunkIndex++;
-                playNextChunk();
-            };
-        }
-
-        function stopSpeech() {
-            if (audioElements[currentChunkIndex]) {
-                audioElements[currentChunkIndex].pause();
-            }
-            resetControls();
-        }
-
-        function resetControls() {
-            isSpeaking = false;
-            isPaused = false;
-            audioElements = [];
-            currentChunkIndex = 0;
-            document.getElementById('playBtn').innerHTML = "▶️ 播放";
-            document.getElementById('stopBtn').style.display = "none";
-        }
-    </script>
 </body>
 </html>
