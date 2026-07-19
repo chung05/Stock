@@ -13,10 +13,15 @@ def ai_generate_report(news_list, target_date):
     
     news_context = ""
     for i, news in enumerate(news_list, 1):
-        news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文細節：{news['content']}\n\n"
+        # ✨ 依需求調整：字數截斷限制放寬至最大 1500 字
+        content_snippet = news['content'][:1500]
+        if len(news['content']) > 1500:
+            content_snippet += "...(以下字數過長省略)"
+            
+        news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文重點：{content_snippet}\n\n"
     
     prompt = (
-        "你是一位資深的台股專業分析師。請仔細閱讀以下涵蓋昨日到今日早晨最新的台股與國際財經新聞細節。\n"
+        "你是一位資深的台股專業分析師。請仔謝閱讀以下涵蓋昨日到今日早晨最新的台股與國際財經新聞細節。\n"
         "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
         "必須深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
         "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
@@ -37,7 +42,8 @@ def ai_generate_report(news_list, target_date):
         ]
     }
     
-    res = requests.post(url, json=payload, headers=headers, timeout=50)
+    # ✨ 依需求調整：將 timeout 機制大幅提高至 300 秒
+    res = requests.post(url, json=payload, headers=headers, timeout=300)
     res_json = res.json()
     if 'candidates' in res_json and len(res_json['candidates']) > 0:
         return res_json['candidates'][0]['content']['parts'][0]['text']
@@ -79,7 +85,6 @@ def save_to_html(ai_content, news_list, today_str):
 </body>
 </html>"""
     
-    # ✨ 修正點：生成檔案名稱改為執行當天日期 (如 newsai_2026-07-19.html)
     output_filename = f"newsai_{today_str}.html"
     with open(os.path.join(target_dir, output_filename), "w", encoding="utf-8") as f:
         f.write(full_html)
@@ -93,14 +98,14 @@ def main():
     target_dir = os.path.join("..", "docs")
     all_combined_news = []
     
-    # ✨ 核心對齊修正：7/19 執行時，一律讀取前一天 (yesterday_str: 2026-07-18) 的檔案
+    # 讀取前一天 (yesterday_str) 的檔案
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
     if os.path.exists(cnyes_path):
         print(f"📖 讀取鉅亨網資料: cnyes_{yesterday_str}.json")
         with open(cnyes_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
-    # ✨ 核心對齊修正：7/19 執行時，一律讀取前一天 (yesterday_str: 2026-07-18) 的 RSS 檔案
+    # 讀取前一天 (yesterday_str) 的 RSS 檔案
     rss_path = os.path.join(target_dir, f"rss_{yesterday_str}.json")
     if os.path.exists(rss_path):
         print(f"📖 讀取 RSS 資料: rss_{yesterday_str}.json")
