@@ -24,6 +24,7 @@ def main():
     yesterday = end_time - timedelta(days=1)
     start_time = yesterday.replace(hour=13, minute=30, second=0, microsecond=0)
     
+    # ✨ 這裡維持以前一日日期命名 (例如今天 18 號，檔名會是 cnyes_2026-07-17.json)
     file_date_str = yesterday.strftime("%Y-%m-%d")
     start_ts = int(start_time.timestamp())
     end_ts = int(end_time.timestamp())
