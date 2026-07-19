@@ -43,7 +43,7 @@ def ai_generate_report(news_list, target_date):
         return res_json['candidates'][0]['content']['parts'][0]['text']
     raise RuntimeError(f"Gemini 生成異常: {res_json}")
 
-def save_to_html(ai_content, news_list, target_date_str):
+def save_to_html(ai_content, news_list, today_str):
     target_dir = os.path.join("..", "docs")
     sources_html = "<h2>🔗 今日參考新聞來源</h2><ul>"
     for news in news_list:
@@ -55,7 +55,7 @@ def save_to_html(ai_content, news_list, target_date_str):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{target_date_str} 台股盤前 AI 焦點分析</title>
+    <title>{today_str} 台股盤前 AI 焦點分析</title>
     <style>
         body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
         .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
@@ -70,7 +70,7 @@ def save_to_html(ai_content, news_list, target_date_str):
 <body>
     <div class="container">
         <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">牛牛盤前情報AI分析</h1>
-        <div class="meta">📌 報告產出日期：{target_date_str} 盤前分析</div>
+        <div class="meta">📌 報告產出日期：{today_str} 盤前分析</div>
         {ai_content}
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 30px 0;">
         {sources_html}
@@ -78,8 +78,12 @@ def save_to_html(ai_content, news_list, target_date_str):
     </div>
 </body>
 </html>"""
-    with open(os.path.join(target_dir, "newsai.html"), "w", encoding="utf-8") as f:
+    
+    # ✨ 修正點：生成檔案名稱改為執行當天日期 (如 newsai_2026-07-19.html)
+    output_filename = f"newsai_{today_str}.html"
+    with open(os.path.join(target_dir, output_filename), "w", encoding="utf-8") as f:
         f.write(full_html)
+    print(f"💾 報告成功輸出至 docs/{output_filename}")
 
 def main():
     now_tw = datetime.now(TW_TZ)
@@ -89,15 +93,17 @@ def main():
     target_dir = os.path.join("..", "docs")
     all_combined_news = []
     
-    # 讀取鉅亨網 (以昨天日期命名)
+    # ✨ 核心對齊修正：7/19 執行時，一律讀取前一天 (yesterday_str: 2026-07-18) 的檔案
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
     if os.path.exists(cnyes_path):
+        print(f"📖 讀取鉅亨網資料: cnyes_{yesterday_str}.json")
         with open(cnyes_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
-    # 讀取今日 RSS 新聞庫
-    rss_path = os.path.join(target_dir, f"rss_{today_str}.json")
+    # ✨ 核心對齊修正：7/19 執行時，一律讀取前一天 (yesterday_str: 2026-07-18) 的 RSS 檔案
+    rss_path = os.path.join(target_dir, f"rss_{yesterday_str}.json")
     if os.path.exists(rss_path):
+        print(f"📖 讀取 RSS 資料: rss_{yesterday_str}.json")
         with open(rss_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
@@ -105,9 +111,8 @@ def main():
         print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆彙整新聞...")
         content = ai_generate_report(all_combined_news, today_str)
         save_to_html(content, all_combined_news, today_str)
-        print("💾 報告成功輸出至 docs/newsai.html")
     else:
-        print("😴 今日無快取新聞資料，未生成報告。")
+        print(f"😴 找不到前一日 ({yesterday_str}) 的新聞快取資料，未生成報告。")
 
 if __name__ == "__main__":
     main()
