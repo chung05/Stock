@@ -17,15 +17,17 @@ jobs:
     steps:
       - name: Loop through User List
         run: |
-          # ✨ 核心優化：取得台灣時間（+8）的今天日期字串 (例如 2026-07-19)
+          # ✨ 網址用的標準日期 (保持 2026-07-19 格式)
           TODAY_STR=$(TZ="Asia/Taipei" date +'%Y-%m-%d')
-          # ✨ 取得適合放在標題的月/日格式 (例如 7/19)
-          TITLE_DATE=$(TZ="Asia/Taipei" date +'%*-m/%*-d' | sed 's/\*//g')
+          
+          # ✨ 修正點：先取得 2026-07-19，再透過 sed 把 -07- 改成 -7-，把 -09 改成 -9
+          # 這樣就能完美產出您期待的 2026-7-19 模式
+          TITLE_DATE=$(TZ="Asia/Taipei" date +'%Y-%m-%d' | sed -E 's/-0?([0-9]+)/-\1/g')
           
           for USER_ID in $USER_LIST; do
             echo "Sending to $USER_ID for date $TODAY_STR"
             
-            # // 呼叫 LINE API，訊息文字與連結均已動態帶入當天日期
+            # // 呼叫 LINE API，訊息內的日期現在會顯示為 2026-7-19
             curl -X POST https://api.line.me/v2/bot/message/push \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
