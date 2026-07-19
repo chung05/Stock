@@ -7,10 +7,18 @@ from zoneinfo import ZoneInfo
 TW_TZ = ZoneInfo("Asia/Taipei")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-def ai_generate_report(news_list, target_date):
+def ai_generate_report(news_list, market_data, target_date):
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
+    # 建立夜盤及海外指數數據文字脈絡
+    market_context = "【昨日美股與台指期夜盤最終收盤數據】\n"
+    if market_data:
+        for name, data in market_data.items():
+            market_context += f"- {name}: 最新價 {data['price']} | 漲跌 {data['change']} | 漲跌幅 {data['change_pct']:.2f}% (數據時間: {data['time']})\n"
+    else:
+        market_context += "無取得夜盤與海外數據。\n"
+        
     news_context = ""
     for i, news in enumerate(news_list, 1):
         # ✨ 依需求調整：字數截斷限制放寬至最大 1500 字
@@ -21,14 +29,15 @@ def ai_generate_report(news_list, target_date):
         news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文重點：{content_snippet}\n\n"
     
     prompt = (
-        "你是一位資深的台股專業分析師。請仔謝閱讀以下涵蓋昨日到今日早晨最新的台股與國際財經新聞細節。\n"
+        "你是一位資深的台股專業分析師。請仔細閱讀以下提供的大盤/海外夜盤數據以及昨日到今日早晨最新的台股與國際財經新聞細節。\n"
         "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-        "必須深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
+        "必須特別對照夜盤、美股與 ADR 的漲跌表現，並深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
         "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
-        "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態）。\n"
+        "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
         "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因）。\n"
         "3. ⚠️ 今日重大個股利空（提及的公司、代號、潛在風險或利空原因）。\n"
         "4. 💡 操盤手筆記（綜合以上資訊，今天開盤需注意的整體市場氛圍或族群趨勢）。\n\n"
+        f"數據來源：\n{market_context}\n"
         f"新聞資料來源如下：\n{news_context}"
     )
     
@@ -97,6 +106,7 @@ def main():
     
     target_dir = os.path.join("..", "docs")
     all_combined_news = []
+    market_data = {}
     
     # 讀取前一天 (yesterday_str) 的檔案
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
@@ -112,9 +122,19 @@ def main():
         with open(rss_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
+    # ✨ 新增：讀取前一天 (yesterday_str) 的海外與夜盤數據檔案
+    market_path = os.path.join(target_dir, f"market_{yesterday_str}.json")
+    if os.path.exists(market_path):
+        print(f"📖 讀取夜盤與海外市場資料: market_{yesterday_str}.json")
+        try:
+            with open(market_path, "r", encoding="utf-8") as f:
+                market_data = json.load(f)
+        except Exception as e:
+            print(f"⚠️ 讀取夜盤 JSON 異常: {e}")
+            
     if all_combined_news:
-        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆彙整新聞...")
-        content = ai_generate_report(all_combined_news, today_str)
+        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆彙整新聞並帶入夜盤市場數據...")
+        content = ai_generate_report(all_combined_news, market_data, today_str)
         save_to_html(content, all_combined_news, today_str)
     else:
         print(f"😴 找不到前一日 ({yesterday_str}) 的新聞快取資料，未生成報告。")
