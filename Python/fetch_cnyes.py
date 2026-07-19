@@ -14,6 +14,57 @@ def clean_html_content(html_text):
         script.extract()
     return soup.get_text(separator="\n").strip()
 
+def fetch_yahoo_quote(symbol, display_name):
+    """透過 Yahoo Finance API 抓取指定海外大盤與期貨商品的最新收盤價與漲跌幅"""
+    url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            result = res.json().get('quoteResponse', {}).get('result', [])
+            if result:
+                data = result[0]
+                return {
+                    "name": display_name,
+                    "price": data.get("regularMarketPrice", 0),
+                    "change": data.get("regularMarketChange", 0),
+                    "change_pct": data.get("regularMarketChangePercent", 0),
+                    "time": datetime.fromtimestamp(data.get("regularMarketTime", 0), tz=TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
+                }
+    except Exception as e:
+        print(f"❌ 抓取 {display_name} ({symbol}) 失敗: {e}")
+    return None
+
+def fetch_night_market_data(file_date_str):
+    """抓取指定的海外指數與夜盤期貨，並儲存至 market_*.json 檔案"""
+    targets = {
+        "台指期貨(近月)": "WTX&=F", 
+        "台積電ADR": "TSM",
+        "道瓊工業指數": "^DJI",
+        "那斯達克指數": "^IXIC",
+        "費城半導體指數": "^SOX"
+    }
+    
+    market_data = {}
+    print("\n📡 開始抓取夜盤與海外市場最新數據...")
+    
+    for name, symbol in targets.items():
+        quote = fetch_yahoo_quote(symbol, name)
+        if quote:
+            market_data[name] = quote
+            print(f"  ✅ 成功取得 {name}: {quote['price']} ({quote['change_pct']:.2f}%)")
+            
+    target_dir = os.path.join("..", "docs")
+    os.makedirs(target_dir, exist_ok=True)
+    filename = f"market_{file_date_str}.json"
+    file_path = os.path.join(target_dir, filename)
+    
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(market_data, f, ensure_ascii=False, indent=4)
+    print(f"💾 海外與夜盤數據儲存成功: docs/{filename}")
+
 def main():
     now_tw = datetime.now(TW_TZ)
     
@@ -82,6 +133,9 @@ def main():
             print(f"💾 鉅亨網儲存成功: docs/{filename} (本次新增: {new_count} 筆，總累積: {len(existing_articles)} 筆)")
     except Exception as e:
         print(f"❌ 鉅亨網抓取失敗: {e}")
+
+    # ✨ 執行完鉅亨網後，一併執行夜盤數據抓取，檔名日期與新聞保持一致
+    fetch_night_market_data(file_date_str)
 
 if __name__ == "__main__":
     main()
