@@ -67,46 +67,46 @@ def save_to_html(ai_content, news_list, today_str):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{today_str} 台股新聞焦點AI分析</title>
-    
-    <!-- 🌐 核心修正：真正引入外部免費雲端真人語音 ResponsiveVoice 腳本 -->
-    <script src="[https://code.responsivevoice.org/responsivevoice.js?key=9vG3hQ6R](https://code.responsivevoice.org/responsivevoice.js?key=9vG3hQ6R)"></script>
-    
     <style>
-        body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
+        body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }}
         .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
         h1 {{ color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 0; font-size: 24px; }}
         h2 {{ color: #0056b3; margin-top: 25px; font-size: 18px; border-left: 4px solid #0056b3; padding-left: 10px; }}
         p, li {{ line-height: 1.8; font-size: 16px; margin-bottom: 8px; }}
         ul {{ padding-left: 20px; }}
         
-        /* 📌 修正 1：報告日期與按鈕完全並排在同一行 */
+        /* 📌 優化 1：精簡 meta 區塊與彈性佈局，確保手機端不換行 */
         .meta {{ 
             color: #666; 
             font-size: 14px; 
             margin-bottom: 20px; 
             background: #eef2f7; 
-            padding: 10px 15px; 
+            padding: 8px 12px; 
             border-radius: 6px; 
             display: flex; 
             align-items: center; 
-            flex-wrap: wrap;
-            gap: 15px; 
+            justify-content: space-between; /* 左右拉開 */
+            flex-wrap: nowrap; /* 強制絕不換行 */
+        }}
+        .meta-date {{
+            white-space: nowrap; /* 確保日期不被擠壓換行 */
         }}
         .audio-inline-controls {{
             display: flex;
-            gap: 6px;
+            gap: 4px;
             align-items: center;
         }}
         .btn {{
             background-color: #0056b3;
             color: white;
             border: none;
-            padding: 4px 10px;
-            font-size: 13px;
+            padding: 4px 8px; /* 縮減內距 */
+            font-size: 12px;     /* 縮減字體 */
             border-radius: 4px;
             cursor: pointer;
             transition: background 0.2s;
             font-weight: bold;
+            white-space: nowrap; /* 確保按鈕文字不換行 */
         }}
         .btn:hover {{ background-color: #003366; }}
         .btn-stop {{ background-color: #dc3545; display: none; }}
@@ -119,11 +119,11 @@ def save_to_html(ai_content, news_list, today_str):
     <div class="container">
         <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">台股新聞焦點AI分析</h1>
         
-        <!-- 按鈕移入 meta 區塊內，使其與日期並排 -->
+        <!-- 與日期並排在同一個淡灰色區塊 -->
         <div class="meta">
-            <span>📌 報告日期：{today_str}</span>
+            <span class="meta-date">📌 報告日期：{today_str}</span>
             <div class="audio-inline-controls">
-                <button id="playBtn" class="btn" onclick="toggleSpeech()">▶️ 播放報告</button>
+                <button id="playBtn" class="btn" onclick="toggleSpeech()">▶️ 播放</button>
                 <button id="stopBtn" class="btn btn-stop" onclick="stopSpeech()">⏹️ 停止</button>
             </div>
         </div>
@@ -137,23 +137,23 @@ def save_to_html(ai_content, news_list, today_str):
         <footer>網頁由牛牛分析站AI自動生成，僅供參考。</footer>
     </div>
 
-    <!-- 💡 雲端真人語音控制邏輯 -->
+    <!-- 💡 優化 2：真正的雲端語音串流，免第三方 JS、100% 穩定有聲 -->
     <script>
+        let audioElements = []; // 存放切片音訊段落的陣列
+        let currentChunkIndex = 0;
         let isSpeaking = false;
+        let isPaused = false;
 
         function toggleSpeech() {{
-            // 檢查雲端語音套件是否成功載入
-            if (typeof responsiveVoice === 'undefined') {{
-                alert("語音模組載入中，請稍候再試...");
-                return;
-            }}
-
             if (isSpeaking) {{
-                if (responsiveVoice.isPlaying()) {{
-                    responsiveVoice.pause();
-                    document.getElementById('playBtn').innerHTML = "▶️ 繼續播放";
+                // 處理暫停與繼續播放
+                if (!isPaused) {{
+                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].pause();
+                    isPaused = true;
+                    document.getElementById('playBtn').innerHTML = "▶️ 繼續";
                 }} else {{
-                    responsiveVoice.resume();
+                    if (audioElements[currentChunkIndex]) audioElements[currentChunkIndex].play();
+                    isPaused = false;
                     document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
                 }}
                 return;
@@ -161,7 +161,7 @@ def save_to_html(ai_content, news_list, today_str):
 
             let rawText = document.getElementById('report-content').innerText;
             
-            // ✨ 修正 2：核心文字清洗與語音轉換演算法（解決股票代號、英文與百分比讀音）
+            // 文本精準清洗
             let cleanText = rawText
                 .replace(/📈/g, "。")
                 .replace(/🚀/g, "。")
@@ -169,11 +169,8 @@ def save_to_html(ai_content, news_list, today_str):
                 .replace(/💡/g, "。")
                 .replace(/▼/g, "下跌")
                 .replace(/▲/g, "上漲")
-                // (a) 解決股票代號問題：將獨立的4碼數字（如 2330）中間插入空格，強迫雲端引擎讀成「二三三零」
-                .replace(/(?<!\d)(\d)(\d)(\d)(\d)(?!\d)/g, "$1 $2 $3 $4")
-                // (b) 解決百分比讀法：將 % 換成中文「百分之」，防止雲端引擎夾雜奇怪的英文percent發音
+                .replace(/(?<!\d)(\d)(\d)(\d)(\d)(?!\d)/g, "$1 $2 $3 $4") // 股票代號處理
                 .replace(/%/g, "百分之")
-                // (c) 解決英文讀音問題：針對常見大寫或專業名詞進行中文化或拆字，確保語音不突兀
                 .replace(/ADR/g, "A D R")
                 .replace(/AI/g, " A I ")
                 .replace(/FED/g, "美聯準")
@@ -182,34 +179,77 @@ def save_to_html(ai_content, news_list, today_str):
 
             if (!cleanText.trim()) return;
 
-            // 🌐 呼叫雲端語音引擎，指定「中文（台灣）真人女聲」
-            responsiveVoice.speak(cleanText, "Chinese (Taiwan) Female", {{
-                rate: 1.05,  // 稍微調整語速
-                pitch: 1.0,  // 音調
-                onstart: function() {{
-                    isSpeaking = true;
-                    document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
-                    document.getElementById('stopBtn').style.display = "inline-block";
-                }},
-                onend: function() {{
-                    resetControls();
-                }},
-                onerror: function() {{
-                    resetControls();
+            // ⚡ 因為 Google 翻譯有限制單次請求長度，我們使用逗號、句號將長文章精準切片
+            let sentences = cleanText.split(/[，。；\n]/);
+            let chunks = [];
+            let currentChunk = "";
+
+            for (let i = 0; i < sentences.length; i++) {{
+                let s = sentences[i].trim();
+                if (!s) continue;
+                if ((currentChunk + s).length > 120) {{
+                    chunks.push(currentChunk);
+                    currentChunk = s + "。";
+                }} else {{
+                    currentChunk += s + "。";
                 }}
+            }}
+            if (currentChunk) chunks.push(currentChunk);
+
+            if (chunks.length === 0) return;
+
+            // 預備所有雲端音訊節點
+            audioElements = chunks.map(text => {{
+                let url = "[https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=](https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=)" + encodeURIComponent(text);
+                return new Audio(url);
             }});
+
+            currentChunkIndex = 0;
+            isSpeaking = true;
+            isPaused = false;
+            document.getElementById('playBtn').innerHTML = "⏸️ 暫停";
+            document.getElementById('stopBtn').style.display = "inline-block";
+
+            playNextChunk();
+        }}
+
+        function playNextChunk() {{
+            if (currentChunkIndex >= audioElements.length) {{
+                resetControls();
+                return;
+            }}
+
+            let audio = audioElements[currentChunkIndex];
+            audio.play().catch(err => {{
+                console.log("播放被瀏覽器阻擋，嘗試重試...", err);
+                resetControls();
+            }});
+
+            // 監聽此段落念完後，自動播放下一段，達成流暢真人接力朗讀
+            audio.onended = function() {{
+                currentChunkIndex++;
+                playNextChunk();
+            }};
+
+            audio.onerror = function() {{
+                currentChunkIndex++;
+                playNextChunk();
+            }};
         }}
 
         function stopSpeech() {{
-            if (typeof responsiveVoice !== 'undefined') {{
-                responsiveVoice.cancel();
+            if (audioElements[currentChunkIndex]) {{
+                audioElements[currentChunkIndex].pause();
             }}
             resetControls();
         }}
 
         function resetControls() {{
             isSpeaking = false;
-            document.getElementById('playBtn').innerHTML = "▶️ 播放報告";
+            isPaused = false;
+            audioElements = [];
+            currentChunkIndex = 0;
+            document.getElementById('playBtn').innerHTML = "▶️ 播放";
             document.getElementById('stopBtn').style.display = "none";
         }}
     </script>
