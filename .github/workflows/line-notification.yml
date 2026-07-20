@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
     #  USER_LIST: "U1d55204debbb0af1f992ec1d9a358f93 U3fd5afc17e5869f39772e6d55cec31e0 C7040d04f3e87e987cbaf7d2085fc3593"
-       USER_LIST: "U3fd5afc17e5869f39772e6d55cec31e0"
+       USER_LIST: "U3fd5afc17e5869f39772e6d55cec31e0 U1d55204debbb0af1f992ec1d9a358f93 U86fc7b374fa004f25ef2d52fafb718b9"
     
     steps:
       - name: Loop through User List
