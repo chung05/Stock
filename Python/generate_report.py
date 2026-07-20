@@ -29,7 +29,7 @@ def ai_generate_report(news_list, market_data, target_date):
         news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文重點：{content_snippet}\n\n"
     
     prompt = (
-        "你是一位資深的台股專業分析師。請仔細閱讀以下提供的大盤/海外夜盤數據以及昨日到今日早晨最新的台股與國際財經新聞細節。\n"
+        "你是一位資深的台股專業分析師。請仔謝閱讀以下提供的大盤/海外夜盤數據以及昨日到今日早晨最新的台股與國際財經新聞細節。\n"
         "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
         "必須特別對照夜盤、美股與 ADR 的漲跌表現，並深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
         "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
@@ -58,34 +58,40 @@ def ai_generate_report(news_list, market_data, target_date):
     raise RuntimeError(f"Gemini 生成異常: {res_json}")
 
 async def generate_microsoft_tts(html_content, target_date):
-    """使用微軟最強 Edge-TTS 在後端直接生成高質感真人 MP3 音訊檔"""
+    """使用微軟 Edge-TTS 在後端生成優化發音後的真人語音"""
     target_dir = os.path.join("..", "docs")
     os.makedirs(target_dir, exist_ok=True)
     audio_filename = f"audio_{target_date}.mp3"
     audio_path = os.path.join(target_dir, audio_filename)
     
-    # 1. 清洗文字：移除所有 HTML 標籤
+    # 1. 移除 HTML 標籤
     text = re.sub(r'<[^>]+>', ' ', html_content)
     
-    # 2. 財經詞彙發音極致校正
+    # 2. 移除符號與替換基本漲跌
     text = text.replace("📈", "。").replace("🚀", "。").replace("⚠️", "。").replace("💡", "。")
-    text = text.replace("▼", "下跌").replace("▲", "上漲").replace("%", "百分之")
+    text = text.replace("▼", "下跌").replace("▲", "上漲")
     
-    # 核心：將獨立 4 碼股票代號（如 2330）中間插入空格，強迫微軟念成「二三三零」
+    # ✨ 修正 1 & 2：精準校正百分比與正負號讀音
+    # (a) 先將含有正負號的百分比置換（例：+2.06% -> 上漲百分之2.06； -1.5% -> 下跌百分之1.5）
+    text = re.sub(r'\+([\d\.]+)\%', r'上漲百分之\1', text)
+    text = re.sub(r'\-([\d\.]+)\%', r'下跌百分之\1', text)
+    # (b) 將一般純數字百分比換位（例：20% -> 百分之20）
+    text = re.sub(r'([\d\.]+)\%', r'百分之\1', text)
+    
+    # (c) 股票代號處理（4碼數字中間加空格，如 2330 -> 2 3 3 0）
     text = re.sub(r'(?<!\d)(\d)(\d)(\d)(\d)(?!\d)', r'\1 \2 \3 \4', text)
     
-    # 英文縮寫優化
+    # (d) 財經常用英文縮寫與名詞優化
     text = text.replace("ADR", "A D R").replace("AI", " A I ").replace("FED", "美聯準").replace("TSMC", "台積電").replace("NVIDIA", "輝達")
     
-    print(f"🎙️ 微軟 Edge-TTS 開始於後端合成真人語音 (字數: {len(text)})...")
+    print(f"🎙️ 微軟 Edge-TTS 開始合成 (字數: {len(text)})...")
     try:
-        # 使用微軟極受歡迎的台灣真人女聲「曉臻 (HsiaoChen)」
         communicate = edge_tts.Communicate(text, "zh-TW-HsiaoChenNeural", rate="+5%")
         await communicate.save(audio_path)
-        print(f"🎵 真人語音檔案生成成功: docs/{audio_filename}")
+        print(f"🎵 語音導讀生成成功: docs/{audio_filename}")
         return audio_filename
     except Exception as e:
-        print(f"⚠️ 微軟 TTS 後端生成失敗: {e}")
+        print(f"⚠️ 微軟 TTS 生成失敗: {e}")
         return None
 
 def save_to_html(ai_content, news_list, today_str, audio_filename=None):
@@ -95,13 +101,12 @@ def save_to_html(ai_content, news_list, today_str, audio_filename=None):
         sources_html += f'<li>[{news["source"]}] <a href="{news["link"]}" target="_blank" style="color: #0056b3; text-decoration: none;">{news["title"]}</a> ({news["time"]})</li>'
     sources_html += "</ul>"
     
-    # 判斷後端是否有成功生成實體 MP3 語音檔，若有，直接嵌入標準的原生播放控制條
+    # ✨ 修正 3：精簡手機版面，移除多餘文字，直接呈現 HTML5 播放鍵
     audio_html = ""
     if audio_filename:
         audio_html = f"""
         <div class="audio-inline-controls">
-            <span style="font-size: 13px; font-weight: bold; color: #003366; white-space: nowrap;">🎧 語音導讀：</span>
-            <audio src="{audio_filename}" controls style="height: 28px; max-width: 220px;"></audio>
+            <audio src="{audio_filename}" controls style="height: 28px; max-width: 180px;"></audio>
         </div>
         """
     
@@ -112,32 +117,31 @@ def save_to_html(ai_content, news_list, today_str, audio_filename=None):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{today_str} 台股新聞焦點AI分析</title>
     <style>
-        body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }}
-        .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
-        h1 {{ color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 0; font-size: 24px; }}
-        h2 {{ color: #0056b3; margin-top: 25px; font-size: 18px; border-left: 4px solid #0056b3; padding-left: 10px; }}
-        p, li {{ line-height: 1.8; font-size: 16px; margin-bottom: 8px; }}
+        body {{ font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 15px; }}
+        .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
+        h1 {{ color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-top: 0; font-size: 22px; }}
+        h2 {{ color: #0056b3; margin-top: 25px; font-size: 17px; border-left: 4px solid #0056b3; padding-left: 10px; }}
+        p, li {{ line-height: 1.8; font-size: 15px; margin-bottom: 8px; }}
         ul {{ padding-left: 20px; }}
         
-        /* 📌 報告日期與微軟原生播放器完美並排 */
+        /* 📌 完美緊湊的一行排版：精簡字詞防止超版 */
         .meta {{ 
-            color: #666; 
-            font-size: 14px; 
+            color: #555; 
+            font-size: 13px; 
             margin-bottom: 20px; 
             background: #eef2f7; 
-            padding: 8px 12px; 
+            padding: 6px 10px; 
             border-radius: 6px; 
             display: flex; 
             align-items: center; 
             justify-content: space-between; 
-            flex-wrap: nowrap; 
+            flex-wrap: nowrap; /* 絕不換行 */
         }}
         .meta-date {{
             white-space: nowrap; 
         }}
         .audio-inline-controls {{
             display: flex;
-            gap: 4px;
             align-items: center;
         }}
         footer {{ margin-top: 40px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }}
@@ -145,10 +149,11 @@ def save_to_html(ai_content, news_list, today_str, audio_filename=None):
 </head>
 <body>
     <div class="container">
-        <h1><img src="avatar.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">台股新聞焦點AI分析</h1>
+        <h1><img src="avatar.png" style="height: 26px; vertical-align: middle; margin-right: 8px;">台股新聞焦點AI分析</h1>
         
         <div class="meta">
-            <span class="meta-date">📌 報告日期：{today_str}</span>
+            <!-- 縮短文字為「日期」 -->
+            <span class="meta-date">📌 日期：{today_str}</span>
             {audio_html}
         </div>
         
@@ -202,10 +207,9 @@ def main():
         print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆彙整新聞並帶入夜盤市場數據...")
         content = ai_generate_report(all_combined_news, market_data, today_str)
         
-        # ⚡ 執行微軟 Edge-TTS 非同步語音生成任務
+        # 執行微軟 Edge-TTS 語音生成
         audio_file = asyncio.run(generate_microsoft_tts(content, today_str))
         
-        # 將生成的 MP3 檔名傳入，用以渲染原生網頁播放條
         save_to_html(content, all_combined_news, today_str, audio_filename=audio_file)
     else:
         print(f"😴 找不到前一日 ({yesterday_str}) 的新聞快取資料，未生成報告。")
