@@ -39,10 +39,10 @@ function calculateRSI(data, period = 14) {
 }
 
 // ==========================================
-// ⚙️ 主要轉換邏輯：精細化三大法人多屬性寬表格
+// ⚙️ 主要轉換邏輯：精細化三大法人與融資券多屬性寬表格
 // ==========================================
 async function exportRichChipsFormat() {
-  console.log("⚙️ 開始將 60 天籌碼資料轉換為『超詳細三大法人中文寬表格（含MACD與KD）』...");
+  console.log("⚙️ 開始將 60 天籌碼資料轉換為『超詳細三大法人與融資券中文寬表格（含MACD與KD）』...");
   
   if (!fs.existsSync('./data/raw_data.json')) {
     console.error("❌ 找不到原始檔，請先執行 fetch-data.js");
@@ -71,7 +71,7 @@ async function exportRichChipsFormat() {
 
   let allFlattenedRows = [];
 
-  // 2. 逐一計算每檔股票的技術指標與拆解法人欄位
+  // 2. 逐一計算每檔股票的技術指標與拆解法人、資券欄位
   Object.keys(stockGroups).forEach(stockId => {
     // 時間由舊到新排序以利計算指標
     let history = stockGroups[stockId].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -120,12 +120,23 @@ async function exportRichChipsFormat() {
 
       const total_net = f_net + it_net + d_net;
 
+      // ──【🔥 新增 融資融券細項欄位對照】──
+      const margin_buy = row.margin_buy || 0;
+      const margin_sell = row.margin_sell || 0;
+      const margin_net = margin_buy - margin_sell;
+      const margin_balance = row.margin_balance || 0;
+
+      const short_buy = row.short_buy || 0;
+      const short_sell = row.short_sell || 0;
+      const short_net = short_sell - short_buy;
+      const short_balance = row.short_balance || 0;
+
       // ──【MACD 直接對接讀取】──
       const macd_dif = row.macd_dif !== undefined ? row.macd_dif : "None";
       const macd_signal = row.macd_signal !== undefined ? row.macd_signal : "None";
       const macd_osc = row.macd_osc !== undefined ? row.macd_osc : "None";
 
-      // ──【🔥 新增 KD 直接對接讀取】──
+      // ──【KD 直接對接讀取】──
       const rsv = row.rsv !== undefined ? row.rsv : "None";
       const kd_k = row.kd_k !== undefined ? row.kd_k : "None";
       const kd_d = row.kd_d !== undefined ? row.kd_d : "None";
@@ -166,6 +177,18 @@ async function exportRichChipsFormat() {
         
         // ── 法人加總 ──
         "三大法人總買賣超": total_net,
+
+        // ── 🔥 新增 融資信用交易細項 ──
+        "融資買進": margin_buy,
+        "融資賣出": margin_sell,
+        "融資當日增減": margin_net,
+        "融資餘額": margin_balance,
+
+        // ── 🔥 新增 融券信用交易細項 ──
+        "融券買進": short_buy,
+        "融券賣出": short_sell,
+        "融券當日增減": short_net,
+        "融券餘額": short_balance,
         
         // ── 技術指標 ──
         "MA10均線": ma10[index],
@@ -178,7 +201,7 @@ async function exportRichChipsFormat() {
         "MACD_Signal慢線": macd_signal,
         "MACD_OSC動能柱": macd_osc,
 
-        // ── 🔥 新增 KD 指標細項 ──
+        // ── KD 指標細項 ──
         "KD_RSV值": rsv,
         "KD_K值": kd_k,
         "KD_D值": kd_d
@@ -196,9 +219,9 @@ async function exportRichChipsFormat() {
   fs.writeFileSync('./data/ai_analysis.jsonl', jsonlContent);
   
   console.log(`\n📊 === 頂級精細化中文寬表格轉換完成 ===`);
-  console.log(`✅ 已補全技術指標：MA10, MA20, MA60, RSI14`);
-  console.log(`✅ 已包含對接雲端 MACD 欄位：DIF快線、Signal慢線、OSC動能柱`);
-  console.log(`✅ 🔥 新增對接雲端 KD 欄位：RSV值、K值、D值`);
+  console.log(`✅ 已包含三大法人細項目標`);
+  console.log(`✅ 🔥 新增融資與融券信用交易欄位：買進、賣出、當日增減與餘額水線`);
+  console.log(`✅ 已包含 MACD 及 KD 細項指標`);
   console.log(`💾 檔案已寫入: ./data/ai_analysis.jsonl`);
 }
 
