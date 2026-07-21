@@ -38,7 +38,7 @@ async function fetchData() {
   
   const cutoffDate = uniqueDates[Math.min(70, uniqueDates.length) - 1];
 
-  console.log(`📥 [步驟 2] 分批撈取完整原始資料以利全局排行計算...`);
+  console.log(`📥 [步驟 2] 分批撈取完整原始資料（含融資券細項與技術指標）...`);
   let allRawData = [];
   let page = 0;
   let hasMoreData = true;
@@ -46,8 +46,8 @@ async function fetchData() {
   while (hasMoreData) {
     const { data, error } = await supabase
       .from('stock_chips_daily')
-      // 🔥 關鍵修正：除了 MACD，這次也明確要求 API 提供雲端資料庫的 RSV 與 KD 欄位
-      .select('*, macd_dif, macd_signal, macd_osc, rsv, kd_k, kd_d')
+      // 🔥 關鍵修正：明確列出所有融資券與指標欄位，防止 PostgREST 遺漏序列化
+      .select('*, margin_buy, margin_sell, margin_balance, short_buy, short_sell, short_balance, macd_dif, macd_signal, macd_osc, rsv, kd_k, kd_d')
       .gte('date', cutoffDate)
       .order('date', { ascending: false })
       .range(page * 1000, (page + 1) * 1000 - 1);
@@ -109,10 +109,23 @@ async function fetchData() {
     eliteStocksWithTags[id] = tags;
   });
 
-  const filteredRawData = allRawData.filter(row => {
-    const id = row.stock_id || row.code;
-    return eliteStockIds.has(id);
-  });
+  // 🔥 關鍵防禦：篩選資料時，強制為融資券 6 個欄位賦予預設值 (0)，防止 JSON.stringify 拋棄 null/undefined 欄位
+  const filteredRawData = allRawData
+    .filter(row => {
+      const id = row.stock_id || row.code;
+      return eliteStockIds.has(id);
+    })
+    .map(row => {
+      return {
+        ...row,
+        margin_buy: row.margin_buy ?? 0,
+        margin_sell: row.margin_sell ?? 0,
+        margin_balance: row.margin_balance ?? 0,
+        short_buy: row.short_buy ?? 0,
+        short_sell: row.short_sell ?? 0,
+        short_balance: row.short_balance ?? 0
+      };
+    });
 
   if (!fs.existsSync('./data')) fs.mkdirSync('./data');
   
