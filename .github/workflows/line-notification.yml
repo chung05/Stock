@@ -11,12 +11,14 @@ jobs:
   send-line-message:
     runs-on: ubuntu-latest
     env:
-    #  USER_LIST: "U1d55204debbb0af1f992ec1d9a358f93 U3fd5afc17e5869f39772e6d55cec31e0 C7040d04f3e87e987cbaf7d2085fc3593"
-    #  USER_LIST: "U3fd5afc17e5869f39772e6d55cec31e0 U1d55204debbb0af1f992ec1d9a358f93 U86fc7b374fa004f25ef2d52fafb718b9"
-       USER_LIST: "Ca7e3704416165158faebfa2e3ba73649"
+      # USER_LIST: "U1d55204debbb0af1f992ec1d9a358f93 U3fd5afc17e5869f39772e6d55cec31e0 C7040d04f3e87e987cbaf7d2085fc3593"
+      # USER_LIST: "U3fd5afc17e5869f39772e6d55cec31e0 U1d55204debbb0af1f992ec1d9a358f93 U86fc7b374fa004f25ef2d52fafb718b9"
+      USER_LIST: "Ca7e3704416165158faebfa2e3ba73649"
+      TOKEN_1: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+      TOKEN_2: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN_2 }}
     
     steps:
-      - name: Loop through User List
+      - name: Loop through User List with Token Fallback
         run: |
           # ✨ 網址用的標準日期 (保持 2026-07-19 格式)
           TODAY_STR=$(TZ="Asia/Taipei" date +'%Y-%m-%d')
@@ -24,31 +26,58 @@ jobs:
           # ✨ 標題用的日期 (2026-7-19 格式)
           TITLE_DATE=$(TZ="Asia/Taipei" date +'%Y-%m-%d' | sed -E 's/-0?([0-9]+)/-\1/g')
           
+          # 將兩個 Secrets 放入 Token 陣列中
+          TOKENS=("$TOKEN_1" "$TOKEN_2")
+          
           for USER_ID in $USER_LIST; do
-            echo "Sending to $USER_ID for date $TODAY_STR"
+            echo "Processing notification for $USER_ID (Date: $TODAY_STR)"
+            SUCCESS=false
             
-            # // 修正點：呼叫 LINE API，使用 buttons 範本卡片，並精簡文字字數防超限
-            curl -X POST https://api.line.me/v2/bot/message/push \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
-              -d "{
-                \"to\": \"$USER_ID\",
-                \"messages\": [
-                  {
-                    \"type\": \"template\",
-                    \"altText\": \"台股最新($TITLE_DATE)新聞AI 盤前情報分析\",
-                    \"template\": {
-                      \"type\": \"buttons\",
-                      \"text\": \"📊 台股最新($TITLE_DATE)新聞AI 盤前情報分析，請點選下方按鈕查看詳細內容。\",
-                      \"actions\": [
-                        {
-                          \"type\": \"uri\",
-                          \"label\": \"完整資訊\",
-                          \"uri\": \"https://chung05.github.io/Stock/docs/newsai_$TODAY_STR.html\"
-                        }
-                      ]
+            for idx in "${!TOKENS[@]}"; do
+              TOKEN="${TOKENS[$idx]}"
+              BOT_NUM=$((idx + 1))
+              
+              echo "Attempting send with Bot #$BOT_NUM..."
+              
+              # 呼叫 LINE API 並接收回傳結果
+              RESPONSE=$(curl -s -X POST https://api.line.me/v2/bot/message/push \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer $TOKEN" \
+                -d "{
+                  \"to\": \"$USER_ID\",
+                  \"messages\": [
+                    {
+                      \"type\": \"template\",
+                      \"altText\": \"台股最新($TITLE_DATE)新聞AI 盤前情報分析\",
+                      \"template\": {
+                        \"type\": \"buttons\",
+                        \"text\": \"📊 台股最新($TITLE_DATE)新聞AI 盤前情報分析，請點選下方按鈕查看詳細內容。\",
+                        \"actions\": [
+                          {
+                            \"type\": \"uri\",
+                            \"label\": \"完整資訊\",
+                            \"uri\": \"https://chung05.github.io/Stock/docs/newsai_$TODAY_STR.html\"
+                          }
+                        ]
+                      }
                     }
-                  }
-                ]
-              }"
+                  ]
+                }")
+              
+              # 檢查 Response 是否包含錯誤訊息（例如 monthly limit）
+              if echo "$RESPONSE" | grep -q '"message"'; then
+                echo "⚠️ Bot #$BOT_NUM failed! Response: $RESPONSE"
+                echo "Switching to next backup Bot..."
+              else
+                echo "✅ Successfully sent via Bot #$BOT_NUM to $USER_ID!"
+                SUCCESS=true
+                break # 發送成功，跳出 Token 輪播迴圈
+              fi
+            done
+            
+            # 若所有 Bot 都失敗，強制終止 Workflow 並報錯
+            if [ "$SUCCESS" = false ]; then
+              echo "❌ All Bots failed to send notification. Please check quota or tokens!"
+              exit 1
+            fi
           done
