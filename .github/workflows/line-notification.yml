@@ -16,7 +16,6 @@ jobs:
       USER_LIST: "Ca7e3704416165158faebfa2e3ba73649"
       TOKEN_1: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
       TOKEN_2: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN_2 }}
-    
     steps:
       - name: Loop through User List with Token Fallback
         run: |
