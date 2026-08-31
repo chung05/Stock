@@ -1,10 +1,10 @@
 name: 🐮 牛牛大帳本 v3・Part2 天天自動同步 (信用資券與核心策略校準)
 
 on:
-  schedule:
+  # schedule:
     # 🟢 台灣時間 21:30 = UTC 13:30 (Cron: 30 13 * * *)
     # - cron: '30 13 * * *' 
-    # workflow_dispatch: # 保留網頁手動按鈕
+    workflow_dispatch: # 保留網頁手動按鈕
 
 permissions:
   contents: write # 賦予實體寫入權限
