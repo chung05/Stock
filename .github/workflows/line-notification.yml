@@ -3,7 +3,7 @@ name: Daily Auto LINE Notification to List
 on:
   # // 暫時關閉每天早上的自動 LINE 通知，改為備註
   schedule:
-    - cron: '25 23 * * *'
+    #  - cron: '25 23 * * *'
   
   # // 保留手動觸發按鈕，方便你隨時測試
   workflow_dispatch:
