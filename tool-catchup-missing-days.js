@@ -18,32 +18,66 @@ function getLookbackDate(targetDateStr, daysBack = 45) {
   return d.toISOString().split('T')[0];
 }
 
+// 🛡️ 封裝階梯式延遲重試請求函式：
+// 第 1 次失敗延遲 5 秒重試，第 2 次失敗延遲 10 秒重試，遇 402/429 額度限制則自動長休 60 秒
+async function fetchWithRetry(url, headers, maxRetries = 3) {
+  const delaySchedule = [5000, 10000]; // 第1次失敗等5秒，第2次失敗等10秒
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await axios.get(url, { headers, timeout: 15000 });
+      return res;
+    } catch (err) {
+      const status = err.response ? err.response.status : null;
+      
+      // 如果已達最大重試次數，直接拋出錯誤
+      if (attempt === maxRetries) {
+        throw new Error(`[重試上限] HTTP ${status || 'TIMEOUT'} - ${err.message}`);
+      }
+
+      // 情況 A：遇 402/429 (API 頻率/額度限制) -> 自動長休 60 秒
+      if (status === 402 || status === 429) {
+        console.warn(`⏳ [觸發 API 頻率限制 HTTP ${status}] 等待 60 秒後進行第 ${attempt + 1}/${maxRetries} 次重試...`);
+        await sleep(60000);
+      } 
+      // 情況 B：遇 502/500/503 伺服器異常、超時或一般網路錯誤 -> 依階梯延遲 (5秒 -> 10秒)
+      else {
+        const waitMs = delaySchedule[attempt - 1] || 10000;
+        console.warn(`⚠️ [連線/伺服器異常 HTTP ${status || 'TIMEOUT'}] 延遲 ${waitMs / 1000} 秒後進行第 ${attempt + 1}/${maxRetries} 次重試... (${err.message})`);
+        await sleep(waitMs);
+      }
+    }
+  }
+}
+
 async function run() {
   // 🌟 =========================================================================
-  // 🛠️ 【手動設定核心區】後續維護只需在此調整
+  // 🛠️ 【參數設定區】支援 GitHub Actions 介面輸入，亦可在此直接寫死執行
   // 🌟 =========================================================================
   
   // 1. 設定要修復或補齊的日期區間 (格式: YYYY-MM-DD)
-  const targetStartDate = "2026-08-27"; 
-  const targetEndDate   = "2026-08-28";
+  const targetStartDate = process.env.START_DATE || "2026-08-27"; 
+  const targetEndDate   = process.env.END_DATE   || "2026-08-28";
 
   // 2. 設定個股模式：
-  //    - 指定個股：例如 ["2330", "2337", "6669"]
-  //    - 全量 231 檔：設定為 null 或 []
-  //   const MANUAL_STOCKS = null; 
-  const MANUAL_STOCKS = [3005]
+  //    - 指定個股：字串陣列，例如 ["2330", "2337", "6669"]
+  //    - 全量 231 檔：保持 null
+  const envStocks = process.env.MANUAL_STOCKS ? process.env.MANUAL_STOCKS.split(',').map(s => s.trim()).filter(Boolean) : null;
+  const MANUAL_STOCKS = envStocks || null; 
 
-  // 3. 是否強制覆蓋現有資料（包含覆蓋 0 值、空值或錯誤指標）：
-  //    - true:  強制全量重抓並 Upsert 覆蓋資料庫內既有的舊資料 (解決 8/27~8/28 填入 0 的問題)
-  //    - false: 僅檢查 Supabase，只補漏完全沒有資料列的股票 (極度節省 API 額度)
-  const FORCE_OVERWRITE = true; 
+  // 3. 是否強制覆蓋既有資料（包含覆寫 0 值或錯誤指標）：
+  //    - true:  強制全量重抓並覆寫資料庫 (解決 8/27~8/28 填入 0 的問題)
+  //    - false: 僅檢查 Supabase，只補漏完全沒有資料列的股票 (節省 API)
+  const FORCE_OVERWRITE = process.env.FORCE_OVERWRITE !== undefined 
+    ? (process.env.FORCE_OVERWRITE === 'true' || process.env.FORCE_OVERWRITE === true)
+    : true;
 
   // 🌟 =========================================================================
 
   const calcStartDate = getLookbackDate(targetStartDate, 45);
   let targetStockList = [];
 
-  // 1. 決定目標個股名單
+  // 1. 篩選目標個股
   if (MANUAL_STOCKS && Array.isArray(MANUAL_STOCKS) && MANUAL_STOCKS.length > 0) {
     targetStockList = MANUAL_STOCKS.map(s => String(s).trim());
     console.log(`🎯 [指定個股模式] 鎖定個股 ${targetStockList.length} 檔: ${targetStockList.join(', ')}`);
@@ -57,9 +91,9 @@ async function run() {
 
     if (FORCE_OVERWRITE) {
       targetStockList = allStockIds;
-      console.log(`🔥 [強制覆蓋模式] 將對母名單全量 ${targetStockList.length} 檔重新計算並強制覆寫資料庫！`);
+      console.log(`🔥 [強制覆蓋模式] 將對全量母名單 ${targetStockList.length} 檔重新計算並強制覆寫資料庫！`);
     } else {
-      console.log(`🔍 [智能檢查模式] 正在向 Supabase 查詢 ${targetStartDate} ~ ${targetEndDate} 期間資料齊全狀況...`);
+      console.log(`🔍 [智能省流模式] 正在向 Supabase 檢查 ${targetStartDate} ~ ${targetEndDate} 期間缺漏狀況...`);
       const { data: existingRows, error: exErr } = await supabase
         .from('stock_chips_daily')
         .select('stock_id, date')
@@ -84,7 +118,7 @@ async function run() {
   }
 
   console.log(`📅 補漏目標區間: ${targetStartDate} 至 ${targetEndDate}`);
-  console.log(`📐 指標回溯基準點: ${calcStartDate}`);
+  console.log(`📐 指標回溯計算起點: ${calcStartDate}`);
 
   const commonHeaders = {
     'accept': 'application/json',
@@ -92,7 +126,6 @@ async function run() {
   };
   const token = process.env.FINMIND_TOKEN || '';
   
-  // 📋 異常紀錄收集池
   const failureReports = [];
   let successCount = 0;
 
@@ -100,7 +133,7 @@ async function run() {
   for (let i = 0; i < targetStockList.length; i++) {
     const sId = targetStockList[i];
 
-    // 流量防護：每處理 4 檔冷卻 10 秒
+    // 每 4 檔進行基礎冷卻
     if (i > 0 && i % 4 === 0) {
       console.log(`⏳ [防禦冷卻] 進度 ${i}/${targetStockList.length}，冷卻 10 秒...`);
       await sleep(10000);
@@ -109,7 +142,7 @@ async function run() {
     try {
       // (A) 量價數據 (TaiwanStockPrice)
       const pUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${sId}&start_date=${calcStartDate}&end_date=${targetEndDate}&token=${token}`;
-      const pRes = await axios.get(pUrl, { headers: commonHeaders });
+      const pRes = await fetchWithRetry(pUrl, commonHeaders);
 
       if (!pRes.data.data || !Array.isArray(pRes.data.data) || pRes.data.data.length === 0) {
         console.warn(`⚠️ [量價缺失] 股票 ${sId} 在 FinMind 查無量價資料。`);
@@ -141,7 +174,7 @@ async function run() {
 
       // (B) 三大法人買賣超 (TaiwanStockInstitutionalInvestorsBuySell)
       const cUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=${sId}&start_date=${calcStartDate}&end_date=${targetEndDate}&token=${token}`;
-      const cRes = await axios.get(cUrl, { headers: commonHeaders });
+      const cRes = await fetchWithRetry(cUrl, commonHeaders);
 
       if (cRes.data.data && Array.isArray(cRes.data.data)) {
         cRes.data.data.forEach(row => {
@@ -161,7 +194,7 @@ async function run() {
 
       // (C) 融資融券明細 (TaiwanStockMarginPurchaseShortSale)
       const mUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=${sId}&start_date=${calcStartDate}&end_date=${targetEndDate}&token=${token}`;
-      const mRes = await axios.get(mUrl, { headers: commonHeaders });
+      const mRes = await fetchWithRetry(mUrl, commonHeaders);
 
       if (mRes.data.data && Array.isArray(mRes.data.data)) {
         mRes.data.data.forEach(mRow => {
@@ -261,11 +294,11 @@ async function run() {
       }
 
     } catch (singleErr) {
-      console.error(`💥 [${sId}] 發生異常:`, singleErr.message);
+      console.error(`💥 [${sId}] 處理失敗:`, singleErr.message);
       failureReports.push({ stock_id: sId, reason: 'API_REQUEST_EXCEPTION', detail: singleErr.message });
     }
 
-    await sleep(600);
+    await sleep(600); // 正常每檔請求間隔
   }
 
   // 3. 輸出執行成果與異常報告
