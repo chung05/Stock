@@ -30,7 +30,8 @@ jobs:
             # // 修正點：呼叫 LINE API，使用 buttons 範本卡片，並精簡文字字數防超限
             curl -X POST https://api.line.me/v2/bot/message/push \
               -H "Content-Type: application/json" \
-              -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
+              -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN_2 }}" \
+            #  -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
               -d "{
                 \"to\": \"$USER_ID\",
                 \"messages\": [
