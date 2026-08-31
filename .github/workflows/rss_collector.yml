@@ -3,11 +3,11 @@ name: Hourly RSS News Collector
 on:
   schedule:
     # 台灣 18:00 = UTC 10:00
-    - cron: '0 10 * * *'
+    #  - cron: '0 10 * * *'
     # 台灣 00:00 = UTC 16:00
-    - cron: '0 16 * * *'
+    # - cron: '0 16 * * *'
     # 台灣 06:00 = UTC 22:00
-    - cron: '0 22 * * *'
+    # - cron: '0 22 * * *'
   workflow_dispatch:
 
 permissions:
