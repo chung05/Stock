@@ -1,10 +1,10 @@
 name: 🐮 牛牛大帳本 v3・Part1 天天自動同步 (價量籌碼與基礎指標)
 
 on:
-  schedule:
+ # schedule:
     # 🟢 台灣時間 16:30 = UTC 08:30 (Cron: 30 8 * * *)
     # - cron: '30 8 * * *' 
-    # workflow_dispatch: # 保留網頁手動按鈕，方便您臨時隨時點擊測試
+    workflow_dispatch: # 保留網頁手動按鈕，方便您臨時隨時點擊測試
 
 permissions:
   contents: write # 賦予 GitHub 工人部署與推送靜態網頁成果的實體寫入權限
