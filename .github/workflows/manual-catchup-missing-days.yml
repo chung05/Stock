@@ -33,11 +33,10 @@ jobs:
       - name: 設定 Node.js 環境 (Setup Node.js)
         uses: actions/setup-node@v4
         with:
-          node-version: 24 # 🌟 升級至 Node 24 消除 Deprecation 警告
+          node-version: 24
 
       - name: 安裝專案依賴 (Install Dependencies)
-        # 🌟 直接執行 npm install，避免因缺少 package-lock.json 導致失敗
-        run: npm install
+        run: npm install @supabase/supabase-js axios dotenv
 
       - name: 執行資料補漏腳本 (Run Catchup Script)
         env:
