@@ -1,0 +1,64 @@
+name: 手動執行股票資料補漏與指標覆蓋 (Manual Stock Catchup)
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: '補漏開始日期 (YYYY-MM-DD)'
+        required: true
+        default: '2026-08-27'
+      end_date:
+        description: '補漏結束日期 (YYYY-MM-DD)'
+        required: true
+        default: '2026-08-28'
+      manual_stocks:
+        description: '指定個股代碼 (以逗號分隔，留空則跑全量母名單，例如: 2330,2337,6669)'
+        required: false
+        default: ''
+      force_overwrite:
+        description: '是否強制覆蓋既有資料 (包含覆寫 0 值與錯誤指標)'
+        type: boolean
+        required: true
+        default: true
+
+jobs:
+  stock-catchup-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120 # 設定最大執行上限 2 小時，確保 231 檔有足夠時間跑完
+
+    steps:
+      - name: 檢出儲存庫代碼 (Checkout Repository)
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js 環境 (Setup Node.js)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 安裝專案依賴 (Install Dependencies)
+        run: npm ci || npm install
+
+      - name: 執行資料補漏腳本 (Run Catchup Script)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          START_DATE: ${{ github.event.inputs.start_date }}
+          END_DATE: ${{ github.event.inputs.end_date }}
+          MANUAL_STOCKS: ${{ github.event.inputs.manual_stocks }}
+          FORCE_OVERWRITE: ${{ github.event.inputs.force_overwrite }}
+        run: |
+          echo "🚀 啟動補漏作業..."
+          echo "📅 區間: $START_DATE ~ $END_DATE"
+          echo "🎯 指定個股: $MANUAL_STOCKS"
+          echo "🔥 強制覆蓋: $FORCE_OVERWRITE"
+          node tool-catchup-missing-days.js
+
+      - name: 上傳失敗報告產物 (Upload Failure Report Artifact)
+        if: always() # 即使途中出錯也嘗試上傳報告
+        uses: actions/upload-artifact@v4
+        with:
+          name: catchup-failure-reports
+          path: failed_catchup_*.json
+          if-no-files-found: ignore
