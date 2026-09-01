@@ -1,26 +1,36 @@
 name: Fetch Cnyes News
 
 on:
-  workflow_dispatch: # 供外部 cron-job 或手動呼叫
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  fetch-news:
+  fetch-cnyes:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      - name: Run Fetch Script
-        run: python Python/fetch_cnyes.py
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests feedparser beautifulsoup4
 
-      - name: Commit and Push News Data
+      - name: Run fetch_cnyes.py
+        run: |
+          python Python/fetch_cnyes.py
+
+      - name: Commit and push if changed
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update cnyes news [skip ci]" && git push)
+          git add docs/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto fetch cnyes news [skip ci]" && git push)
