@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests feedparser beautifulsoup4 google-genai
+          pip install requests feedparser beautifulsoup4 google-genai edge_tts
 
       - name: Run generate_report.py
         env:
