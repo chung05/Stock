@@ -7,7 +7,7 @@ jobs:
   send-line-message:
     runs-on: ubuntu-latest
     env:
-      USER_LIST: "U3fd5afc17e5869f39772e6d55cec31e0 Uaff351b5cd6dd47d6268bd937a666cde"
+      USER_LIST: "U3fd5afc17e5869f39772e6d55cec31e0 Uaff351b5cd6dd47d6268bd937a666cde Uae56196c905f4e502dd7175d1b9e9d6a"
       LINE_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN_2 }}
       # LINE_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
 
