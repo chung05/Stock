@@ -1,0 +1,26 @@
+name: Generate Daily Report
+
+on:
+  workflow_dispatch: # 供外部 cron-job 或手動呼叫
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run Report Generator
+        run: python Python/generate_report.py
+
+      - name: Commit and Push Report
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto generate report [skip ci]" && git push)
