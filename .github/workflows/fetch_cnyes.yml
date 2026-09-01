@@ -28,19 +28,27 @@ jobs:
         run: |
           python Python/fetch_cnyes.py
 
+      - name: Check generated files
+        run: |
+          echo "=== 檢查目前目錄結構與檔案 ==="
+          ls -la
+          echo "=== 檢查 docs/ 目錄內容 ==="
+          ls -la docs/ || true
+
       - name: Commit and push if changed
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 強制加入 docs/ 目錄下的所有變更
-          git add -f docs/
+          # 將所有新增、修改的檔案全部加入（含強制忽略檔）
+          git add -A -f
           
-          # 檢查是否有檔案變更，若有則 Commit 並 Push
+          # 檢查狀態並 Push
           if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "Auto fetch cnyes news [skip ci]"
+            git status
+            git commit -m "Auto fetch cnyes news and market data [skip ci]"
             git push origin HEAD:${{ github.ref }}
-            echo "✅ 檔案已成功推送到儲存庫！"
+            echo "✅ 檔案已成功 Push 回儲存庫！"
           else
-            echo "⚠️ 沒有偵測到任何檔案變更。"
+            echo "⚠️ 警告：Git 未偵測到任何檔案變更。"
           fi
