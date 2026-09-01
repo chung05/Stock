@@ -9,46 +9,28 @@ permissions:
 jobs:
   fetch-cnyes:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests feedparser beautifulsoup4
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4
 
-      - name: Run fetch_cnyes.py
-        run: |
-          python Python/fetch_cnyes.py
+    - name: 1. 抓取鉅亨網指定區間新聞
+      run: |
+        cd Python
+        python fetch_cnyes.py
 
-      - name: Check generated files
-        run: |
-          echo "=== 檢查目前目錄結構與檔案 ==="
-          ls -la
-          echo "=== 檢查 docs/ 目錄內容 ==="
-          ls -la docs/ || true
-
-      - name: Commit and push if changed
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 將所有新增、修改的檔案全部加入（含強制忽略檔）
-          git add -A -f
-          
-          # 檢查狀態並 Push
-          if [ -n "$(git status --porcelain)" ]; then
-            git status
-            git commit -m "Auto fetch cnyes news and market data [skip ci]"
-            git push origin HEAD:${{ github.ref }}
-            echo "✅ 檔案已成功 Push 回儲存庫！"
-          else
-            echo "⚠️ 警告：Git 未偵測到任何檔案變更。"
-          fi
+    - name: 2. 將新產生的 JSON 推回儲存庫
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/*
+        git diff-index --quiet HEAD || (git commit -m "📊 鉅亨網新聞與市場數據存檔 [skip ci]" && git push)
