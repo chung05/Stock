@@ -32,5 +32,15 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto fetch cnyes news [skip ci]" && git push)
+          
+          # 強制加入 docs/ 目錄下的所有變更
+          git add -f docs/
+          
+          # 檢查是否有檔案變更，若有則 Commit 並 Push
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Auto fetch cnyes news [skip ci]"
+            git push origin HEAD:${{ github.ref }}
+            echo "✅ 檔案已成功推送到儲存庫！"
+          else
+            echo "⚠️ 沒有偵測到任何檔案變更。"
+          fi
