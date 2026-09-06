@@ -69,7 +69,7 @@ def main():
     now_tw = datetime.now(TW_TZ)
     
     # 精準界定：前一日 13:30 到當天 07:30 的資料區間
-    end_time = now_tw.replace(hour=7, minute=30, second=0, microsecond=0)
+    end_time = now_tw.replace(hour=7, minute=00, second=0, microsecond=0)
     yesterday = end_time - timedelta(days=1)
     start_time = yesterday.replace(hour=13, minute=30, second=0, microsecond=0)
     
