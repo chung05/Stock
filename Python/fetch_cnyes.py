@@ -16,22 +16,28 @@ def clean_html_content(html_text):
 
 def fetch_yahoo_quote(symbol, display_name):
     """透過 Yahoo Finance API 抓取指定海外大盤與期貨商品的最新收盤價與漲跌幅"""
-    url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}"
+    url = "https://query1.finance.yahoo.com/v7/finance/quote"
+    params = {"symbols": symbol}
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*"
     }
     try:
-        res = requests.get(url, headers=headers, timeout=10)
+        res = requests.get(url, params=params, headers=headers, timeout=10)
         if res.status_code == 200:
             result = res.json().get('quoteResponse', {}).get('result', [])
             if result:
                 data = result[0]
+                price = data.get("regularMarketPrice") or data.get("postMarketPrice", 0)
+                change = data.get("regularMarketChange", 0)
+                change_pct = data.get("regularMarketChangePercent", 0)
+                market_time = data.get("regularMarketTime", 0)
                 return {
                     "name": display_name,
-                    "price": data.get("regularMarketPrice", 0),
-                    "change": data.get("regularMarketChange", 0),
-                    "change_pct": data.get("regularMarketChangePercent", 0),
-                    "time": datetime.fromtimestamp(data.get("regularMarketTime", 0), tz=TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
+                    "price": price,
+                    "change": change,
+                    "change_pct": change_pct,
+                    "time": datetime.fromtimestamp(market_time, tz=TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
                 }
     except Exception as e:
         print(f"❌ 抓取 {display_name} ({symbol}) 失敗: {e}")
@@ -40,7 +46,7 @@ def fetch_yahoo_quote(symbol, display_name):
 def fetch_night_market_data(file_date_str):
     """抓取指定的海外指數與夜盤期貨，並儲存至 market_*.json 檔案"""
     targets = {
-        "台指期貨(近月)": "WTX&=F", 
+        "台指期貨(近月)": "WTX=F", 
         "台積電ADR": "TSM",
         "道瓊工業指數": "^DJI",
         "那斯達克指數": "^IXIC",
@@ -52,6 +58,10 @@ def fetch_night_market_data(file_date_str):
     
     for name, symbol in targets.items():
         quote = fetch_yahoo_quote(symbol, name)
+        # 若台指期貨使用 WTX=F 未抓到，自動嘗試備用代碼 TX=F
+        if not quote and name == "台指期貨(近月)":
+            quote = fetch_yahoo_quote("TX=F", name)
+            
         if quote:
             market_data[name] = quote
             print(f"  ✅ 成功取得 {name}: {quote['price']} ({quote['change_pct']:.2f}%)")
@@ -68,8 +78,8 @@ def fetch_night_market_data(file_date_str):
 def main():
     now_tw = datetime.now(TW_TZ)
     
-    # 精準界定：前一日 13:30 到當天 07:30 的資料區間
-    end_time = now_tw.replace(hour=7, minute=00, second=0, microsecond=0)
+    # 精準界定：前一日 13:30 到當天 07:00 的資料區間
+    end_time = now_tw.replace(hour=7, minute=0, second=0, microsecond=0)
     yesterday = end_time - timedelta(days=1)
     start_time = yesterday.replace(hour=13, minute=30, second=0, microsecond=0)
     
