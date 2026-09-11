@@ -1,0 +1,9 @@
+{
+  "name": "twse-downloader-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-28",
+  "vars": {
+    "GH_USER": "chung05",
+    "GH_REPO": "Stock"
+  }
+}
