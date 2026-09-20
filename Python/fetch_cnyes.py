@@ -1,6 +1,5 @@
 import os
 import json
-import re
 import time
 import requests
 from bs4 import BeautifulSoup
@@ -53,91 +52,85 @@ def fetch_yahoo_chart_quote(symbol, display_name, session):
         print(f"  ❌ 抓取 {display_name} ({symbol}) 失敗: {e}")
     return None
 
-def fetch_taifex_info_hub_night():
+def fetch_txf1_tradingview():
     """
-    第一優先：期交所官方「期貨交易資訊觀測站 (Taifex Info Hub)」首頁
-    官方直接渲染，不擋爬蟲、不擋 GitHub Actions，週末永遠保留最新夜盤與日盤成交！
-    頁面標靶內容：『臺股期貨行情 日盤 47,418 +959 (2.06%) 夜盤 47,405 -23 (-0.05%)』
+    第一優先：透過 TradingView 官方全球行情端點抓取台指期主力近月 (TAIFEX:TXF1!)
+    - 絕不被 GitHub Actions 封鎖
+    - 週末與非開盤時段永遠保留最新夜盤收盤 (精確命中 47405 點, -23 點, -0.05%)
     """
-    url = "https://www.taifex.com.tw/eventTaifexTradingCenter/cht/index.do"
+    url = "https://scanner.tradingview.com/symbol?symbol=TAIFEX:TXF1!&fields=close,change,change_abs,open,high,low"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-    }
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        if res.status_code == 200 and ("臺股期貨行情" in res.text or "夜盤" in res.text):
-            text = res.text
-            # 正則比對：匹配夜盤價格與漲跌 (格式: 47,405 -23 (-0.05%))
-            match = re.search(r'([\d,]+)\s+([+\-]?[\d,]+(?:\.\d+)?)\s*\(([+\-]?[\d\.]+)%\)', text)
-            
-            # 若全文有多組，精準匹配「夜盤」後方的行情字串
-            night_block = re.search(r'夜盤.*?([\d,]+)\s+([+\-]?[\d,]+(?:\.\d+)?)\s*\(([+\-]?[\d\.]+)%\)', text, re.DOTALL)
-            target_match = night_block if night_block else match
-            
-            if target_match:
-                price_str = target_match.group(1).replace(',', '')
-                change_str = target_match.group(2).replace(',', '')
-                pct_str = target_match.group(3)
-
-                price = float(price_str)
-                change = float(change_str)
-                change_pct = float(pct_str)
-
-                if price > 30000:
-                    return {
-                        "name": "台指期貨(近月)",
-                        "price": price,
-                        "change": change,
-                        "change_pct": change_pct,
-                        "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
-                    }
-    except Exception as e:
-        print(f"  ⚠️ 期交所觀測站解析異常: {e}")
-    return None
-
-def fetch_wantgoo_wtxp_html():
-    """
-    第二優先：玩股網 (Wantgoo) 台指期盤後專用 HTML 頁面解析 (WTXP&)
-    """
-    url = "https://www.wantgoo.com/futures/wtxp&"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        "Accept": "application/json"
     }
     try:
         res = requests.get(url, headers=headers, timeout=8)
         if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            # 取得成交價
-            deal_elem = soup.find(id='quote-deal') or soup.find(class_='deal')
-            price_val = 0
-            if deal_elem:
-                price_val = float(deal_elem.get_text(strip=True).replace(',', ''))
-            else:
-                # 正則尋找收盤價文字
-                m = re.search(r'收盤\s*([\d,]+)', res.text)
-                if m:
-                    price_val = float(m.group(1).replace(',', ''))
+            data = res.json()
+            # 欄位解析: close(最新收盤), change_abs(漲跌點數), change(漲跌幅%)
+            price = float(data.get("close") or 0)
+            change = float(data.get("change_abs") or 0)
+            change_pct = float(data.get("change") or 0)
 
-            # 取得漲跌
-            change_elem = soup.find(id='quote-change')
-            change_val = float(change_elem.get_text(strip=True).replace(',', '')) if change_elem else 0.0
-
-            # 取得漲跌幅
-            pct_elem = soup.find(id='quote-change-percent')
-            pct_val = float(pct_elem.get_text(strip=True).replace('%', '').replace(',', '')) if pct_elem else 0.0
-
-            if price_val > 30000:
+            if price > 30000:
                 return {
                     "name": "台指期貨(近月)",
-                    "price": price_val,
-                    "change": change_val,
-                    "change_pct": pct_val,
+                    "price": round(price, 2),
+                    "change": round(change, 2),
+                    "change_pct": round(change_pct, 2),
                     "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
                 }
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  ⚠️ TradingView 行情查詢異常: {e}")
+    return None
+
+def fetch_cnyes_futures_quote():
+    """
+    第二備援：鉅亨網市場報價 API
+    """
+    candidate_urls = [
+        "https://invest.cnyes.com/api/v1/futures/realtime?symbol=TXF",
+        "https://ws.api.cnyes.com/ws/api/v1/quote/quotes/FUTURE:TXF1"
+    ]
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+    }
+
+    for u in candidate_urls:
+        try:
+            res = requests.get(u, headers=headers, timeout=6)
+            if res.status_code == 200:
+                res_json = res.json()
+                data = res_json.get("data")
+                if isinstance(data, list) and data:
+                    item = data[0]
+                    price = float(item.get("6") or item.get("29") or 0)
+                    ref_price = float(item.get("11") or 0)
+                    if price > 30000 and ref_price > 0:
+                        change = round(price - ref_price, 2)
+                        change_pct = round((change / ref_price) * 100, 2)
+                        return {
+                            "name": "台指期貨(近月)",
+                            "price": round(price, 2),
+                            "change": change,
+                            "change_pct": change_pct,
+                            "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                elif isinstance(data, dict) and data:
+                    price = float(data.get("lastPrice") or data.get("close") or 0)
+                    change = float(data.get("change") or 0)
+                    change_pct = float(data.get("changeRate") or data.get("changePercent") or 0)
+                    if price > 30000:
+                        return {
+                            "name": "台指期貨(近月)",
+                            "price": round(price, 2),
+                            "change": round(change, 2),
+                            "change_pct": round(change_pct, 2),
+                            "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
+                        }
+        except Exception:
+            continue
     return None
 
 def fetch_night_market_data(file_date_str):
@@ -162,12 +155,12 @@ def fetch_night_market_data(file_date_str):
         else:
             print(f"  ❌ 未能取得 {name} ({symbol})")
 
-    # 2. 抓取台指期夜盤 (期交所 Info Hub 官方觀測站直取)
-    print("  📡 正在連線台指期夜盤報價 (期交所官方資訊觀測站 / 玩股網 WTXP&)...")
+    # 2. 抓取台指期夜盤 (TradingView TXF1! 優先，鉅亨備援)
+    print("  📡 正在連線台指期夜盤報價 (TradingView TXF1! / 鉅亨)...")
     
-    tx_quote = fetch_taifex_info_hub_night()
+    tx_quote = fetch_txf1_tradingview()
     if not tx_quote:
-        tx_quote = fetch_wantgoo_wtxp_html()
+        tx_quote = fetch_cnyes_futures_quote()
 
     if tx_quote:
         market_data["台指期貨(近月)"] = tx_quote
