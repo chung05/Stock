@@ -46,6 +46,8 @@ def fetch_yahoo_chart_quote(symbol, display_name, session):
                     "change_pct": change_pct,
                     "time": datetime.fromtimestamp(market_time, tz=TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
                 }
+        else:
+            print(f"  ⚠️ Yahoo v8 回傳異常狀態碼 {res.status_code} ({display_name} - {symbol})")
     except Exception as e:
         print(f"  ❌ 抓取 {display_name} ({symbol}) 失敗: {e}")
     return None
@@ -53,6 +55,7 @@ def fetch_yahoo_chart_quote(symbol, display_name, session):
 def fetch_cnyes_txf_quote():
     """
     主力來源：透過鉅亨網 (Anue) API 抓取台指期近月/夜盤即時行情報價 (TXF1 / WTXP&)
+    修正：使用最新價與參考昨收價嚴格計算漲跌點數與漲跌幅
     """
     candidate_symbols = [
         "TWF:TXF:FUTURES",
@@ -75,21 +78,24 @@ def fetch_cnyes_txf_quote():
                 data = res_json.get('data', [])
                 if data:
                     item = data[0] if isinstance(data, list) else data
-                    # 鉅亨期貨欄位: 6:最新價, 11:昨收價, 12:漲跌, 56:漲跌幅(%)
+                    
+                    # 💡 欄位定義：6:最新價, 11:昨收價/昨結算價
                     price = float(item.get('6') or item.get('29') or 0)
-                    ref_price = float(item.get('11') or price)
-                    change = float(item.get('12') or (price - ref_price))
-                    change_pct = float(item.get('56') or (round((change / ref_price) * 100, 2) if ref_price else 0))
-
-                    # 合理性驗證：目前台指期指數點位高於 30000 點，漲跌幅絕對值小於 10%
-                    if price > 30000 and abs(change_pct) < 15.0:
-                        return {
-                            "name": "台指期貨(近月)",
-                            "price": round(price, 2),
-                            "change": round(change, 2),
-                            "change_pct": round(change_pct, 2),
-                            "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
-                        }
+                    ref_price = float(item.get('11') or 0)
+                    
+                    if price > 30000 and ref_price > 0:
+                        change = round(price - ref_price, 2)
+                        change_pct = round((change / ref_price) * 100, 2)
+                        
+                        # 合理性檢查：漲跌幅小於 15%
+                        if abs(change_pct) < 15.0:
+                            return {
+                                "name": "台指期貨(近月)",
+                                "price": round(price, 2),
+                                "change": change,           # 實質漲跌點數 (例如 -23.0)
+                                "change_pct": change_pct,   # 實質漲跌百分比 (例如 -0.05%)
+                                "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
+                            }
         except Exception:
             continue
     return None
@@ -97,7 +103,7 @@ def fetch_cnyes_txf_quote():
 def fetch_taifex_night_official_backup():
     """
     官方備援：台灣期交所 (TAIFEX) 盤後交易時段歷史行情
-    採用動態標頭解析（Header Mapping），徹底杜絕欄位位移把成交量當漲跌幅的 bug
+    採用動態標頭比對，杜絕欄位位移
     """
     now = datetime.now(TW_TZ)
     headers = {
@@ -121,7 +127,6 @@ def fetch_taifex_night_official_backup():
                 if len(lines) > 1:
                     headers_list = [h.replace('"', '').strip() for h in lines[0].split(",")]
                     
-                    # 動態比對欄位索引
                     def get_idx(name_keys):
                         for i, h in enumerate(headers_list):
                             if any(k in h for k in name_keys):
@@ -132,9 +137,7 @@ def fetch_taifex_night_official_backup():
                     idx_month = get_idx(["到期月份", "月份"])
                     idx_close = get_idx(["最後成交價", "結算價", "收盤價"])
                     idx_change = get_idx(["漲跌價", "漲跌"])
-                    idx_session = get_idx(["交易時段"])
 
-                    # 倒序尋找最後一筆符合條件的近月份合約
                     for line in reversed(lines[1:]):
                         parts = [p.replace('"', '').strip() for p in line.split(",")]
                         if len(parts) <= max(idx_sym, idx_month, idx_close):
@@ -142,11 +145,9 @@ def fetch_taifex_night_official_backup():
                             
                         commodity = parts[idx_sym] if idx_sym != -1 else ""
                         month = parts[idx_month] if idx_month != -1 else ""
-                        session = parts[idx_session] if idx_session != -1 else ""
 
-                        # 必須為 TX 大台，排除跨月價差合約 (帶有 '/')
+                        # 必須為 TX 大台，排除跨月價差合約
                         if commodity == "TX" and "/" not in month:
-                            # 優先取盤後 (夜盤)，若只有日盤也可用
                             price_str = parts[idx_close] if idx_close != -1 else ""
                             change_str = parts[idx_change] if idx_change != -1 else "0"
                             
@@ -154,22 +155,18 @@ def fetch_taifex_night_official_backup():
                                 price_val = float(price_str.replace("-", "0"))
                                 change_val = float(change_str.replace("-", "0"))
                                 
-                                # 檢驗：目前台指期必定 > 30000，且漲跌幅合理
                                 if price_val > 30000:
                                     prev_price = price_val - change_val
                                     change_pct = round((change_val / prev_price) * 100, 2) if prev_price else 0.0
                                     
-                                    # 漲跌幅超過 15% 必定是欄位解析錯誤，略過
-                                    if abs(change_pct) > 15.0:
-                                        continue
-
-                                    return {
-                                        "name": "台指期貨(近月)",
-                                        "price": price_val,
-                                        "change": change_val,
-                                        "change_pct": change_pct,
-                                        "time": target_day.strftime('%Y-%m-%d %H:%M:%S')
-                                    }
+                                    if abs(change_pct) < 15.0:
+                                        return {
+                                            "name": "台指期貨(近月)",
+                                            "price": price_val,
+                                            "change": change_val,
+                                            "change_pct": change_pct,
+                                            "time": target_day.strftime('%Y-%m-%d %H:%M:%S')
+                                        }
                             except ValueError:
                                 continue
         except Exception:
@@ -207,7 +204,7 @@ def fetch_night_market_data(file_date_str):
 
     if tx_quote:
         market_data["台指期貨(近月)"] = tx_quote
-        print(f"  ✅ 成功取得 台指期貨(近月): {tx_quote['price']} ({tx_quote['change']} 點, {tx_quote['change_pct']:.2f}%)")
+        print(f"  ✅ 成功取得 台指期貨(近月): {tx_quote['price']} (漲跌: {tx_quote['change']} 點, {tx_quote['change_pct']:.2f}%)")
     else:
         print("  ❌ 未能取得 台指期貨(近月) 行情")
             
