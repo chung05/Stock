@@ -52,16 +52,47 @@ def fetch_yahoo_chart_quote(symbol, display_name, session):
         print(f"  ❌ 抓取 {display_name} ({symbol}) 失敗: {e}")
     return None
 
+def fetch_wantgoo_wtxp_quote():
+    """
+    第一主力：玩股網 (Wantgoo) 台指期盤後專用商品 (WTXP&)
+    週末與非交易時段均會凍結保留最新夜盤收盤數據，不與日盤混淆
+    """
+    url = "https://www.wantgoo.com/investor/futures/quotes?symbol=WTXP%26"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://www.wantgoo.com/futures/wtxp&"
+    }
+    try:
+        res = requests.get(url, headers=headers, timeout=8)
+        if res.status_code == 200:
+            data = res.json()
+            # 依玩股網結構解析
+            item = data if isinstance(data, dict) else (data[0] if isinstance(data, list) and data else {})
+            price = float(item.get("close") or item.get("deal") or item.get("price") or 0)
+            change = float(item.get("change") or 0)
+            change_pct = float(item.get("changePercent") or item.get("rate") or 0)
+
+            if price > 30000:
+                return {
+                    "name": "台指期貨(近月)",
+                    "price": round(price, 2),
+                    "change": round(change, 2),
+                    "change_pct": round(change_pct, 2),
+                    "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
+                }
+    except Exception:
+        pass
+    return None
+
 def fetch_taifex_mis_night_quote():
     """
-    第一優先：期交所官方 MIS 盤後交易即時 API (MarketType 1 = 盤後/夜盤)
-    直接取得當前夜盤主力近月合約成交價與對照日盤結算的正確漲跌點
+    第二主力：期交所官方 MIS 盤後交易即時 API (MarketType 1 = 盤後/夜盤)
     """
     url = "https://mis.taifex.com.tw/futures/api/getQuoteDetail"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Content-Type": "application/json;charset=UTF-8",
-        "Accept": "application/json, text/plain, */*"
+        "Content-Type": "application/json;charset=UTF-8"
     }
     payload = {
         "MarketType": "1",  # 1 代表盤後交易時段 (夜盤)
@@ -73,7 +104,6 @@ def fetch_taifex_mis_night_quote():
             data = res.json()
             quotes = data.get("RtData", {}).get("QuoteList", [])
             for q in quotes:
-                # 排除跨月價差合約
                 symbol_id = q.get("SymbolID", "") or q.get("SymbolId", "")
                 if "/" in symbol_id:
                     continue
@@ -97,56 +127,14 @@ def fetch_taifex_mis_night_quote():
                             "change_pct": round(change_pct, 2),
                             "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
                         }
-    except Exception as e:
+    except Exception:
         pass
-    return None
-
-def fetch_cnyes_futures_quote():
-    """
-    第二優先：透過鉅亨網 (Anue) 期貨行情 API 抓取台指近月夜盤 (FUTURE:TXF1 / FUTURE:WTXP&)
-    """
-    candidate_symbols = [
-        "FUTURE:TXF1",
-        "FUTURE:WTXP%26",
-        "TWF:TXF:FUTURES",
-        "TFE:TXF:FUTURE"
-    ]
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "application/json"
-    }
-
-    for sym in candidate_symbols:
-        url = f"https://ws.api.cnyes.com/ws/api/v1/quote/quotes/{sym}"
-        try:
-            res = requests.get(url, headers=headers, timeout=8)
-            if res.status_code == 200:
-                res_json = res.json()
-                data = res_json.get('data', [])
-                if data:
-                    item = data[0] if isinstance(data, list) else data
-                    # 6: 最新成交價, 11: 昨收/日盤參考價, 12: 漲跌點數
-                    price = float(item.get('6') or item.get('29') or 0)
-                    ref_price = float(item.get('11') or 0)
-
-                    if price > 30000 and ref_price > 0:
-                        change = round(price - ref_price, 2)
-                        change_pct = round((change / ref_price) * 100, 2)
-                        if abs(change_pct) < 15.0:
-                            return {
-                                "name": "台指期貨(近月)",
-                                "price": round(price, 2),
-                                "change": change,
-                                "change_pct": change_pct,
-                                "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
-                            }
-        except Exception:
-            continue
     return None
 
 def fetch_taifex_night_official_backup():
     """
-    第三備援：期交所官方盤後交易時段下載 (指定 queryType: 2 為盤後夜盤)
+    第三備援：期交所官方歷史報表下載
+    ⚠️ 嚴格檢查交易時段欄位必須包含「盤後」，徹底排除一般時段 (日盤)
     """
     now = datetime.now(TW_TZ)
     headers = {
@@ -161,8 +149,7 @@ def fetch_taifex_night_official_backup():
             "down_type": "1",
             "queryStartDate": date_str,
             "queryEndDate": date_str,
-            "commodity_id": "TX",
-            "queryType": "2"  # 關鍵：2 代表盤後(夜盤)時段
+            "commodity_id": "TX"
         }
         try:
             res = requests.post(url, data=payload, headers=headers, timeout=10)
@@ -180,6 +167,7 @@ def fetch_taifex_night_official_backup():
                     idx_month = get_idx(["到期月份", "月份"])
                     idx_close = get_idx(["最後成交價", "結算價", "收盤價"])
                     idx_change = get_idx(["漲跌價", "漲跌"])
+                    idx_session = get_idx(["交易時段"])
 
                     valid_contracts = []
                     for line in lines[1:]:
@@ -189,8 +177,10 @@ def fetch_taifex_night_official_backup():
                             
                         commodity = parts[idx_sym] if idx_sym != -1 else ""
                         month = parts[idx_month] if idx_month != -1 else ""
+                        session = parts[idx_session] if idx_session != -1 else ""
 
-                        if commodity == "TX" and "/" not in month and month.isdigit():
+                        # 🛑 強制要求：必須為盤後時段，且排除價差合約
+                        if commodity == "TX" and "盤後" in session and "/" not in month and month.isdigit():
                             price_str = parts[idx_close] if idx_close != -1 else ""
                             change_str = parts[idx_change] if idx_change != -1 else "0"
                             try:
@@ -246,17 +236,17 @@ def fetch_night_market_data(file_date_str):
         else:
             print(f"  ❌ 未能取得 {name} ({symbol})")
 
-    # 2. 抓取台指期夜盤（精準鎖定夜盤時段與近月）
-    print("  📡 正在連線台指期夜盤報價 (期交所MIS / 鉅亨TXF1 / 盤後官方備援)...")
+    # 2. 抓取台指期夜盤行情（嚴格只鎖定夜盤/盤後 WTXP&）
+    print("  📡 正在連線台指期夜盤專用報價 (玩股網 WTXP& / 期交所 MIS 盤後)...")
     
-    # 順序 1: 期交所 MIS 盤後交易即時 API
-    tx_quote = fetch_taifex_mis_night_quote()
+    # 順序 1: 玩股網 WTXP&（專門記錄夜盤，週末不被清空）
+    tx_quote = fetch_wantgoo_wtxp_quote()
     
-    # 順序 2: 鉅亨網 TXF1
+    # 順序 2: 期交所 MIS 盤後即時
     if not tx_quote:
-        tx_quote = fetch_cnyes_futures_quote()
+        tx_quote = fetch_taifex_mis_night_quote()
         
-    # 順序 3: 期交所盤後日報表下載
+    # 順序 3: 期交所官方報表（強制過濾「盤後」時段）
     if not tx_quote:
         tx_quote = fetch_taifex_night_official_backup()
 
@@ -278,7 +268,7 @@ def fetch_night_market_data(file_date_str):
 def main():
     now_tw = datetime.now(TW_TZ)
     
-    # 精準界定：前一日 13:30 到當天 07:00 的資料區間
+    # 前一日 13:30 到當天 07:00
     end_time = now_tw.replace(hour=7, minute=0, second=0, microsecond=0)
     yesterday = end_time - timedelta(days=1)
     start_time = yesterday.replace(hour=13, minute=30, second=0, microsecond=0)
