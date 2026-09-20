@@ -9,7 +9,8 @@ from zoneinfo import ZoneInfo
 TW_TZ = ZoneInfo("Asia/Taipei")
 
 def clean_html_content(html_text):
-    if not html_text: return ""
+    if not html_text: 
+        return ""
     soup = BeautifulSoup(html_text, 'html.parser')
     for script in soup(["script", "style"]):
         script.extract()
@@ -17,7 +18,8 @@ def clean_html_content(html_text):
 
 def fetch_yahoo_chart_quote(symbol, display_name, session):
     """
-    使用 Yahoo Finance v8 chart 接口獲取行情（繞過 v7 quote 的 401/403 擋牆，支援美股盤後/收盤價）
+    使用 Yahoo Finance v8 chart 接口獲取美股與 ADR 行情
+    （支援美股盤後/收盤價，免去 v7 quote 的 401/403 驗證阻擋）
     """
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
     headers = {
@@ -34,7 +36,6 @@ def fetch_yahoo_chart_quote(symbol, display_name, session):
                 price = meta.get("regularMarketPrice") or meta.get("previousClose", 0)
                 prev_close = meta.get("chartPreviousClose") or meta.get("previousClose", price)
                 
-                # 計算漲跌幅
                 change = round(price - prev_close, 2)
                 change_pct = round((change / prev_close) * 100, 2) if prev_close else 0.0
                 market_time = meta.get("regularMarketTime", int(time.time()))
@@ -47,46 +48,94 @@ def fetch_yahoo_chart_quote(symbol, display_name, session):
                     "time": datetime.fromtimestamp(market_time, tz=TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
                 }
         else:
-            print(f"  ⚠️ Yahoo v8 回傳異常碼 {res.status_code} ({display_name} - {symbol})")
+            print(f"  ⚠️ Yahoo v8 回傳異常狀態碼 {res.status_code} ({display_name} - {symbol})")
     except Exception as e:
         print(f"  ❌ 抓取 {display_name} ({symbol}) 失敗: {e}")
     return None
 
-def fetch_taifex_night_futures():
+def fetch_cnyes_futures_quote():
     """
-    備援方案：從台灣期交所 (TAIFEX) 盤後交易即時行情抓取台指夜盤
+    第一優先：透過鉅亨網 (Anue) 期貨行情 API 抓取台指期近月夜盤數據
+    （夜盤即時連線，不阻擋 GitHub Actions 伺服器 IP）
     """
-    url = "https://mis.taifex.com.tw/futures/api/getQuoteList"
+    url = "https://ws.api.cnyes.com/ws/api/v1/quote/quotes/TXF:FUTURE:TXF"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Content-Type": "application/json"
+        "Accept": "application/json"
     }
-    # MarketType 1: 日盤, 0: 盤後(夜盤)
-    payload = {"MarketType": "0", "SymbolType": "F"}
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=10)
+        res = requests.get(url, headers=headers, timeout=10)
         if res.status_code == 200:
-            quotes = res.json().get("RtData", {}).get("QuoteList", [])
-            for q in quotes:
-                # 尋找近月台指期 (TX)
-                if q.get("SymbolID", "").startswith("TX") and "-" not in q.get("SymbolID", ""):
-                    price = float(q.get("CLastPrice") or q.get("CRefPrice") or 0)
-                    ref_price = float(q.get("CRefPrice") or price)
-                    change = float(q.get("CDiff") or (price - ref_price))
-                    change_pct = round((change / ref_price) * 100, 2) if ref_price else 0.0
+            res_json = res.json()
+            data = res_json.get('data', [])
+            if data:
+                item = data[0] if isinstance(data, list) else data
+                # 鉅亨期貨欄位對應: 6:最新成交價, 11:參考昨收價, 12:漲跌額, 56:漲跌幅(%)
+                price = float(item.get('6') or item.get('29') or 0)
+                ref_price = float(item.get('11') or price)
+                change = float(item.get('12') or (price - ref_price))
+                change_pct = float(item.get('56') or round((change / ref_price) * 100, 2) if ref_price else 0)
+                
+                if price > 0:
                     return {
                         "name": "台指期貨(近月)",
-                        "price": price,
-                        "change": change,
-                        "change_pct": change_pct,
+                        "price": round(price, 2),
+                        "change": round(change, 2),
+                        "change_pct": round(change_pct, 2),
                         "time": datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
                     }
     except Exception as e:
-        print(f"  ⚠️ 期交所夜盤 API 抓取備援失敗: {e}")
+        print(f"  ⚠️ 鉅亨網期指 API 抓取失敗: {e}")
+    return None
+
+def fetch_taifex_official_report():
+    """
+    第二備援：從台灣期交所 (TAIFEX) 盤後行情日報表介面下載最近一筆結算/夜盤成交價
+    """
+    now = datetime.now(TW_TZ)
+    # 若為週末或清晨，往前尋找最近 3 天的行情
+    for day_offset in range(4):
+        target_day = now - timedelta(days=day_offset)
+        date_str = target_day.strftime("%Y/%m/%d")
+        url = "https://www.taifex.com.tw/cht/3/futDataDown"
+        payload = {
+            "down_type": "1",
+            "queryStartDate": date_str,
+            "queryEndDate": date_str,
+            "commodity_id": "TX"
+        }
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+        try:
+            res = requests.post(url, data=payload, headers=headers, timeout=10)
+            if res.status_code == 200 and res.text:
+                lines = res.text.strip().split("\n")
+                if len(lines) > 1:
+                    # 倒序尋找最後一筆近月份 TX 成交行情
+                    for line in reversed(lines):
+                        parts = [p.strip().replace('"', '') for p in line.split(",")]
+                        if len(parts) > 10 and parts[1] == "TX":
+                            try:
+                                price = float(parts[5])
+                                change = float(parts[6])
+                                prev_price = price - change
+                                change_pct = round((change / prev_price) * 100, 2) if prev_price else 0.0
+                                return {
+                                    "name": "台指期貨(近月)",
+                                    "price": price,
+                                    "change": change,
+                                    "change_pct": change_pct,
+                                    "time": target_day.strftime('%Y-%m-%d %H:%M:%S')
+                                }
+                            except ValueError:
+                                continue
+        except Exception:
+            continue
     return None
 
 def fetch_night_market_data(file_date_str):
-    """抓取指定的海外指數與夜盤期貨，並儲存至 docs/market_*.json 檔案"""
+    """抓取海外指數、美股 ADR 與夜盤期貨，儲存至 docs/market_*.json"""
     targets = {
         "台積電ADR": "TSM",
         "道瓊工業指數": "^DJI",
@@ -107,13 +156,12 @@ def fetch_night_market_data(file_date_str):
         else:
             print(f"  ❌ 未能取得 {name} ({symbol})")
 
-    # 2. 抓取台指期夜盤（優先嘗試 Yahoo，失效則切換期交所備援）
-    tx_quote = fetch_yahoo_chart_quote("TX=F", "台指期貨(近月)", session)
+    # 2. 抓取台指期夜盤行情（鉅亨網為主力，期交所為備援）
+    print("  📡 正在連線台指期夜盤報價...")
+    tx_quote = fetch_cnyes_futures_quote()
     if not tx_quote:
-        tx_quote = fetch_yahoo_chart_quote("WTX=F", "台指期貨(近月)", session)
-    if not tx_quote:
-        print("  ℹ️ Yahoo 期指報價無法連線，切換期交所官方夜盤 API 備援...")
-        tx_quote = fetch_taifex_night_futures()
+        print("  ℹ️ 鉅亨網期指連線未取得，切換期交所官方歷史結算備援...")
+        tx_quote = fetch_taifex_official_report()
 
     if tx_quote:
         market_data["台指期貨(近月)"] = tx_quote
@@ -152,7 +200,8 @@ def main():
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 existing_articles = json.load(f)
-        except: pass
+        except Exception: 
+            pass
         
     seen_links = {a['link'] for a in existing_articles}
     
