@@ -1,12 +1,10 @@
 import os
-import math
+import json
 from datetime import datetime
 from supabase import create_client, Client
 
 # ==================== 路徑嚴格鎖定 ====================
-# 當前檔案絕對路徑: .../Python/export_supabase_chips.py 或 .../Stock/Python/export_supabase_chips.py
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-# 鎖定上一層的 docs: .../docs/ 或 .../Stock/docs/
 OUTPUT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "docs"))
 
 # ==================== Supabase 設定 ====================
@@ -45,7 +43,7 @@ def fetch_and_process_chips():
     )
     all_dates = sorted(list(set(item['date'] for item in (dates_res.data or []))))
     
-    # 備援機制：若 2330 查無日期，以較大容量 limit 跨多日撈取
+    # 備援：若 2330 查無日期，以較大容量 limit 撈取
     if len(all_dates) < 3:
         dates_res = (
             supabase.table('stock_chips_daily')
@@ -60,11 +58,11 @@ def fetch_and_process_chips():
         print(f"⚠️ 交易天數不足 3 天 (僅找到 {len(all_dates)} 天: {all_dates})")
         return None
         
-    recent_3_dates = all_dates[-3:]  # 由舊到新排序: [T-2, T-1, T]
+    recent_3_dates = all_dates[-3:]  # 由舊到新: [T-2, T-1, T]
     date_t2, date_t1, date_t = recent_3_dates[0], recent_3_dates[1], recent_3_dates[2]
     print(f"📌 成功鎖定近 3 個交易日: [T-2: {date_t2}, T-1: {date_t1}, T: {date_t}]")
 
-    # 3. 分批撈取這 231 檔在近 3 天的籌碼與技術指標
+    # 3. 分批撈取 231 檔在近 3 天的籌碼與指標 (每批 50 檔)
     print("📦 正在分批同步 3 日籌碼與技術面數據...")
     chunk_size = 50
     all_chips = []
@@ -81,7 +79,7 @@ def fetch_and_process_chips():
         if chips_res.data:
             all_chips.extend(chips_res.data)
 
-    print(f"📊 成功下載籌碼紀錄共 {len(all_chips)} 筆，開始計算多維度籌碼...")
+    print(f"📊 成功下載籌碼紀錄共 {len(all_chips)} 筆，開始計算多維度結構化籌碼...")
 
     # 4. 依照 stock_id 分組建立三日序列
     chips_by_stock = {}
@@ -127,11 +125,11 @@ def fetch_and_process_chips():
         # 三大法人合計近 3 日 [T-2, T-1, T]
         tot_arr = [f_arr[i] + it_arr[i] + d_arr[i] for i in range(3)]
         
-        # 今日技術指標與融資增減
+        # 今日融資增減與 MACD
         margin_net = (d_t.get('margin_buy') or 0) - (d_t.get('margin_sell') or 0)
-        macd_osc = d_t.get('macd_osc', 0) or 0
+        macd_osc = round(float(d_t.get('macd_osc') or 0), 2)
 
-        # 土洋動態關係 (當日)
+        # 土洋動態關係
         f_today, it_today = f_arr[2], it_arr[2]
         if f_today > 0 and it_today > 0:
             relation = "土洋同買"
@@ -142,98 +140,91 @@ def fetch_and_process_chips():
         else:
             relation = "分歧"
 
-        # 連續買賣超判定：
-        # 連續 2 日: tot_arr[1] > 0 且 tot_arr[2] > 0
+        # 連續買賣超判定
         is_consec_2_buy = (tot_arr[1] > 0 and tot_arr[2] > 0)
         is_consec_2_sell = (tot_arr[1] < 0 and tot_arr[2] < 0)
-        # 連續 3 日: 三天皆同向
         is_consec_3_buy = all(x > 0 for x in tot_arr)
         is_consec_3_sell = all(x < 0 for x in tot_arr)
 
         records.append({
             'stock_id': sid,
             'stock_name': sname,
-            'tot_t': tot_arr[2],
-            'tot_sum2': tot_arr[1] + tot_arr[2],
-            'tot_sum3': sum(tot_arr),
-            'f_arr': f_arr,
-            'it_arr': it_arr,
-            'd_arr': d_arr,
-            'tot_arr': tot_arr,
-            'margin_net': margin_net,
-            'macd_osc': macd_osc,
+            'relation': relation,
+            'today_total_net': tot_arr[2],
+            'sum_2d_net': tot_arr[1] + tot_arr[2],
+            'sum_3d_net': sum(tot_arr),
+            'foreign_net_3d': f_arr,
+            'investment_trust_net_3d': it_arr,
+            'dealer_net_3d': d_arr,
+            'total_institutional_net_3d': tot_arr,
+            'margin_net_today': margin_net,
+            'macd_osc_today': macd_osc,
             'is_consec_2_buy': is_consec_2_buy,
             'is_consec_2_sell': is_consec_2_sell,
             'is_consec_3_buy': is_consec_3_buy,
-            'is_consec_3_sell': is_consec_3_sell,
-            'relation': relation
+            'is_consec_3_sell': is_consec_3_sell
         })
 
-    # 5. 排序與產出各大榜單
-    top_buy_1d = sorted(records, key=lambda x: x['tot_t'], reverse=True)[:TOP_N]
-    top_sell_1d = sorted(records, key=lambda x: x['tot_t'])[:TOP_N]
-    
-    # 連續兩日買超榜 (依 2 日累計買超排序)
-    consec_2_buys = [r for r in records if r['is_consec_2_buy']]
-    top_consec_2_buy = sorted(consec_2_buys, key=lambda x: x['tot_sum2'], reverse=True)[:TOP_N]
+    # 5. 結構化封裝各大榜單
+    def clean_item(r, include_fields=None):
+        base = {
+            "stock_id": r["stock_id"],
+            "stock_name": r["stock_name"],
+            "relation": r["relation"],
+            "today_total_net": r["today_total_net"],
+            "foreign_net_3d": r["foreign_net_3d"],
+            "investment_trust_net_3d": r["investment_trust_net_3d"],
+            "dealer_net_3d": r["dealer_net_3d"],
+            "margin_net_today": r["margin_net_today"],
+            "macd_osc_today": r["macd_osc_today"]
+        }
+        if include_fields:
+            for k in include_fields:
+                base[k] = r[k]
+        return base
 
-    # 連續兩日賣超榜 (依 2 日累計賣超排序)
-    consec_2_sells = [r for r in records if r['is_consec_2_sell']]
-    top_consec_2_sell = sorted(consec_2_sells, key=lambda x: x['tot_sum2'])[:TOP_N]
+    # 今日榜單
+    top_buy_1d = [clean_item(r) for r in sorted(records, key=lambda x: x['today_total_net'], reverse=True)[:TOP_N]]
+    top_sell_1d = [clean_item(r) for r in sorted(records, key=lambda x: x['today_total_net'])[:TOP_N]]
 
-    # 連續三日買超榜 (依 3 日累計買超排序)
-    consec_3_buys = [r for r in records if r['is_consec_3_buy']]
-    top_consec_3_buy = sorted(consec_3_buys, key=lambda x: x['tot_sum3'], reverse=True)[:TOP_N]
-    
-    # 連續三日賣超榜 (依 3 日累計賣超排序)
-    consec_3_sells = [r for r in records if r['is_consec_3_sell']]
-    top_consec_3_sell = sorted(consec_3_sells, key=lambda x: x['tot_sum3'])[:TOP_N]
+    # 連續兩日榜單
+    consec_2_buys = sorted([r for r in records if r['is_consec_2_buy']], key=lambda x: x['sum_2d_net'], reverse=True)[:TOP_N]
+    top_consec_2_buy = [clean_item(r, ["sum_2d_net"]) for r in consec_2_buys]
 
-    # 日期標籤 (例如 [10/06, 10/07, 10/08])
-    d_labels = [datetime.strptime(d, "%Y-%m-%d").strftime("%m/%d") if "-" in d else d for d in recent_3_dates]
-    date_header_str = f"[{d_labels[0]}, {d_labels[1]}, {d_labels[2]}]"
+    consec_2_sells = sorted([r for r in records if r['is_consec_2_sell']], key=lambda x: x['sum_2d_net'])[:TOP_N]
+    top_consec_2_sell = [clean_item(r, ["sum_2d_net"]) for r in consec_2_sells]
 
-    def format_row(r, extra_info=None):
-        macd_str = f"MACD柱:{r['macd_osc']:+.2f}"
-        margin_str = f"資:{r['margin_net']:+d}張"
-        extra_str = f" ({extra_info})" if extra_info else ""
-        return (
-            f"- {r['stock_id']} {r['stock_name']} [{r['relation']}] | 今日三大法人:{r['tot_t']:+d}張{extra_str} ({margin_str}, {macd_str})\n"
-            f"  外資:{r['f_arr']} | 投信:{r['it_arr']} | 自營:{r['d_arr']}"
-        )
+    # 連續三日榜單
+    consec_3_buys = sorted([r for r in records if r['is_consec_3_buy']], key=lambda x: x['sum_3d_net'], reverse=True)[:TOP_N]
+    top_consec_3_buy = [clean_item(r, ["sum_3d_net"]) for r in consec_3_buys]
 
-    output_lines = [
-        f"【核心觀察股 (231檔) 三大法人籌碼與動能監控】",
-        f"※ 數據陣列格式統一為 {date_header_str}，由左至右分別為前天、昨天、今天之數值（單位：張）\n",
-        
-        f"### 1. 今日三大法人買超前 {TOP_N} 名：",
-        "\n".join([format_row(r) for r in top_buy_1d]),
-        "",
-        f"### 2. 今日三大法人賣超前 {TOP_N} 名：",
-        "\n".join([format_row(r) for r in top_sell_1d]),
-        "",
-        f"### 3. 連續兩日買超前 {TOP_N} 名（短線發動/轉買點火）：",
-        "\n".join([format_row(r, f"2日累計:{r['tot_sum2']:+d}張") for r in top_consec_2_buy]) if top_consec_2_buy else "無符合連續兩日買超個股",
-        "",
-        f"### 4. 連續兩日賣超前 {TOP_N} 名（短線初跌/轉賣調節）：",
-        "\n".join([format_row(r, f"2日累計:{r['tot_sum2']:+d}張") for r in top_consec_2_sell]) if top_consec_2_sell else "無符合連續兩日賣超個股",
-        "",
-        f"### 5. 連續三日買超前 {TOP_N} 名（波段買盤強勢鎖碼）：",
-        "\n".join([format_row(r, f"3日累計:{r['tot_sum3']:+d}張") for r in top_consec_3_buy]) if top_consec_3_buy else "無符合連續三日買超個股",
-        "",
-        f"### 6. 連續三日賣超前 {TOP_N} 名（波段持續拋售壓力）：",
-        "\n".join([format_row(r, f"3日累計:{r['tot_sum3']:+d}張") for r in top_consec_3_sell]) if top_consec_3_sell else "無符合連續三日賣超個股"
-    ]
+    consec_3_sells = sorted([r for r in records if r['is_consec_3_sell']], key=lambda x: x['sum_3d_net'])[:TOP_N]
+    top_consec_3_sell = [clean_item(r, ["sum_3d_net"]) for r in consec_3_sells]
 
-    result_text = "\n".join(output_lines)
-    
+    # 6. 組裝為最終 JSON 結構
+    json_data = {
+        "meta": {
+            "target_date": date_t,
+            "dates_analyzed": [date_t2, date_t1, date_t],
+            "dates_format_explanation": "[T-2(前天), T-1(昨天), T(今天)]，單位均為張數",
+            "total_watchlist_count": len(stock_ids),
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        },
+        "top_institutional_buys_1d": top_buy_1d,
+        "top_institutional_sells_1d": top_sell_1d,
+        "consecutive_2_days_buys": top_consec_2_buy,
+        "consecutive_2_days_sells": top_consec_2_sell,
+        "consecutive_3_days_buys": top_consec_3_buy,
+        "consecutive_3_days_sells": top_consec_3_sell
+    }
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    out_file = os.path.join(OUTPUT_DIR, f"chips_{date_t}.txt")
+    out_file = os.path.join(OUTPUT_DIR, f"chips_{date_t}.json")
     
     with open(out_file, "w", encoding="utf-8") as f:
-        f.write(result_text)
+        json.dump(json_data, f, ensure_ascii=False, indent=2)
         
-    print(f"🎉 成功輸出包含【連2日與連3日】之籌碼分析檔至: {out_file}")
+    print(f"🎉 成功輸出標準 JSON 籌碼分析檔至: {out_file}")
     return date_t
 
 if __name__ == "__main__":
