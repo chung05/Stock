@@ -3,17 +3,15 @@ name: 手動測試 Supabase 籌碼匯出
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write  # 授權 GitHub Actions 可以將產出的檔案 push 回儲存庫
+
 jobs:
   run-test:
     runs-on: ubuntu-latest
     steps:
       - name: 檢出專案代碼
         uses: actions/checkout@v4
-
-      - name: 檢查目錄結構 (排查路徑)
-        run: |
-          echo "=== 根目錄檔案清單 ==="
-          ls -la
 
       - name: 設定 Python 環境
         uses: actions/setup-python@v5
@@ -26,19 +24,31 @@ jobs:
 
       - name: 執行匯出腳本
         run: |
-          # 自動判斷腳本位置並切換執行
-          if [ -d "Stock/Python" ]; then
-            cd Stock/Python
-          elif [ -d "Python" ]; then
-            cd Python
-          elif [ -d "python" ]; then
-            cd python
+          # 自動尋找腳本位置執行
+          if [ -f "Python/export_supabase_chips.py" ]; then
+            python Python/export_supabase_chips.py
+          elif [ -f "Stock/Python/export_supabase_chips.py" ]; then
+            python Stock/Python/export_supabase_chips.py
+          else
+            python export_supabase_chips.py
           fi
-          python export_supabase_chips.py
 
-      - name: 檢查產出檔案與內容預覽
+      - name: 檢查並顯示最新產出的 chips 檔案
         run: |
-          echo "=== 尋找產出的 chips 檔案 ==="
           find . -name "chips_*.txt"
-          echo "=== 顯示籌碼分析檔內容前 40 行 ==="
           find . -name "chips_*.txt" -exec head -n 40 {} +
+
+      - name: 將生成的 chips 檔案提交並推送回 GitHub
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -f docs/chips_*.txt || git add -f Stock/docs/chips_*.txt
+          
+          # 檢查是否有新增或修改的檔案，有才進行 commit
+          if git status --porcelain | grep -q 'chips_'; then
+            git commit -m "🤖 自動生成最新法人籌碼分析檔 [skip ci]"
+            git push
+            echo "🎉 檔案已成功推送並儲存至 GitHub 儲存庫中！"
+          else
+            echo "ℹ️ 檔案無變更，無需重複提交。"
+          fi
