@@ -4,6 +4,7 @@ import requests
 import re
 import asyncio
 import time
+import glob
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import edge_tts
@@ -11,36 +12,111 @@ import edge_tts
 TW_TZ = ZoneInfo("Asia/Taipei")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-def build_prompt(news_list, market_data, today_dt, max_news_count=None, max_content_len=1500):
+def format_chips_for_prompt(chips_data):
+    """將結構化的 chips_*.json 轉換為適合 Prompt 閱讀的高密度文字摘要"""
+    if not chips_data:
+        return "無最新籌碼數據。\n"
+    
+    meta = chips_data.get("meta", {})
+    dates = meta.get("dates_analyzed", [])
+    date_str = f"[{', '.join(dates)}]" if dates else "[T-2, T-1, T]"
+    
+    lines = [
+        f"【核心觀察股 (231檔) 三大法人與技術籌碼監控】",
+        f"※ 數列格式統一為 {date_str}，由左至右為前天、昨天、今天數值 (單位: 張)\n"
+    ]
+
+    def format_list(title, items, top_n=20, extra_key=None):
+        sub_lines = [f"### {title}"]
+        for item in items[:top_n]:
+            sid = item.get("stock_id")
+            sname = item.get("stock_name")
+            rel = item.get("relation", "分歧")
+            today_net = item.get("today_total_net", 0)
+            f_net = item.get("foreign_net_3d", [])
+            it_net = item.get("investment_trust_net_3d", [])
+            d_net = item.get("dealer_net_3d", [])
+            margin = item.get("margin_net_today", 0)
+            macd = item.get("macd_osc_today", 0)
+            
+            extra_str = ""
+            if extra_key and extra_key in item:
+                extra_str = f" | 累計:{item[extra_key]:+d}張"
+
+            sub_lines.append(
+                f"- {sid} {sname} [{rel}] | 今日三大法人:{today_net:+d}張{extra_str} (資:{margin:+d}張, MACD柱:{macd:+.2f})\n"
+                f"  外資:{f_net} | 投信:{it_net} | 自營:{d_net}"
+            )
+        return "\n".join(sub_lines)
+
+    if "top_institutional_buys_1d" in chips_data:
+        lines.append(format_list("今日三大法人買超前列：", chips_data["top_institutional_buys_1d"], top_n=20))
+        lines.append("")
+
+    if "top_institutional_sells_1d" in chips_data:
+        lines.append(format_list("今日三大法人賣超前列：", chips_data["top_institutional_sells_1d"], top_n=20))
+        lines.append("")
+
+    if "consecutive_2_days_buys" in chips_data:
+        lines.append(format_list("連續兩日買超（短線發動/轉買回補）：", chips_data["consecutive_2_days_buys"], top_n=15, extra_key="sum_2d_net"))
+        lines.append("")
+
+    if "consecutive_2_days_sells" in chips_data:
+        lines.append(format_list("連續兩日賣超（短線調節/轉賣壓力）：", chips_data["consecutive_2_days_sells"], top_n=15, extra_key="sum_2d_net"))
+        lines.append("")
+
+    if "consecutive_3_days_buys" in chips_data:
+        lines.append(format_list("連續三日買超（波段強勢鎖碼）：", chips_data["consecutive_3_days_buys"], top_n=15, extra_key="sum_3d_net"))
+        lines.append("")
+
+    if "consecutive_3_days_sells" in chips_data:
+        lines.append(format_list("連續三日賣超（波段持續拋售）：", chips_data["consecutive_3_days_sells"], top_n=15, extra_key="sum_3d_net"))
+        lines.append("")
+
+    return "\n".join(lines)
+
+def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=None, max_content_len=1500):
     weekday = today_dt.weekday()  # 0:週一, 5:週六, 6:週日
+    
+    chips_context = format_chips_for_prompt(chips_data)
     
     # 針對星期天（或週末）動態切換數據標題與情境
     if weekday == 6:
         market_header = "【本週五美股與台指期夜盤最終收盤數據（週末休市）】\n"
         role_and_context = (
             "你是一位資深的台股專業分析師。今天是星期天，台股與美股均處於週末休市狀態。\n"
-            "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』以及本週末最新的台股與國際財經新聞細節。\n"
+            "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』、本週末最新『台股與國際財經新聞』，以及本週最新『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
             "請幫我統整出一份深入、適合在週末閱讀的『台股週末財經總覽與下週展望報告』。\n"
             "嚴格禁止提及『昨日美股』或『今日開盤』等錯誤字眼，應以『週五美股表現』及『展望下週一開盤』的角度進行分析。\n\n"
+            "【籌碼與新聞交叉分析核心要求】：\n"
+            "1. 必須將個股消息面與提供的三大法人 3 日買賣數列 [前天, 昨天, 今天]、土洋對作/同買關係、融資增減、MACD柱狀體進行嚴格驗證。\n"
+            "2. 若個股出現營收或題材利多，但法人連續大賣（或外資狂倒、融資激增散戶接刀），必須在利空區塊示警「利多出貨/籌碼背離風險」。\n"
+            "3. 若個股利多且外資/投信連續加碼（土洋同買）、融資退場，列為重點利多標的。\n"
+            "4. 在操盤手筆記中，請剖析土洋角力族群與下週可能輪動的主力籌碼進駐板塊。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（週五美股四大指數、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。\n"
-            "2. 🚀 週末重大個股利多（提及的公司、代號、關鍵財務數字或產業利多展望）。\n"
-            "3. ⚠️ 週末重大個股利空（提及的公司、代號、潛在風險或利空訊息）。\n"
-            "4. 💡 操盤手筆記（綜合週末資訊與國際情勢，展望下週一開盤需注意的整體氛圍、可能受惠或避險的族群趨勢）。\n\n"
+            "2. 🚀 週末重大個股利多（提及的公司、代號、關鍵財務數字或產業利多展望，並結合法人籌碼驗證）。\n"
+            "3. ⚠️ 週末重大個股利空（提及的公司、代號、潛在風險、利空訊息，或營收創高但法人提款之籌碼背離股）。\n"
+            "4. 💡 操盤手筆記（綜合週末資訊、國際情勢與法人籌碼流向，展望下週一開盤氛圍與族群趨勢）。\n\n"
         )
     else:
         market_header = "【昨日美股與台指期夜盤最終收盤數據】\n"
         role_and_context = (
-            "你是一位資深的台股專業分析師。請仔細閱讀以下提供的大盤/海外夜盤數據以及昨日到今日早晨最新的台股與國際財經新聞細節。\n"
+            "你是一位資深的台股專業分析師。請仔細閱讀以下提供的大盤/海外夜盤數據、最新的台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
             "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-            "必須特別對照夜盤、美股與 ADR 的漲跌表現，並深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
+            "必須特別對照夜盤、美股與 ADR 的漲跌表現，並深入解讀個股消息面與法人籌碼背離狀況。\n\n"
+            "【籌碼與新聞交叉分析核心要求】：\n"
+            "1. 必須將個股消息面與提供的三大法人 3 日買賣數列 [前天, 昨天, 今天]、土洋關係、融資增減、MACD柱狀體進行比對。\n"
+            "2. 示警「假利多真出貨」：若新聞營收創高但法人連續大賣（特別是外資提款、散戶融資大增），務必在利空區塊點名提示風險。\n"
+            "3. 確認「真強勢鎖碼」：法人連買加碼、土洋同買且融資浮額洗淨者，列為今日重大個股利多核心。\n"
+            "4. 操盤手筆記中需歸納土洋對作焦點與資金避險/攻擊族群。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
-            "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因）。\n"
-            "3. ⚠️ 今日重大個股利空（提及的公司、代號、潛在風險或利空原因）。\n"
-            "4. 💡 操盤手筆記（綜合以上資訊，今天開盤需注意的整體市場氛圍或族群趨勢）。\n\n"
+            "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因，附帶法人籌碼背書）。\n"
+            "3. ⚠️ 今日重大個股利空（提及的公司、代號、潛在風險、利空原因，或籌碼面惡化個股）。\n"
+            "4. 💡 操盤手筆記（綜合以上資訊與法人籌碼流向，今天開盤需注意的整體市場氛圍或族群趨勢）。\n\n"
         )
 
     market_context = market_header
@@ -58,10 +134,10 @@ def build_prompt(news_list, market_data, today_dt, max_news_count=None, max_cont
             content_snippet += "...(以下字數過長省略)"
         news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文重點：{content_snippet}\n\n"
     
-    prompt = f"{role_and_context}數據來源：\n{market_context}\n新聞資料來源如下：\n{news_context}"
+    prompt = f"{role_and_context}數據來源：\n{market_context}\n{chips_context}\n新聞資料來源如下：\n{news_context}"
     return prompt
 
-def ai_generate_report(news_list, market_data, today_dt):
+def ai_generate_report(news_list, market_data, chips_data, today_dt):
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
@@ -71,9 +147,9 @@ def ai_generate_report(news_list, market_data, today_dt):
     for attempt in range(max_retries):
         if attempt >= 2:
             print("⚡ 啟動防塞車降載策略：縮減分析新聞為重要前 50 筆...")
-            prompt = build_prompt(news_list, market_data, today_dt, max_news_count=50, max_content_len=600)
+            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=50, max_content_len=600)
         else:
-            prompt = build_prompt(news_list, market_data, today_dt, max_news_count=None, max_content_len=1500)
+            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=None, max_content_len=1500)
             
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -211,8 +287,9 @@ def main():
     target_dir = os.path.join("..", "docs")
     all_combined_news = []
     market_data = {}
+    chips_data = {}
     
-    # 1. 讀取新聞：依然讀取前一日新聞檔案 (週六抓取的新聞)
+    # 1. 讀取新聞：讀取前一日新聞檔案 (例如週六抓取的新聞)
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
     if os.path.exists(cnyes_path):
         print(f"📖 讀取鉅亨網資料: cnyes_{yesterday_str}.json")
@@ -226,7 +303,6 @@ def main():
             all_combined_news.extend(json.load(f))
             
     # 2. 自動判斷海外夜盤市場檔案日期：
-    # 若今天是星期天 (weekday == 6)，海外夜盤取「週五收盤（即前天 2 天前）」的檔案
     if now_tw.weekday() == 6:
         market_date_str = (now_tw - timedelta(days=2)).strftime("%Y-%m-%d")
         print(f"📅 今日為週日，海外市場數據自動對齊週五收盤檔期: market_{market_date_str}.json")
@@ -243,10 +319,28 @@ def main():
             print(f"⚠️ 讀取夜盤 JSON 異常: {e}")
     else:
         print(f"ℹ️ 未找到 market_{market_date_str}.json (非交易日或未產生)")
+
+    # 3. 讀取 Supabase 匯出的 231 檔觀察股法人籌碼分析 JSON 檔
+    # 優先尋找前一日對應的檔案，若無則自動尋找 docs 下最新的一份 chips_*.json (如 chips_2026-10-08.json)
+    chips_target_path = os.path.join(target_dir, f"chips_{yesterday_str}.json")
+    if not os.path.exists(chips_target_path):
+        chip_files = sorted(glob.glob(os.path.join(target_dir, "chips_*.json")))
+        if chip_files:
+            chips_target_path = chip_files[-1]  # 取得最新的一份
+            
+    if os.path.exists(chips_target_path):
+        print(f"📖 讀取法人籌碼與動能資料: {os.path.basename(chips_target_path)}")
+        try:
+            with open(chips_target_path, "r", encoding="utf-8") as f:
+                chips_data = json.load(f)
+        except Exception as e:
+            print(f"⚠️ 讀取籌碼 JSON 異常: {e}")
+    else:
+        print("ℹ️ 未找到任何 chips_*.json 檔案。")
             
     if all_combined_news:
-        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆彙整新聞並帶入市場數據...")
-        content = ai_generate_report(all_combined_news, market_data, now_tw)
+        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆新聞，並融合市場與 Supabase 籌碼數據...")
+        content = ai_generate_report(all_combined_news, market_data, chips_data, now_tw)
         
         audio_file = asyncio.run(generate_microsoft_tts(content, today_str))
         save_to_html(content, all_combined_news, today_str, now_tw, audio_filename=audio_file)
