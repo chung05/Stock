@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # 授權 GitHub Actions 可以將產出的檔案 push 回儲存庫
+  contents: write
 
 jobs:
   run-test:
@@ -24,7 +24,6 @@ jobs:
 
       - name: 執行匯出腳本
         run: |
-          # 自動尋找腳本位置執行
           if [ -f "Python/export_supabase_chips.py" ]; then
             python Python/export_supabase_chips.py
           elif [ -f "Stock/Python/export_supabase_chips.py" ]; then
@@ -33,22 +32,24 @@ jobs:
             python export_supabase_chips.py
           fi
 
-      - name: 檢查並顯示最新產出的 chips 檔案
+      - name: 檢查並顯示最新產出的 chips.json 檔案
         run: |
-          find . -name "chips_*.txt"
-          find . -name "chips_*.txt" -exec head -n 40 {} +
+          find . -name "chips_*.json"
+          find . -name "chips_*.json" -exec head -n 40 {} +
 
-      - name: 將生成的 chips 檔案提交並推送回 GitHub
+      - name: 將生成的 chips.json 檔案提交並推送回 GitHub
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add -f docs/chips_*.txt || git add -f Stock/docs/chips_*.txt
           
-          # 檢查是否有新增或修改的檔案，有才進行 commit
-          if git status --porcelain | grep -q 'chips_'; then
-            git commit -m "🤖 自動生成最新法人籌碼分析檔 [skip ci]"
-            git push
-            echo "🎉 檔案已成功推送並儲存至 GitHub 儲存庫中！"
+          # 正確加入 docs 目錄下生成的 chips JSON 檔案
+          git add docs/chips_*.json
+          
+          # 檢查是否有暫存變更並推送
+          if git diff --staged --quiet; then
+            echo "ℹ️ 檔案無變更，無需提交。"
           else
-            echo "ℹ️ 檔案無變更，無需重複提交。"
+            git commit -m "🤖 自動生成最新法人籌碼分析 JSON 檔 [skip ci]"
+            git push
+            echo "🎉 JSON 檔案已成功推送並儲存至 GitHub 儲存庫中！"
           fi
