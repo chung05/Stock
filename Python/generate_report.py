@@ -10,7 +10,6 @@ from zoneinfo import ZoneInfo
 import edge_tts
 
 TW_TZ = ZoneInfo("Asia/Taipei")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def format_chips_for_prompt(chips_data):
     """將結構化的 chips_*.json 轉換為適合 Prompt 閱讀的高密度文字摘要"""
@@ -125,7 +124,11 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=No
     return prompt
 
 def ai_generate_report(news_list, market_data, chips_data, today_dt):
-    url = f"[https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=){GEMINI_API_KEY}"
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("❌ 錯誤：未讀取到 GEMINI_API_KEY 環境變數，請檢查 GitHub Secrets 或系統環境變數設定！")
+        
+    url = f"[https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=){api_key}".strip()
     headers = {"Content-Type": "application/json"}
     
     max_retries = 5
@@ -276,7 +279,7 @@ def main():
     market_data = {}
     chips_data = {}
     
-    # 1. 讀取新聞：依然讀取前一日新聞檔案 (週六抓取的新聞)
+    # 1. 讀取新聞快取檔案 (例如週六抓取的新聞)[cite: 1]
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
     if os.path.exists(cnyes_path):
         print(f"📖 讀取鉅亨網資料: cnyes_{yesterday_str}.json")
@@ -289,7 +292,7 @@ def main():
         with open(rss_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
-    # 2. 自動判斷海外夜盤市場檔案日期：
+    # 2. 自動判斷海外夜盤市場檔案日期[cite: 1]
     if now_tw.weekday() == 6:
         market_date_str = (now_tw - timedelta(days=2)).strftime("%Y-%m-%d")
         print(f"📅 今日為週日，海外市場數據自動對齊週五收盤檔期: market_{market_date_str}.json")
