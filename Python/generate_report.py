@@ -75,7 +75,7 @@ def format_chips_for_prompt(chips_data):
 
     return "\n".join(lines)
 
-def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=None, max_content_len=1500):
+def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80, max_content_len=800):
     weekday = today_dt.weekday()  # 0:週一, 5:週六, 6:週日
     chips_context = format_chips_for_prompt(chips_data)
     
@@ -118,7 +118,7 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=No
     for i, news in enumerate(selected_news, 1):
         content_snippet = news['content'][:max_content_len]
         if len(news['content']) > max_content_len:
-            content_snippet += "...(以下字數過長省略)"
+            content_snippet += "...(以下字數省略)"
         news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文重點：{content_snippet}\n\n"
     
     prompt = f"{role_and_context}\n市場收盤數據來源：\n{market_context}\n{chips_context}\n新聞資料來源如下：\n{news_context}"
@@ -126,9 +126,12 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=No
 
 def ai_generate_report(news_list, market_data, chips_data, today_dt):
     if not GEMINI_API_KEY:
-        raise ValueError("❌ 錯誤：GEMINI_API_KEY 環境變數為空，請確認儲存庫 Secrets 與 Workflow 設定！")
+        raise ValueError("❌ 錯誤：GEMINI_API_KEY 環境變數為空，請確認儲存庫 Secrets 設定！")
         
-    url = "[https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent](https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent)"
+    # 強制去除任何 Markdown 連結與方括號，確保網址完全乾淨
+    raw_url = "[https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent](https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent)"
+    url = raw_url.replace("[", "").replace("]", "").strip()
+    
     params = {"key": GEMINI_API_KEY}
     headers = {"Content-Type": "application/json"}
     
@@ -137,10 +140,10 @@ def ai_generate_report(news_list, market_data, chips_data, today_dt):
     
     for attempt in range(max_retries):
         if attempt >= 2:
-            print("⚡ 啟動防塞車降載策略：縮減分析新聞為重要前 50 筆...")
-            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=50, max_content_len=600)
+            print("⚡ 啟動防塞車降載策略：縮減分析新聞為重要前 40 筆...")
+            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=40, max_content_len=500)
         else:
-            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=None, max_content_len=1500)
+            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=70, max_content_len=700)
             
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -185,7 +188,7 @@ async def generate_microsoft_tts(html_content, target_date):
     audio_filename = f"audio_{target_date}.mp3"
     audio_path = os.path.join(target_dir, audio_filename)
     
-    # 移除 <head>, <style>, <script> 區塊及其內部內容
+    # 移除 <head>, <style>, <script> 標籤與內部內容
     text = re.sub(r'<(style|script|head)[^>]*>[\s\S]*?</\1>', ' ', html_content, flags=re.IGNORECASE)
     # 移除剩餘 HTML 標籤
     text = re.sub(r'<[^>]+>', ' ', text)
@@ -280,7 +283,7 @@ def main():
     market_data = {}
     chips_data = {}
     
-    # 1. 讀取新聞快取檔案[cite: 10]
+    # 1. 讀取新聞快取檔案[cite: 2]
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
     if os.path.exists(cnyes_path):
         print(f"📖 讀取鉅亨網資料: cnyes_{yesterday_str}.json")
@@ -293,7 +296,7 @@ def main():
         with open(rss_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
-    # 2. 自動判斷海外夜盤市場檔案日期[cite: 10]
+    # 2. 自動判斷海外夜盤市場檔案日期[cite: 2]
     if now_tw.weekday() == 6:
         market_date_str = (now_tw - timedelta(days=2)).strftime("%Y-%m-%d")
         print(f"📅 今日為週日，海外市場數據自動對齊週五收盤檔期: market_{market_date_str}.json")
@@ -311,7 +314,7 @@ def main():
     else:
         print(f"ℹ️ 未找到 market_{market_date_str}.json (非交易日或未產生)")
 
-    # 3. 讀取 Supabase 籌碼分析 JSON 檔
+    # 3. 讀取 Supabase 籌碼分析 JSON 檔 (優先取前一日，若無取 docs 內最新的一份)
     chips_target_path = os.path.join(target_dir, f"chips_{yesterday_str}.json")
     if not os.path.exists(chips_target_path):
         chip_files = sorted(glob.glob(os.path.join(target_dir, "chips_*.json")))
