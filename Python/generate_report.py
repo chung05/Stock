@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 import edge_tts
 
 TW_TZ = ZoneInfo("Asia/Taipei")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 def format_chips_for_prompt(chips_data):
     """將結構化的 chips_*.json 轉換為適合 Prompt 閱讀的高密度文字摘要"""
@@ -124,11 +125,11 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=No
     return prompt
 
 def ai_generate_report(news_list, market_data, chips_data, today_dt):
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise ValueError("❌ 錯誤：未讀取到 GEMINI_API_KEY 環境變數，請檢查 GitHub Secrets 或系統環境變數設定！")
+    if not GEMINI_API_KEY:
+        raise ValueError("❌ 錯誤：GEMINI_API_KEY 環境變數為空，請確認儲存庫 Secrets 與 Workflow 設定！")
         
-    url = f"[https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=){api_key}".strip()
+    url = "[https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent](https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent)"
+    params = {"key": GEMINI_API_KEY}
     headers = {"Content-Type": "application/json"}
     
     max_retries = 5
@@ -152,7 +153,7 @@ def ai_generate_report(news_list, market_data, chips_data, today_dt):
         }
         
         try:
-            res = requests.post(url, json=payload, headers=headers, timeout=300)
+            res = requests.post(url, params=params, json=payload, headers=headers, timeout=300)
             res_json = res.json()
             
             if 'candidates' in res_json and len(res_json['candidates']) > 0:
@@ -184,9 +185,9 @@ async def generate_microsoft_tts(html_content, target_date):
     audio_filename = f"audio_{target_date}.mp3"
     audio_path = os.path.join(target_dir, audio_filename)
     
-    # 移除 <head>, <style>, <script> 區塊及其內部所有代碼內容
+    # 移除 <head>, <style>, <script> 區塊及其內部內容
     text = re.sub(r'<(style|script|head)[^>]*>[\s\S]*?</\1>', ' ', html_content, flags=re.IGNORECASE)
-    # 移除其餘 HTML 標籤
+    # 移除剩餘 HTML 標籤
     text = re.sub(r'<[^>]+>', ' ', text)
     text = text.replace("📈", "。").replace("🚀", "。").replace("⚠️", "。").replace("💡", "。")
     text = text.replace("▼", "下跌").replace("▲", "上漲")
@@ -279,7 +280,7 @@ def main():
     market_data = {}
     chips_data = {}
     
-    # 1. 讀取新聞快取檔案 (例如週六抓取的新聞)[cite: 1]
+    # 1. 讀取新聞快取檔案[cite: 10]
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
     if os.path.exists(cnyes_path):
         print(f"📖 讀取鉅亨網資料: cnyes_{yesterday_str}.json")
@@ -292,7 +293,7 @@ def main():
         with open(rss_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
-    # 2. 自動判斷海外夜盤市場檔案日期[cite: 1]
+    # 2. 自動判斷海外夜盤市場檔案日期[cite: 10]
     if now_tw.weekday() == 6:
         market_date_str = (now_tw - timedelta(days=2)).strftime("%Y-%m-%d")
         print(f"📅 今日為週日，海外市場數據自動對齊週五收盤檔期: market_{market_date_str}.json")
@@ -310,7 +311,7 @@ def main():
     else:
         print(f"ℹ️ 未找到 market_{market_date_str}.json (非交易日或未產生)")
 
-    # 3. 讀取 Supabase 籌碼分析 JSON 檔 (優先取前一日，若無取 docs 內最新的一份)
+    # 3. 讀取 Supabase 籌碼分析 JSON 檔
     chips_target_path = os.path.join(target_dir, f"chips_{yesterday_str}.json")
     if not os.path.exists(chips_target_path):
         chip_files = sorted(glob.glob(os.path.join(target_dir, "chips_*.json")))
