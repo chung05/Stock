@@ -1,0 +1,32 @@
+name: 手動測試 Supabase 籌碼匯出
+
+on:
+  workflow_dispatch: # 支援在 GitHub 網頁上點擊按鈕手動觸發
+
+jobs:
+  run-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 檢出專案代碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Python 環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安裝相依套件
+        run: |
+          pip install supabase
+
+      - name: 執行匯出腳本
+        run: |
+          cd Stock/Python
+          python export_supabase_chips.py
+
+      - name: 檢查並顯示產出的檔案內容前 50 行
+        run: |
+          echo "=== 檢查 Stock/docs 目錄檔案 ==="
+          ls -la Stock/docs/
+          echo "=== 顯示籌碼分析檔內容預覽 ==="
+          cat Stock/docs/chips_*.txt | head -n 50
