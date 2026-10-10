@@ -42,10 +42,10 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 正確加入 docs 目錄下生成的 chips JSON 檔案
+          # 正確暫存 docs 目錄下生成的 chips JSON 檔案
           git add docs/chips_*.json
           
-          # 檢查是否有暫存變更並推送
+          # 檢查是否有變更並推送
           if git diff --staged --quiet; then
             echo "ℹ️ 檔案無變更，無需提交。"
           else
