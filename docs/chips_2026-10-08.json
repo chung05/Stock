@@ -1,0 +1,4285 @@
+{
+  "meta": {
+    "target_date": "2026-10-08",
+    "dates_analyzed": [
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08"
+    ],
+    "dates_format_explanation": "[T-2(前天), T-1(昨天), T(今天)]，單位均為張數",
+    "total_watchlist_count": 231,
+    "generated_at": "2026-10-10 11:05:51"
+  },
+  "top_institutional_buys_1d": [
+    {
+      "stock_id": "1301",
+      "stock_name": "台塑",
+      "relation": "土洋同買",
+      "today_total_net": 27192,
+      "foreign_net_3d": [
+        4003,
+        35668,
+        14225
+      ],
+      "investment_trust_net_3d": [
+        0,
+        10282,
+        13940
+      ],
+      "dealer_net_3d": [
+        505,
+        1953,
+        -973
+      ],
+      "margin_net_today": 10543,
+      "macd_osc_today": 1.27
+    },
+    {
+      "stock_id": "2408",
+      "stock_name": "南亞科",
+      "relation": "土洋同買",
+      "today_total_net": 22187,
+      "foreign_net_3d": [
+        814,
+        -7464,
+        21773
+      ],
+      "investment_trust_net_3d": [
+        -506,
+        -1497,
+        193
+      ],
+      "dealer_net_3d": [
+        286,
+        -651,
+        221
+      ],
+      "margin_net_today": 27,
+      "macd_osc_today": 0.96
+    },
+    {
+      "stock_id": "1314",
+      "stock_name": "中石化",
+      "relation": "分歧",
+      "today_total_net": 21742,
+      "foreign_net_3d": [
+        3980,
+        12600,
+        21624
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        159,
+        -101,
+        118
+      ],
+      "margin_net_today": 2654,
+      "macd_osc_today": -0.0
+    },
+    {
+      "stock_id": "3231",
+      "stock_name": "緯創",
+      "relation": "土洋同買",
+      "today_total_net": 16706,
+      "foreign_net_3d": [
+        -3550,
+        -9226,
+        15509
+      ],
+      "investment_trust_net_3d": [
+        -1146,
+        -1755,
+        873
+      ],
+      "dealer_net_3d": [
+        -284,
+        94,
+        324
+      ],
+      "margin_net_today": -4700,
+      "macd_osc_today": 0.07
+    },
+    {
+      "stock_id": "2002",
+      "stock_name": "中鋼",
+      "relation": "土洋同買",
+      "today_total_net": 10474,
+      "foreign_net_3d": [
+        -813,
+        -4203,
+        10326
+      ],
+      "investment_trust_net_3d": [
+        -64,
+        -283,
+        3
+      ],
+      "dealer_net_3d": [
+        48,
+        -4,
+        145
+      ],
+      "margin_net_today": -206,
+      "macd_osc_today": 0.03
+    },
+    {
+      "stock_id": "1101",
+      "stock_name": "台泥",
+      "relation": "土洋對作",
+      "today_total_net": 10163,
+      "foreign_net_3d": [
+        -975,
+        3877,
+        10143
+      ],
+      "investment_trust_net_3d": [
+        -58,
+        4731,
+        -11
+      ],
+      "dealer_net_3d": [
+        84,
+        -57,
+        31
+      ],
+      "margin_net_today": 257,
+      "macd_osc_today": 0.05
+    },
+    {
+      "stock_id": "1102",
+      "stock_name": "亞泥",
+      "relation": "土洋對作",
+      "today_total_net": 7435,
+      "foreign_net_3d": [
+        2039,
+        3076,
+        7342
+      ],
+      "investment_trust_net_3d": [
+        -299,
+        -129,
+        -80
+      ],
+      "dealer_net_3d": [
+        165,
+        135,
+        173
+      ],
+      "margin_net_today": -22,
+      "macd_osc_today": 0.01
+    },
+    {
+      "stock_id": "1216",
+      "stock_name": "統一",
+      "relation": "土洋同買",
+      "today_total_net": 7116,
+      "foreign_net_3d": [
+        -944,
+        8871,
+        4818
+      ],
+      "investment_trust_net_3d": [
+        1681,
+        1186,
+        1911
+      ],
+      "dealer_net_3d": [
+        277,
+        78,
+        387
+      ],
+      "margin_net_today": -343,
+      "macd_osc_today": 0.13
+    },
+    {
+      "stock_id": "9904",
+      "stock_name": "寶成",
+      "relation": "土洋同買",
+      "today_total_net": 6627,
+      "foreign_net_3d": [
+        237,
+        8504,
+        6440
+      ],
+      "investment_trust_net_3d": [
+        -80,
+        157,
+        62
+      ],
+      "dealer_net_3d": [
+        293,
+        411,
+        125
+      ],
+      "margin_net_today": -185,
+      "macd_osc_today": 0.02
+    },
+    {
+      "stock_id": "2886",
+      "stock_name": "兆豐金",
+      "relation": "土洋對作",
+      "today_total_net": 6176,
+      "foreign_net_3d": [
+        12515,
+        7348,
+        10105
+      ],
+      "investment_trust_net_3d": [
+        -5472,
+        -6178,
+        -5228
+      ],
+      "dealer_net_3d": [
+        567,
+        342,
+        1299
+      ],
+      "margin_net_today": 729,
+      "macd_osc_today": -0.19
+    },
+    {
+      "stock_id": "2609",
+      "stock_name": "陽明",
+      "relation": "土洋對作",
+      "today_total_net": 5769,
+      "foreign_net_3d": [
+        5172,
+        527,
+        5245
+      ],
+      "investment_trust_net_3d": [
+        -89,
+        -25,
+        -21
+      ],
+      "dealer_net_3d": [
+        221,
+        -73,
+        545
+      ],
+      "margin_net_today": -396,
+      "macd_osc_today": -0.25
+    },
+    {
+      "stock_id": "2313",
+      "stock_name": "華通",
+      "relation": "土洋同買",
+      "today_total_net": 5019,
+      "foreign_net_3d": [
+        18382,
+        -6955,
+        4035
+      ],
+      "investment_trust_net_3d": [
+        1703,
+        111,
+        708
+      ],
+      "dealer_net_3d": [
+        315,
+        -589,
+        276
+      ],
+      "margin_net_today": 219,
+      "macd_osc_today": 2.58
+    },
+    {
+      "stock_id": "2801",
+      "stock_name": "彰銀",
+      "relation": "土洋同買",
+      "today_total_net": 4959,
+      "foreign_net_3d": [
+        569,
+        3159,
+        4988
+      ],
+      "investment_trust_net_3d": [
+        -1343,
+        -233,
+        1
+      ],
+      "dealer_net_3d": [
+        10,
+        17,
+        -30
+      ],
+      "margin_net_today": 357,
+      "macd_osc_today": -0.18
+    },
+    {
+      "stock_id": "1326",
+      "stock_name": "台化",
+      "relation": "土洋同買",
+      "today_total_net": 4512,
+      "foreign_net_3d": [
+        13370,
+        15752,
+        4600
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        5
+      ],
+      "dealer_net_3d": [
+        197,
+        397,
+        -93
+      ],
+      "margin_net_today": 1275,
+      "macd_osc_today": 0.75
+    },
+    {
+      "stock_id": "2027",
+      "stock_name": "大成鋼",
+      "relation": "土洋同買",
+      "today_total_net": 4426,
+      "foreign_net_3d": [
+        817,
+        2845,
+        1203
+      ],
+      "investment_trust_net_3d": [
+        -913,
+        -1402,
+        2989
+      ],
+      "dealer_net_3d": [
+        168,
+        46,
+        234
+      ],
+      "margin_net_today": -140,
+      "macd_osc_today": 0.09
+    },
+    {
+      "stock_id": "3702",
+      "stock_name": "大聯大",
+      "relation": "土洋同買",
+      "today_total_net": 4040,
+      "foreign_net_3d": [
+        261,
+        2530,
+        3300
+      ],
+      "investment_trust_net_3d": [
+        37,
+        50,
+        55
+      ],
+      "dealer_net_3d": [
+        -48,
+        -6,
+        685
+      ],
+      "margin_net_today": -4381,
+      "macd_osc_today": 0.67
+    },
+    {
+      "stock_id": "9945",
+      "stock_name": "潤泰新",
+      "relation": "土洋同買",
+      "today_total_net": 3893,
+      "foreign_net_3d": [
+        139,
+        1375,
+        3536
+      ],
+      "investment_trust_net_3d": [
+        726,
+        764,
+        35
+      ],
+      "dealer_net_3d": [
+        57,
+        12,
+        322
+      ],
+      "margin_net_today": -178,
+      "macd_osc_today": 0.01
+    },
+    {
+      "stock_id": "2542",
+      "stock_name": "興富發",
+      "relation": "土洋對作",
+      "today_total_net": 3431,
+      "foreign_net_3d": [
+        2246,
+        4305,
+        3831
+      ],
+      "investment_trust_net_3d": [
+        -1721,
+        -1519,
+        -330
+      ],
+      "dealer_net_3d": [
+        5,
+        85,
+        -70
+      ],
+      "margin_net_today": -103,
+      "macd_osc_today": -0.41
+    },
+    {
+      "stock_id": "3026",
+      "stock_name": "禾伸堂",
+      "relation": "土洋同買",
+      "today_total_net": 3246,
+      "foreign_net_3d": [
+        -324,
+        1601,
+        2746
+      ],
+      "investment_trust_net_3d": [
+        -808,
+        647,
+        499
+      ],
+      "dealer_net_3d": [
+        -43,
+        -13,
+        1
+      ],
+      "margin_net_today": -145,
+      "macd_osc_today": 3.39
+    },
+    {
+      "stock_id": "2412",
+      "stock_name": "中華電",
+      "relation": "土洋同買",
+      "today_total_net": 2813,
+      "foreign_net_3d": [
+        2946,
+        2594,
+        2792
+      ],
+      "investment_trust_net_3d": [
+        107,
+        -261,
+        400
+      ],
+      "dealer_net_3d": [
+        11,
+        28,
+        -379
+      ],
+      "margin_net_today": -23,
+      "macd_osc_today": -0.01
+    },
+    {
+      "stock_id": "1434",
+      "stock_name": "福懋",
+      "relation": "分歧",
+      "today_total_net": 2534,
+      "foreign_net_3d": [
+        524,
+        2827,
+        2495
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        0,
+        49,
+        39
+      ],
+      "margin_net_today": 131,
+      "macd_osc_today": 0.13
+    },
+    {
+      "stock_id": "4958",
+      "stock_name": "臻鼎-KY",
+      "relation": "土洋同買",
+      "today_total_net": 2205,
+      "foreign_net_3d": [
+        4653,
+        6652,
+        2140
+      ],
+      "investment_trust_net_3d": [
+        -4162,
+        248,
+        235
+      ],
+      "dealer_net_3d": [
+        29,
+        270,
+        -170
+      ],
+      "margin_net_today": 149,
+      "macd_osc_today": 12.03
+    },
+    {
+      "stock_id": "2353",
+      "stock_name": "宏碁",
+      "relation": "土洋對作",
+      "today_total_net": 1791,
+      "foreign_net_3d": [
+        -1867,
+        557,
+        1709
+      ],
+      "investment_trust_net_3d": [
+        7,
+        -35,
+        -12
+      ],
+      "dealer_net_3d": [
+        116,
+        -2,
+        94
+      ],
+      "margin_net_today": -436,
+      "macd_osc_today": -0.08
+    },
+    {
+      "stock_id": "3045",
+      "stock_name": "台灣大",
+      "relation": "土洋對作",
+      "today_total_net": 1542,
+      "foreign_net_3d": [
+        277,
+        402,
+        1532
+      ],
+      "investment_trust_net_3d": [
+        260,
+        135,
+        -62
+      ],
+      "dealer_net_3d": [
+        102,
+        82,
+        72
+      ],
+      "margin_net_today": -153,
+      "macd_osc_today": -0.22
+    },
+    {
+      "stock_id": "3706",
+      "stock_name": "神達",
+      "relation": "土洋同買",
+      "today_total_net": 1516,
+      "foreign_net_3d": [
+        257,
+        1169,
+        1484
+      ],
+      "investment_trust_net_3d": [
+        -14,
+        20,
+        35
+      ],
+      "dealer_net_3d": [
+        -11,
+        -29,
+        -3
+      ],
+      "margin_net_today": 43,
+      "macd_osc_today": 0.47
+    },
+    {
+      "stock_id": "1476",
+      "stock_name": "儒鴻",
+      "relation": "土洋同買",
+      "today_total_net": 1267,
+      "foreign_net_3d": [
+        584,
+        572,
+        1009
+      ],
+      "investment_trust_net_3d": [
+        -8,
+        8,
+        225
+      ],
+      "dealer_net_3d": [
+        16,
+        24,
+        33
+      ],
+      "margin_net_today": -83,
+      "macd_osc_today": 4.46
+    },
+    {
+      "stock_id": "2368",
+      "stock_name": "金像電",
+      "relation": "土洋對作",
+      "today_total_net": 1231,
+      "foreign_net_3d": [
+        -172,
+        -1816,
+        -285
+      ],
+      "investment_trust_net_3d": [
+        2644,
+        1103,
+        1454
+      ],
+      "dealer_net_3d": [
+        -81,
+        -220,
+        62
+      ],
+      "margin_net_today": -569,
+      "macd_osc_today": 22.42
+    },
+    {
+      "stock_id": "6274",
+      "stock_name": "台燿",
+      "relation": "土洋同買",
+      "today_total_net": 1128,
+      "foreign_net_3d": [
+        -122,
+        -938,
+        924
+      ],
+      "investment_trust_net_3d": [
+        905,
+        177,
+        210
+      ],
+      "dealer_net_3d": [
+        -262,
+        -115,
+        -6
+      ],
+      "margin_net_today": -590,
+      "macd_osc_today": 36.05
+    },
+    {
+      "stock_id": "5876",
+      "stock_name": "上海商銀",
+      "relation": "土洋對作",
+      "today_total_net": 962,
+      "foreign_net_3d": [
+        366,
+        2200,
+        761
+      ],
+      "investment_trust_net_3d": [
+        141,
+        141,
+        -203
+      ],
+      "dealer_net_3d": [
+        281,
+        320,
+        404
+      ],
+      "margin_net_today": 6,
+      "macd_osc_today": -0.17
+    },
+    {
+      "stock_id": "3037",
+      "stock_name": "欣興",
+      "relation": "土洋對作",
+      "today_total_net": 937,
+      "foreign_net_3d": [
+        2957,
+        1811,
+        1829
+      ],
+      "investment_trust_net_3d": [
+        -1901,
+        -450,
+        -849
+      ],
+      "dealer_net_3d": [
+        -40,
+        -9,
+        -43
+      ],
+      "margin_net_today": -47,
+      "macd_osc_today": 21.01
+    }
+  ],
+  "top_institutional_sells_1d": [
+    {
+      "stock_id": "2409",
+      "stock_name": "友達",
+      "relation": "土洋同賣",
+      "today_total_net": -67949,
+      "foreign_net_3d": [
+        -87054,
+        -76193,
+        -59451
+      ],
+      "investment_trust_net_3d": [
+        -17,
+        -22,
+        -3
+      ],
+      "dealer_net_3d": [
+        -6549,
+        -3892,
+        -8495
+      ],
+      "margin_net_today": -2437,
+      "macd_osc_today": 0.15
+    },
+    {
+      "stock_id": "2317",
+      "stock_name": "鴻海",
+      "relation": "土洋對作",
+      "today_total_net": -25528,
+      "foreign_net_3d": [
+        -19982,
+        -11742,
+        -25605
+      ],
+      "investment_trust_net_3d": [
+        -1141,
+        -626,
+        147
+      ],
+      "dealer_net_3d": [
+        394,
+        -271,
+        -70
+      ],
+      "margin_net_today": 691,
+      "macd_osc_today": -0.01
+    },
+    {
+      "stock_id": "6770",
+      "stock_name": "力積電",
+      "relation": "土洋對作",
+      "today_total_net": -23401,
+      "foreign_net_3d": [
+        -15522,
+        -36306,
+        -21679
+      ],
+      "investment_trust_net_3d": [
+        -340,
+        -136,
+        125
+      ],
+      "dealer_net_3d": [
+        -743,
+        -3219,
+        -1847
+      ],
+      "margin_net_today": 373,
+      "macd_osc_today": -0.13
+    },
+    {
+      "stock_id": "3481",
+      "stock_name": "群創",
+      "relation": "土洋對作",
+      "today_total_net": -20853,
+      "foreign_net_3d": [
+        -7403,
+        9505,
+        -20582
+      ],
+      "investment_trust_net_3d": [
+        -14,
+        -25,
+        18
+      ],
+      "dealer_net_3d": [
+        -1311,
+        -857,
+        -289
+      ],
+      "margin_net_today": 3433,
+      "macd_osc_today": 0.18
+    },
+    {
+      "stock_id": "2303",
+      "stock_name": "聯電",
+      "relation": "土洋對作",
+      "today_total_net": -19712,
+      "foreign_net_3d": [
+        4720,
+        -15335,
+        -19791
+      ],
+      "investment_trust_net_3d": [
+        -59352,
+        -17653,
+        1606
+      ],
+      "dealer_net_3d": [
+        5368,
+        -351,
+        -1527
+      ],
+      "margin_net_today": 2755,
+      "macd_osc_today": -1.53
+    },
+    {
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "relation": "土洋對作",
+      "today_total_net": -15778,
+      "foreign_net_3d": [
+        -321,
+        -3762,
+        -15691
+      ],
+      "investment_trust_net_3d": [
+        -79,
+        0,
+        17
+      ],
+      "dealer_net_3d": [
+        -220,
+        -100,
+        -104
+      ],
+      "margin_net_today": 1494,
+      "macd_osc_today": 0.05
+    },
+    {
+      "stock_id": "2344",
+      "stock_name": "華邦電",
+      "relation": "土洋同賣",
+      "today_total_net": -14591,
+      "foreign_net_3d": [
+        7287,
+        20531,
+        -14221
+      ],
+      "investment_trust_net_3d": [
+        -10812,
+        -7282,
+        -250
+      ],
+      "dealer_net_3d": [
+        -304,
+        -330,
+        -120
+      ],
+      "margin_net_today": 2317,
+      "macd_osc_today": 0.43
+    },
+    {
+      "stock_id": "1303",
+      "stock_name": "南亞",
+      "relation": "土洋對作",
+      "today_total_net": -12613,
+      "foreign_net_3d": [
+        6555,
+        11922,
+        -12940
+      ],
+      "investment_trust_net_3d": [
+        3486,
+        1213,
+        877
+      ],
+      "dealer_net_3d": [
+        1527,
+        -37,
+        -550
+      ],
+      "margin_net_today": 1155,
+      "macd_osc_today": 6.54
+    },
+    {
+      "stock_id": "2891",
+      "stock_name": "中信金",
+      "relation": "土洋對作",
+      "today_total_net": -12438,
+      "foreign_net_3d": [
+        9407,
+        4405,
+        -16934
+      ],
+      "investment_trust_net_3d": [
+        1354,
+        743,
+        3187
+      ],
+      "dealer_net_3d": [
+        554,
+        530,
+        1309
+      ],
+      "margin_net_today": 524,
+      "macd_osc_today": -0.28
+    },
+    {
+      "stock_id": "2887",
+      "stock_name": "台新新光金",
+      "relation": "土洋對作",
+      "today_total_net": -11720,
+      "foreign_net_3d": [
+        3081,
+        7927,
+        -21355
+      ],
+      "investment_trust_net_3d": [
+        -225,
+        -277,
+        8156
+      ],
+      "dealer_net_3d": [
+        892,
+        551,
+        1479
+      ],
+      "margin_net_today": 805,
+      "macd_osc_today": -0.43
+    },
+    {
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "relation": "土洋對作",
+      "today_total_net": -11075,
+      "foreign_net_3d": [
+        -1672,
+        -1163,
+        -12303
+      ],
+      "investment_trust_net_3d": [
+        -22,
+        73,
+        718
+      ],
+      "dealer_net_3d": [
+        396,
+        447,
+        510
+      ],
+      "margin_net_today": 1338,
+      "macd_osc_today": 10.11
+    },
+    {
+      "stock_id": "2449",
+      "stock_name": "京元電子",
+      "relation": "土洋同賣",
+      "today_total_net": -10577,
+      "foreign_net_3d": [
+        -2700,
+        -1916,
+        -2405
+      ],
+      "investment_trust_net_3d": [
+        -335,
+        -67,
+        -8530
+      ],
+      "dealer_net_3d": [
+        106,
+        99,
+        358
+      ],
+      "margin_net_today": 4277,
+      "macd_osc_today": 0.16
+    },
+    {
+      "stock_id": "2324",
+      "stock_name": "仁寶",
+      "relation": "土洋對作",
+      "today_total_net": -9589,
+      "foreign_net_3d": [
+        -3174,
+        -4580,
+        -9661
+      ],
+      "investment_trust_net_3d": [
+        -10,
+        -12,
+        10
+      ],
+      "dealer_net_3d": [
+        353,
+        -137,
+        62
+      ],
+      "margin_net_today": 336,
+      "macd_osc_today": -0.13
+    },
+    {
+      "stock_id": "2883",
+      "stock_name": "凱基金",
+      "relation": "土洋對作",
+      "today_total_net": -8996,
+      "foreign_net_3d": [
+        7063,
+        12143,
+        -13828
+      ],
+      "investment_trust_net_3d": [
+        -1478,
+        -58,
+        3515
+      ],
+      "dealer_net_3d": [
+        872,
+        588,
+        1317
+      ],
+      "margin_net_today": 447,
+      "macd_osc_today": -0.41
+    },
+    {
+      "stock_id": "1802",
+      "stock_name": "台玻",
+      "relation": "土洋對作",
+      "today_total_net": -8923,
+      "foreign_net_3d": [
+        5992,
+        17211,
+        -7088
+      ],
+      "investment_trust_net_3d": [
+        42,
+        0,
+        121
+      ],
+      "dealer_net_3d": [
+        743,
+        6233,
+        -1956
+      ],
+      "margin_net_today": 5115,
+      "macd_osc_today": 0.56
+    },
+    {
+      "stock_id": "2382",
+      "stock_name": "廣達",
+      "relation": "土洋對作",
+      "today_total_net": -7274,
+      "foreign_net_3d": [
+        2161,
+        1441,
+        -7936
+      ],
+      "investment_trust_net_3d": [
+        306,
+        -17,
+        705
+      ],
+      "dealer_net_3d": [
+        136,
+        41,
+        -43
+      ],
+      "margin_net_today": -732,
+      "macd_osc_today": -1.5
+    },
+    {
+      "stock_id": "2327",
+      "stock_name": "國巨",
+      "relation": "土洋同賣",
+      "today_total_net": -7077,
+      "foreign_net_3d": [
+        -309,
+        1528,
+        -5756
+      ],
+      "investment_trust_net_3d": [
+        -2283,
+        3038,
+        -1039
+      ],
+      "dealer_net_3d": [
+        126,
+        583,
+        -282
+      ],
+      "margin_net_today": -2093,
+      "macd_osc_today": 11.52
+    },
+    {
+      "stock_id": "1718",
+      "stock_name": "中纖",
+      "relation": "土洋同賣",
+      "today_total_net": -7018,
+      "foreign_net_3d": [
+        184,
+        2934,
+        -7987
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        -44
+      ],
+      "dealer_net_3d": [
+        372,
+        -632,
+        1013
+      ],
+      "margin_net_today": 4388,
+      "macd_osc_today": 0.14
+    },
+    {
+      "stock_id": "2882",
+      "stock_name": "國泰金",
+      "relation": "土洋對作",
+      "today_total_net": -6728,
+      "foreign_net_3d": [
+        -520,
+        9200,
+        -9853
+      ],
+      "investment_trust_net_3d": [
+        1994,
+        95,
+        2833
+      ],
+      "dealer_net_3d": [
+        73,
+        44,
+        292
+      ],
+      "margin_net_today": 636,
+      "macd_osc_today": -0.46
+    },
+    {
+      "stock_id": "2890",
+      "stock_name": "永豐金",
+      "relation": "土洋對作",
+      "today_total_net": -6601,
+      "foreign_net_3d": [
+        2800,
+        -11525,
+        -8800
+      ],
+      "investment_trust_net_3d": [
+        2166,
+        1896,
+        1125
+      ],
+      "dealer_net_3d": [
+        862,
+        208,
+        1074
+      ],
+      "margin_net_today": 4640,
+      "macd_osc_today": -0.23
+    },
+    {
+      "stock_id": "2492",
+      "stock_name": "華新科",
+      "relation": "土洋同賣",
+      "today_total_net": -6515,
+      "foreign_net_3d": [
+        1658,
+        9935,
+        -5355
+      ],
+      "investment_trust_net_3d": [
+        -98,
+        -1,
+        -16
+      ],
+      "dealer_net_3d": [
+        386,
+        -323,
+        -1144
+      ],
+      "margin_net_today": 1590,
+      "macd_osc_today": 12.61
+    },
+    {
+      "stock_id": "1605",
+      "stock_name": "華新",
+      "relation": "土洋同賣",
+      "today_total_net": -6353,
+      "foreign_net_3d": [
+        2583,
+        22629,
+        -5597
+      ],
+      "investment_trust_net_3d": [
+        -22,
+        2594,
+        -1
+      ],
+      "dealer_net_3d": [
+        53,
+        859,
+        -755
+      ],
+      "margin_net_today": -454,
+      "macd_osc_today": 0.21
+    },
+    {
+      "stock_id": "1504",
+      "stock_name": "東元",
+      "relation": "土洋對作",
+      "today_total_net": -4947,
+      "foreign_net_3d": [
+        2370,
+        4196,
+        -4647
+      ],
+      "investment_trust_net_3d": [
+        6,
+        -39,
+        13
+      ],
+      "dealer_net_3d": [
+        162,
+        231,
+        -313
+      ],
+      "margin_net_today": 817,
+      "macd_osc_today": 0.33
+    },
+    {
+      "stock_id": "2834",
+      "stock_name": "臺企銀",
+      "relation": "分歧",
+      "today_total_net": -4692,
+      "foreign_net_3d": [
+        -3954,
+        191,
+        -4690
+      ],
+      "investment_trust_net_3d": [
+        -3,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        30,
+        61,
+        -2
+      ],
+      "margin_net_today": 48,
+      "macd_osc_today": -0.1
+    },
+    {
+      "stock_id": "5483",
+      "stock_name": "中美晶",
+      "relation": "土洋對作",
+      "today_total_net": -4504,
+      "foreign_net_3d": [
+        -1366,
+        12228,
+        -4002
+      ],
+      "investment_trust_net_3d": [
+        165,
+        138,
+        198
+      ],
+      "dealer_net_3d": [
+        247,
+        636,
+        -700
+      ],
+      "margin_net_today": 120,
+      "macd_osc_today": 3.29
+    },
+    {
+      "stock_id": "2885",
+      "stock_name": "元大金",
+      "relation": "土洋對作",
+      "today_total_net": -3392,
+      "foreign_net_3d": [
+        7669,
+        7687,
+        -5170
+      ],
+      "investment_trust_net_3d": [
+        143,
+        206,
+        1241
+      ],
+      "dealer_net_3d": [
+        465,
+        248,
+        537
+      ],
+      "margin_net_today": 178,
+      "macd_osc_today": -0.18
+    },
+    {
+      "stock_id": "2454",
+      "stock_name": "聯發科",
+      "relation": "土洋同賣",
+      "today_total_net": -3268,
+      "foreign_net_3d": [
+        -3912,
+        -2769,
+        -3022
+      ],
+      "investment_trust_net_3d": [
+        -852,
+        -285,
+        -157
+      ],
+      "dealer_net_3d": [
+        33,
+        -131,
+        -89
+      ],
+      "margin_net_today": 80,
+      "macd_osc_today": -50.06
+    },
+    {
+      "stock_id": "2618",
+      "stock_name": "長榮航",
+      "relation": "土洋同賣",
+      "today_total_net": -3064,
+      "foreign_net_3d": [
+        -177,
+        349,
+        -3101
+      ],
+      "investment_trust_net_3d": [
+        -108,
+        -53,
+        -330
+      ],
+      "dealer_net_3d": [
+        214,
+        153,
+        367
+      ],
+      "margin_net_today": -31,
+      "macd_osc_today": -0.06
+    },
+    {
+      "stock_id": "2884",
+      "stock_name": "玉山金",
+      "relation": "土洋對作",
+      "today_total_net": -2708,
+      "foreign_net_3d": [
+        6247,
+        2866,
+        -4287
+      ],
+      "investment_trust_net_3d": [
+        -630,
+        -506,
+        756
+      ],
+      "dealer_net_3d": [
+        516,
+        319,
+        823
+      ],
+      "margin_net_today": 68,
+      "macd_osc_today": -0.36
+    },
+    {
+      "stock_id": "6005",
+      "stock_name": "群益證",
+      "relation": "土洋對作",
+      "today_total_net": -2494,
+      "foreign_net_3d": [
+        -3202,
+        -1644,
+        -2504
+      ],
+      "investment_trust_net_3d": [
+        -3,
+        -5,
+        10
+      ],
+      "dealer_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "margin_net_today": 98,
+      "macd_osc_today": 0.08
+    }
+  ],
+  "consecutive_2_days_buys": [
+    {
+      "stock_id": "1301",
+      "stock_name": "台塑",
+      "relation": "土洋同買",
+      "today_total_net": 27192,
+      "foreign_net_3d": [
+        4003,
+        35668,
+        14225
+      ],
+      "investment_trust_net_3d": [
+        0,
+        10282,
+        13940
+      ],
+      "dealer_net_3d": [
+        505,
+        1953,
+        -973
+      ],
+      "margin_net_today": 10543,
+      "macd_osc_today": 1.27,
+      "sum_2d_net": 75095
+    },
+    {
+      "stock_id": "1314",
+      "stock_name": "中石化",
+      "relation": "分歧",
+      "today_total_net": 21742,
+      "foreign_net_3d": [
+        3980,
+        12600,
+        21624
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        159,
+        -101,
+        118
+      ],
+      "margin_net_today": 2654,
+      "macd_osc_today": -0.0,
+      "sum_2d_net": 34241
+    },
+    {
+      "stock_id": "1326",
+      "stock_name": "台化",
+      "relation": "土洋同買",
+      "today_total_net": 4512,
+      "foreign_net_3d": [
+        13370,
+        15752,
+        4600
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        5
+      ],
+      "dealer_net_3d": [
+        197,
+        397,
+        -93
+      ],
+      "margin_net_today": 1275,
+      "macd_osc_today": 0.75,
+      "sum_2d_net": 20661
+    },
+    {
+      "stock_id": "1101",
+      "stock_name": "台泥",
+      "relation": "土洋對作",
+      "today_total_net": 10163,
+      "foreign_net_3d": [
+        -975,
+        3877,
+        10143
+      ],
+      "investment_trust_net_3d": [
+        -58,
+        4731,
+        -11
+      ],
+      "dealer_net_3d": [
+        84,
+        -57,
+        31
+      ],
+      "margin_net_today": 257,
+      "macd_osc_today": 0.05,
+      "sum_2d_net": 18714
+    },
+    {
+      "stock_id": "1216",
+      "stock_name": "統一",
+      "relation": "土洋同買",
+      "today_total_net": 7116,
+      "foreign_net_3d": [
+        -944,
+        8871,
+        4818
+      ],
+      "investment_trust_net_3d": [
+        1681,
+        1186,
+        1911
+      ],
+      "dealer_net_3d": [
+        277,
+        78,
+        387
+      ],
+      "margin_net_today": -343,
+      "macd_osc_today": 0.13,
+      "sum_2d_net": 17251
+    },
+    {
+      "stock_id": "9904",
+      "stock_name": "寶成",
+      "relation": "土洋同買",
+      "today_total_net": 6627,
+      "foreign_net_3d": [
+        237,
+        8504,
+        6440
+      ],
+      "investment_trust_net_3d": [
+        -80,
+        157,
+        62
+      ],
+      "dealer_net_3d": [
+        293,
+        411,
+        125
+      ],
+      "margin_net_today": -185,
+      "macd_osc_today": 0.02,
+      "sum_2d_net": 15699
+    },
+    {
+      "stock_id": "1102",
+      "stock_name": "亞泥",
+      "relation": "土洋對作",
+      "today_total_net": 7435,
+      "foreign_net_3d": [
+        2039,
+        3076,
+        7342
+      ],
+      "investment_trust_net_3d": [
+        -299,
+        -129,
+        -80
+      ],
+      "dealer_net_3d": [
+        165,
+        135,
+        173
+      ],
+      "margin_net_today": -22,
+      "macd_osc_today": 0.01,
+      "sum_2d_net": 10517
+    },
+    {
+      "stock_id": "4958",
+      "stock_name": "臻鼎-KY",
+      "relation": "土洋同買",
+      "today_total_net": 2205,
+      "foreign_net_3d": [
+        4653,
+        6652,
+        2140
+      ],
+      "investment_trust_net_3d": [
+        -4162,
+        248,
+        235
+      ],
+      "dealer_net_3d": [
+        29,
+        270,
+        -170
+      ],
+      "margin_net_today": 149,
+      "macd_osc_today": 12.03,
+      "sum_2d_net": 9375
+    },
+    {
+      "stock_id": "2801",
+      "stock_name": "彰銀",
+      "relation": "土洋同買",
+      "today_total_net": 4959,
+      "foreign_net_3d": [
+        569,
+        3159,
+        4988
+      ],
+      "investment_trust_net_3d": [
+        -1343,
+        -233,
+        1
+      ],
+      "dealer_net_3d": [
+        10,
+        17,
+        -30
+      ],
+      "margin_net_today": 357,
+      "macd_osc_today": -0.18,
+      "sum_2d_net": 7902
+    },
+    {
+      "stock_id": "2886",
+      "stock_name": "兆豐金",
+      "relation": "土洋對作",
+      "today_total_net": 6176,
+      "foreign_net_3d": [
+        12515,
+        7348,
+        10105
+      ],
+      "investment_trust_net_3d": [
+        -5472,
+        -6178,
+        -5228
+      ],
+      "dealer_net_3d": [
+        567,
+        342,
+        1299
+      ],
+      "margin_net_today": 729,
+      "macd_osc_today": -0.19,
+      "sum_2d_net": 7688
+    },
+    {
+      "stock_id": "3702",
+      "stock_name": "大聯大",
+      "relation": "土洋同買",
+      "today_total_net": 4040,
+      "foreign_net_3d": [
+        261,
+        2530,
+        3300
+      ],
+      "investment_trust_net_3d": [
+        37,
+        50,
+        55
+      ],
+      "dealer_net_3d": [
+        -48,
+        -6,
+        685
+      ],
+      "margin_net_today": -4381,
+      "macd_osc_today": 0.67,
+      "sum_2d_net": 6614
+    },
+    {
+      "stock_id": "2542",
+      "stock_name": "興富發",
+      "relation": "土洋對作",
+      "today_total_net": 3431,
+      "foreign_net_3d": [
+        2246,
+        4305,
+        3831
+      ],
+      "investment_trust_net_3d": [
+        -1721,
+        -1519,
+        -330
+      ],
+      "dealer_net_3d": [
+        5,
+        85,
+        -70
+      ],
+      "margin_net_today": -103,
+      "macd_osc_today": -0.41,
+      "sum_2d_net": 6302
+    },
+    {
+      "stock_id": "2609",
+      "stock_name": "陽明",
+      "relation": "土洋對作",
+      "today_total_net": 5769,
+      "foreign_net_3d": [
+        5172,
+        527,
+        5245
+      ],
+      "investment_trust_net_3d": [
+        -89,
+        -25,
+        -21
+      ],
+      "dealer_net_3d": [
+        221,
+        -73,
+        545
+      ],
+      "margin_net_today": -396,
+      "macd_osc_today": -0.25,
+      "sum_2d_net": 6198
+    },
+    {
+      "stock_id": "2812",
+      "stock_name": "台中銀",
+      "relation": "分歧",
+      "today_total_net": 232,
+      "foreign_net_3d": [
+        -118,
+        5913,
+        232
+      ],
+      "investment_trust_net_3d": [
+        -4,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        0,
+        23,
+        0
+      ],
+      "margin_net_today": -119,
+      "macd_osc_today": -0.03,
+      "sum_2d_net": 6168
+    },
+    {
+      "stock_id": "9945",
+      "stock_name": "潤泰新",
+      "relation": "土洋同買",
+      "today_total_net": 3893,
+      "foreign_net_3d": [
+        139,
+        1375,
+        3536
+      ],
+      "investment_trust_net_3d": [
+        726,
+        764,
+        35
+      ],
+      "dealer_net_3d": [
+        57,
+        12,
+        322
+      ],
+      "margin_net_today": -178,
+      "macd_osc_today": 0.01,
+      "sum_2d_net": 6044
+    },
+    {
+      "stock_id": "5880",
+      "stock_name": "合庫金",
+      "relation": "土洋同買",
+      "today_total_net": 169,
+      "foreign_net_3d": [
+        -1075,
+        5770,
+        171
+      ],
+      "investment_trust_net_3d": [
+        -94,
+        -52,
+        13
+      ],
+      "dealer_net_3d": [
+        7,
+        56,
+        -15
+      ],
+      "margin_net_today": -48,
+      "macd_osc_today": -0.1,
+      "sum_2d_net": 5943
+    },
+    {
+      "stock_id": "2027",
+      "stock_name": "大成鋼",
+      "relation": "土洋同買",
+      "today_total_net": 4426,
+      "foreign_net_3d": [
+        817,
+        2845,
+        1203
+      ],
+      "investment_trust_net_3d": [
+        -913,
+        -1402,
+        2989
+      ],
+      "dealer_net_3d": [
+        168,
+        46,
+        234
+      ],
+      "margin_net_today": -140,
+      "macd_osc_today": 0.09,
+      "sum_2d_net": 5915
+    },
+    {
+      "stock_id": "3026",
+      "stock_name": "禾伸堂",
+      "relation": "土洋同買",
+      "today_total_net": 3246,
+      "foreign_net_3d": [
+        -324,
+        1601,
+        2746
+      ],
+      "investment_trust_net_3d": [
+        -808,
+        647,
+        499
+      ],
+      "dealer_net_3d": [
+        -43,
+        -13,
+        1
+      ],
+      "margin_net_today": -145,
+      "macd_osc_today": 3.39,
+      "sum_2d_net": 5481
+    },
+    {
+      "stock_id": "1434",
+      "stock_name": "福懋",
+      "relation": "分歧",
+      "today_total_net": 2534,
+      "foreign_net_3d": [
+        524,
+        2827,
+        2495
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        0,
+        49,
+        39
+      ],
+      "margin_net_today": 131,
+      "macd_osc_today": 0.13,
+      "sum_2d_net": 5410
+    },
+    {
+      "stock_id": "6505",
+      "stock_name": "台塑化",
+      "relation": "土洋對作",
+      "today_total_net": 83,
+      "foreign_net_3d": [
+        -707,
+        1249,
+        -14514
+      ],
+      "investment_trust_net_3d": [
+        2265,
+        3787,
+        14836
+      ],
+      "dealer_net_3d": [
+        374,
+        261,
+        -239
+      ],
+      "margin_net_today": 1275,
+      "macd_osc_today": 1.68,
+      "sum_2d_net": 5380
+    },
+    {
+      "stock_id": "2412",
+      "stock_name": "中華電",
+      "relation": "土洋同買",
+      "today_total_net": 2813,
+      "foreign_net_3d": [
+        2946,
+        2594,
+        2792
+      ],
+      "investment_trust_net_3d": [
+        107,
+        -261,
+        400
+      ],
+      "dealer_net_3d": [
+        11,
+        28,
+        -379
+      ],
+      "margin_net_today": -23,
+      "macd_osc_today": -0.01,
+      "sum_2d_net": 5174
+    },
+    {
+      "stock_id": "1402",
+      "stock_name": "遠東新",
+      "relation": "土洋對作",
+      "today_total_net": 280,
+      "foreign_net_3d": [
+        1614,
+        4578,
+        397
+      ],
+      "investment_trust_net_3d": [
+        -191,
+        -138,
+        -107
+      ],
+      "dealer_net_3d": [
+        6,
+        65,
+        -10
+      ],
+      "margin_net_today": -21,
+      "macd_osc_today": 0.04,
+      "sum_2d_net": 4785
+    },
+    {
+      "stock_id": "5876",
+      "stock_name": "上海商銀",
+      "relation": "土洋對作",
+      "today_total_net": 962,
+      "foreign_net_3d": [
+        366,
+        2200,
+        761
+      ],
+      "investment_trust_net_3d": [
+        141,
+        141,
+        -203
+      ],
+      "dealer_net_3d": [
+        281,
+        320,
+        404
+      ],
+      "margin_net_today": 6,
+      "macd_osc_today": -0.17,
+      "sum_2d_net": 3623
+    },
+    {
+      "stock_id": "2103",
+      "stock_name": "台橡",
+      "relation": "分歧",
+      "today_total_net": 578,
+      "foreign_net_3d": [
+        -735,
+        2955,
+        545
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        -7,
+        8,
+        33
+      ],
+      "margin_net_today": 348,
+      "macd_osc_today": 0.11,
+      "sum_2d_net": 3541
+    },
+    {
+      "stock_id": "3706",
+      "stock_name": "神達",
+      "relation": "土洋同買",
+      "today_total_net": 1516,
+      "foreign_net_3d": [
+        257,
+        1169,
+        1484
+      ],
+      "investment_trust_net_3d": [
+        -14,
+        20,
+        35
+      ],
+      "dealer_net_3d": [
+        -11,
+        -29,
+        -3
+      ],
+      "margin_net_today": 43,
+      "macd_osc_today": 0.47,
+      "sum_2d_net": 2676
+    },
+    {
+      "stock_id": "2353",
+      "stock_name": "宏碁",
+      "relation": "土洋對作",
+      "today_total_net": 1791,
+      "foreign_net_3d": [
+        -1867,
+        557,
+        1709
+      ],
+      "investment_trust_net_3d": [
+        7,
+        -35,
+        -12
+      ],
+      "dealer_net_3d": [
+        116,
+        -2,
+        94
+      ],
+      "margin_net_today": -436,
+      "macd_osc_today": -0.08,
+      "sum_2d_net": 2311
+    },
+    {
+      "stock_id": "3037",
+      "stock_name": "欣興",
+      "relation": "土洋對作",
+      "today_total_net": 937,
+      "foreign_net_3d": [
+        2957,
+        1811,
+        1829
+      ],
+      "investment_trust_net_3d": [
+        -1901,
+        -450,
+        -849
+      ],
+      "dealer_net_3d": [
+        -40,
+        -9,
+        -43
+      ],
+      "margin_net_today": -47,
+      "macd_osc_today": 21.01,
+      "sum_2d_net": 2289
+    },
+    {
+      "stock_id": "3189",
+      "stock_name": "景碩",
+      "relation": "土洋同買",
+      "today_total_net": 252,
+      "foreign_net_3d": [
+        251,
+        1779,
+        233
+      ],
+      "investment_trust_net_3d": [
+        -814,
+        151,
+        97
+      ],
+      "dealer_net_3d": [
+        -72,
+        -9,
+        -78
+      ],
+      "margin_net_today": -534,
+      "macd_osc_today": 19.73,
+      "sum_2d_net": 2173
+    },
+    {
+      "stock_id": "3045",
+      "stock_name": "台灣大",
+      "relation": "土洋對作",
+      "today_total_net": 1542,
+      "foreign_net_3d": [
+        277,
+        402,
+        1532
+      ],
+      "investment_trust_net_3d": [
+        260,
+        135,
+        -62
+      ],
+      "dealer_net_3d": [
+        102,
+        82,
+        72
+      ],
+      "margin_net_today": -153,
+      "macd_osc_today": -0.22,
+      "sum_2d_net": 2161
+    },
+    {
+      "stock_id": "1476",
+      "stock_name": "儒鴻",
+      "relation": "土洋同買",
+      "today_total_net": 1267,
+      "foreign_net_3d": [
+        584,
+        572,
+        1009
+      ],
+      "investment_trust_net_3d": [
+        -8,
+        8,
+        225
+      ],
+      "dealer_net_3d": [
+        16,
+        24,
+        33
+      ],
+      "margin_net_today": -83,
+      "macd_osc_today": 4.46,
+      "sum_2d_net": 1871
+    }
+  ],
+  "consecutive_2_days_sells": [
+    {
+      "stock_id": "2409",
+      "stock_name": "友達",
+      "relation": "土洋同賣",
+      "today_total_net": -67949,
+      "foreign_net_3d": [
+        -87054,
+        -76193,
+        -59451
+      ],
+      "investment_trust_net_3d": [
+        -17,
+        -22,
+        -3
+      ],
+      "dealer_net_3d": [
+        -6549,
+        -3892,
+        -8495
+      ],
+      "margin_net_today": -2437,
+      "macd_osc_today": 0.15,
+      "sum_2d_net": -148056
+    },
+    {
+      "stock_id": "6770",
+      "stock_name": "力積電",
+      "relation": "土洋對作",
+      "today_total_net": -23401,
+      "foreign_net_3d": [
+        -15522,
+        -36306,
+        -21679
+      ],
+      "investment_trust_net_3d": [
+        -340,
+        -136,
+        125
+      ],
+      "dealer_net_3d": [
+        -743,
+        -3219,
+        -1847
+      ],
+      "margin_net_today": 373,
+      "macd_osc_today": -0.13,
+      "sum_2d_net": -63062
+    },
+    {
+      "stock_id": "2303",
+      "stock_name": "聯電",
+      "relation": "土洋對作",
+      "today_total_net": -19712,
+      "foreign_net_3d": [
+        4720,
+        -15335,
+        -19791
+      ],
+      "investment_trust_net_3d": [
+        -59352,
+        -17653,
+        1606
+      ],
+      "dealer_net_3d": [
+        5368,
+        -351,
+        -1527
+      ],
+      "margin_net_today": 2755,
+      "macd_osc_today": -1.53,
+      "sum_2d_net": -53051
+    },
+    {
+      "stock_id": "2317",
+      "stock_name": "鴻海",
+      "relation": "土洋對作",
+      "today_total_net": -25528,
+      "foreign_net_3d": [
+        -19982,
+        -11742,
+        -25605
+      ],
+      "investment_trust_net_3d": [
+        -1141,
+        -626,
+        147
+      ],
+      "dealer_net_3d": [
+        394,
+        -271,
+        -70
+      ],
+      "margin_net_today": 691,
+      "macd_osc_today": -0.01,
+      "sum_2d_net": -38167
+    },
+    {
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "relation": "土洋對作",
+      "today_total_net": -15778,
+      "foreign_net_3d": [
+        -321,
+        -3762,
+        -15691
+      ],
+      "investment_trust_net_3d": [
+        -79,
+        0,
+        17
+      ],
+      "dealer_net_3d": [
+        -220,
+        -100,
+        -104
+      ],
+      "margin_net_today": 1494,
+      "macd_osc_today": 0.05,
+      "sum_2d_net": -19640
+    },
+    {
+      "stock_id": "2890",
+      "stock_name": "永豐金",
+      "relation": "土洋對作",
+      "today_total_net": -6601,
+      "foreign_net_3d": [
+        2800,
+        -11525,
+        -8800
+      ],
+      "investment_trust_net_3d": [
+        2166,
+        1896,
+        1125
+      ],
+      "dealer_net_3d": [
+        862,
+        208,
+        1074
+      ],
+      "margin_net_today": 4640,
+      "macd_osc_today": -0.23,
+      "sum_2d_net": -16022
+    },
+    {
+      "stock_id": "2324",
+      "stock_name": "仁寶",
+      "relation": "土洋對作",
+      "today_total_net": -9589,
+      "foreign_net_3d": [
+        -3174,
+        -4580,
+        -9661
+      ],
+      "investment_trust_net_3d": [
+        -10,
+        -12,
+        10
+      ],
+      "dealer_net_3d": [
+        353,
+        -137,
+        62
+      ],
+      "margin_net_today": 336,
+      "macd_osc_today": -0.13,
+      "sum_2d_net": -14318
+    },
+    {
+      "stock_id": "2449",
+      "stock_name": "京元電子",
+      "relation": "土洋同賣",
+      "today_total_net": -10577,
+      "foreign_net_3d": [
+        -2700,
+        -1916,
+        -2405
+      ],
+      "investment_trust_net_3d": [
+        -335,
+        -67,
+        -8530
+      ],
+      "dealer_net_3d": [
+        106,
+        99,
+        358
+      ],
+      "margin_net_today": 4277,
+      "macd_osc_today": 0.16,
+      "sum_2d_net": -12461
+    },
+    {
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "relation": "土洋對作",
+      "today_total_net": -11075,
+      "foreign_net_3d": [
+        -1672,
+        -1163,
+        -12303
+      ],
+      "investment_trust_net_3d": [
+        -22,
+        73,
+        718
+      ],
+      "dealer_net_3d": [
+        396,
+        447,
+        510
+      ],
+      "margin_net_today": 1338,
+      "macd_osc_today": 10.11,
+      "sum_2d_net": -11718
+    },
+    {
+      "stock_id": "2376",
+      "stock_name": "技嘉",
+      "relation": "土洋對作",
+      "today_total_net": -1321,
+      "foreign_net_3d": [
+        -832,
+        -6749,
+        -1494
+      ],
+      "investment_trust_net_3d": [
+        -98,
+        -272,
+        98
+      ],
+      "dealer_net_3d": [
+        -177,
+        -11,
+        75
+      ],
+      "margin_net_today": 49,
+      "macd_osc_today": 0.45,
+      "sum_2d_net": -8353
+    },
+    {
+      "stock_id": "2454",
+      "stock_name": "聯發科",
+      "relation": "土洋同賣",
+      "today_total_net": -3268,
+      "foreign_net_3d": [
+        -3912,
+        -2769,
+        -3022
+      ],
+      "investment_trust_net_3d": [
+        -852,
+        -285,
+        -157
+      ],
+      "dealer_net_3d": [
+        33,
+        -131,
+        -89
+      ],
+      "margin_net_today": 80,
+      "macd_osc_today": -50.06,
+      "sum_2d_net": -6453
+    },
+    {
+      "stock_id": "2356",
+      "stock_name": "英業達",
+      "relation": "土洋對作",
+      "today_total_net": -2478,
+      "foreign_net_3d": [
+        -1432,
+        -3961,
+        -2737
+      ],
+      "investment_trust_net_3d": [
+        -7,
+        -18,
+        51
+      ],
+      "dealer_net_3d": [
+        409,
+        48,
+        208
+      ],
+      "margin_net_today": -43,
+      "macd_osc_today": -0.22,
+      "sum_2d_net": -6409
+    },
+    {
+      "stock_id": "6005",
+      "stock_name": "群益證",
+      "relation": "土洋對作",
+      "today_total_net": -2494,
+      "foreign_net_3d": [
+        -3202,
+        -1644,
+        -2504
+      ],
+      "investment_trust_net_3d": [
+        -3,
+        -5,
+        10
+      ],
+      "dealer_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "margin_net_today": 98,
+      "macd_osc_today": 0.08,
+      "sum_2d_net": -4143
+    },
+    {
+      "stock_id": "6488",
+      "stock_name": "環球晶",
+      "relation": "土洋同賣",
+      "today_total_net": -2287,
+      "foreign_net_3d": [
+        -518,
+        -356,
+        -1302
+      ],
+      "investment_trust_net_3d": [
+        106,
+        -1338,
+        -989
+      ],
+      "dealer_net_3d": [
+        103,
+        681,
+        4
+      ],
+      "margin_net_today": -932,
+      "macd_osc_today": 25.88,
+      "sum_2d_net": -3300
+    },
+    {
+      "stock_id": "2371",
+      "stock_name": "大同",
+      "relation": "土洋同賣",
+      "today_total_net": -405,
+      "foreign_net_3d": [
+        1131,
+        -2826,
+        -320
+      ],
+      "investment_trust_net_3d": [
+        -16,
+        -96,
+        -10
+      ],
+      "dealer_net_3d": [
+        94,
+        204,
+        -75
+      ],
+      "margin_net_today": 112,
+      "macd_osc_today": 0.06,
+      "sum_2d_net": -3123
+    },
+    {
+      "stock_id": "2308",
+      "stock_name": "台達電",
+      "relation": "土洋對作",
+      "today_total_net": -834,
+      "foreign_net_3d": [
+        645,
+        -2067,
+        -1168
+      ],
+      "investment_trust_net_3d": [
+        321,
+        72,
+        330
+      ],
+      "dealer_net_3d": [
+        -114,
+        -109,
+        4
+      ],
+      "margin_net_today": 31,
+      "macd_osc_today": 19.25,
+      "sum_2d_net": -2938
+    },
+    {
+      "stock_id": "2474",
+      "stock_name": "可成",
+      "relation": "土洋對作",
+      "today_total_net": -918,
+      "foreign_net_3d": [
+        -170,
+        -1946,
+        -855
+      ],
+      "investment_trust_net_3d": [
+        -40,
+        -18,
+        1
+      ],
+      "dealer_net_3d": [
+        -3,
+        -42,
+        -64
+      ],
+      "margin_net_today": 22,
+      "macd_osc_today": -1.43,
+      "sum_2d_net": -2924
+    },
+    {
+      "stock_id": "8069",
+      "stock_name": "元太",
+      "relation": "土洋對作",
+      "today_total_net": -645,
+      "foreign_net_3d": [
+        -978,
+        -1908,
+        -674
+      ],
+      "investment_trust_net_3d": [
+        17,
+        -12,
+        20
+      ],
+      "dealer_net_3d": [
+        214,
+        -184,
+        9
+      ],
+      "margin_net_today": -1,
+      "macd_osc_today": 1.11,
+      "sum_2d_net": -2749
+    },
+    {
+      "stock_id": "2478",
+      "stock_name": "大毅",
+      "relation": "土洋同賣",
+      "today_total_net": -389,
+      "foreign_net_3d": [
+        470,
+        -2192,
+        -479
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        -6
+      ],
+      "dealer_net_3d": [
+        4,
+        39,
+        96
+      ],
+      "margin_net_today": 178,
+      "macd_osc_today": 2.06,
+      "sum_2d_net": -2542
+    },
+    {
+      "stock_id": "2354",
+      "stock_name": "鴻準",
+      "relation": "土洋對作",
+      "today_total_net": -1370,
+      "foreign_net_3d": [
+        -2435,
+        -903,
+        -1282
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        5
+      ],
+      "dealer_net_3d": [
+        -231,
+        -77,
+        -93
+      ],
+      "margin_net_today": 162,
+      "macd_osc_today": -0.62,
+      "sum_2d_net": -2350
+    },
+    {
+      "stock_id": "2603",
+      "stock_name": "長榮",
+      "relation": "土洋對作",
+      "today_total_net": -1507,
+      "foreign_net_3d": [
+        727,
+        -676,
+        -2052
+      ],
+      "investment_trust_net_3d": [
+        197,
+        189,
+        235
+      ],
+      "dealer_net_3d": [
+        133,
+        -149,
+        310
+      ],
+      "margin_net_today": -18,
+      "macd_osc_today": -1.54,
+      "sum_2d_net": -2143
+    },
+    {
+      "stock_id": "3450",
+      "stock_name": "聯鈞",
+      "relation": "土洋對作",
+      "today_total_net": -1487,
+      "foreign_net_3d": [
+        -1729,
+        -1195,
+        -1463
+      ],
+      "investment_trust_net_3d": [
+        -23,
+        591,
+        1
+      ],
+      "dealer_net_3d": [
+        -38,
+        -25,
+        -25
+      ],
+      "margin_net_today": -1,
+      "macd_osc_today": -0.31,
+      "sum_2d_net": -2116
+    },
+    {
+      "stock_id": "4938",
+      "stock_name": "和碩",
+      "relation": "土洋同賣",
+      "today_total_net": -1294,
+      "foreign_net_3d": [
+        1019,
+        -674,
+        -1389
+      ],
+      "investment_trust_net_3d": [
+        -193,
+        -144,
+        -89
+      ],
+      "dealer_net_3d": [
+        133,
+        67,
+        184
+      ],
+      "margin_net_today": -182,
+      "macd_osc_today": -0.17,
+      "sum_2d_net": -2045
+    },
+    {
+      "stock_id": "2633",
+      "stock_name": "台灣高鐵",
+      "relation": "土洋對作",
+      "today_total_net": -1714,
+      "foreign_net_3d": [
+        -937,
+        399,
+        634
+      ],
+      "investment_trust_net_3d": [
+        -722,
+        -490,
+        -2348
+      ],
+      "dealer_net_3d": [
+        0,
+        -2,
+        0
+      ],
+      "margin_net_today": 36,
+      "macd_osc_today": 0.01,
+      "sum_2d_net": -1807
+    },
+    {
+      "stock_id": "6531",
+      "stock_name": "愛普",
+      "relation": "土洋對作",
+      "today_total_net": -1229,
+      "foreign_net_3d": [
+        -625,
+        -498,
+        -1246
+      ],
+      "investment_trust_net_3d": [
+        72,
+        13,
+        41
+      ],
+      "dealer_net_3d": [
+        -38,
+        -15,
+        -24
+      ],
+      "margin_net_today": 764,
+      "macd_osc_today": 2.35,
+      "sum_2d_net": -1729
+    },
+    {
+      "stock_id": "3036",
+      "stock_name": "文曄",
+      "relation": "土洋對作",
+      "today_total_net": -718,
+      "foreign_net_3d": [
+        -60,
+        -2015,
+        -1157
+      ],
+      "investment_trust_net_3d": [
+        -203,
+        1293,
+        351
+      ],
+      "dealer_net_3d": [
+        -163,
+        -54,
+        88
+      ],
+      "margin_net_today": -84,
+      "macd_osc_today": 1.61,
+      "sum_2d_net": -1494
+    },
+    {
+      "stock_id": "6919",
+      "stock_name": "康霈",
+      "relation": "分歧",
+      "today_total_net": -960,
+      "foreign_net_3d": [
+        -329,
+        -521,
+        -951
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        -9,
+        -4,
+        -9
+      ],
+      "margin_net_today": 0,
+      "macd_osc_today": 0.45,
+      "sum_2d_net": -1485
+    },
+    {
+      "stock_id": "3017",
+      "stock_name": "奇鋐",
+      "relation": "土洋同賣",
+      "today_total_net": -462,
+      "foreign_net_3d": [
+        146,
+        -1059,
+        -423
+      ],
+      "investment_trust_net_3d": [
+        258,
+        147,
+        -93
+      ],
+      "dealer_net_3d": [
+        54,
+        -102,
+        54
+      ],
+      "margin_net_today": 62,
+      "macd_osc_today": -7.81,
+      "sum_2d_net": -1476
+    },
+    {
+      "stock_id": "6244",
+      "stock_name": "茂迪",
+      "relation": "分歧",
+      "today_total_net": -1147,
+      "foreign_net_3d": [
+        -508,
+        -6,
+        -1111
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        -17,
+        -55,
+        -36
+      ],
+      "margin_net_today": 74,
+      "macd_osc_today": -0.04,
+      "sum_2d_net": -1208
+    },
+    {
+      "stock_id": "8210",
+      "stock_name": "勤誠",
+      "relation": "分歧",
+      "today_total_net": -456,
+      "foreign_net_3d": [
+        -556,
+        -512,
+        -467
+      ],
+      "investment_trust_net_3d": [
+        -233,
+        -68,
+        0
+      ],
+      "dealer_net_3d": [
+        -13,
+        1,
+        11
+      ],
+      "margin_net_today": 51,
+      "macd_osc_today": 5.46,
+      "sum_2d_net": -1035
+    }
+  ],
+  "consecutive_3_days_buys": [
+    {
+      "stock_id": "1301",
+      "stock_name": "台塑",
+      "relation": "土洋同買",
+      "today_total_net": 27192,
+      "foreign_net_3d": [
+        4003,
+        35668,
+        14225
+      ],
+      "investment_trust_net_3d": [
+        0,
+        10282,
+        13940
+      ],
+      "dealer_net_3d": [
+        505,
+        1953,
+        -973
+      ],
+      "margin_net_today": 10543,
+      "macd_osc_today": 1.27,
+      "sum_3d_net": 79603
+    },
+    {
+      "stock_id": "1314",
+      "stock_name": "中石化",
+      "relation": "分歧",
+      "today_total_net": 21742,
+      "foreign_net_3d": [
+        3980,
+        12600,
+        21624
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        159,
+        -101,
+        118
+      ],
+      "margin_net_today": 2654,
+      "macd_osc_today": -0.0,
+      "sum_3d_net": 38380
+    },
+    {
+      "stock_id": "1326",
+      "stock_name": "台化",
+      "relation": "土洋同買",
+      "today_total_net": 4512,
+      "foreign_net_3d": [
+        13370,
+        15752,
+        4600
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        5
+      ],
+      "dealer_net_3d": [
+        197,
+        397,
+        -93
+      ],
+      "margin_net_today": 1275,
+      "macd_osc_today": 0.75,
+      "sum_3d_net": 34228
+    },
+    {
+      "stock_id": "1216",
+      "stock_name": "統一",
+      "relation": "土洋同買",
+      "today_total_net": 7116,
+      "foreign_net_3d": [
+        -944,
+        8871,
+        4818
+      ],
+      "investment_trust_net_3d": [
+        1681,
+        1186,
+        1911
+      ],
+      "dealer_net_3d": [
+        277,
+        78,
+        387
+      ],
+      "margin_net_today": -343,
+      "macd_osc_today": 0.13,
+      "sum_3d_net": 18265
+    },
+    {
+      "stock_id": "9904",
+      "stock_name": "寶成",
+      "relation": "土洋同買",
+      "today_total_net": 6627,
+      "foreign_net_3d": [
+        237,
+        8504,
+        6440
+      ],
+      "investment_trust_net_3d": [
+        -80,
+        157,
+        62
+      ],
+      "dealer_net_3d": [
+        293,
+        411,
+        125
+      ],
+      "margin_net_today": -185,
+      "macd_osc_today": 0.02,
+      "sum_3d_net": 16149
+    },
+    {
+      "stock_id": "2886",
+      "stock_name": "兆豐金",
+      "relation": "土洋對作",
+      "today_total_net": 6176,
+      "foreign_net_3d": [
+        12515,
+        7348,
+        10105
+      ],
+      "investment_trust_net_3d": [
+        -5472,
+        -6178,
+        -5228
+      ],
+      "dealer_net_3d": [
+        567,
+        342,
+        1299
+      ],
+      "margin_net_today": 729,
+      "macd_osc_today": -0.19,
+      "sum_3d_net": 15298
+    },
+    {
+      "stock_id": "1102",
+      "stock_name": "亞泥",
+      "relation": "土洋對作",
+      "today_total_net": 7435,
+      "foreign_net_3d": [
+        2039,
+        3076,
+        7342
+      ],
+      "investment_trust_net_3d": [
+        -299,
+        -129,
+        -80
+      ],
+      "dealer_net_3d": [
+        165,
+        135,
+        173
+      ],
+      "margin_net_today": -22,
+      "macd_osc_today": 0.01,
+      "sum_3d_net": 12422
+    },
+    {
+      "stock_id": "2609",
+      "stock_name": "陽明",
+      "relation": "土洋對作",
+      "today_total_net": 5769,
+      "foreign_net_3d": [
+        5172,
+        527,
+        5245
+      ],
+      "investment_trust_net_3d": [
+        -89,
+        -25,
+        -21
+      ],
+      "dealer_net_3d": [
+        221,
+        -73,
+        545
+      ],
+      "margin_net_today": -396,
+      "macd_osc_today": -0.25,
+      "sum_3d_net": 11502
+    },
+    {
+      "stock_id": "4958",
+      "stock_name": "臻鼎-KY",
+      "relation": "土洋同買",
+      "today_total_net": 2205,
+      "foreign_net_3d": [
+        4653,
+        6652,
+        2140
+      ],
+      "investment_trust_net_3d": [
+        -4162,
+        248,
+        235
+      ],
+      "dealer_net_3d": [
+        29,
+        270,
+        -170
+      ],
+      "margin_net_today": 149,
+      "macd_osc_today": 12.03,
+      "sum_3d_net": 9895
+    },
+    {
+      "stock_id": "2412",
+      "stock_name": "中華電",
+      "relation": "土洋同買",
+      "today_total_net": 2813,
+      "foreign_net_3d": [
+        2946,
+        2594,
+        2792
+      ],
+      "investment_trust_net_3d": [
+        107,
+        -261,
+        400
+      ],
+      "dealer_net_3d": [
+        11,
+        28,
+        -379
+      ],
+      "margin_net_today": -23,
+      "macd_osc_today": -0.01,
+      "sum_3d_net": 8238
+    },
+    {
+      "stock_id": "6505",
+      "stock_name": "台塑化",
+      "relation": "土洋對作",
+      "today_total_net": 83,
+      "foreign_net_3d": [
+        -707,
+        1249,
+        -14514
+      ],
+      "investment_trust_net_3d": [
+        2265,
+        3787,
+        14836
+      ],
+      "dealer_net_3d": [
+        374,
+        261,
+        -239
+      ],
+      "margin_net_today": 1275,
+      "macd_osc_today": 1.68,
+      "sum_3d_net": 7312
+    },
+    {
+      "stock_id": "9945",
+      "stock_name": "潤泰新",
+      "relation": "土洋同買",
+      "today_total_net": 3893,
+      "foreign_net_3d": [
+        139,
+        1375,
+        3536
+      ],
+      "investment_trust_net_3d": [
+        726,
+        764,
+        35
+      ],
+      "dealer_net_3d": [
+        57,
+        12,
+        322
+      ],
+      "margin_net_today": -178,
+      "macd_osc_today": 0.01,
+      "sum_3d_net": 6966
+    },
+    {
+      "stock_id": "3702",
+      "stock_name": "大聯大",
+      "relation": "土洋同買",
+      "today_total_net": 4040,
+      "foreign_net_3d": [
+        261,
+        2530,
+        3300
+      ],
+      "investment_trust_net_3d": [
+        37,
+        50,
+        55
+      ],
+      "dealer_net_3d": [
+        -48,
+        -6,
+        685
+      ],
+      "margin_net_today": -4381,
+      "macd_osc_today": 0.67,
+      "sum_3d_net": 6864
+    },
+    {
+      "stock_id": "2542",
+      "stock_name": "興富發",
+      "relation": "土洋對作",
+      "today_total_net": 3431,
+      "foreign_net_3d": [
+        2246,
+        4305,
+        3831
+      ],
+      "investment_trust_net_3d": [
+        -1721,
+        -1519,
+        -330
+      ],
+      "dealer_net_3d": [
+        5,
+        85,
+        -70
+      ],
+      "margin_net_today": -103,
+      "macd_osc_today": -0.41,
+      "sum_3d_net": 6832
+    },
+    {
+      "stock_id": "1402",
+      "stock_name": "遠東新",
+      "relation": "土洋對作",
+      "today_total_net": 280,
+      "foreign_net_3d": [
+        1614,
+        4578,
+        397
+      ],
+      "investment_trust_net_3d": [
+        -191,
+        -138,
+        -107
+      ],
+      "dealer_net_3d": [
+        6,
+        65,
+        -10
+      ],
+      "margin_net_today": -21,
+      "macd_osc_today": 0.04,
+      "sum_3d_net": 6214
+    },
+    {
+      "stock_id": "2027",
+      "stock_name": "大成鋼",
+      "relation": "土洋同買",
+      "today_total_net": 4426,
+      "foreign_net_3d": [
+        817,
+        2845,
+        1203
+      ],
+      "investment_trust_net_3d": [
+        -913,
+        -1402,
+        2989
+      ],
+      "dealer_net_3d": [
+        168,
+        46,
+        234
+      ],
+      "margin_net_today": -140,
+      "macd_osc_today": 0.09,
+      "sum_3d_net": 5987
+    },
+    {
+      "stock_id": "1434",
+      "stock_name": "福懋",
+      "relation": "分歧",
+      "today_total_net": 2534,
+      "foreign_net_3d": [
+        524,
+        2827,
+        2495
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        0,
+        49,
+        39
+      ],
+      "margin_net_today": 131,
+      "macd_osc_today": 0.13,
+      "sum_3d_net": 5934
+    },
+    {
+      "stock_id": "5876",
+      "stock_name": "上海商銀",
+      "relation": "土洋對作",
+      "today_total_net": 962,
+      "foreign_net_3d": [
+        366,
+        2200,
+        761
+      ],
+      "investment_trust_net_3d": [
+        141,
+        141,
+        -203
+      ],
+      "dealer_net_3d": [
+        281,
+        320,
+        404
+      ],
+      "margin_net_today": 6,
+      "macd_osc_today": -0.17,
+      "sum_3d_net": 4411
+    },
+    {
+      "stock_id": "3037",
+      "stock_name": "欣興",
+      "relation": "土洋對作",
+      "today_total_net": 937,
+      "foreign_net_3d": [
+        2957,
+        1811,
+        1829
+      ],
+      "investment_trust_net_3d": [
+        -1901,
+        -450,
+        -849
+      ],
+      "dealer_net_3d": [
+        -40,
+        -9,
+        -43
+      ],
+      "margin_net_today": -47,
+      "macd_osc_today": 21.01,
+      "sum_3d_net": 3305
+    },
+    {
+      "stock_id": "3706",
+      "stock_name": "神達",
+      "relation": "土洋同買",
+      "today_total_net": 1516,
+      "foreign_net_3d": [
+        257,
+        1169,
+        1484
+      ],
+      "investment_trust_net_3d": [
+        -14,
+        20,
+        35
+      ],
+      "dealer_net_3d": [
+        -11,
+        -29,
+        -3
+      ],
+      "margin_net_today": 43,
+      "macd_osc_today": 0.47,
+      "sum_3d_net": 2908
+    },
+    {
+      "stock_id": "3045",
+      "stock_name": "台灣大",
+      "relation": "土洋對作",
+      "today_total_net": 1542,
+      "foreign_net_3d": [
+        277,
+        402,
+        1532
+      ],
+      "investment_trust_net_3d": [
+        260,
+        135,
+        -62
+      ],
+      "dealer_net_3d": [
+        102,
+        82,
+        72
+      ],
+      "margin_net_today": -153,
+      "macd_osc_today": -0.22,
+      "sum_3d_net": 2800
+    },
+    {
+      "stock_id": "1717",
+      "stock_name": "長興",
+      "relation": "土洋同買",
+      "today_total_net": 179,
+      "foreign_net_3d": [
+        1963,
+        2085,
+        241
+      ],
+      "investment_trust_net_3d": [
+        0,
+        -1500,
+        5
+      ],
+      "dealer_net_3d": [
+        55,
+        -105,
+        -67
+      ],
+      "margin_net_today": -169,
+      "macd_osc_today": 0.32,
+      "sum_3d_net": 2677
+    },
+    {
+      "stock_id": "1477",
+      "stock_name": "聚陽",
+      "relation": "土洋對作",
+      "today_total_net": 749,
+      "foreign_net_3d": [
+        999,
+        870,
+        779
+      ],
+      "investment_trust_net_3d": [
+        47,
+        -38,
+        -27
+      ],
+      "dealer_net_3d": [
+        -72,
+        -22,
+        -3
+      ],
+      "margin_net_today": -19,
+      "macd_osc_today": 2.05,
+      "sum_3d_net": 2533
+    },
+    {
+      "stock_id": "3661",
+      "stock_name": "世芯-KY",
+      "relation": "土洋同買",
+      "today_total_net": 851,
+      "foreign_net_3d": [
+        433,
+        394,
+        73
+      ],
+      "investment_trust_net_3d": [
+        356,
+        362,
+        773
+      ],
+      "dealer_net_3d": [
+        98,
+        -8,
+        5
+      ],
+      "margin_net_today": 240,
+      "macd_osc_today": 76.67,
+      "sum_3d_net": 2486
+    },
+    {
+      "stock_id": "1476",
+      "stock_name": "儒鴻",
+      "relation": "土洋同買",
+      "today_total_net": 1267,
+      "foreign_net_3d": [
+        584,
+        572,
+        1009
+      ],
+      "investment_trust_net_3d": [
+        -8,
+        8,
+        225
+      ],
+      "dealer_net_3d": [
+        16,
+        24,
+        33
+      ],
+      "margin_net_today": -83,
+      "macd_osc_today": 4.46,
+      "sum_3d_net": 2463
+    },
+    {
+      "stock_id": "4904",
+      "stock_name": "遠傳",
+      "relation": "土洋對作",
+      "today_total_net": 452,
+      "foreign_net_3d": [
+        198,
+        931,
+        -344
+      ],
+      "investment_trust_net_3d": [
+        169,
+        233,
+        809
+      ],
+      "dealer_net_3d": [
+        163,
+        97,
+        -13
+      ],
+      "margin_net_today": -82,
+      "macd_osc_today": -0.07,
+      "sum_3d_net": 2243
+    },
+    {
+      "stock_id": "2347",
+      "stock_name": "聯強",
+      "relation": "土洋對作",
+      "today_total_net": 476,
+      "foreign_net_3d": [
+        828,
+        1579,
+        509
+      ],
+      "investment_trust_net_3d": [
+        -199,
+        -668,
+        -182
+      ],
+      "dealer_net_3d": [
+        68,
+        53,
+        149
+      ],
+      "margin_net_today": -8,
+      "macd_osc_today": 0.44,
+      "sum_3d_net": 2137
+    },
+    {
+      "stock_id": "2912",
+      "stock_name": "統一超",
+      "relation": "土洋同買",
+      "today_total_net": 751,
+      "foreign_net_3d": [
+        160,
+        988,
+        727
+      ],
+      "investment_trust_net_3d": [
+        12,
+        113,
+        21
+      ],
+      "dealer_net_3d": [
+        2,
+        4,
+        3
+      ],
+      "margin_net_today": 6,
+      "macd_osc_today": 0.19,
+      "sum_3d_net": 2030
+    },
+    {
+      "stock_id": "2393",
+      "stock_name": "億光",
+      "relation": "土洋對作",
+      "today_total_net": 869,
+      "foreign_net_3d": [
+        341,
+        991,
+        1055
+      ],
+      "investment_trust_net_3d": [
+        -24,
+        -12,
+        -94
+      ],
+      "dealer_net_3d": [
+        -63,
+        -92,
+        -92
+      ],
+      "margin_net_today": -8,
+      "macd_osc_today": 0.57,
+      "sum_3d_net": 2010
+    },
+    {
+      "stock_id": "1319",
+      "stock_name": "東陽",
+      "relation": "土洋同買",
+      "today_total_net": 560,
+      "foreign_net_3d": [
+        383,
+        954,
+        580
+      ],
+      "investment_trust_net_3d": [
+        0,
+        -5,
+        2
+      ],
+      "dealer_net_3d": [
+        10,
+        74,
+        -22
+      ],
+      "margin_net_today": -5,
+      "macd_osc_today": 0.12,
+      "sum_3d_net": 1976
+    }
+  ],
+  "consecutive_3_days_sells": [
+    {
+      "stock_id": "2409",
+      "stock_name": "友達",
+      "relation": "土洋同賣",
+      "today_total_net": -67949,
+      "foreign_net_3d": [
+        -87054,
+        -76193,
+        -59451
+      ],
+      "investment_trust_net_3d": [
+        -17,
+        -22,
+        -3
+      ],
+      "dealer_net_3d": [
+        -6549,
+        -3892,
+        -8495
+      ],
+      "margin_net_today": -2437,
+      "macd_osc_today": 0.15,
+      "sum_3d_net": -241676
+    },
+    {
+      "stock_id": "2303",
+      "stock_name": "聯電",
+      "relation": "土洋對作",
+      "today_total_net": -19712,
+      "foreign_net_3d": [
+        4720,
+        -15335,
+        -19791
+      ],
+      "investment_trust_net_3d": [
+        -59352,
+        -17653,
+        1606
+      ],
+      "dealer_net_3d": [
+        5368,
+        -351,
+        -1527
+      ],
+      "margin_net_today": 2755,
+      "macd_osc_today": -1.53,
+      "sum_3d_net": -102315
+    },
+    {
+      "stock_id": "6770",
+      "stock_name": "力積電",
+      "relation": "土洋對作",
+      "today_total_net": -23401,
+      "foreign_net_3d": [
+        -15522,
+        -36306,
+        -21679
+      ],
+      "investment_trust_net_3d": [
+        -340,
+        -136,
+        125
+      ],
+      "dealer_net_3d": [
+        -743,
+        -3219,
+        -1847
+      ],
+      "margin_net_today": 373,
+      "macd_osc_today": -0.13,
+      "sum_3d_net": -79667
+    },
+    {
+      "stock_id": "2317",
+      "stock_name": "鴻海",
+      "relation": "土洋對作",
+      "today_total_net": -25528,
+      "foreign_net_3d": [
+        -19982,
+        -11742,
+        -25605
+      ],
+      "investment_trust_net_3d": [
+        -1141,
+        -626,
+        147
+      ],
+      "dealer_net_3d": [
+        394,
+        -271,
+        -70
+      ],
+      "margin_net_today": 691,
+      "macd_osc_today": -0.01,
+      "sum_3d_net": -58896
+    },
+    {
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "relation": "土洋對作",
+      "today_total_net": -15778,
+      "foreign_net_3d": [
+        -321,
+        -3762,
+        -15691
+      ],
+      "investment_trust_net_3d": [
+        -79,
+        0,
+        17
+      ],
+      "dealer_net_3d": [
+        -220,
+        -100,
+        -104
+      ],
+      "margin_net_today": 1494,
+      "macd_osc_today": 0.05,
+      "sum_3d_net": -20260
+    },
+    {
+      "stock_id": "2324",
+      "stock_name": "仁寶",
+      "relation": "土洋對作",
+      "today_total_net": -9589,
+      "foreign_net_3d": [
+        -3174,
+        -4580,
+        -9661
+      ],
+      "investment_trust_net_3d": [
+        -10,
+        -12,
+        10
+      ],
+      "dealer_net_3d": [
+        353,
+        -137,
+        62
+      ],
+      "margin_net_today": 336,
+      "macd_osc_today": -0.13,
+      "sum_3d_net": -17149
+    },
+    {
+      "stock_id": "2449",
+      "stock_name": "京元電子",
+      "relation": "土洋同賣",
+      "today_total_net": -10577,
+      "foreign_net_3d": [
+        -2700,
+        -1916,
+        -2405
+      ],
+      "investment_trust_net_3d": [
+        -335,
+        -67,
+        -8530
+      ],
+      "dealer_net_3d": [
+        106,
+        99,
+        358
+      ],
+      "margin_net_today": 4277,
+      "macd_osc_today": 0.16,
+      "sum_3d_net": -15390
+    },
+    {
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "relation": "土洋對作",
+      "today_total_net": -11075,
+      "foreign_net_3d": [
+        -1672,
+        -1163,
+        -12303
+      ],
+      "investment_trust_net_3d": [
+        -22,
+        73,
+        718
+      ],
+      "dealer_net_3d": [
+        396,
+        447,
+        510
+      ],
+      "margin_net_today": 1338,
+      "macd_osc_today": 10.11,
+      "sum_3d_net": -13016
+    },
+    {
+      "stock_id": "2454",
+      "stock_name": "聯發科",
+      "relation": "土洋同賣",
+      "today_total_net": -3268,
+      "foreign_net_3d": [
+        -3912,
+        -2769,
+        -3022
+      ],
+      "investment_trust_net_3d": [
+        -852,
+        -285,
+        -157
+      ],
+      "dealer_net_3d": [
+        33,
+        -131,
+        -89
+      ],
+      "margin_net_today": 80,
+      "macd_osc_today": -50.06,
+      "sum_3d_net": -11184
+    },
+    {
+      "stock_id": "2376",
+      "stock_name": "技嘉",
+      "relation": "土洋對作",
+      "today_total_net": -1321,
+      "foreign_net_3d": [
+        -832,
+        -6749,
+        -1494
+      ],
+      "investment_trust_net_3d": [
+        -98,
+        -272,
+        98
+      ],
+      "dealer_net_3d": [
+        -177,
+        -11,
+        75
+      ],
+      "margin_net_today": 49,
+      "macd_osc_today": 0.45,
+      "sum_3d_net": -9460
+    },
+    {
+      "stock_id": "2356",
+      "stock_name": "英業達",
+      "relation": "土洋對作",
+      "today_total_net": -2478,
+      "foreign_net_3d": [
+        -1432,
+        -3961,
+        -2737
+      ],
+      "investment_trust_net_3d": [
+        -7,
+        -18,
+        51
+      ],
+      "dealer_net_3d": [
+        409,
+        48,
+        208
+      ],
+      "margin_net_today": -43,
+      "macd_osc_today": -0.22,
+      "sum_3d_net": -7439
+    },
+    {
+      "stock_id": "6005",
+      "stock_name": "群益證",
+      "relation": "土洋對作",
+      "today_total_net": -2494,
+      "foreign_net_3d": [
+        -3202,
+        -1644,
+        -2504
+      ],
+      "investment_trust_net_3d": [
+        -3,
+        -5,
+        10
+      ],
+      "dealer_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "margin_net_today": 98,
+      "macd_osc_today": 0.08,
+      "sum_3d_net": -7348
+    },
+    {
+      "stock_id": "2354",
+      "stock_name": "鴻準",
+      "relation": "土洋對作",
+      "today_total_net": -1370,
+      "foreign_net_3d": [
+        -2435,
+        -903,
+        -1282
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        5
+      ],
+      "dealer_net_3d": [
+        -231,
+        -77,
+        -93
+      ],
+      "margin_net_today": 162,
+      "macd_osc_today": -0.62,
+      "sum_3d_net": -5016
+    },
+    {
+      "stock_id": "3450",
+      "stock_name": "聯鈞",
+      "relation": "土洋對作",
+      "today_total_net": -1487,
+      "foreign_net_3d": [
+        -1729,
+        -1195,
+        -1463
+      ],
+      "investment_trust_net_3d": [
+        -23,
+        591,
+        1
+      ],
+      "dealer_net_3d": [
+        -38,
+        -25,
+        -25
+      ],
+      "margin_net_today": -1,
+      "macd_osc_today": -0.31,
+      "sum_3d_net": -3906
+    },
+    {
+      "stock_id": "6488",
+      "stock_name": "環球晶",
+      "relation": "土洋同賣",
+      "today_total_net": -2287,
+      "foreign_net_3d": [
+        -518,
+        -356,
+        -1302
+      ],
+      "investment_trust_net_3d": [
+        106,
+        -1338,
+        -989
+      ],
+      "dealer_net_3d": [
+        103,
+        681,
+        4
+      ],
+      "margin_net_today": -932,
+      "macd_osc_today": 25.88,
+      "sum_3d_net": -3609
+    },
+    {
+      "stock_id": "8069",
+      "stock_name": "元太",
+      "relation": "土洋對作",
+      "today_total_net": -645,
+      "foreign_net_3d": [
+        -978,
+        -1908,
+        -674
+      ],
+      "investment_trust_net_3d": [
+        17,
+        -12,
+        20
+      ],
+      "dealer_net_3d": [
+        214,
+        -184,
+        9
+      ],
+      "margin_net_today": -1,
+      "macd_osc_today": 1.11,
+      "sum_3d_net": -3496
+    },
+    {
+      "stock_id": "2633",
+      "stock_name": "台灣高鐵",
+      "relation": "土洋對作",
+      "today_total_net": -1714,
+      "foreign_net_3d": [
+        -937,
+        399,
+        634
+      ],
+      "investment_trust_net_3d": [
+        -722,
+        -490,
+        -2348
+      ],
+      "dealer_net_3d": [
+        0,
+        -2,
+        0
+      ],
+      "margin_net_today": 36,
+      "macd_osc_today": 0.01,
+      "sum_3d_net": -3466
+    },
+    {
+      "stock_id": "2474",
+      "stock_name": "可成",
+      "relation": "土洋對作",
+      "today_total_net": -918,
+      "foreign_net_3d": [
+        -170,
+        -1946,
+        -855
+      ],
+      "investment_trust_net_3d": [
+        -40,
+        -18,
+        1
+      ],
+      "dealer_net_3d": [
+        -3,
+        -42,
+        -64
+      ],
+      "margin_net_today": 22,
+      "macd_osc_today": -1.43,
+      "sum_3d_net": -3137
+    },
+    {
+      "stock_id": "6531",
+      "stock_name": "愛普",
+      "relation": "土洋對作",
+      "today_total_net": -1229,
+      "foreign_net_3d": [
+        -625,
+        -498,
+        -1246
+      ],
+      "investment_trust_net_3d": [
+        72,
+        13,
+        41
+      ],
+      "dealer_net_3d": [
+        -38,
+        -15,
+        -24
+      ],
+      "margin_net_today": 764,
+      "macd_osc_today": 2.35,
+      "sum_3d_net": -2320
+    },
+    {
+      "stock_id": "3036",
+      "stock_name": "文曄",
+      "relation": "土洋對作",
+      "today_total_net": -718,
+      "foreign_net_3d": [
+        -60,
+        -2015,
+        -1157
+      ],
+      "investment_trust_net_3d": [
+        -203,
+        1293,
+        351
+      ],
+      "dealer_net_3d": [
+        -163,
+        -54,
+        88
+      ],
+      "margin_net_today": -84,
+      "macd_osc_today": 1.61,
+      "sum_3d_net": -1920
+    },
+    {
+      "stock_id": "8210",
+      "stock_name": "勤誠",
+      "relation": "分歧",
+      "today_total_net": -456,
+      "foreign_net_3d": [
+        -556,
+        -512,
+        -467
+      ],
+      "investment_trust_net_3d": [
+        -233,
+        -68,
+        0
+      ],
+      "dealer_net_3d": [
+        -13,
+        1,
+        11
+      ],
+      "margin_net_today": 51,
+      "macd_osc_today": 5.46,
+      "sum_3d_net": -1837
+    },
+    {
+      "stock_id": "6919",
+      "stock_name": "康霈",
+      "relation": "分歧",
+      "today_total_net": -960,
+      "foreign_net_3d": [
+        -329,
+        -521,
+        -951
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        -9,
+        -4,
+        -9
+      ],
+      "margin_net_today": 0,
+      "macd_osc_today": 0.45,
+      "sum_3d_net": -1823
+    },
+    {
+      "stock_id": "6244",
+      "stock_name": "茂迪",
+      "relation": "分歧",
+      "today_total_net": -1147,
+      "foreign_net_3d": [
+        -508,
+        -6,
+        -1111
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        -17,
+        -55,
+        -36
+      ],
+      "margin_net_today": 74,
+      "macd_osc_today": -0.04,
+      "sum_3d_net": -1733
+    },
+    {
+      "stock_id": "6669",
+      "stock_name": "緯穎",
+      "relation": "土洋同賣",
+      "today_total_net": -235,
+      "foreign_net_3d": [
+        -267,
+        -484,
+        -247
+      ],
+      "investment_trust_net_3d": [
+        -9,
+        -17,
+        -40
+      ],
+      "dealer_net_3d": [
+        -35,
+        -29,
+        52
+      ],
+      "margin_net_today": 158,
+      "macd_osc_today": 148.7,
+      "sum_3d_net": -1076
+    },
+    {
+      "stock_id": "3324",
+      "stock_name": "雙鴻",
+      "relation": "土洋同賣",
+      "today_total_net": -675,
+      "foreign_net_3d": [
+        -189,
+        126,
+        -666
+      ],
+      "investment_trust_net_3d": [
+        0,
+        -236,
+        -16
+      ],
+      "dealer_net_3d": [
+        -45,
+        11,
+        7
+      ],
+      "margin_net_today": -64,
+      "macd_osc_today": -17.04,
+      "sum_3d_net": -1008
+    },
+    {
+      "stock_id": "5289",
+      "stock_name": "宜鼎",
+      "relation": "土洋對作",
+      "today_total_net": -202,
+      "foreign_net_3d": [
+        -495,
+        -253,
+        -198
+      ],
+      "investment_trust_net_3d": [
+        1,
+        -2,
+        16
+      ],
+      "dealer_net_3d": [
+        -32,
+        -4,
+        -20
+      ],
+      "margin_net_today": 45,
+      "macd_osc_today": 1.73,
+      "sum_3d_net": -987
+    },
+    {
+      "stock_id": "6831",
+      "stock_name": "邁科",
+      "relation": "分歧",
+      "today_total_net": -666,
+      "foreign_net_3d": [
+        -119,
+        -158,
+        -310
+      ],
+      "investment_trust_net_3d": [
+        0,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        -4,
+        -1,
+        -356
+      ],
+      "margin_net_today": 292,
+      "macd_osc_today": 0.94,
+      "sum_3d_net": -948
+    },
+    {
+      "stock_id": "9910",
+      "stock_name": "豐泰",
+      "relation": "土洋同賣",
+      "today_total_net": -31,
+      "foreign_net_3d": [
+        -453,
+        -269,
+        -4
+      ],
+      "investment_trust_net_3d": [
+        -64,
+        -8,
+        -18
+      ],
+      "dealer_net_3d": [
+        -1,
+        0,
+        -9
+      ],
+      "margin_net_today": 5,
+      "macd_osc_today": -0.27,
+      "sum_3d_net": -826
+    },
+    {
+      "stock_id": "8299",
+      "stock_name": "群聯",
+      "relation": "土洋對作",
+      "today_total_net": -219,
+      "foreign_net_3d": [
+        -173,
+        -358,
+        -248
+      ],
+      "investment_trust_net_3d": [
+        0,
+        16,
+        28
+      ],
+      "dealer_net_3d": [
+        -11,
+        -46,
+        1
+      ],
+      "margin_net_today": 16,
+      "macd_osc_today": -6.81,
+      "sum_3d_net": -791
+    },
+    {
+      "stock_id": "6176",
+      "stock_name": "瑞儀",
+      "relation": "分歧",
+      "today_total_net": -164,
+      "foreign_net_3d": [
+        -291,
+        -333,
+        -164
+      ],
+      "investment_trust_net_3d": [
+        4,
+        0,
+        0
+      ],
+      "dealer_net_3d": [
+        0,
+        2,
+        0
+      ],
+      "margin_net_today": 11,
+      "macd_osc_today": -0.25,
+      "sum_3d_net": -782
+    }
+  ]
+}
