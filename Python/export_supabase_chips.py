@@ -3,10 +3,10 @@ import math
 from datetime import datetime
 from supabase import create_client, Client
 
-# ==================== 路徑與環境設定 ====================
-# 取得目前腳本所在目錄 (Stock/Python)
+# ==================== 路徑嚴格鎖定 ====================
+# 當前檔案絕對路徑: .../Stock/Python/export_supabase_chips.py
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-# 鎖定輸出目標為 Stock/docs/
+# 鎖定上一層的 docs: .../Stock/docs/
 OUTPUT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "docs"))
 
 # ==================== Supabase 設定 ====================
@@ -22,7 +22,7 @@ def fetch_and_process_chips():
     supabase = get_supabase_client()
     print("🚀 連線 Supabase 讀取 stock_targets 名單...")
     
-    # 1. 讀取目標 231 檔名單
+    # 1. 讀取目標 231 檔觀察名單
     targets_res = supabase.table('stock_targets').select('stock_id, stock_name').execute()
     targets = targets_res.data or []
     if not targets:
@@ -33,31 +33,53 @@ def fetch_and_process_chips():
     stock_ids = list(stock_map.keys())
     print(f"✅ 取得觀察名單共 {len(stock_ids)} 檔")
 
-    # 2. 獲取資料庫最近的交易日期 (取最新 3 天)
-    print("📅 正在獲取最新交易日...")
-    dates_res = supabase.table('stock_chips_daily').select('date').order('date', desc=True).limit(50).execute()
-    all_dates = sorted(list(set(item['date'] for item in dates_res.data or [])))
+    # 2. 獲取資料庫最近的交易日期 (取最新不重複的 3 個交易日)
+    print("📅 正在獲取最新交易日 (避開同一天多筆資料問題)...")
     
+    # 策略 A：用指標股 2330 取近 10 天日期，保證每天只有一筆，且必然涵蓋真實交易日
+    dates_res = (
+        supabase.table('stock_chips_daily')
+        .select('date')
+        .eq('stock_id', '2330')
+        .order('date', desc=True)
+        .limit(10)
+        .execute()
+    )
+    all_dates = sorted(list(set(item['date'] for item in (dates_res.data or []))))
+    
+    # 策略 B (備援)：若 2330 查無資料，以大容量 limit(1000) 跨多日撈取並去重複
     if len(all_dates) < 3:
-        print(f"⚠️ 交易天數不足 3 天 (僅找到 {len(all_dates)} 天)")
+        dates_res = (
+            supabase.table('stock_chips_daily')
+            .select('date')
+            .order('date', desc=True)
+            .limit(1000)
+            .execute()
+        )
+        all_dates = sorted(list(set(item['date'] for item in (dates_res.data or []))))
+
+    if len(all_dates) < 3:
+        print(f"⚠️ 交易天數不足 3 天 (僅找到 {len(all_dates)} 天: {all_dates})")
         return None
         
     recent_3_dates = all_dates[-3:]  # 由舊到新排序: [T-2, T-1, T]
     date_t2, date_t1, date_t = recent_3_dates[0], recent_3_dates[1], recent_3_dates[2]
-    print(f"📌 分析鎖定近 3 個交易日: [T-2: {date_t2}, T-1: {date_t1}, T: {date_t}]")
+    print(f"📌 成功鎖定近 3 個交易日: [T-2: {date_t2}, T-1: {date_t1}, T: {date_t}]")
 
-    # 3. 分批撈取這 231 檔在近 3 天的籌碼與指標 (每批 50 檔，避免 URL 請求過長)
+    # 3. 分批撈取這 231 檔在近 3 天的籌碼與技術指標 (每批 50 檔，避免 URL 請求過長)
     print("📦 正在分批同步 3 日籌碼與技術面數據...")
     chunk_size = 50
     all_chips = []
     
     for i in range(0, len(stock_ids), chunk_size):
         chunk_ids = stock_ids[i:i + chunk_size]
-        chips_res = supabase.table('stock_chips_daily') \
-            .select('*') \
-            .in_('stock_id', chunk_ids) \
-            .in_('date', recent_3_dates) \
+        chips_res = (
+            supabase.table('stock_chips_daily')
+            .select('*')
+            .in_('stock_id', chunk_ids)
+            .in_('date', recent_3_dates)
             .execute()
+        )
         if chips_res.data:
             all_chips.extend(chips_res.data)
 
@@ -78,7 +100,7 @@ def fetch_and_process_chips():
         d_t1 = daily_records.get(date_t1, {})
         d_t = daily_records.get(date_t, {})
 
-        # 淨買賣張數計算函式 (股轉張並四捨五入)
+        # 淨買賣張數計算 (股轉張並四捨五入)
         def get_net(data, b_key, s_key):
             buy = round((data.get(b_key) or 0) / 1000)
             sell = round((data.get(s_key) or 0) / 1000)
@@ -99,7 +121,7 @@ def fetch_and_process_chips():
         # 自營商 (自行 + 避險) 近 3 日數列
         def get_dealer_net(data):
             ds = get_net(data, 'ds_buy', 'ds_sell')
-            dh = round((data.get('dh_net') or (data.get('dh_buy', 0) - data.get('dh_sell', 0))) / 1000)
+            dh = round((data.get('dh_net') or ((data.get('dh_buy') or 0) - (data.get('dh_sell') or 0))) / 1000)
             return ds + dh
 
         d_arr = [get_dealer_net(d_t2), get_dealer_net(d_t1), get_dealer_net(d_t)]
@@ -178,6 +200,8 @@ def fetch_and_process_chips():
     ]
 
     result_text = "\n".join(output_lines)
+    
+    # 確保 Stock/docs/ 目錄存在
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     out_file = os.path.join(OUTPUT_DIR, f"chips_{date_t}.txt")
     
