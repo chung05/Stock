@@ -3,12 +3,17 @@ import math
 from datetime import datetime
 from supabase import create_client, Client
 
+# ==================== 路徑與環境設定 ====================
+# 取得目前腳本所在目錄 (Stock/Python)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# 鎖定輸出目標為 Stock/docs/
+OUTPUT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "docs"))
+
 # ==================== Supabase 設定 ====================
 SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZla2VzaXJzcWpia3JnYWlicmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTY0MjUsImV4cCI6MjA5NDU5MjQyNX0.82wBFq-B8cxfK9h_gkJQgIpMEabke1EhB6Oacw2lonc"
 
 TOP_N = 30
-OUTPUT_DIR = os.path.join("..", "docs")
 
 def get_supabase_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -22,7 +27,7 @@ def fetch_and_process_chips():
     targets = targets_res.data or []
     if not targets:
         print("❌ 未取得任何觀察股名單！")
-        return
+        return None
         
     stock_map = {str(item['stock_id']).strip(): item.get('stock_name', '') for item in targets}
     stock_ids = list(stock_map.keys())
@@ -35,13 +40,13 @@ def fetch_and_process_chips():
     
     if len(all_dates) < 3:
         print(f"⚠️ 交易天數不足 3 天 (僅找到 {len(all_dates)} 天)")
-        return
+        return None
         
-    recent_3_dates = all_dates[-3:]  # 由舊到新: [T-2, T-1, T]
+    recent_3_dates = all_dates[-3:]  # 由舊到新排序: [T-2, T-1, T]
     date_t2, date_t1, date_t = recent_3_dates[0], recent_3_dates[1], recent_3_dates[2]
     print(f"📌 分析鎖定近 3 個交易日: [T-2: {date_t2}, T-1: {date_t1}, T: {date_t}]")
 
-    # 3. 分批撈取這 231 檔在近 3 天的籌碼與指標 (每批 50 檔，避免 URL 過長)
+    # 3. 分批撈取這 231 檔在近 3 天的籌碼與指標 (每批 50 檔，避免 URL 請求過長)
     print("📦 正在分批同步 3 日籌碼與技術面數據...")
     chunk_size = 50
     all_chips = []
@@ -79,19 +84,19 @@ def fetch_and_process_chips():
             sell = round((data.get(s_key) or 0) / 1000)
             return buy - sell
 
-        # 外資近 3 日 [T-2, T-1, T]
+        # 外資近 3 日數列 [T-2, T-1, T]
         f_arr = [
             get_net(d_t2, 'f_buy', 'f_sell'),
             get_net(d_t1, 'f_buy', 'f_sell'),
             get_net(d_t, 'f_buy', 'f_sell')
         ]
-        # 投信近 3 日
+        # 投信近 3 日數列
         it_arr = [
             get_net(d_t2, 'it_buy', 'it_sell'),
             get_net(d_t1, 'it_buy', 'it_sell'),
             get_net(d_t, 'it_buy', 'it_sell')
         ]
-        # 自營商 (自行 + 避險) 近 3 日
+        # 自營商 (自行 + 避險) 近 3 日數列
         def get_dealer_net(data):
             ds = get_net(data, 'ds_buy', 'ds_sell')
             dh = round((data.get('dh_net') or (data.get('dh_buy', 0) - data.get('dh_sell', 0))) / 1000)
@@ -99,14 +104,14 @@ def fetch_and_process_chips():
 
         d_arr = [get_dealer_net(d_t2), get_dealer_net(d_t1), get_dealer_net(d_t)]
 
-        # 三大法人合計
+        # 三大法人合計近 3 日
         tot_arr = [f_arr[i] + it_arr[i] + d_arr[i] for i in range(3)]
         
-        # 今日技術指標與融資
+        # 今日技術指標與融資增減
         margin_net = (d_t.get('margin_buy') or 0) - (d_t.get('margin_sell') or 0)
         macd_osc = d_t.get('macd_osc', 0) or 0
 
-        # 土洋關係判斷
+        # 土洋動態關係
         f_today, it_today = f_arr[2], it_arr[2]
         if f_today > 0 and it_today > 0:
             relation = "土洋同買"
@@ -133,7 +138,7 @@ def fetch_and_process_chips():
             'relation': relation
         })
 
-    # 5. 排序與產出前 30 名榜單
+    # 5. 排序與產出前 30 名四大榜單
     top_buy_1d = sorted(records, key=lambda x: x['tot_t'], reverse=True)[:TOP_N]
     top_sell_1d = sorted(records, key=lambda x: x['tot_t'])[:TOP_N]
     
