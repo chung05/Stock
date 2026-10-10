@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 import edge_tts
 
 TW_TZ = ZoneInfo("Asia/Taipei")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def format_chips_for_prompt(chips_data):
     """將結構化的 chips_*.json 轉換為適合 Prompt 閱讀的高密度文字摘要"""
@@ -23,7 +23,7 @@ def format_chips_for_prompt(chips_data):
     
     lines = [
         f"【核心觀察股 (231檔) 三大法人與技術籌碼監控】",
-        f"※ 數列格式統一為 {date_str}，由左至右為 [前天, 昨天, 今天] 數值 (單位: 張)\n"
+        f"※ 數列格式統一為 {date_str}，由左至右為前天、昨天、今天數值 (單位: 張)\n"
     ]
 
     def format_list(title, items, top_n=25, extra_key=None):
@@ -75,36 +75,48 @@ def format_chips_for_prompt(chips_data):
 
     return "\n".join(lines)
 
-def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80, max_content_len=800):
+def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80, max_content_len=900):
     weekday = today_dt.weekday()  # 0:週一, 5:週六, 6:週日
     chips_context = format_chips_for_prompt(chips_data)
-    
     is_weekend = (weekday == 6)
-    title_context = "台股週末財經總覽與下週展望報告" if is_weekend else "台股盤前焦點分析報告"
-    market_header = "【本週五美股與台指期夜盤最終收盤數據（週末休市）】\n" if is_weekend else "【昨日美股與台指期夜盤最終收盤數據】\n"
-
-    role_and_context = f"""你是一位資深的台股專業首席操盤手。請詳細閱讀以下提供的『市場夜盤/美股收盤數據』、『三大法人籌碼監控數據』以及最新的『財經新聞細節』。
-請幫我統整出一份深入、具備高度實戰價值的『{title_context}』。
-
-【深度交叉分析核心指令（新聞面 ✖ 資金面）】：
-你必須擺脫單純抄寫新聞的模式，強制對照『新聞事件』與『三大法人近3日買賣數列 [前天, 昨天, 今天]、土洋關係、融資增減、MACD柱狀體』：
-1. 【真利多（雙強共振）】：新聞有利多，且法人連續買超（或外資投信土洋同買）、融資退場，列入重大利多。
-2. 【假利多真出貨（籌碼背離）】：新聞公布營收創高或接單利多，但三大法人卻連續大賣（外資大提款、融資暴增散戶接刀），『必須』列入「⚠️ 重大個股利空」中作為重點風險示警！
-3. 【個股數量規範】：
-   - 「🚀 重大個股利多」請詳實列出 8 ~ 12 檔，禁止只挑 4~5 檔草草了事。
-   - 「⚠️ 重大個股利空」請詳實列出 6 ~ 10 檔（務必納入籌碼背離或法人連賣標的）。
-4. 【個股格式統一模板】：
-   在第 2 與第 3 區塊中，每一檔個股請嚴格按照以下 HTML 格式輸出：
-   <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務數字。【籌碼面】三大法人買賣動向（註明外資/投信張數增減趨勢、土洋同買/對作、融資與MACD狀態），並給予精闢定性解讀。</li>
-
-報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：
-注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。
-
-1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。
-2. 🚀 重大個股利多（篩選 8~12 檔具備基本面亮點或法人買盤加持標的，按模板標示消息面與籌碼面）。
-3. ⚠️ 重大個股利空（篩選 6~10 檔實質利空或『營收創新高但法人大倒貨/籌碼背離』個股，按模板標示消息面與籌碼面）。
-4. 💡 操盤手筆記（綜合國際氛圍與籌碼數據，歸納土洋對作焦點族群、法人資金輪動方向及開盤實戰策略）。
-"""
+    
+    if is_weekend:
+        market_header = "【本週五美股與台指期夜盤最終收盤數據（週末休市）】\n"
+        role_and_context = (
+            "你是一位資深的台股專業首席操盤手。今天是星期天，台股與美股均處於週末休市狀態。\n"
+            "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』、本週末最新『台股與國際財經新聞』，以及本週最新『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
+            "請統整出一份兼具基本面與資金動向的『台股週末財經總覽與下週展望報告』。\n"
+            "嚴格禁止提及『昨日美股』或『今日開盤』等錯誤字眼，應以『週五美股表現』及『展望下週一開盤』角度分析。\n\n"
+            "【嚴格覆蓋與格式要求（請務必遵循）】：\n"
+            "1. 涵蓋數量：在新聞有利多的眾多個股中，必須挑選出 10 ~ 15 檔進行詳細列出，嚴格禁止只列 4~5 檔！利空個股請列出 6 ~ 10 檔。\n"
+            "2. 消息面 ✖ 資金面交叉驗證：每一檔個股必須嚴格遵守以下格式輸出：\n"
+            "   <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務數據。【籌碼面】三大法人買賣動向（註明外資/投信張數變化、土洋同買/對作、融資與MACD狀態），並標註是否為真強勢或背離。</li>\n"
+            "3. 假利多真出貨警示：若個股營收創新高或有利多題材，但法人連續賣超（融資大增散戶接刀），請務必歸入『重大個股利空』進行示警。\n\n"
+            "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
+            "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
+            "1. 📈 國際大盤焦點（週五美股四大指數、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。\n"
+            "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點且籌碼健康標的，按規範輸出消息面與籌碼面）。\n"
+            "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股，按規範輸出）。\n"
+            "4. 💡 操盤手筆記（綜合週末情勢、土洋對作重點族群與法人資金輪動，展望下週一開盤操作策略）。\n\n"
+        )
+    else:
+        market_header = "【昨日美股與台指期夜盤最終收盤數據】\n"
+        role_and_context = (
+            "你是一位資深的台股專業首席操盤手。請仔細閱讀以下提供的大盤/海外夜盤數據、最新台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
+            "請統整出一份深入、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
+            "必須特別對照夜盤、美股與 ADR 的表現，並深入解讀個股消息面與法人籌碼背離狀況。\n\n"
+            "【嚴格覆蓋與格式要求（請務必遵循）】：\n"
+            "1. 涵蓋數量：在新聞有利多的眾多個股中，必須挑選出 10 ~ 15 檔進行詳細列出，嚴格禁止只列 4~5 檔！利空個股請列出 6 ~ 10 檔。\n"
+            "2. 消息面 ✖ 資金面交叉驗證：每一檔個股必須嚴格遵守以下格式輸出：\n"
+            "   <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務數據。【籌碼面】三大法人買賣動向（註明外資/投信張數變化、土洋同買/對作、融資與MACD狀態），並標註是否為真強勢或背離。</li>\n"
+            "3. 假利多真出貨警示：若個股營收創新高或有利多題材，但法人連續賣超（融資大增散戶接刀），請務必歸入『重大個股利空』進行示警。\n\n"
+            "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
+            "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
+            "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
+            "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點且籌碼健康標的，按規範輸出消息面與籌碼面）。\n"
+            "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股，按規範輸出）。\n"
+            "4. 💡 操盤手筆記（綜合大盤情勢、土洋對作重點族群與法人資金輪動，給出開盤操作實戰指南）。\n\n"
+        )
 
     market_context = market_header
     if market_data:
@@ -121,18 +133,17 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
             content_snippet += "...(以下字數省略)"
         news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文重點：{content_snippet}\n\n"
     
-    prompt = f"{role_and_context}\n市場收盤數據來源：\n{market_context}\n{chips_context}\n新聞資料來源如下：\n{news_context}"
+    prompt = f"{role_and_context}數據來源：\n{market_context}\n{chips_context}\n新聞資料來源如下：\n{news_context}"
     return prompt
 
 def ai_generate_report(news_list, market_data, chips_data, today_dt):
-    if not GEMINI_API_KEY:
-        raise ValueError("❌ 錯誤：GEMINI_API_KEY 環境變數為空，請確認儲存庫 Secrets 設定！")
+    api_key = (GEMINI_API_KEY or "").strip()
+    if not api_key:
+        raise ValueError("❌ 錯誤：GEMINI_API_KEY 環境變數為空，請確認 GitHub Secrets 設定！")
         
-    # 強制去除任何 Markdown 連結與方括號，確保網址完全乾淨
-    raw_url = "[https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent](https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent)"
-    url = raw_url.replace("[", "").replace("]", "").strip()
-    
-    params = {"key": GEMINI_API_KEY}
+    # 保證 URL 絕對乾淨，無任何隱形字元或跳脫括號
+    clean_url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent"
+    request_url = f"{clean_url}?key={api_key}"
     headers = {"Content-Type": "application/json"}
     
     max_retries = 5
@@ -143,7 +154,7 @@ def ai_generate_report(news_list, market_data, chips_data, today_dt):
             print("⚡ 啟動防塞車降載策略：縮減分析新聞為重要前 40 筆...")
             prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=40, max_content_len=500)
         else:
-            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=70, max_content_len=700)
+            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=70, max_content_len=800)
             
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -156,7 +167,7 @@ def ai_generate_report(news_list, market_data, chips_data, today_dt):
         }
         
         try:
-            res = requests.post(url, params=params, json=payload, headers=headers, timeout=300)
+            res = requests.post(request_url, json=payload, headers=headers, timeout=300)
             res_json = res.json()
             
             if 'candidates' in res_json and len(res_json['candidates']) > 0:
@@ -188,9 +199,9 @@ async def generate_microsoft_tts(html_content, target_date):
     audio_filename = f"audio_{target_date}.mp3"
     audio_path = os.path.join(target_dir, audio_filename)
     
-    # 移除 <head>, <style>, <script> 標籤與內部內容
+    # 移除 <head>, <style>, <script> 區塊及其內部所有代碼內容
     text = re.sub(r'<(style|script|head)[^>]*>[\s\S]*?</\1>', ' ', html_content, flags=re.IGNORECASE)
-    # 移除剩餘 HTML 標籤
+    # 移除其餘 HTML 標籤
     text = re.sub(r'<[^>]+>', ' ', text)
     text = text.replace("📈", "。").replace("🚀", "。").replace("⚠️", "。").replace("💡", "。")
     text = text.replace("▼", "下跌").replace("▲", "上漲")
@@ -283,7 +294,7 @@ def main():
     market_data = {}
     chips_data = {}
     
-    # 1. 讀取新聞快取檔案[cite: 2]
+    # 1. 讀取新聞快取檔案[cite: 1, 2]
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
     if os.path.exists(cnyes_path):
         print(f"📖 讀取鉅亨網資料: cnyes_{yesterday_str}.json")
@@ -296,7 +307,7 @@ def main():
         with open(rss_path, "r", encoding="utf-8") as f:
             all_combined_news.extend(json.load(f))
             
-    # 2. 自動判斷海外夜盤市場檔案日期[cite: 2]
+    # 2. 自動判斷海外夜盤市場檔案日期[cite: 1, 2]
     if now_tw.weekday() == 6:
         market_date_str = (now_tw - timedelta(days=2)).strftime("%Y-%m-%d")
         print(f"📅 今日為週日，海外市場數據自動對齊週五收盤檔期: market_{market_date_str}.json")
