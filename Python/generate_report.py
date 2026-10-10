@@ -23,6 +23,7 @@ def build_prompt(news_list, market_data, today_dt, max_news_count=None, max_cont
             "請幫我統整出一份深入、適合在週末閱讀的『台股週末財經總覽與下週展望報告』。\n"
             "嚴格禁止提及『昨日美股』或『今日開盤』等錯誤字眼，應以『週五美股表現』及『展望下週一開盤』的角度進行分析。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
+            "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（週五美股四大指數、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。\n"
             "2. 🚀 週末重大個股利多（提及的公司、代號、關鍵財務數字或產業利多展望）。\n"
             "3. ⚠️ 週末重大個股利空（提及的公司、代號、潛在風險或利空訊息）。\n"
@@ -35,6 +36,7 @@ def build_prompt(news_list, market_data, today_dt, max_news_count=None, max_cont
             "請幫我統整出一份簡明扼要、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
             "必須特別對照夜盤、美股與 ADR 的漲跌表現，並深入解讀個股利多與利空中的財報數據、展望、接單狀況及外資或投顧意見。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
+            "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
             "2. 🚀 今日重大個股利多（提及的公司、代號、關鍵財務數字或利多原因）。\n"
             "3. ⚠️ 今日重大個股利空（提及的公司、代號、潛在風險或利空原因）。\n"
@@ -116,7 +118,10 @@ async def generate_microsoft_tts(html_content, target_date):
     audio_filename = f"audio_{target_date}.mp3"
     audio_path = os.path.join(target_dir, audio_filename)
     
-    text = re.sub(r'<[^>]+>', ' ', html_content)
+    # 移除 <head>, <style>, <script> 區塊及其內部所有代碼內容
+    text = re.sub(r'<(style|script|head)[^>]*>[\s\S]*?</\1>', ' ', html_content, flags=re.IGNORECASE)
+    # 移除其餘 HTML 標籤
+    text = re.sub(r'<[^>]+>', ' ', text)
     text = text.replace("📈", "。").replace("🚀", "。").replace("⚠️", "。").replace("💡", "。")
     text = text.replace("▼", "下跌").replace("▲", "上漲")
     
