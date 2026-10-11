@@ -6,9 +6,9 @@
       "2026-10-07",
       "2026-10-08"
     ],
-    "dates_format_explanation": "[T-2(前天), T-1(昨天), T(今天)]，單位均為張數",
+    "dates_format_explanation": "[T-2(前天), T-1(昨天), T(今天)]，數列統一依此排序",
     "total_watchlist_count": 231,
-    "generated_at": "2026-10-10 11:05:51"
+    "generated_at": "2026-10-11 05:32:51"
   },
   "top_institutional_buys_1d": [
     {
@@ -32,7 +32,31 @@
         -973
       ],
       "margin_net_today": 10543,
-      "macd_osc_today": 1.27
+      "short_net_today": -628,
+      "price_and_ma": {
+        "close_3d": [
+          68.6,
+          75.4,
+          81.3
+        ],
+        "today_close": 81.3,
+        "ma5": 72.42,
+        "ma10": 68.88,
+        "ma20": 66.62,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.27
+      }
     },
     {
       "stock_id": "2408",
@@ -55,7 +79,31 @@
         221
       ],
       "margin_net_today": 27,
-      "macd_osc_today": 0.96
+      "short_net_today": -256,
+      "price_and_ma": {
+        "close_3d": [
+          525.0,
+          514.0,
+          532.0
+        ],
+        "today_close": 532.0,
+        "ma5": 525.4,
+        "ma10": 518.9,
+        "ma20": 508.85,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.96
+      }
     },
     {
       "stock_id": "1314",
@@ -78,7 +126,31 @@
         118
       ],
       "margin_net_today": 2654,
-      "macd_osc_today": -0.0
+      "short_net_today": -11,
+      "price_and_ma": {
+        "close_3d": [
+          8.75,
+          8.91,
+          9.06
+        ],
+        "today_close": 9.06,
+        "ma5": 8.87,
+        "ma10": 8.88,
+        "ma20": 8.68,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.0
+      }
     },
     {
       "stock_id": "3231",
@@ -101,7 +173,31 @@
         324
       ],
       "margin_net_today": -4700,
-      "macd_osc_today": 0.07
+      "short_net_today": -48,
+      "price_and_ma": {
+        "close_3d": [
+          189.5,
+          185.0,
+          188.5
+        ],
+        "today_close": 188.5,
+        "ma5": 187.8,
+        "ma10": 186.4,
+        "ma20": 185.5,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.07
+      }
     },
     {
       "stock_id": "2002",
@@ -124,7 +220,31 @@
         145
       ],
       "margin_net_today": -206,
-      "macd_osc_today": 0.03
+      "short_net_today": 2,
+      "price_and_ma": {
+        "close_3d": [
+          18.95,
+          18.95,
+          18.95
+        ],
+        "today_close": 18.95,
+        "ma5": 18.95,
+        "ma10": 18.9,
+        "ma20": 18.85,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.03
+      }
     },
     {
       "stock_id": "1101",
@@ -147,7 +267,31 @@
         31
       ],
       "margin_net_today": 257,
-      "macd_osc_today": 0.05
+      "short_net_today": -25,
+      "price_and_ma": {
+        "close_3d": [
+          25.2,
+          25.5,
+          25.7
+        ],
+        "today_close": 25.7,
+        "ma5": 25.35,
+        "ma10": 25.48,
+        "ma20": 24.91,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.05
+      }
     },
     {
       "stock_id": "1102",
@@ -170,7 +314,31 @@
         173
       ],
       "margin_net_today": -22,
-      "macd_osc_today": 0.01
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          35.45,
+          35.9,
+          36.35
+        ],
+        "today_close": 36.35,
+        "ma5": 35.69,
+        "ma10": 35.69,
+        "ma20": 35.46,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      }
     },
     {
       "stock_id": "1216",
@@ -193,7 +361,31 @@
         387
       ],
       "margin_net_today": -343,
-      "macd_osc_today": 0.13
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          73.7,
+          75.5,
+          75.6
+        ],
+        "today_close": 75.6,
+        "ma5": 74.04,
+        "ma10": 74.21,
+        "ma20": 74.61,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.13
+      }
     },
     {
       "stock_id": "9904",
@@ -216,7 +408,31 @@
         125
       ],
       "margin_net_today": -185,
-      "macd_osc_today": 0.02
+      "short_net_today": -2,
+      "price_and_ma": {
+        "close_3d": [
+          24.6,
+          24.95,
+          25.05
+        ],
+        "today_close": 25.05,
+        "ma5": 24.72,
+        "ma10": 24.8,
+        "ma20": 24.63,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.02
+      }
     },
     {
       "stock_id": "2886",
@@ -239,7 +455,31 @@
         1299
       ],
       "margin_net_today": 729,
-      "macd_osc_today": -0.19
+      "short_net_today": -5,
+      "price_and_ma": {
+        "close_3d": [
+          49.3,
+          49.8,
+          49.3
+        ],
+        "today_close": 49.3,
+        "ma5": 49.16,
+        "ma10": 49.25,
+        "ma20": 50.21,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.19
+      }
     },
     {
       "stock_id": "2609",
@@ -262,7 +502,31 @@
         545
       ],
       "margin_net_today": -396,
-      "macd_osc_today": -0.25
+      "short_net_today": -16,
+      "price_and_ma": {
+        "close_3d": [
+          59.2,
+          59.1,
+          59.7
+        ],
+        "today_close": 59.7,
+        "ma5": 59.28,
+        "ma10": 59.25,
+        "ma20": 59.58,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.25
+      }
     },
     {
       "stock_id": "2313",
@@ -285,7 +549,31 @@
         276
       ],
       "margin_net_today": 219,
-      "macd_osc_today": 2.58
+      "short_net_today": -71,
+      "price_and_ma": {
+        "close_3d": [
+          252.0,
+          246.0,
+          248.0
+        ],
+        "today_close": 248.0,
+        "ma5": 244.1,
+        "ma10": 234.4,
+        "ma20": 228.72,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 2.58
+      }
     },
     {
       "stock_id": "2801",
@@ -308,7 +596,31 @@
         -30
       ],
       "margin_net_today": 357,
-      "macd_osc_today": -0.18
+      "short_net_today": -11,
+      "price_and_ma": {
+        "close_3d": [
+          27.4,
+          27.75,
+          27.95
+        ],
+        "today_close": 27.95,
+        "ma5": 27.58,
+        "ma10": 27.61,
+        "ma20": 27.93,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.18
+      }
     },
     {
       "stock_id": "1326",
@@ -331,7 +643,31 @@
         -93
       ],
       "margin_net_today": 1275,
-      "macd_osc_today": 0.75
+      "short_net_today": -35,
+      "price_and_ma": {
+        "close_3d": [
+          73.0,
+          75.8,
+          77.6
+        ],
+        "today_close": 77.6,
+        "ma5": 73.94,
+        "ma10": 70.7,
+        "ma20": 69.52,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.75
+      }
     },
     {
       "stock_id": "2027",
@@ -354,7 +690,31 @@
         234
       ],
       "margin_net_today": -140,
-      "macd_osc_today": 0.09
+      "short_net_today": -9,
+      "price_and_ma": {
+        "close_3d": [
+          47.7,
+          47.75,
+          48.25
+        ],
+        "today_close": 48.25,
+        "ma5": 47.93,
+        "ma10": 47.65,
+        "ma20": 47.23,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.09
+      }
     },
     {
       "stock_id": "3702",
@@ -377,7 +737,31 @@
         685
       ],
       "margin_net_today": -4381,
-      "macd_osc_today": 0.67
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          119.0,
+          120.0,
+          117.5
+        ],
+        "today_close": 117.5,
+        "ma5": 118.9,
+        "ma10": 117.4,
+        "ma20": 113.3,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.67
+      }
     },
     {
       "stock_id": "9945",
@@ -400,7 +784,31 @@
         322
       ],
       "margin_net_today": -178,
-      "macd_osc_today": 0.01
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          28.8,
+          29.3,
+          29.8
+        ],
+        "today_close": 29.8,
+        "ma5": 29.13,
+        "ma10": 29.29,
+        "ma20": 28.84,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      }
     },
     {
       "stock_id": "2542",
@@ -423,7 +831,31 @@
         -70
       ],
       "margin_net_today": -103,
-      "macd_osc_today": -0.41
+      "short_net_today": -1,
+      "price_and_ma": {
+        "close_3d": [
+          38.2,
+          38.8,
+          39.05
+        ],
+        "today_close": 39.05,
+        "ma5": 38.57,
+        "ma10": 38.76,
+        "ma20": 42.61,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.41
+      }
     },
     {
       "stock_id": "3026",
@@ -446,7 +878,31 @@
         1
       ],
       "margin_net_today": -145,
-      "macd_osc_today": 3.39
+      "short_net_today": -89,
+      "price_and_ma": {
+        "close_3d": [
+          796.0,
+          839.0,
+          877.0
+        ],
+        "today_close": 877.0,
+        "ma5": 832.8,
+        "ma10": 818.1,
+        "ma20": 792.15,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 3.39
+      }
     },
     {
       "stock_id": "2412",
@@ -469,7 +925,31 @@
         -379
       ],
       "margin_net_today": -23,
-      "macd_osc_today": -0.01
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          145.5,
+          145.5,
+          146.5
+        ],
+        "today_close": 146.5,
+        "ma5": 145.8,
+        "ma10": 145.25,
+        "ma20": 144.07,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.01
+      }
     },
     {
       "stock_id": "1434",
@@ -492,7 +972,31 @@
         39
       ],
       "margin_net_today": 131,
-      "macd_osc_today": 0.13
+      "short_net_today": -3,
+      "price_and_ma": {
+        "close_3d": [
+          18.0,
+          18.95,
+          19.45
+        ],
+        "today_close": 19.45,
+        "ma5": 18.49,
+        "ma10": 18.24,
+        "ma20": 18.03,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.13
+      }
     },
     {
       "stock_id": "4958",
@@ -515,7 +1019,31 @@
         -170
       ],
       "margin_net_today": 149,
-      "macd_osc_today": 12.03
+      "short_net_today": 46,
+      "price_and_ma": {
+        "close_3d": [
+          574.0,
+          595.0,
+          592.0
+        ],
+        "today_close": 592.0,
+        "ma5": 579.6,
+        "ma10": 536.2,
+        "ma20": 511.1,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 12.03
+      }
     },
     {
       "stock_id": "2353",
@@ -538,7 +1066,31 @@
         94
       ],
       "margin_net_today": -436,
-      "macd_osc_today": -0.08
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          31.05,
+          31.3,
+          31.3
+        ],
+        "today_close": 31.3,
+        "ma5": 31.29,
+        "ma10": 31.47,
+        "ma20": 31.56,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.08
+      }
     },
     {
       "stock_id": "3045",
@@ -561,7 +1113,31 @@
         72
       ],
       "margin_net_today": -153,
-      "macd_osc_today": -0.22
+      "short_net_today": -78,
+      "price_and_ma": {
+        "close_3d": [
+          123.0,
+          122.5,
+          124.0
+        ],
+        "today_close": 124.0,
+        "ma5": 122.8,
+        "ma10": 122.2,
+        "ma20": 122.4,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.22
+      }
     },
     {
       "stock_id": "3706",
@@ -584,7 +1160,31 @@
         -3
       ],
       "margin_net_today": 43,
-      "macd_osc_today": 0.47
+      "short_net_today": 20,
+      "price_and_ma": {
+        "close_3d": [
+          80.3,
+          80.9,
+          80.6
+        ],
+        "today_close": 80.6,
+        "ma5": 80.7,
+        "ma10": 80.09,
+        "ma20": 80.01,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.47
+      }
     },
     {
       "stock_id": "1476",
@@ -607,7 +1207,31 @@
         33
       ],
       "margin_net_today": -83,
-      "macd_osc_today": 4.46
+      "short_net_today": -1,
+      "price_and_ma": {
+        "close_3d": [
+          290.0,
+          297.0,
+          310.0
+        ],
+        "today_close": 310.0,
+        "ma5": 290.7,
+        "ma10": 283.25,
+        "ma20": 284.13,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 4.46
+      }
     },
     {
       "stock_id": "2368",
@@ -630,7 +1254,31 @@
         62
       ],
       "margin_net_today": -569,
-      "macd_osc_today": 22.42
+      "short_net_today": -38,
+      "price_and_ma": {
+        "close_3d": [
+          1260.0,
+          1245.0,
+          1285.0
+        ],
+        "today_close": 1285.0,
+        "ma5": 1222.0,
+        "ma10": 1169.0,
+        "ma20": 1095.2,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 22.42
+      }
     },
     {
       "stock_id": "6274",
@@ -653,7 +1301,31 @@
         -6
       ],
       "margin_net_today": -590,
-      "macd_osc_today": 36.05
+      "short_net_today": -13,
+      "price_and_ma": {
+        "close_3d": [
+          1755.0,
+          1720.0,
+          1740.0
+        ],
+        "today_close": 1740.0,
+        "ma5": 1723.0,
+        "ma10": 1611.0,
+        "ma20": 1498.75,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 36.05
+      }
     },
     {
       "stock_id": "5876",
@@ -676,7 +1348,31 @@
         404
       ],
       "margin_net_today": 6,
-      "macd_osc_today": -0.17
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          48.8,
+          49.5,
+          49.65
+        ],
+        "today_close": 49.65,
+        "ma5": 49.11,
+        "ma10": 49.02,
+        "ma20": 49.1,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.17
+      }
     },
     {
       "stock_id": "3037",
@@ -699,7 +1395,31 @@
         -43
       ],
       "margin_net_today": -47,
-      "macd_osc_today": 21.01
+      "short_net_today": 61,
+      "price_and_ma": {
+        "close_3d": [
+          1310.0,
+          1305.0,
+          1270.0
+        ],
+        "today_close": 1270.0,
+        "ma5": 1303.0,
+        "ma10": 1241.5,
+        "ma20": 1116.1,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 21.01
+      }
     }
   ],
   "top_institutional_sells_1d": [
@@ -724,7 +1444,31 @@
         -8495
       ],
       "margin_net_today": -2437,
-      "macd_osc_today": 0.15
+      "short_net_today": -1180,
+      "price_and_ma": {
+        "close_3d": [
+          37.45,
+          37.95,
+          36.6
+        ],
+        "today_close": 36.6,
+        "ma5": 38.3,
+        "ma10": 37.23,
+        "ma20": 34.03,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.15
+      }
     },
     {
       "stock_id": "2317",
@@ -747,7 +1491,31 @@
         -70
       ],
       "margin_net_today": 691,
-      "macd_osc_today": -0.01
+      "short_net_today": 12,
+      "price_and_ma": {
+        "close_3d": [
+          256.0,
+          252.0,
+          249.0
+        ],
+        "today_close": 249.0,
+        "ma5": 252.4,
+        "ma10": 252.45,
+        "ma20": 251.13,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.01
+      }
     },
     {
       "stock_id": "6770",
@@ -770,7 +1538,31 @@
         -1847
       ],
       "margin_net_today": 373,
-      "macd_osc_today": -0.13
+      "short_net_today": 366,
+      "price_and_ma": {
+        "close_3d": [
+          74.3,
+          72.6,
+          72.2
+        ],
+        "today_close": 72.2,
+        "ma5": 74.28,
+        "ma10": 73.86,
+        "ma20": 72.62,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.13
+      }
     },
     {
       "stock_id": "3481",
@@ -793,7 +1585,31 @@
         -289
       ],
       "margin_net_today": 3433,
-      "macd_osc_today": 0.18
+      "short_net_today": 103,
+      "price_and_ma": {
+        "close_3d": [
+          51.1,
+          52.5,
+          51.0
+        ],
+        "today_close": 51.0,
+        "ma5": 51.94,
+        "ma10": 51.56,
+        "ma20": 50.18,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.18
+      }
     },
     {
       "stock_id": "2303",
@@ -816,7 +1632,31 @@
         -1527
       ],
       "margin_net_today": 2755,
-      "macd_osc_today": -1.53
+      "short_net_today": 140,
+      "price_and_ma": {
+        "close_3d": [
+          147.5,
+          148.5,
+          147.5
+        ],
+        "today_close": 147.5,
+        "ma5": 151.5,
+        "ma10": 154.1,
+        "ma20": 150.45,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -1.53
+      }
     },
     {
       "stock_id": "2337",
@@ -839,7 +1679,31 @@
         -104
       ],
       "margin_net_today": 1494,
-      "macd_osc_today": 0.05
+      "short_net_today": 117,
+      "price_and_ma": {
+        "close_3d": [
+          119.5,
+          118.0,
+          116.0
+        ],
+        "today_close": 116.0,
+        "ma5": 119.4,
+        "ma10": 119.5,
+        "ma20": 119.4,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.05
+      }
     },
     {
       "stock_id": "2344",
@@ -862,7 +1726,31 @@
         -120
       ],
       "margin_net_today": 2317,
-      "macd_osc_today": 0.43
+      "short_net_today": 133,
+      "price_and_ma": {
+        "close_3d": [
+          177.5,
+          179.5,
+          177.0
+        ],
+        "today_close": 177.0,
+        "ma5": 178.8,
+        "ma10": 177.15,
+        "ma20": 174.43,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.43
+      }
     },
     {
       "stock_id": "1303",
@@ -885,7 +1773,31 @@
         -550
       ],
       "margin_net_today": 1155,
-      "macd_osc_today": 6.54
+      "short_net_today": 185,
+      "price_and_ma": {
+        "close_3d": [
+          293.0,
+          314.0,
+          310.0
+        ],
+        "today_close": 310.0,
+        "ma5": 292.6,
+        "ma10": 268.5,
+        "ma20": 251.22,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 6.54
+      }
     },
     {
       "stock_id": "2891",
@@ -908,7 +1820,31 @@
         1309
       ],
       "margin_net_today": 524,
-      "macd_osc_today": -0.28
+      "short_net_today": 12,
+      "price_and_ma": {
+        "close_3d": [
+          68.4,
+          68.7,
+          67.3
+        ],
+        "today_close": 67.3,
+        "ma5": 67.82,
+        "ma10": 68.15,
+        "ma20": 68.59,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.28
+      }
     },
     {
       "stock_id": "2887",
@@ -931,7 +1867,31 @@
         1479
       ],
       "margin_net_today": 805,
-      "macd_osc_today": -0.43
+      "short_net_today": 29,
+      "price_and_ma": {
+        "close_3d": [
+          41.45,
+          42.15,
+          41.0
+        ],
+        "today_close": 41.0,
+        "ma5": 41.2,
+        "ma10": 41.64,
+        "ma20": 42.51,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.43
+      }
     },
     {
       "stock_id": "2330",
@@ -954,7 +1914,31 @@
         510
       ],
       "margin_net_today": 1338,
-      "macd_osc_today": 10.11
+      "short_net_today": 5,
+      "price_and_ma": {
+        "close_3d": [
+          2585.0,
+          2585.0,
+          2550.0
+        ],
+        "today_close": 2550.0,
+        "ma5": 2559.0,
+        "ma10": 2523.5,
+        "ma20": 2476.5,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 10.11
+      }
     },
     {
       "stock_id": "2449",
@@ -977,7 +1961,31 @@
         358
       ],
       "margin_net_today": 4277,
-      "macd_osc_today": 0.16
+      "short_net_today": -5,
+      "price_and_ma": {
+        "close_3d": [
+          298.0,
+          299.5,
+          304.5
+        ],
+        "today_close": 304.5,
+        "ma5": 298.3,
+        "ma10": 299.15,
+        "ma20": 287.55,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.16
+      }
     },
     {
       "stock_id": "2324",
@@ -1000,7 +2008,31 @@
         62
       ],
       "margin_net_today": 336,
-      "macd_osc_today": -0.13
+      "short_net_today": 30,
+      "price_and_ma": {
+        "close_3d": [
+          35.9,
+          36.1,
+          35.5
+        ],
+        "today_close": 35.5,
+        "ma5": 35.9,
+        "ma10": 36.26,
+        "ma20": 36.99,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.13
+      }
     },
     {
       "stock_id": "2883",
@@ -1023,7 +2055,31 @@
         1317
       ],
       "margin_net_today": 447,
-      "macd_osc_today": -0.41
+      "short_net_today": 15,
+      "price_and_ma": {
+        "close_3d": [
+          37.65,
+          38.5,
+          37.55
+        ],
+        "today_close": 37.55,
+        "ma5": 37.67,
+        "ma10": 38.14,
+        "ma20": 38.4,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.41
+      }
     },
     {
       "stock_id": "1802",
@@ -1046,7 +2102,31 @@
         -1956
       ],
       "margin_net_today": 5115,
-      "macd_osc_today": 0.56
+      "short_net_today": 417,
+      "price_and_ma": {
+        "close_3d": [
+          59.8,
+          65.7,
+          63.9
+        ],
+        "today_close": 63.9,
+        "ma5": 61.64,
+        "ma10": 60.05,
+        "ma20": 59.35,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.56
+      }
     },
     {
       "stock_id": "2382",
@@ -1069,7 +2149,31 @@
         -43
       ],
       "margin_net_today": -732,
-      "macd_osc_today": -1.5
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          333.5,
+          335.0,
+          325.5
+        ],
+        "today_close": 325.5,
+        "ma5": 331.4,
+        "ma10": 334.1,
+        "ma20": 336.75,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -1.5
+      }
     },
     {
       "stock_id": "2327",
@@ -1092,7 +2196,31 @@
         -282
       ],
       "margin_net_today": -2093,
-      "macd_osc_today": 11.52
+      "short_net_today": 55,
+      "price_and_ma": {
+        "close_3d": [
+          625.0,
+          647.0,
+          635.0
+        ],
+        "today_close": 635.0,
+        "ma5": 631.8,
+        "ma10": 601.0,
+        "ma20": 575.8,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 11.52
+      }
     },
     {
       "stock_id": "1718",
@@ -1115,7 +2243,31 @@
         1013
       ],
       "margin_net_today": 4388,
-      "macd_osc_today": 0.14
+      "short_net_today": -171,
+      "price_and_ma": {
+        "close_3d": [
+          11.35,
+          11.3,
+          12.2
+        ],
+        "today_close": 12.2,
+        "ma5": 11.35,
+        "ma10": 10.99,
+        "ma20": 10.81,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.14
+      }
     },
     {
       "stock_id": "2882",
@@ -1138,7 +2290,31 @@
         292
       ],
       "margin_net_today": 636,
-      "macd_osc_today": -0.46
+      "short_net_today": 6,
+      "price_and_ma": {
+        "close_3d": [
+          112.0,
+          113.0,
+          110.0
+        ],
+        "today_close": 110.0,
+        "ma5": 111.6,
+        "ma10": 111.3,
+        "ma20": 111.35,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.46
+      }
     },
     {
       "stock_id": "2890",
@@ -1161,7 +2337,31 @@
         1074
       ],
       "margin_net_today": 4640,
-      "macd_osc_today": -0.23
+      "short_net_today": -51,
+      "price_and_ma": {
+        "close_3d": [
+          45.4,
+          44.65,
+          44.05
+        ],
+        "today_close": 44.05,
+        "ma5": 44.44,
+        "ma10": 44.42,
+        "ma20": 44.55,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.23
+      }
     },
     {
       "stock_id": "2492",
@@ -1184,7 +2384,31 @@
         -1144
       ],
       "margin_net_today": 1590,
-      "macd_osc_today": 12.61
+      "short_net_today": 465,
+      "price_and_ma": {
+        "close_3d": [
+          389.5,
+          428.0,
+          420.0
+        ],
+        "today_close": 420.0,
+        "ma5": 393.5,
+        "ma10": 351.55,
+        "ma20": 330.98,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 12.61
+      }
     },
     {
       "stock_id": "1605",
@@ -1207,7 +2431,31 @@
         -755
       ],
       "margin_net_today": -454,
-      "macd_osc_today": 0.21
+      "short_net_today": 69,
+      "price_and_ma": {
+        "close_3d": [
+          38.75,
+          39.9,
+          39.1
+        ],
+        "today_close": 39.1,
+        "ma5": 38.98,
+        "ma10": 38.15,
+        "ma20": 37.67,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.21
+      }
     },
     {
       "stock_id": "1504",
@@ -1230,7 +2478,31 @@
         -313
       ],
       "margin_net_today": 817,
-      "macd_osc_today": 0.33
+      "short_net_today": 15,
+      "price_and_ma": {
+        "close_3d": [
+          71.1,
+          73.3,
+          71.7
+        ],
+        "today_close": 71.7,
+        "ma5": 70.96,
+        "ma10": 69.86,
+        "ma20": 69.86,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.33
+      }
     },
     {
       "stock_id": "2834",
@@ -1253,7 +2525,31 @@
         -2
       ],
       "margin_net_today": 48,
-      "macd_osc_today": -0.1
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          17.35,
+          17.55,
+          17.45
+        ],
+        "today_close": 17.45,
+        "ma5": 17.42,
+        "ma10": 17.57,
+        "ma20": 17.89,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.1
+      }
     },
     {
       "stock_id": "5483",
@@ -1276,7 +2572,31 @@
         -700
       ],
       "margin_net_today": 120,
-      "macd_osc_today": 3.29
+      "short_net_today": 51,
+      "price_and_ma": {
+        "close_3d": [
+          215.0,
+          224.0,
+          216.5
+        ],
+        "today_close": 216.5,
+        "ma5": 218.3,
+        "ma10": 207.25,
+        "ma20": 194.78,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 3.29
+      }
     },
     {
       "stock_id": "2885",
@@ -1299,7 +2619,31 @@
         537
       ],
       "margin_net_today": 178,
-      "macd_osc_today": -0.18
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          69.3,
+          70.0,
+          68.3
+        ],
+        "today_close": 68.3,
+        "ma5": 68.52,
+        "ma10": 68.6,
+        "ma20": 69.2,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.18
+      }
     },
     {
       "stock_id": "2454",
@@ -1322,7 +2666,31 @@
         -89
       ],
       "margin_net_today": 80,
-      "macd_osc_today": -50.06
+      "short_net_today": 3,
+      "price_and_ma": {
+        "close_3d": [
+          4920.0,
+          4835.0,
+          4690.0
+        ],
+        "today_close": 4690.0,
+        "ma5": 4912.0,
+        "ma10": 4984.0,
+        "ma20": 4834.5,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -50.06
+      }
     },
     {
       "stock_id": "2618",
@@ -1345,7 +2713,31 @@
         367
       ],
       "margin_net_today": -31,
-      "macd_osc_today": -0.06
+      "short_net_today": -65,
+      "price_and_ma": {
+        "close_3d": [
+          41.55,
+          41.95,
+          41.4
+        ],
+        "today_close": 41.4,
+        "ma5": 41.83,
+        "ma10": 42.05,
+        "ma20": 42.0,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.06
+      }
     },
     {
       "stock_id": "2884",
@@ -1368,7 +2760,31 @@
         823
       ],
       "margin_net_today": 68,
-      "macd_osc_today": -0.36
+      "short_net_today": 4,
+      "price_and_ma": {
+        "close_3d": [
+          45.45,
+          45.75,
+          45.0
+        ],
+        "today_close": 45.0,
+        "ma5": 45.27,
+        "ma10": 45.27,
+        "ma20": 45.63,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.36
+      }
     },
     {
       "stock_id": "6005",
@@ -1391,7 +2807,31 @@
         0
       ],
       "margin_net_today": 98,
-      "macd_osc_today": 0.08
+      "short_net_today": 2,
+      "price_and_ma": {
+        "close_3d": [
+          32.75,
+          32.55,
+          32.05
+        ],
+        "today_close": 32.05,
+        "ma5": 32.47,
+        "ma10": 32.25,
+        "ma20": 31.96,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.08
+      }
     }
   ],
   "consecutive_2_days_buys": [
@@ -1416,7 +2856,31 @@
         -973
       ],
       "margin_net_today": 10543,
-      "macd_osc_today": 1.27,
+      "short_net_today": -628,
+      "price_and_ma": {
+        "close_3d": [
+          68.6,
+          75.4,
+          81.3
+        ],
+        "today_close": 81.3,
+        "ma5": 72.42,
+        "ma10": 68.88,
+        "ma20": 66.62,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.27
+      },
       "sum_2d_net": 75095
     },
     {
@@ -1440,7 +2904,31 @@
         118
       ],
       "margin_net_today": 2654,
-      "macd_osc_today": -0.0,
+      "short_net_today": -11,
+      "price_and_ma": {
+        "close_3d": [
+          8.75,
+          8.91,
+          9.06
+        ],
+        "today_close": 9.06,
+        "ma5": 8.87,
+        "ma10": 8.88,
+        "ma20": 8.68,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.0
+      },
       "sum_2d_net": 34241
     },
     {
@@ -1464,7 +2952,31 @@
         -93
       ],
       "margin_net_today": 1275,
-      "macd_osc_today": 0.75,
+      "short_net_today": -35,
+      "price_and_ma": {
+        "close_3d": [
+          73.0,
+          75.8,
+          77.6
+        ],
+        "today_close": 77.6,
+        "ma5": 73.94,
+        "ma10": 70.7,
+        "ma20": 69.52,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.75
+      },
       "sum_2d_net": 20661
     },
     {
@@ -1488,7 +3000,31 @@
         31
       ],
       "margin_net_today": 257,
-      "macd_osc_today": 0.05,
+      "short_net_today": -25,
+      "price_and_ma": {
+        "close_3d": [
+          25.2,
+          25.5,
+          25.7
+        ],
+        "today_close": 25.7,
+        "ma5": 25.35,
+        "ma10": 25.48,
+        "ma20": 24.91,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.05
+      },
       "sum_2d_net": 18714
     },
     {
@@ -1512,7 +3048,31 @@
         387
       ],
       "margin_net_today": -343,
-      "macd_osc_today": 0.13,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          73.7,
+          75.5,
+          75.6
+        ],
+        "today_close": 75.6,
+        "ma5": 74.04,
+        "ma10": 74.21,
+        "ma20": 74.61,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.13
+      },
       "sum_2d_net": 17251
     },
     {
@@ -1536,7 +3096,31 @@
         125
       ],
       "margin_net_today": -185,
-      "macd_osc_today": 0.02,
+      "short_net_today": -2,
+      "price_and_ma": {
+        "close_3d": [
+          24.6,
+          24.95,
+          25.05
+        ],
+        "today_close": 25.05,
+        "ma5": 24.72,
+        "ma10": 24.8,
+        "ma20": 24.63,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.02
+      },
       "sum_2d_net": 15699
     },
     {
@@ -1560,7 +3144,31 @@
         173
       ],
       "margin_net_today": -22,
-      "macd_osc_today": 0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          35.45,
+          35.9,
+          36.35
+        ],
+        "today_close": 36.35,
+        "ma5": 35.69,
+        "ma10": 35.69,
+        "ma20": 35.46,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      },
       "sum_2d_net": 10517
     },
     {
@@ -1584,7 +3192,31 @@
         -170
       ],
       "margin_net_today": 149,
-      "macd_osc_today": 12.03,
+      "short_net_today": 46,
+      "price_and_ma": {
+        "close_3d": [
+          574.0,
+          595.0,
+          592.0
+        ],
+        "today_close": 592.0,
+        "ma5": 579.6,
+        "ma10": 536.2,
+        "ma20": 511.1,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 12.03
+      },
       "sum_2d_net": 9375
     },
     {
@@ -1608,7 +3240,31 @@
         -30
       ],
       "margin_net_today": 357,
-      "macd_osc_today": -0.18,
+      "short_net_today": -11,
+      "price_and_ma": {
+        "close_3d": [
+          27.4,
+          27.75,
+          27.95
+        ],
+        "today_close": 27.95,
+        "ma5": 27.58,
+        "ma10": 27.61,
+        "ma20": 27.93,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.18
+      },
       "sum_2d_net": 7902
     },
     {
@@ -1632,7 +3288,31 @@
         1299
       ],
       "margin_net_today": 729,
-      "macd_osc_today": -0.19,
+      "short_net_today": -5,
+      "price_and_ma": {
+        "close_3d": [
+          49.3,
+          49.8,
+          49.3
+        ],
+        "today_close": 49.3,
+        "ma5": 49.16,
+        "ma10": 49.25,
+        "ma20": 50.21,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.19
+      },
       "sum_2d_net": 7688
     },
     {
@@ -1656,7 +3336,31 @@
         685
       ],
       "margin_net_today": -4381,
-      "macd_osc_today": 0.67,
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          119.0,
+          120.0,
+          117.5
+        ],
+        "today_close": 117.5,
+        "ma5": 118.9,
+        "ma10": 117.4,
+        "ma20": 113.3,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.67
+      },
       "sum_2d_net": 6614
     },
     {
@@ -1680,7 +3384,31 @@
         -70
       ],
       "margin_net_today": -103,
-      "macd_osc_today": -0.41,
+      "short_net_today": -1,
+      "price_and_ma": {
+        "close_3d": [
+          38.2,
+          38.8,
+          39.05
+        ],
+        "today_close": 39.05,
+        "ma5": 38.57,
+        "ma10": 38.76,
+        "ma20": 42.61,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.41
+      },
       "sum_2d_net": 6302
     },
     {
@@ -1704,7 +3432,31 @@
         545
       ],
       "margin_net_today": -396,
-      "macd_osc_today": -0.25,
+      "short_net_today": -16,
+      "price_and_ma": {
+        "close_3d": [
+          59.2,
+          59.1,
+          59.7
+        ],
+        "today_close": 59.7,
+        "ma5": 59.28,
+        "ma10": 59.25,
+        "ma20": 59.58,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.25
+      },
       "sum_2d_net": 6198
     },
     {
@@ -1728,7 +3480,31 @@
         0
       ],
       "margin_net_today": -119,
-      "macd_osc_today": -0.03,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          18.7,
+          18.85,
+          18.8
+        ],
+        "today_close": 18.8,
+        "ma5": 18.73,
+        "ma10": 18.82,
+        "ma20": 19.07,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.03
+      },
       "sum_2d_net": 6168
     },
     {
@@ -1752,7 +3528,31 @@
         322
       ],
       "margin_net_today": -178,
-      "macd_osc_today": 0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          28.8,
+          29.3,
+          29.8
+        ],
+        "today_close": 29.8,
+        "ma5": 29.13,
+        "ma10": 29.29,
+        "ma20": 28.84,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      },
       "sum_2d_net": 6044
     },
     {
@@ -1776,7 +3576,31 @@
         -15
       ],
       "margin_net_today": -48,
-      "macd_osc_today": -0.1,
+      "short_net_today": -1,
+      "price_and_ma": {
+        "close_3d": [
+          25.95,
+          26.55,
+          26.45
+        ],
+        "today_close": 26.45,
+        "ma5": 26.2,
+        "ma10": 26.24,
+        "ma20": 26.71,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.1
+      },
       "sum_2d_net": 5943
     },
     {
@@ -1800,7 +3624,31 @@
         234
       ],
       "margin_net_today": -140,
-      "macd_osc_today": 0.09,
+      "short_net_today": -9,
+      "price_and_ma": {
+        "close_3d": [
+          47.7,
+          47.75,
+          48.25
+        ],
+        "today_close": 48.25,
+        "ma5": 47.93,
+        "ma10": 47.65,
+        "ma20": 47.23,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.09
+      },
       "sum_2d_net": 5915
     },
     {
@@ -1824,7 +3672,31 @@
         1
       ],
       "margin_net_today": -145,
-      "macd_osc_today": 3.39,
+      "short_net_today": -89,
+      "price_and_ma": {
+        "close_3d": [
+          796.0,
+          839.0,
+          877.0
+        ],
+        "today_close": 877.0,
+        "ma5": 832.8,
+        "ma10": 818.1,
+        "ma20": 792.15,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 3.39
+      },
       "sum_2d_net": 5481
     },
     {
@@ -1848,7 +3720,31 @@
         39
       ],
       "margin_net_today": 131,
-      "macd_osc_today": 0.13,
+      "short_net_today": -3,
+      "price_and_ma": {
+        "close_3d": [
+          18.0,
+          18.95,
+          19.45
+        ],
+        "today_close": 19.45,
+        "ma5": 18.49,
+        "ma10": 18.24,
+        "ma20": 18.03,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.13
+      },
       "sum_2d_net": 5410
     },
     {
@@ -1872,7 +3768,31 @@
         -239
       ],
       "margin_net_today": 1275,
-      "macd_osc_today": 1.68,
+      "short_net_today": -44,
+      "price_and_ma": {
+        "close_3d": [
+          101.5,
+          107.0,
+          110.5
+        ],
+        "today_close": 110.5,
+        "ma5": 103.52,
+        "ma10": 97.79,
+        "ma20": 91.49,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.68
+      },
       "sum_2d_net": 5380
     },
     {
@@ -1896,7 +3816,31 @@
         -379
       ],
       "margin_net_today": -23,
-      "macd_osc_today": -0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          145.5,
+          145.5,
+          146.5
+        ],
+        "today_close": 146.5,
+        "ma5": 145.8,
+        "ma10": 145.25,
+        "ma20": 144.07,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.01
+      },
       "sum_2d_net": 5174
     },
     {
@@ -1920,7 +3864,31 @@
         -10
       ],
       "margin_net_today": -21,
-      "macd_osc_today": 0.04,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          27.9,
+          28.6,
+          28.4
+        ],
+        "today_close": 28.4,
+        "ma5": 28.14,
+        "ma10": 28.07,
+        "ma20": 28.09,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.04
+      },
       "sum_2d_net": 4785
     },
     {
@@ -1944,7 +3912,31 @@
         404
       ],
       "margin_net_today": 6,
-      "macd_osc_today": -0.17,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          48.8,
+          49.5,
+          49.65
+        ],
+        "today_close": 49.65,
+        "ma5": 49.11,
+        "ma10": 49.02,
+        "ma20": 49.1,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.17
+      },
       "sum_2d_net": 3623
     },
     {
@@ -1968,7 +3960,31 @@
         33
       ],
       "margin_net_today": 348,
-      "macd_osc_today": 0.11,
+      "short_net_today": -14,
+      "price_and_ma": {
+        "close_3d": [
+          27.85,
+          29.0,
+          29.2
+        ],
+        "today_close": 29.2,
+        "ma5": 28.56,
+        "ma10": 28.2,
+        "ma20": 27.46,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.11
+      },
       "sum_2d_net": 3541
     },
     {
@@ -1992,7 +4008,31 @@
         -3
       ],
       "margin_net_today": 43,
-      "macd_osc_today": 0.47,
+      "short_net_today": 20,
+      "price_and_ma": {
+        "close_3d": [
+          80.3,
+          80.9,
+          80.6
+        ],
+        "today_close": 80.6,
+        "ma5": 80.7,
+        "ma10": 80.09,
+        "ma20": 80.01,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.47
+      },
       "sum_2d_net": 2676
     },
     {
@@ -2016,7 +4056,31 @@
         94
       ],
       "margin_net_today": -436,
-      "macd_osc_today": -0.08,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          31.05,
+          31.3,
+          31.3
+        ],
+        "today_close": 31.3,
+        "ma5": 31.29,
+        "ma10": 31.47,
+        "ma20": 31.56,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.08
+      },
       "sum_2d_net": 2311
     },
     {
@@ -2040,7 +4104,31 @@
         -43
       ],
       "margin_net_today": -47,
-      "macd_osc_today": 21.01,
+      "short_net_today": 61,
+      "price_and_ma": {
+        "close_3d": [
+          1310.0,
+          1305.0,
+          1270.0
+        ],
+        "today_close": 1270.0,
+        "ma5": 1303.0,
+        "ma10": 1241.5,
+        "ma20": 1116.1,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 21.01
+      },
       "sum_2d_net": 2289
     },
     {
@@ -2064,7 +4152,31 @@
         -78
       ],
       "margin_net_today": -534,
-      "macd_osc_today": 19.73,
+      "short_net_today": 87,
+      "price_and_ma": {
+        "close_3d": [
+          1070.0,
+          1100.0,
+          1075.0
+        ],
+        "today_close": 1075.0,
+        "ma5": 1078.0,
+        "ma10": 1019.3,
+        "ma20": 922.0,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 19.73
+      },
       "sum_2d_net": 2173
     },
     {
@@ -2088,7 +4200,31 @@
         72
       ],
       "margin_net_today": -153,
-      "macd_osc_today": -0.22,
+      "short_net_today": -78,
+      "price_and_ma": {
+        "close_3d": [
+          123.0,
+          122.5,
+          124.0
+        ],
+        "today_close": 124.0,
+        "ma5": 122.8,
+        "ma10": 122.2,
+        "ma20": 122.4,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.22
+      },
       "sum_2d_net": 2161
     },
     {
@@ -2112,7 +4248,31 @@
         33
       ],
       "margin_net_today": -83,
-      "macd_osc_today": 4.46,
+      "short_net_today": -1,
+      "price_and_ma": {
+        "close_3d": [
+          290.0,
+          297.0,
+          310.0
+        ],
+        "today_close": 310.0,
+        "ma5": 290.7,
+        "ma10": 283.25,
+        "ma20": 284.13,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 4.46
+      },
       "sum_2d_net": 1871
     }
   ],
@@ -2138,7 +4298,31 @@
         -8495
       ],
       "margin_net_today": -2437,
-      "macd_osc_today": 0.15,
+      "short_net_today": -1180,
+      "price_and_ma": {
+        "close_3d": [
+          37.45,
+          37.95,
+          36.6
+        ],
+        "today_close": 36.6,
+        "ma5": 38.3,
+        "ma10": 37.23,
+        "ma20": 34.03,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.15
+      },
       "sum_2d_net": -148056
     },
     {
@@ -2162,7 +4346,31 @@
         -1847
       ],
       "margin_net_today": 373,
-      "macd_osc_today": -0.13,
+      "short_net_today": 366,
+      "price_and_ma": {
+        "close_3d": [
+          74.3,
+          72.6,
+          72.2
+        ],
+        "today_close": 72.2,
+        "ma5": 74.28,
+        "ma10": 73.86,
+        "ma20": 72.62,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.13
+      },
       "sum_2d_net": -63062
     },
     {
@@ -2186,7 +4394,31 @@
         -1527
       ],
       "margin_net_today": 2755,
-      "macd_osc_today": -1.53,
+      "short_net_today": 140,
+      "price_and_ma": {
+        "close_3d": [
+          147.5,
+          148.5,
+          147.5
+        ],
+        "today_close": 147.5,
+        "ma5": 151.5,
+        "ma10": 154.1,
+        "ma20": 150.45,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -1.53
+      },
       "sum_2d_net": -53051
     },
     {
@@ -2210,7 +4442,31 @@
         -70
       ],
       "margin_net_today": 691,
-      "macd_osc_today": -0.01,
+      "short_net_today": 12,
+      "price_and_ma": {
+        "close_3d": [
+          256.0,
+          252.0,
+          249.0
+        ],
+        "today_close": 249.0,
+        "ma5": 252.4,
+        "ma10": 252.45,
+        "ma20": 251.13,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.01
+      },
       "sum_2d_net": -38167
     },
     {
@@ -2234,7 +4490,31 @@
         -104
       ],
       "margin_net_today": 1494,
-      "macd_osc_today": 0.05,
+      "short_net_today": 117,
+      "price_and_ma": {
+        "close_3d": [
+          119.5,
+          118.0,
+          116.0
+        ],
+        "today_close": 116.0,
+        "ma5": 119.4,
+        "ma10": 119.5,
+        "ma20": 119.4,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.05
+      },
       "sum_2d_net": -19640
     },
     {
@@ -2258,7 +4538,31 @@
         1074
       ],
       "margin_net_today": 4640,
-      "macd_osc_today": -0.23,
+      "short_net_today": -51,
+      "price_and_ma": {
+        "close_3d": [
+          45.4,
+          44.65,
+          44.05
+        ],
+        "today_close": 44.05,
+        "ma5": 44.44,
+        "ma10": 44.42,
+        "ma20": 44.55,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.23
+      },
       "sum_2d_net": -16022
     },
     {
@@ -2282,7 +4586,31 @@
         62
       ],
       "margin_net_today": 336,
-      "macd_osc_today": -0.13,
+      "short_net_today": 30,
+      "price_and_ma": {
+        "close_3d": [
+          35.9,
+          36.1,
+          35.5
+        ],
+        "today_close": 35.5,
+        "ma5": 35.9,
+        "ma10": 36.26,
+        "ma20": 36.99,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.13
+      },
       "sum_2d_net": -14318
     },
     {
@@ -2306,7 +4634,31 @@
         358
       ],
       "margin_net_today": 4277,
-      "macd_osc_today": 0.16,
+      "short_net_today": -5,
+      "price_and_ma": {
+        "close_3d": [
+          298.0,
+          299.5,
+          304.5
+        ],
+        "today_close": 304.5,
+        "ma5": 298.3,
+        "ma10": 299.15,
+        "ma20": 287.55,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.16
+      },
       "sum_2d_net": -12461
     },
     {
@@ -2330,7 +4682,31 @@
         510
       ],
       "margin_net_today": 1338,
-      "macd_osc_today": 10.11,
+      "short_net_today": 5,
+      "price_and_ma": {
+        "close_3d": [
+          2585.0,
+          2585.0,
+          2550.0
+        ],
+        "today_close": 2550.0,
+        "ma5": 2559.0,
+        "ma10": 2523.5,
+        "ma20": 2476.5,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 10.11
+      },
       "sum_2d_net": -11718
     },
     {
@@ -2354,7 +4730,31 @@
         75
       ],
       "margin_net_today": 49,
-      "macd_osc_today": 0.45,
+      "short_net_today": -49,
+      "price_and_ma": {
+        "close_3d": [
+          380.0,
+          365.5,
+          363.0
+        ],
+        "today_close": 363.0,
+        "ma5": 374.1,
+        "ma10": 368.6,
+        "ma20": 360.93,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.45
+      },
       "sum_2d_net": -8353
     },
     {
@@ -2378,7 +4778,31 @@
         -89
       ],
       "margin_net_today": 80,
-      "macd_osc_today": -50.06,
+      "short_net_today": 3,
+      "price_and_ma": {
+        "close_3d": [
+          4920.0,
+          4835.0,
+          4690.0
+        ],
+        "today_close": 4690.0,
+        "ma5": 4912.0,
+        "ma10": 4984.0,
+        "ma20": 4834.5,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -50.06
+      },
       "sum_2d_net": -6453
     },
     {
@@ -2402,7 +4826,31 @@
         208
       ],
       "margin_net_today": -43,
-      "macd_osc_today": -0.22,
+      "short_net_today": 4,
+      "price_and_ma": {
+        "close_3d": [
+          58.6,
+          58.1,
+          57.5
+        ],
+        "today_close": 57.5,
+        "ma5": 58.3,
+        "ma10": 59.08,
+        "ma20": 60.49,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.22
+      },
       "sum_2d_net": -6409
     },
     {
@@ -2426,7 +4874,31 @@
         0
       ],
       "margin_net_today": 98,
-      "macd_osc_today": 0.08,
+      "short_net_today": 2,
+      "price_and_ma": {
+        "close_3d": [
+          32.75,
+          32.55,
+          32.05
+        ],
+        "today_close": 32.05,
+        "ma5": 32.47,
+        "ma10": 32.25,
+        "ma20": 31.96,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.08
+      },
       "sum_2d_net": -4143
     },
     {
@@ -2450,7 +4922,31 @@
         4
       ],
       "margin_net_today": -932,
-      "macd_osc_today": 25.88,
+      "short_net_today": 65,
+      "price_and_ma": {
+        "close_3d": [
+          1205.0,
+          1215.0,
+          1130.0
+        ],
+        "today_close": 1130.0,
+        "ma5": 1184.0,
+        "ma10": 1088.3,
+        "ma20": 1008.3,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 25.88
+      },
       "sum_2d_net": -3300
     },
     {
@@ -2474,7 +4970,31 @@
         -75
       ],
       "margin_net_today": 112,
-      "macd_osc_today": 0.06,
+      "short_net_today": 10,
+      "price_and_ma": {
+        "close_3d": [
+          30.6,
+          30.6,
+          30.4
+        ],
+        "today_close": 30.4,
+        "ma5": 30.57,
+        "ma10": 30.1,
+        "ma20": 29.34,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.06
+      },
       "sum_2d_net": -3123
     },
     {
@@ -2498,7 +5018,31 @@
         4
       ],
       "margin_net_today": 31,
-      "macd_osc_today": 19.25,
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          2050.0,
+          1990.0,
+          1965.0
+        ],
+        "today_close": 1965.0,
+        "ma5": 1979.0,
+        "ma10": 1933.5,
+        "ma20": 1831.0,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 19.25
+      },
       "sum_2d_net": -2938
     },
     {
@@ -2522,7 +5066,31 @@
         -64
       ],
       "margin_net_today": 22,
-      "macd_osc_today": -1.43,
+      "short_net_today": -8,
+      "price_and_ma": {
+        "close_3d": [
+          206.0,
+          199.0,
+          195.5
+        ],
+        "today_close": 195.5,
+        "ma5": 202.9,
+        "ma10": 204.95,
+        "ma20": 205.93,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -1.43
+      },
       "sum_2d_net": -2924
     },
     {
@@ -2546,7 +5114,31 @@
         9
       ],
       "margin_net_today": -1,
-      "macd_osc_today": 1.11,
+      "short_net_today": -17,
+      "price_and_ma": {
+        "close_3d": [
+          149.0,
+          145.0,
+          144.0
+        ],
+        "today_close": 144.0,
+        "ma5": 145.6,
+        "ma10": 144.85,
+        "ma20": 145.6,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.11
+      },
       "sum_2d_net": -2749
     },
     {
@@ -2570,7 +5162,31 @@
         96
       ],
       "margin_net_today": 178,
-      "macd_osc_today": 2.06,
+      "short_net_today": -12,
+      "price_and_ma": {
+        "close_3d": [
+          128.5,
+          134.5,
+          134.5
+        ],
+        "today_close": 134.5,
+        "ma5": 130.2,
+        "ma10": 125.25,
+        "ma20": 122.6,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 2.06
+      },
       "sum_2d_net": -2542
     },
     {
@@ -2594,7 +5210,31 @@
         -93
       ],
       "margin_net_today": 162,
-      "macd_osc_today": -0.62,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          62.7,
+          62.1,
+          62.0
+        ],
+        "today_close": 62.0,
+        "ma5": 63.38,
+        "ma10": 64.57,
+        "ma20": 64.9,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.62
+      },
       "sum_2d_net": -2350
     },
     {
@@ -2618,7 +5258,31 @@
         310
       ],
       "margin_net_today": -18,
-      "macd_osc_today": -1.54,
+      "short_net_today": 3,
+      "price_and_ma": {
+        "close_3d": [
+          236.5,
+          232.5,
+          232.5
+        ],
+        "today_close": 232.5,
+        "ma5": 235.2,
+        "ma10": 237.75,
+        "ma20": 237.7,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -1.54
+      },
       "sum_2d_net": -2143
     },
     {
@@ -2642,7 +5306,31 @@
         -25
       ],
       "margin_net_today": -1,
-      "macd_osc_today": -0.31,
+      "short_net_today": 19,
+      "price_and_ma": {
+        "close_3d": [
+          531.0,
+          535.0,
+          522.0
+        ],
+        "today_close": 522.0,
+        "ma5": 535.8,
+        "ma10": 527.5,
+        "ma20": 525.33,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.31
+      },
       "sum_2d_net": -2116
     },
     {
@@ -2666,7 +5354,31 @@
         184
       ],
       "margin_net_today": -182,
-      "macd_osc_today": -0.17,
+      "short_net_today": -39,
+      "price_and_ma": {
+        "close_3d": [
+          90.0,
+          90.0,
+          89.7
+        ],
+        "today_close": 89.7,
+        "ma5": 89.52,
+        "ma10": 90.1,
+        "ma20": 90.16,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.17
+      },
       "sum_2d_net": -2045
     },
     {
@@ -2690,7 +5402,31 @@
         0
       ],
       "margin_net_today": 36,
-      "macd_osc_today": 0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          25.65,
+          25.75,
+          25.7
+        ],
+        "today_close": 25.7,
+        "ma5": 25.7,
+        "ma10": 25.66,
+        "ma20": 25.78,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      },
       "sum_2d_net": -1807
     },
     {
@@ -2714,7 +5450,31 @@
         -24
       ],
       "margin_net_today": 764,
-      "macd_osc_today": 2.35,
+      "short_net_today": 9,
+      "price_and_ma": {
+        "close_3d": [
+          1045.0,
+          1000.0,
+          980.0
+        ],
+        "today_close": 980.0,
+        "ma5": 1016.0,
+        "ma10": 984.9,
+        "ma20": 971.85,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 2.35
+      },
       "sum_2d_net": -1729
     },
     {
@@ -2738,7 +5498,31 @@
         88
       ],
       "margin_net_today": -84,
-      "macd_osc_today": 1.61,
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          215.0,
+          215.5,
+          215.5
+        ],
+        "today_close": 215.5,
+        "ma5": 214.6,
+        "ma10": 211.15,
+        "ma20": 204.15,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.61
+      },
       "sum_2d_net": -1494
     },
     {
@@ -2762,7 +5546,31 @@
         -9
       ],
       "margin_net_today": 0,
-      "macd_osc_today": 0.45,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          78.5,
+          78.1,
+          77.5
+        ],
+        "today_close": 77.5,
+        "ma5": 78.56,
+        "ma10": 79.11,
+        "ma20": 80.69,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.45
+      },
       "sum_2d_net": -1485
     },
     {
@@ -2786,7 +5594,31 @@
         54
       ],
       "margin_net_today": 62,
-      "macd_osc_today": -7.81,
+      "short_net_today": 5,
+      "price_and_ma": {
+        "close_3d": [
+          3685.0,
+          3545.0,
+          3440.0
+        ],
+        "today_close": 3440.0,
+        "ma5": 3539.0,
+        "ma10": 3506.5,
+        "ma20": 3414.75,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -7.81
+      },
       "sum_2d_net": -1476
     },
     {
@@ -2810,7 +5642,31 @@
         -36
       ],
       "margin_net_today": 74,
-      "macd_osc_today": -0.04,
+      "short_net_today": 3,
+      "price_and_ma": {
+        "close_3d": [
+          22.95,
+          22.8,
+          22.3
+        ],
+        "today_close": 22.3,
+        "ma5": 23.08,
+        "ma10": 23.5,
+        "ma20": 23.09,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.04
+      },
       "sum_2d_net": -1208
     },
     {
@@ -2834,7 +5690,31 @@
         11
       ],
       "margin_net_today": 51,
-      "macd_osc_today": 5.46,
+      "short_net_today": -2,
+      "price_and_ma": {
+        "close_3d": [
+          885.0,
+          872.0,
+          874.0
+        ],
+        "today_close": 874.0,
+        "ma5": 872.4,
+        "ma10": 870.9,
+        "ma20": 883.45,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 5.46
+      },
       "sum_2d_net": -1035
     }
   ],
@@ -2860,7 +5740,31 @@
         -973
       ],
       "margin_net_today": 10543,
-      "macd_osc_today": 1.27,
+      "short_net_today": -628,
+      "price_and_ma": {
+        "close_3d": [
+          68.6,
+          75.4,
+          81.3
+        ],
+        "today_close": 81.3,
+        "ma5": 72.42,
+        "ma10": 68.88,
+        "ma20": 66.62,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.27
+      },
       "sum_3d_net": 79603
     },
     {
@@ -2884,7 +5788,31 @@
         118
       ],
       "margin_net_today": 2654,
-      "macd_osc_today": -0.0,
+      "short_net_today": -11,
+      "price_and_ma": {
+        "close_3d": [
+          8.75,
+          8.91,
+          9.06
+        ],
+        "today_close": 9.06,
+        "ma5": 8.87,
+        "ma10": 8.88,
+        "ma20": 8.68,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.0
+      },
       "sum_3d_net": 38380
     },
     {
@@ -2908,7 +5836,31 @@
         -93
       ],
       "margin_net_today": 1275,
-      "macd_osc_today": 0.75,
+      "short_net_today": -35,
+      "price_and_ma": {
+        "close_3d": [
+          73.0,
+          75.8,
+          77.6
+        ],
+        "today_close": 77.6,
+        "ma5": 73.94,
+        "ma10": 70.7,
+        "ma20": 69.52,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.75
+      },
       "sum_3d_net": 34228
     },
     {
@@ -2932,7 +5884,31 @@
         387
       ],
       "margin_net_today": -343,
-      "macd_osc_today": 0.13,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          73.7,
+          75.5,
+          75.6
+        ],
+        "today_close": 75.6,
+        "ma5": 74.04,
+        "ma10": 74.21,
+        "ma20": 74.61,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.13
+      },
       "sum_3d_net": 18265
     },
     {
@@ -2956,7 +5932,31 @@
         125
       ],
       "margin_net_today": -185,
-      "macd_osc_today": 0.02,
+      "short_net_today": -2,
+      "price_and_ma": {
+        "close_3d": [
+          24.6,
+          24.95,
+          25.05
+        ],
+        "today_close": 25.05,
+        "ma5": 24.72,
+        "ma10": 24.8,
+        "ma20": 24.63,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.02
+      },
       "sum_3d_net": 16149
     },
     {
@@ -2980,7 +5980,31 @@
         1299
       ],
       "margin_net_today": 729,
-      "macd_osc_today": -0.19,
+      "short_net_today": -5,
+      "price_and_ma": {
+        "close_3d": [
+          49.3,
+          49.8,
+          49.3
+        ],
+        "today_close": 49.3,
+        "ma5": 49.16,
+        "ma10": 49.25,
+        "ma20": 50.21,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.19
+      },
       "sum_3d_net": 15298
     },
     {
@@ -3004,7 +6028,31 @@
         173
       ],
       "margin_net_today": -22,
-      "macd_osc_today": 0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          35.45,
+          35.9,
+          36.35
+        ],
+        "today_close": 36.35,
+        "ma5": 35.69,
+        "ma10": 35.69,
+        "ma20": 35.46,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      },
       "sum_3d_net": 12422
     },
     {
@@ -3028,7 +6076,31 @@
         545
       ],
       "margin_net_today": -396,
-      "macd_osc_today": -0.25,
+      "short_net_today": -16,
+      "price_and_ma": {
+        "close_3d": [
+          59.2,
+          59.1,
+          59.7
+        ],
+        "today_close": 59.7,
+        "ma5": 59.28,
+        "ma10": 59.25,
+        "ma20": 59.58,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.25
+      },
       "sum_3d_net": 11502
     },
     {
@@ -3052,7 +6124,31 @@
         -170
       ],
       "margin_net_today": 149,
-      "macd_osc_today": 12.03,
+      "short_net_today": 46,
+      "price_and_ma": {
+        "close_3d": [
+          574.0,
+          595.0,
+          592.0
+        ],
+        "today_close": 592.0,
+        "ma5": 579.6,
+        "ma10": 536.2,
+        "ma20": 511.1,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 12.03
+      },
       "sum_3d_net": 9895
     },
     {
@@ -3076,7 +6172,31 @@
         -379
       ],
       "margin_net_today": -23,
-      "macd_osc_today": -0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          145.5,
+          145.5,
+          146.5
+        ],
+        "today_close": 146.5,
+        "ma5": 145.8,
+        "ma10": 145.25,
+        "ma20": 144.07,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.01
+      },
       "sum_3d_net": 8238
     },
     {
@@ -3100,7 +6220,31 @@
         -239
       ],
       "margin_net_today": 1275,
-      "macd_osc_today": 1.68,
+      "short_net_today": -44,
+      "price_and_ma": {
+        "close_3d": [
+          101.5,
+          107.0,
+          110.5
+        ],
+        "today_close": 110.5,
+        "ma5": 103.52,
+        "ma10": 97.79,
+        "ma20": 91.49,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.68
+      },
       "sum_3d_net": 7312
     },
     {
@@ -3124,7 +6268,31 @@
         322
       ],
       "margin_net_today": -178,
-      "macd_osc_today": 0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          28.8,
+          29.3,
+          29.8
+        ],
+        "today_close": 29.8,
+        "ma5": 29.13,
+        "ma10": 29.29,
+        "ma20": 28.84,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      },
       "sum_3d_net": 6966
     },
     {
@@ -3148,7 +6316,31 @@
         685
       ],
       "margin_net_today": -4381,
-      "macd_osc_today": 0.67,
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          119.0,
+          120.0,
+          117.5
+        ],
+        "today_close": 117.5,
+        "ma5": 118.9,
+        "ma10": 117.4,
+        "ma20": 113.3,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.67
+      },
       "sum_3d_net": 6864
     },
     {
@@ -3172,7 +6364,31 @@
         -70
       ],
       "margin_net_today": -103,
-      "macd_osc_today": -0.41,
+      "short_net_today": -1,
+      "price_and_ma": {
+        "close_3d": [
+          38.2,
+          38.8,
+          39.05
+        ],
+        "today_close": 39.05,
+        "ma5": 38.57,
+        "ma10": 38.76,
+        "ma20": 42.61,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.41
+      },
       "sum_3d_net": 6832
     },
     {
@@ -3196,7 +6412,31 @@
         -10
       ],
       "margin_net_today": -21,
-      "macd_osc_today": 0.04,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          27.9,
+          28.6,
+          28.4
+        ],
+        "today_close": 28.4,
+        "ma5": 28.14,
+        "ma10": 28.07,
+        "ma20": 28.09,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.04
+      },
       "sum_3d_net": 6214
     },
     {
@@ -3220,7 +6460,31 @@
         234
       ],
       "margin_net_today": -140,
-      "macd_osc_today": 0.09,
+      "short_net_today": -9,
+      "price_and_ma": {
+        "close_3d": [
+          47.7,
+          47.75,
+          48.25
+        ],
+        "today_close": 48.25,
+        "ma5": 47.93,
+        "ma10": 47.65,
+        "ma20": 47.23,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.09
+      },
       "sum_3d_net": 5987
     },
     {
@@ -3244,7 +6508,31 @@
         39
       ],
       "margin_net_today": 131,
-      "macd_osc_today": 0.13,
+      "short_net_today": -3,
+      "price_and_ma": {
+        "close_3d": [
+          18.0,
+          18.95,
+          19.45
+        ],
+        "today_close": 19.45,
+        "ma5": 18.49,
+        "ma10": 18.24,
+        "ma20": 18.03,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.13
+      },
       "sum_3d_net": 5934
     },
     {
@@ -3268,7 +6556,31 @@
         404
       ],
       "margin_net_today": 6,
-      "macd_osc_today": -0.17,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          48.8,
+          49.5,
+          49.65
+        ],
+        "today_close": 49.65,
+        "ma5": 49.11,
+        "ma10": 49.02,
+        "ma20": 49.1,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.17
+      },
       "sum_3d_net": 4411
     },
     {
@@ -3292,7 +6604,31 @@
         -43
       ],
       "margin_net_today": -47,
-      "macd_osc_today": 21.01,
+      "short_net_today": 61,
+      "price_and_ma": {
+        "close_3d": [
+          1310.0,
+          1305.0,
+          1270.0
+        ],
+        "today_close": 1270.0,
+        "ma5": 1303.0,
+        "ma10": 1241.5,
+        "ma20": 1116.1,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 21.01
+      },
       "sum_3d_net": 3305
     },
     {
@@ -3316,7 +6652,31 @@
         -3
       ],
       "margin_net_today": 43,
-      "macd_osc_today": 0.47,
+      "short_net_today": 20,
+      "price_and_ma": {
+        "close_3d": [
+          80.3,
+          80.9,
+          80.6
+        ],
+        "today_close": 80.6,
+        "ma5": 80.7,
+        "ma10": 80.09,
+        "ma20": 80.01,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.47
+      },
       "sum_3d_net": 2908
     },
     {
@@ -3340,7 +6700,31 @@
         72
       ],
       "margin_net_today": -153,
-      "macd_osc_today": -0.22,
+      "short_net_today": -78,
+      "price_and_ma": {
+        "close_3d": [
+          123.0,
+          122.5,
+          124.0
+        ],
+        "today_close": 124.0,
+        "ma5": 122.8,
+        "ma10": 122.2,
+        "ma20": 122.4,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.22
+      },
       "sum_3d_net": 2800
     },
     {
@@ -3364,7 +6748,31 @@
         -67
       ],
       "margin_net_today": -169,
-      "macd_osc_today": 0.32,
+      "short_net_today": -22,
+      "price_and_ma": {
+        "close_3d": [
+          74.9,
+          75.6,
+          74.4
+        ],
+        "today_close": 74.4,
+        "ma5": 74.74,
+        "ma10": 73.62,
+        "ma20": 72.23,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.32
+      },
       "sum_3d_net": 2677
     },
     {
@@ -3388,7 +6796,31 @@
         -3
       ],
       "margin_net_today": -19,
-      "macd_osc_today": 2.05,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          203.5,
+          202.5,
+          204.0
+        ],
+        "today_close": 204.0,
+        "ma5": 199.9,
+        "ma10": 195.55,
+        "ma20": 194.72,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 2.05
+      },
       "sum_3d_net": 2533
     },
     {
@@ -3412,7 +6844,31 @@
         5
       ],
       "margin_net_today": 240,
-      "macd_osc_today": 76.67,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          4180.0,
+          4190.0,
+          4345.0
+        ],
+        "today_close": 4345.0,
+        "ma5": 4095.0,
+        "ma10": 3919.5,
+        "ma20": 3765.5,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 76.67
+      },
       "sum_3d_net": 2486
     },
     {
@@ -3436,7 +6892,31 @@
         33
       ],
       "margin_net_today": -83,
-      "macd_osc_today": 4.46,
+      "short_net_today": -1,
+      "price_and_ma": {
+        "close_3d": [
+          290.0,
+          297.0,
+          310.0
+        ],
+        "today_close": 310.0,
+        "ma5": 290.7,
+        "ma10": 283.25,
+        "ma20": 284.13,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 4.46
+      },
       "sum_3d_net": 2463
     },
     {
@@ -3460,7 +6940,31 @@
         -13
       ],
       "margin_net_today": -82,
-      "macd_osc_today": -0.07,
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          104.5,
+          106.0,
+          106.0
+        ],
+        "today_close": 106.0,
+        "ma5": 105.6,
+        "ma10": 105.2,
+        "ma20": 105.42,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.07
+      },
       "sum_3d_net": 2243
     },
     {
@@ -3484,7 +6988,31 @@
         149
       ],
       "margin_net_today": -8,
-      "macd_osc_today": 0.44,
+      "short_net_today": 2,
+      "price_and_ma": {
+        "close_3d": [
+          95.8,
+          96.8,
+          96.4
+        ],
+        "today_close": 96.4,
+        "ma5": 96.62,
+        "ma10": 95.69,
+        "ma20": 92.5,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.44
+      },
       "sum_3d_net": 2137
     },
     {
@@ -3508,7 +7036,31 @@
         3
       ],
       "margin_net_today": 6,
-      "macd_osc_today": 0.19,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          210.5,
+          213.5,
+          213.0
+        ],
+        "today_close": 213.0,
+        "ma5": 211.7,
+        "ma10": 212.1,
+        "ma20": 214.18,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.19
+      },
       "sum_3d_net": 2030
     },
     {
@@ -3532,7 +7084,31 @@
         -92
       ],
       "margin_net_today": -8,
-      "macd_osc_today": 0.57,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          67.2,
+          68.0,
+          67.8
+        ],
+        "today_close": 67.8,
+        "ma5": 67.08,
+        "ma10": 65.36,
+        "ma20": 64.15,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.57
+      },
       "sum_3d_net": 2010
     },
     {
@@ -3556,7 +7132,31 @@
         -22
       ],
       "margin_net_today": -5,
-      "macd_osc_today": 0.12,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          78.1,
+          80.0,
+          80.8
+        ],
+        "today_close": 80.8,
+        "ma5": 78.96,
+        "ma10": 78.68,
+        "ma20": 79.01,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.12
+      },
       "sum_3d_net": 1976
     }
   ],
@@ -3582,7 +7182,31 @@
         -8495
       ],
       "margin_net_today": -2437,
-      "macd_osc_today": 0.15,
+      "short_net_today": -1180,
+      "price_and_ma": {
+        "close_3d": [
+          37.45,
+          37.95,
+          36.6
+        ],
+        "today_close": 36.6,
+        "ma5": 38.3,
+        "ma10": 37.23,
+        "ma20": 34.03,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.15
+      },
       "sum_3d_net": -241676
     },
     {
@@ -3606,7 +7230,31 @@
         -1527
       ],
       "margin_net_today": 2755,
-      "macd_osc_today": -1.53,
+      "short_net_today": 140,
+      "price_and_ma": {
+        "close_3d": [
+          147.5,
+          148.5,
+          147.5
+        ],
+        "today_close": 147.5,
+        "ma5": 151.5,
+        "ma10": 154.1,
+        "ma20": 150.45,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -1.53
+      },
       "sum_3d_net": -102315
     },
     {
@@ -3630,7 +7278,31 @@
         -1847
       ],
       "margin_net_today": 373,
-      "macd_osc_today": -0.13,
+      "short_net_today": 366,
+      "price_and_ma": {
+        "close_3d": [
+          74.3,
+          72.6,
+          72.2
+        ],
+        "today_close": 72.2,
+        "ma5": 74.28,
+        "ma10": 73.86,
+        "ma20": 72.62,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.13
+      },
       "sum_3d_net": -79667
     },
     {
@@ -3654,7 +7326,31 @@
         -70
       ],
       "margin_net_today": 691,
-      "macd_osc_today": -0.01,
+      "short_net_today": 12,
+      "price_and_ma": {
+        "close_3d": [
+          256.0,
+          252.0,
+          249.0
+        ],
+        "today_close": 249.0,
+        "ma5": 252.4,
+        "ma10": 252.45,
+        "ma20": 251.13,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.01
+      },
       "sum_3d_net": -58896
     },
     {
@@ -3678,7 +7374,31 @@
         -104
       ],
       "margin_net_today": 1494,
-      "macd_osc_today": 0.05,
+      "short_net_today": 117,
+      "price_and_ma": {
+        "close_3d": [
+          119.5,
+          118.0,
+          116.0
+        ],
+        "today_close": 116.0,
+        "ma5": 119.4,
+        "ma10": 119.5,
+        "ma20": 119.4,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.05
+      },
       "sum_3d_net": -20260
     },
     {
@@ -3702,7 +7422,31 @@
         62
       ],
       "margin_net_today": 336,
-      "macd_osc_today": -0.13,
+      "short_net_today": 30,
+      "price_and_ma": {
+        "close_3d": [
+          35.9,
+          36.1,
+          35.5
+        ],
+        "today_close": 35.5,
+        "ma5": 35.9,
+        "ma10": 36.26,
+        "ma20": 36.99,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.13
+      },
       "sum_3d_net": -17149
     },
     {
@@ -3726,7 +7470,31 @@
         358
       ],
       "margin_net_today": 4277,
-      "macd_osc_today": 0.16,
+      "short_net_today": -5,
+      "price_and_ma": {
+        "close_3d": [
+          298.0,
+          299.5,
+          304.5
+        ],
+        "today_close": 304.5,
+        "ma5": 298.3,
+        "ma10": 299.15,
+        "ma20": 287.55,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.16
+      },
       "sum_3d_net": -15390
     },
     {
@@ -3750,7 +7518,31 @@
         510
       ],
       "margin_net_today": 1338,
-      "macd_osc_today": 10.11,
+      "short_net_today": 5,
+      "price_and_ma": {
+        "close_3d": [
+          2585.0,
+          2585.0,
+          2550.0
+        ],
+        "today_close": 2550.0,
+        "ma5": 2559.0,
+        "ma10": 2523.5,
+        "ma20": 2476.5,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 10.11
+      },
       "sum_3d_net": -13016
     },
     {
@@ -3774,7 +7566,31 @@
         -89
       ],
       "margin_net_today": 80,
-      "macd_osc_today": -50.06,
+      "short_net_today": 3,
+      "price_and_ma": {
+        "close_3d": [
+          4920.0,
+          4835.0,
+          4690.0
+        ],
+        "today_close": 4690.0,
+        "ma5": 4912.0,
+        "ma10": 4984.0,
+        "ma20": 4834.5,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -50.06
+      },
       "sum_3d_net": -11184
     },
     {
@@ -3798,7 +7614,31 @@
         75
       ],
       "margin_net_today": 49,
-      "macd_osc_today": 0.45,
+      "short_net_today": -49,
+      "price_and_ma": {
+        "close_3d": [
+          380.0,
+          365.5,
+          363.0
+        ],
+        "today_close": 363.0,
+        "ma5": 374.1,
+        "ma10": 368.6,
+        "ma20": 360.93,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.45
+      },
       "sum_3d_net": -9460
     },
     {
@@ -3822,7 +7662,31 @@
         208
       ],
       "margin_net_today": -43,
-      "macd_osc_today": -0.22,
+      "short_net_today": 4,
+      "price_and_ma": {
+        "close_3d": [
+          58.6,
+          58.1,
+          57.5
+        ],
+        "today_close": 57.5,
+        "ma5": 58.3,
+        "ma10": 59.08,
+        "ma20": 60.49,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.22
+      },
       "sum_3d_net": -7439
     },
     {
@@ -3846,7 +7710,31 @@
         0
       ],
       "margin_net_today": 98,
-      "macd_osc_today": 0.08,
+      "short_net_today": 2,
+      "price_and_ma": {
+        "close_3d": [
+          32.75,
+          32.55,
+          32.05
+        ],
+        "today_close": 32.05,
+        "ma5": 32.47,
+        "ma10": 32.25,
+        "ma20": 31.96,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.08
+      },
       "sum_3d_net": -7348
     },
     {
@@ -3870,7 +7758,31 @@
         -93
       ],
       "margin_net_today": 162,
-      "macd_osc_today": -0.62,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          62.7,
+          62.1,
+          62.0
+        ],
+        "today_close": 62.0,
+        "ma5": 63.38,
+        "ma10": 64.57,
+        "ma20": 64.9,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.62
+      },
       "sum_3d_net": -5016
     },
     {
@@ -3894,7 +7806,31 @@
         -25
       ],
       "margin_net_today": -1,
-      "macd_osc_today": -0.31,
+      "short_net_today": 19,
+      "price_and_ma": {
+        "close_3d": [
+          531.0,
+          535.0,
+          522.0
+        ],
+        "today_close": 522.0,
+        "ma5": 535.8,
+        "ma10": 527.5,
+        "ma20": 525.33,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.31
+      },
       "sum_3d_net": -3906
     },
     {
@@ -3918,7 +7854,31 @@
         4
       ],
       "margin_net_today": -932,
-      "macd_osc_today": 25.88,
+      "short_net_today": 65,
+      "price_and_ma": {
+        "close_3d": [
+          1205.0,
+          1215.0,
+          1130.0
+        ],
+        "today_close": 1130.0,
+        "ma5": 1184.0,
+        "ma10": 1088.3,
+        "ma20": 1008.3,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 25.88
+      },
       "sum_3d_net": -3609
     },
     {
@@ -3942,7 +7902,31 @@
         9
       ],
       "margin_net_today": -1,
-      "macd_osc_today": 1.11,
+      "short_net_today": -17,
+      "price_and_ma": {
+        "close_3d": [
+          149.0,
+          145.0,
+          144.0
+        ],
+        "today_close": 144.0,
+        "ma5": 145.6,
+        "ma10": 144.85,
+        "ma20": 145.6,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.11
+      },
       "sum_3d_net": -3496
     },
     {
@@ -3966,7 +7950,31 @@
         0
       ],
       "margin_net_today": 36,
-      "macd_osc_today": 0.01,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          25.65,
+          25.75,
+          25.7
+        ],
+        "today_close": 25.7,
+        "ma5": 25.7,
+        "ma10": 25.66,
+        "ma20": 25.78,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.01
+      },
       "sum_3d_net": -3466
     },
     {
@@ -3990,7 +7998,31 @@
         -64
       ],
       "margin_net_today": 22,
-      "macd_osc_today": -1.43,
+      "short_net_today": -8,
+      "price_and_ma": {
+        "close_3d": [
+          206.0,
+          199.0,
+          195.5
+        ],
+        "today_close": 195.5,
+        "ma5": 202.9,
+        "ma10": 204.95,
+        "ma20": 205.93,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -1.43
+      },
       "sum_3d_net": -3137
     },
     {
@@ -4014,7 +8046,31 @@
         -24
       ],
       "margin_net_today": 764,
-      "macd_osc_today": 2.35,
+      "short_net_today": 9,
+      "price_and_ma": {
+        "close_3d": [
+          1045.0,
+          1000.0,
+          980.0
+        ],
+        "today_close": 980.0,
+        "ma5": 1016.0,
+        "ma10": 984.9,
+        "ma20": 971.85,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 2.35
+      },
       "sum_3d_net": -2320
     },
     {
@@ -4038,7 +8094,31 @@
         88
       ],
       "margin_net_today": -84,
-      "macd_osc_today": 1.61,
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          215.0,
+          215.5,
+          215.5
+        ],
+        "today_close": 215.5,
+        "ma5": 214.6,
+        "ma10": 211.15,
+        "ma20": 204.15,
+        "status": "多頭排列(站上所有均線)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.61
+      },
       "sum_3d_net": -1920
     },
     {
@@ -4062,7 +8142,31 @@
         11
       ],
       "margin_net_today": 51,
-      "macd_osc_today": 5.46,
+      "short_net_today": -2,
+      "price_and_ma": {
+        "close_3d": [
+          885.0,
+          872.0,
+          874.0
+        ],
+        "today_close": 874.0,
+        "ma5": 872.4,
+        "ma10": 870.9,
+        "ma20": 883.45,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 5.46
+      },
       "sum_3d_net": -1837
     },
     {
@@ -4086,7 +8190,31 @@
         -9
       ],
       "margin_net_today": 0,
-      "macd_osc_today": 0.45,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          78.5,
+          78.1,
+          77.5
+        ],
+        "today_close": 77.5,
+        "ma5": 78.56,
+        "ma10": 79.11,
+        "ma20": 80.69,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.45
+      },
       "sum_3d_net": -1823
     },
     {
@@ -4110,7 +8238,31 @@
         -36
       ],
       "margin_net_today": 74,
-      "macd_osc_today": -0.04,
+      "short_net_today": 3,
+      "price_and_ma": {
+        "close_3d": [
+          22.95,
+          22.8,
+          22.3
+        ],
+        "today_close": 22.3,
+        "ma5": 23.08,
+        "ma10": 23.5,
+        "ma20": 23.09,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.04
+      },
       "sum_3d_net": -1733
     },
     {
@@ -4134,7 +8286,31 @@
         52
       ],
       "margin_net_today": 158,
-      "macd_osc_today": 148.7,
+      "short_net_today": -24,
+      "price_and_ma": {
+        "close_3d": [
+          2290.0,
+          2240.0,
+          2240.0
+        ],
+        "today_close": 2240.0,
+        "ma5": 2201.0,
+        "ma10": 2152.5,
+        "ma20": 2189.75,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 148.7
+      },
       "sum_3d_net": -1076
     },
     {
@@ -4158,7 +8334,31 @@
         7
       ],
       "margin_net_today": -64,
-      "macd_osc_today": -17.04,
+      "short_net_today": 18,
+      "price_and_ma": {
+        "close_3d": [
+          1530.0,
+          1525.0,
+          1520.0
+        ],
+        "today_close": 1520.0,
+        "ma5": 1526.0,
+        "ma10": 1562.0,
+        "ma20": 1485.75,
+        "status": "站上月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -17.04
+      },
       "sum_3d_net": -1008
     },
     {
@@ -4182,7 +8382,31 @@
         -20
       ],
       "margin_net_today": 45,
-      "macd_osc_today": 1.73,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          1265.0,
+          1260.0,
+          1250.0
+        ],
+        "today_close": 1250.0,
+        "ma5": 1273.0,
+        "ma10": 1283.5,
+        "ma20": 1290.0,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 1.73
+      },
       "sum_3d_net": -987
     },
     {
@@ -4206,7 +8430,31 @@
         -356
       ],
       "margin_net_today": 292,
-      "macd_osc_today": 0.94,
+      "short_net_today": 1,
+      "price_and_ma": {
+        "close_3d": [
+          497.5,
+          488.0,
+          476.0
+        ],
+        "today_close": 476.0,
+        "ma5": 486.3,
+        "ma10": 488.2,
+        "ma20": 512.0,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": 0.94
+      },
       "sum_3d_net": -948
     },
     {
@@ -4230,7 +8478,31 @@
         -9
       ],
       "margin_net_today": 5,
-      "macd_osc_today": -0.27,
+      "short_net_today": 0,
+      "price_and_ma": {
+        "close_3d": [
+          66.3,
+          66.3,
+          66.3
+        ],
+        "today_close": 66.3,
+        "ma5": 66.68,
+        "ma10": 67.95,
+        "ma20": 68.13,
+        "status": "空頭排列(均線反壓)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.27
+      },
       "sum_3d_net": -826
     },
     {
@@ -4254,7 +8526,31 @@
         1
       ],
       "margin_net_today": 16,
-      "macd_osc_today": -6.81,
+      "short_net_today": -4,
+      "price_and_ma": {
+        "close_3d": [
+          2090.0,
+          2060.0,
+          2060.0
+        ],
+        "today_close": 2060.0,
+        "ma5": 2081.0,
+        "ma10": 2112.0,
+        "ma20": 2077.25,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -6.81
+      },
       "sum_3d_net": -791
     },
     {
@@ -4278,7 +8574,31 @@
         0
       ],
       "margin_net_today": 11,
-      "macd_osc_today": -0.25,
+      "short_net_today": -2,
+      "price_and_ma": {
+        "close_3d": [
+          91.5,
+          91.1,
+          91.1
+        ],
+        "today_close": 91.1,
+        "ma5": 91.66,
+        "ma10": 91.57,
+        "ma20": 91.86,
+        "status": "跌破月線(MA20)"
+      },
+      "technical_indicators": {
+        "rsi_3d": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "kd_today": {
+          "k": 0.0,
+          "d": 0.0
+        },
+        "macd_osc_today": -0.25
+      },
       "sum_3d_net": -782
     }
   ]
