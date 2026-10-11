@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 import edge_tts
 
 TW_TZ = ZoneInfo("Asia/Taipei")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 def format_chips_for_prompt(chips_data):
     """將結構化的 chips_*.json 轉換為適合 Prompt 閱讀的高密度文字摘要"""
@@ -23,7 +23,7 @@ def format_chips_for_prompt(chips_data):
     
     lines = [
         f"【核心觀察股 (231檔) 三大法人與技術籌碼監控】",
-        f"※ 數列格式統一為 {date_str}，由左至右為前天、昨天、今天數值 (單位: 張)\n"
+        f"※ 數列格式統一為 {date_str}，由左至右為 [前天, 昨天, 今天] 數值 (單位: 張)\n"
     ]
 
     def format_list(title, items, top_n=25, extra_key=None):
@@ -87,16 +87,19 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
             "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』、本週末最新『台股與國際財經新聞』，以及本週最新『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
             "請統整出一份兼具基本面與資金動向的『台股週末財經總覽與下週展望報告』。\n"
             "嚴格禁止提及『昨日美股』或『今日開盤』等錯誤字眼，應以『週五美股表現』及『展望下週一開盤』角度分析。\n\n"
-            "【嚴格覆蓋與格式要求（請務必遵循）】：\n"
-            "1. 涵蓋數量：在新聞有利多的眾多個股中，必須挑選出 10 ~ 15 檔進行詳細列出，嚴格禁止只列 4~5 檔！利空個股請列出 6 ~ 10 檔。\n"
-            "2. 消息面 ✖ 資金面交叉驗證：每一檔個股必須嚴格遵守以下格式輸出：\n"
-            "   <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務數據。【籌碼面】三大法人買賣動向（註明外資/投信張數變化、土洋同買/對作、融資與MACD狀態），並標註是否為真強勢或背離。</li>\n"
-            "3. 假利多真出貨警示：若個股營收創新高或有利多題材，但法人連續賣超（融資大增散戶接刀），請務必歸入『重大個股利空』進行示警。\n\n"
+            "【個股覆蓋與條件顯示要求（請嚴格遵循）】：\n"
+            "1. 涵蓋數量：重大個股利多請詳實篩選 10 ~ 15 檔；重大個股利空請篩選 6 ~ 10 檔。禁止只挑 4~5 檔！\n"
+            "2. 動態顯示籌碼面（重要規則）：\n"
+            "   - 若該股票在提供的 231 檔籌碼數據中：輸出模板為：\n"
+            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞重點與關鍵財務數字。【籌碼面】三大法人買賣張數、土洋關係、融資與MACD狀態，並標註是否為真強勢或籌碼背離。</li>\n"
+            "   - 若該股票不在提供的籌碼數據中：【完全不需要顯示籌碼面】，直接輸出消息面即可：\n"
+            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務業務展望。</li>\n"
+            "3. 假利多真出貨警示：若個股營收創新高但法人大賣（融資大增），務必歸入『重大個股利空』進行示警。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（週五美股四大指數、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。\n"
-            "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點且籌碼健康標的，按規範輸出消息面與籌碼面）。\n"
-            "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股，按規範輸出）。\n"
+            "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點個股，有籌碼則附籌碼，無籌碼則僅寫消息面）。\n"
+            "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股）。\n"
             "4. 💡 操盤手筆記（綜合週末情勢、土洋對作重點族群與法人資金輪動，展望下週一開盤操作策略）。\n\n"
         )
     else:
@@ -105,16 +108,19 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
             "你是一位資深的台股專業首席操盤手。請仔細閱讀以下提供的大盤/海外夜盤數據、最新台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
             "請統整出一份深入、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
             "必須特別對照夜盤、美股與 ADR 的表現，並深入解讀個股消息面與法人籌碼背離狀況。\n\n"
-            "【嚴格覆蓋與格式要求（請務必遵循）】：\n"
-            "1. 涵蓋數量：在新聞有利多的眾多個股中，必須挑選出 10 ~ 15 檔進行詳細列出，嚴格禁止只列 4~5 檔！利空個股請列出 6 ~ 10 檔。\n"
-            "2. 消息面 ✖ 資金面交叉驗證：每一檔個股必須嚴格遵守以下格式輸出：\n"
-            "   <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務數據。【籌碼面】三大法人買賣動向（註明外資/投信張數變化、土洋同買/對作、融資與MACD狀態），並標註是否為真強勢或背離。</li>\n"
-            "3. 假利多真出貨警示：若個股營收創新高或有利多題材，但法人連續賣超（融資大增散戶接刀），請務必歸入『重大個股利空』進行示警。\n\n"
+            "【個股覆蓋與條件顯示要求（請嚴格遵循）】：\n"
+            "1. 涵蓋數量：重大個股利多請詳實篩選 10 ~ 15 檔；重大個股利空請篩選 6 ~ 10 檔。禁止只挑 4~5 檔！\n"
+            "2. 動態顯示籌碼面（重要規則）：\n"
+            "   - 若該股票在提供的 231 檔籌碼數據中：輸出模板為：\n"
+            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞重點與關鍵財務數字。【籌碼面】三大法人買賣張數、土洋關係、融資與MACD狀態，並標註是否為真強勢或籌碼背離。</li>\n"
+            "   - 若該股票不在提供的籌碼數據中：【完全不需要顯示籌碼面】，直接輸出消息面即可：\n"
+            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務業務展望。</li>\n"
+            "3. 假利多真出貨警示：若個股營收創新高但法人大賣（融資大增），務必歸入『重大個股利空』進行示警。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
-            "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點且籌碼健康標的，按規範輸出消息面與籌碼面）。\n"
-            "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股，按規範輸出）。\n"
+            "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點個股，有籌碼則附籌碼，無籌碼則僅寫消息面）。\n"
+            "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股）。\n"
             "4. 💡 操盤手筆記（綜合大盤情勢、土洋對作重點族群與法人資金輪動，給出開盤操作實戰指南）。\n\n"
         )
 
@@ -137,13 +143,11 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
     return prompt
 
 def ai_generate_report(news_list, market_data, chips_data, today_dt):
-    api_key = (GEMINI_API_KEY or "").strip()
-    if not api_key:
+    if not GEMINI_API_KEY:
         raise ValueError("❌ 錯誤：GEMINI_API_KEY 環境變數為空，請確認 GitHub Secrets 設定！")
         
-    # 保證 URL 絕對乾淨，無任何隱形字元或跳脫括號
-    clean_url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent"
-    request_url = f"{clean_url}?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent"
+    params = {"key": GEMINI_API_KEY}
     headers = {"Content-Type": "application/json"}
     
     max_retries = 5
@@ -167,7 +171,7 @@ def ai_generate_report(news_list, market_data, chips_data, today_dt):
         }
         
         try:
-            res = requests.post(request_url, json=payload, headers=headers, timeout=300)
+            res = requests.post(url, params=params, json=payload, headers=headers, timeout=300)
             res_json = res.json()
             
             if 'candidates' in res_json and len(res_json['candidates']) > 0:
@@ -199,9 +203,9 @@ async def generate_microsoft_tts(html_content, target_date):
     audio_filename = f"audio_{target_date}.mp3"
     audio_path = os.path.join(target_dir, audio_filename)
     
-    # 移除 <head>, <style>, <script> 區塊及其內部所有代碼內容
+    # 移除 <head>, <style>, <script> 區塊及其內部所有代碼內容[cite: 1]
     text = re.sub(r'<(style|script|head)[^>]*>[\s\S]*?</\1>', ' ', html_content, flags=re.IGNORECASE)
-    # 移除其餘 HTML 標籤
+    # 移除其餘 HTML 標籤[cite: 1]
     text = re.sub(r'<[^>]+>', ' ', text)
     text = text.replace("📈", "。").replace("🚀", "。").replace("⚠️", "。").replace("💡", "。")
     text = text.replace("▼", "下跌").replace("▲", "上漲")
