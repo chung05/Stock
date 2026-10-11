@@ -13,7 +13,7 @@ TW_TZ = ZoneInfo("Asia/Taipei")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 def format_chips_for_prompt(chips_data):
-    """將結構化的 chips_*.json 轉換為適合 Prompt 閱讀的高密度文字摘要"""
+    """將結構化的 chips_*.json 轉換為適合 Prompt 閱讀的高密度量價籌碼摘要"""
     if not chips_data:
         return "無最新籌碼數據。\n"
     
@@ -22,8 +22,8 @@ def format_chips_for_prompt(chips_data):
     date_str = f"[{', '.join(dates)}]" if dates else "[T-2, T-1, T]"
     
     lines = [
-        f"【核心觀察股 (231檔) 三大法人與技術籌碼監控】",
-        f"※ 數列格式統一為 {date_str}，由左至右為 [前天, 昨天, 今天] 數值 (單位: 張)\n"
+        f"【核心觀察股 (231檔) 三大法人、股價動態與技術指標監控】",
+        f"※ 數列格式統一為 {date_str}，由左至右分別為 [前天, 昨天, 今天] (單位: 張/元)\n"
     ]
 
     def format_list(title, items, top_n=25, extra_key=None):
@@ -37,15 +37,31 @@ def format_chips_for_prompt(chips_data):
             it_net = item.get("investment_trust_net_3d", [])
             d_net = item.get("dealer_net_3d", [])
             margin = item.get("margin_net_today", 0)
-            macd = item.get("macd_osc_today", 0)
+            short = item.get("short_net_today", 0)
+            
+            # 收盤價與均線
+            p_ma = item.get("price_and_ma", {})
+            close_3d = p_ma.get("close_3d", [])
+            today_close = p_ma.get("today_close", 0)
+            ma_status = p_ma.get("status", "均線糾結")
+            ma5 = p_ma.get("ma5", 0)
+            ma20 = p_ma.get("ma20", 0)
+            
+            # 技術動能
+            tech = item.get("technical_indicators", {})
+            kd = tech.get("kd_today", {})
+            k_val, d_val = kd.get("k", 0), kd.get("d", 0)
+            rsi_3d = tech.get("rsi_3d", [])
+            macd_osc = tech.get("macd_osc_today", 0)
             
             extra_str = ""
             if extra_key and extra_key in item:
-                extra_str = f" | 累計:{item[extra_key]:+d}張"
+                extra_str = f" | 累計買賣超:{item[extra_key]:+d}張"
 
             sub_lines.append(
-                f"- {sid} {sname} [{rel}] | 今日三大法人:{today_net:+d}張{extra_str} (資:{margin:+d}張, MACD柱:{macd:+.2f})\n"
-                f"  外資:{f_net} | 投信:{it_net} | 自營:{d_net}"
+                f"- {sid} {sname} [{rel}] 收盤價:{today_close}元 (近3日價格:{close_3d}, {ma_status}, 5MA:{ma5}, 20MA:{ma20})\n"
+                f"  法人買賣: 今日三大法人:{today_net:+d}張{extra_str} (外資:{f_net} | 投信:{it_net} | 自營:{d_net})\n"
+                f"  信用與技術: 資:{margin:+d}張, 券:{short:+d}張 | KD:({k_val:.1f}/{d_val:.1f}), RSI:{rsi_3d}, MACD柱:{macd_osc:+.2f}"
             )
         return "\n".join(sub_lines)
 
@@ -84,44 +100,44 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
         market_header = "【本週五美股與台指期夜盤最終收盤數據（週末休市）】\n"
         role_and_context = (
             "你是一位資深的台股專業首席操盤手。今天是星期天，台股與美股均處於週末休市狀態。\n"
-            "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』、本週末最新『台股與國際財經新聞』，以及本週最新『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
-            "請統整出一份兼具基本面與資金動向的『台股週末財經總覽與下週展望報告』。\n"
+            "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』、本週末最新『台股與國際財經新聞』，以及本週最新『核心觀察股 (231檔) 三大法人籌碼、股價與技術指標監控』。\n"
+            "請統整出一份兼具基本面與量價籌碼動向的『台股週末財經總覽與下週展望報告』。\n"
             "嚴格禁止提及『昨日美股』或『今日開盤』等錯誤字眼，應以『週五美股表現』及『展望下週一開盤』角度分析。\n\n"
-            "【個股覆蓋與條件顯示要求（請嚴格遵循）】：\n"
+            "【個股覆蓋與量價籌碼綜合分析要求（請嚴格遵循）】：\n"
             "1. 涵蓋數量：重大個股利多請詳實篩選 10 ~ 15 檔；重大個股利空請篩選 6 ~ 10 檔。禁止只挑 4~5 檔！\n"
-            "2. 動態顯示籌碼面（重要規則）：\n"
-            "   - 若該股票在提供的 231 檔籌碼數據中：輸出模板為：\n"
-            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞重點與關鍵財務數字。【籌碼面】三大法人買賣張數、土洋關係、融資與MACD狀態，並標註是否為真強勢或籌碼背離。</li>\n"
-            "   - 若該股票不在提供的籌碼數據中：【完全不需要顯示籌碼面】，直接輸出消息面即可：\n"
+            "2. 動態顯示籌碼與技術面（重要規則）：\n"
+            "   - 若該股票在提供的 231 檔監控數據中：輸出模板為：\n"
+            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務業務展望。【籌碼與技術面】三大法人買賣張數、收盤價與均線位置(是否站上月線/多頭排列)、KD/RSI動能，並指出是否為『量價齊揚強勢鎖碼』或『高檔籌碼背離』。</li>\n"
+            "   - 若該股票不在提供的監控數據中：【完全不需要顯示籌碼與技術面】，直接輸出消息面即可：\n"
             "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務業務展望。</li>\n"
-            "3. 假利多真出貨警示：若個股營收創新高但法人大賣（融資大增），務必歸入『重大個股利空』進行示警。\n\n"
+            "3. 假利多真出貨警示：若個股營收創新高，但法人連續大賣且股價跌破月線(或融資激增散戶接刀)，務必歸入『重大個股利空』進行示警。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（週五美股四大指數、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。\n"
-            "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點個股，有籌碼則附籌碼，無籌碼則僅寫消息面）。\n"
-            "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股）。\n"
-            "4. 💡 操盤手筆記（綜合週末情勢、土洋對作重點族群與法人資金輪動，展望下週一開盤操作策略）。\n\n"
+            "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合驗證，無則僅寫消息面）。\n"
+            "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但破均線/法人倒貨背離』個股）。\n"
+            "4. 💡 操盤手筆記（綜合週末情勢、均線多空排列、土洋對作重點族群與資金流向，展望下週一操作策略）。\n\n"
         )
     else:
         market_header = "【昨日美股與台指期夜盤最終收盤數據】\n"
         role_and_context = (
-            "你是一位資深的台股專業首席操盤手。請仔細閱讀以下提供的大盤/海外夜盤數據、最新台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼與動能監控』。\n"
+            "你是一位資深的台股專業首席操盤手。請仔細閱讀以下提供的大盤/海外夜盤數據、最新台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼、股價與技術指標監控』。\n"
             "請統整出一份深入、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-            "必須特別對照夜盤、美股與 ADR 的表現，並深入解讀個股消息面與法人籌碼背離狀況。\n\n"
-            "【個股覆蓋與條件顯示要求（請嚴格遵循）】：\n"
+            "必須特別對照夜盤、美股與 ADR 的表現，並深入解讀個股消息面與量價籌碼背離狀況。\n\n"
+            "【個股覆蓋與量價籌碼綜合分析要求（請嚴格遵循）】：\n"
             "1. 涵蓋數量：重大個股利多請詳實篩選 10 ~ 15 檔；重大個股利空請篩選 6 ~ 10 檔。禁止只挑 4~5 檔！\n"
-            "2. 動態顯示籌碼面（重要規則）：\n"
-            "   - 若該股票在提供的 231 檔籌碼數據中：輸出模板為：\n"
-            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞重點與關鍵財務數字。【籌碼面】三大法人買賣張數、土洋關係、融資與MACD狀態，並標註是否為真強勢或籌碼背離。</li>\n"
-            "   - 若該股票不在提供的籌碼數據中：【完全不需要顯示籌碼面】，直接輸出消息面即可：\n"
+            "2. 動態顯示籌碼與技術面（重要規則）：\n"
+            "   - 若該股票在提供的 231 檔監控數據中：輸出模板為：\n"
+            "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務業務展望。【籌碼與技術面】三大法人買賣張數、收盤價與均線位置(是否站上月線/多頭排列)、KD/RSI動能，並指出是否為『量價齊揚強勢鎖碼』或『高檔籌碼背離』。</li>\n"
+            "   - 若該股票不在提供的監控數據中：【完全不需要顯示籌碼與技術面】，直接輸出消息面即可：\n"
             "     <li><strong>公司名稱 (代號)：</strong>【消息面】新聞核心重點與財務業務展望。</li>\n"
-            "3. 假利多真出貨警示：若個股營收創新高但法人大賣（融資大增），務必歸入『重大個股利空』進行示警。\n\n"
+            "3. 假利多真出貨警示：若個股營收創新高，但法人連續大賣且股價跌破月線(或融資激增散戶接刀)，務必歸入『重大個股利空』進行示警。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
             "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
-            "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點個股，有籌碼則附籌碼，無籌碼則僅寫消息面）。\n"
-            "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但法人出貨/籌碼背離』個股）。\n"
-            "4. 💡 操盤手筆記（綜合大盤情勢、土洋對作重點族群與法人資金輪動，給出開盤操作實戰指南）。\n\n"
+            "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合驗證，無則僅寫消息面）。\n"
+            "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但破均線/法人倒貨背離』個股）。\n"
+            "4. 💡 操盤手筆記（綜合大盤情勢、均線多空排列、土洋對作族群與資金流向，給出開盤操作實戰指南）。\n\n"
         )
 
     market_context = market_header
@@ -203,7 +219,7 @@ async def generate_microsoft_tts(html_content, target_date):
     audio_filename = f"audio_{target_date}.mp3"
     audio_path = os.path.join(target_dir, audio_filename)
     
-    # 移除 <head>, <style>, <script> 區塊及其內部所有代碼內容[cite: 1]
+    # 移除 <head>, <style>, <script> 區塊及其內部內容[cite: 1]
     text = re.sub(r'<(style|script|head)[^>]*>[\s\S]*?</\1>', ' ', html_content, flags=re.IGNORECASE)
     # 移除其餘 HTML 標籤[cite: 1]
     text = re.sub(r'<[^>]+>', ' ', text)
@@ -337,7 +353,7 @@ def main():
             chips_target_path = chip_files[-1]
             
     if os.path.exists(chips_target_path):
-        print(f"📖 讀取法人籌碼與動能資料: {os.path.basename(chips_target_path)}")
+        print(f"📖 讀取法人量價籌碼與技術資料: {os.path.basename(chips_target_path)}")
         try:
             with open(chips_target_path, "r", encoding="utf-8") as f:
                 chips_data = json.load(f)
@@ -347,7 +363,7 @@ def main():
         print("ℹ️ 未找到任何 chips_*.json 檔案。")
             
     if all_combined_news:
-        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆新聞，深度融合市場夜盤與 Supabase 籌碼大帳本...")
+        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆新聞，深度融合市場夜盤與量價籌碼大帳本...")
         content = ai_generate_report(all_combined_news, market_data, chips_data, now_tw)
         
         audio_file = asyncio.run(generate_microsoft_tts(content, today_str))
