@@ -28,7 +28,7 @@
     .scrollbar-none::-webkit-scrollbar { display: none; }
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
     .sticky-col-shadow { box-shadow: 3px 0 6px -3px rgba(0, 0, 0, 0.25); }
-    dialog::backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); }
+    dialog::backdrop { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
@@ -243,7 +243,7 @@
               <option value="14">💎 14. 結構性大轉折（月金叉季線+MACD站上0軸）</option>
             </optgroup>
             <optgroup label="👑 法人與主力鎖碼模組">
-              <option value="7">🔮 7. 珍珠蒙塵（法人連3買+橫盤壓縮）</option>
+              <option value="7">🔮 7. 珍珠蒙塵 (法人連3買+橫盤壓縮)</option>
               <option value="9">🌱 9. 投信無中生有（投信打破清白首日爆買）</option>
               <option value="10">🦅 10. 雙雄聯手（外資大買+投信爆買+MACD翻紅）</option>
             </optgroup>
@@ -252,7 +252,7 @@
               <option value="8">🤝 8. 籌碼換手（融資大退+法人神救援+守月線）</option>
               <option value="11">🪜 11. 致命軋空（融券3日暴增+股價收最高）</option>
               <option value="12">🐜 12. 權證螞蟻雄兵（自營商避險爆量+股價大漲）</option>
-              <option value="13">🏳️ 13. 主力投降 (資券同減+KD金叉+收復5MA)</option>
+              <option value="13">🏳️ 13. 主力投降（資券同減+KD金叉+收復5MA）</option>
               <option value="15">🔄 15. 外資回頭（連5賣後首日認錯大買）</option>
               <option value="16">🛡️ 16. 國家隊護盤（官股自行買賣逆勢大買+長下影線）</option>
             </optgroup>
@@ -296,7 +296,7 @@
       <img src="main_icon.png" class="w-9 h-9 rounded-lg shrink-0 object-contain bg-white/20 p-0.5" alt="App Icon">
       <div class="text-xs min-w-0">
         <div class="font-bold text-slate-100 truncate">安裝牛牛分析站</div>
-        <div id="pwaInstallSubtext" class="text-[11px] text-slate-400 truncate">新增至手機桌面，開啟更方便！</div>
+        <div id="pwaInstallSubtext" class="text-[11px] text-slate-400 truncate">新增至手機桌面，隨時看股更方便！</div>
       </div>
     </div>
     <div class="flex items-center gap-1.5 shrink-0">
@@ -305,39 +305,102 @@
     </div>
   </div>
 
-  <!-- 圖文教學互動彈窗 (Guide Modal) -->
-  <dialog id="pwaGuideModal" class="rounded-2xl shadow-2xl p-6 max-w-md w-[90%] border border-slate-200 bg-white focus:outline-none backdrop:bg-slate-900/60">
-    <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-      <h3 class="text-base font-black text-slate-900 flex items-center gap-1.5">📱 建立手機桌面捷徑教學</h3>
-      <button id="closeGuideModalBtn" class="text-slate-400 hover:text-slate-600 font-bold text-base cursor-pointer p-1">✕</button>
+  <!-- 升級版：圖文並茂與步驟編號教學互動彈窗 (Guide Modal) -->
+  <dialog id="pwaGuideModal" class="rounded-2xl shadow-2xl p-5 max-w-lg w-[94%] border border-slate-200 bg-white focus:outline-none backdrop:bg-slate-900/60">
+    <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+      <h3 class="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">📱 手機建立桌面捷徑完整圖文教學</h3>
+      <button id="closeGuideModalBtn" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer p-1">✕</button>
     </div>
     
-    <div class="space-y-4 text-xs text-slate-700">
-      <!-- 區塊一：iPhone / Safari 教學 -->
-      <div id="iosGuideSection" class="p-3 bg-blue-50/70 rounded-xl border border-blue-100 space-y-2">
-        <div class="font-black text-blue-900 text-sm flex items-center gap-1">🍎 iPhone (Safari) 用戶教學：</div>
-        <ol class="list-decimal list-inside space-y-1.5 font-semibold text-slate-700 leading-relaxed pl-1">
-          <li>請確認您目前使用的是 <span class="text-blue-700 font-bold">Safari 瀏覽器</span>。</li>
-          <li>點擊下方工具列的 <span class="inline-flex items-center px-1.5 py-0.5 bg-white border border-blue-200 rounded text-blue-800 font-bold">分享圖示 ⎋ (向上箭頭)</span>。</li>
-          <li>在選單中往下滑動，找到並點選 <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold">「加入主畫面」</span>。</li>
-          <li>點擊右上角的 <span class="font-bold text-slate-900">「新增」</span>，即可完成！</li>
-        </ol>
+    <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1 text-xs text-slate-700">
+      
+      <!-- 🍎 iPhone (Safari) 專屬詳細圖文教學 -->
+      <div id="iosGuideSection" class="p-4 bg-blue-50/80 rounded-2xl border border-blue-200 space-y-3">
+        <div class="font-black text-blue-900 text-sm flex items-center gap-1.5 pb-1 border-b border-blue-200">
+          🍎 iPhone / iPad (Safari 瀏覽器) 操作步驟：
+        </div>
+
+        <!-- 步驟 1 -->
+        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">1</div>
+          <div class="space-y-1 grow">
+            <div class="font-extrabold text-slate-900">確認使用 Safari 開啟</div>
+            <div class="text-slate-600 leading-snug">請確保您目前是用 iPhone 內建的 <span class="text-blue-700 font-bold">Safari 瀏覽器</span>開啟此網頁（若是在 LINE 或 FB 內開啟，請點右下角選單改用 Safari 打開）。</div>
+          </div>
+        </div>
+
+        <!-- 步驟 2 -->
+        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">2</div>
+          <div class="space-y-1 grow">
+            <div class="font-extrabold text-slate-900">點擊下方工具列的「分享」按鈕</div>
+            <div class="text-slate-600 leading-snug">看手機螢幕最下方（或上方網址列旁），找到長得像方框與向上箭頭的圖示：</div>
+            <div class="inline-flex items-center gap-1 bg-blue-100/80 border border-blue-300 text-blue-900 px-2.5 py-1 rounded-lg font-black text-xs tracking-wider my-0.5">
+              <span>⎋ 分享按鈕 (箭頭往上飛的方框)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟 3 -->
+        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">3</div>
+          <div class="space-y-1 grow">
+            <div class="font-extrabold text-slate-900">點選「加入主畫面」</div>
+            <div class="text-slate-600 leading-snug">在彈出的選單中手指往下滑動，找到並點選帶有 <span class="text-slate-950 font-bold">➕</span> 符號的選項：</div>
+            <div class="inline-flex items-center gap-1 bg-slate-900 text-white px-2.5 py-1 rounded-lg font-bold text-xs my-0.5 shadow-2xs">
+              <span>➕ 加入主畫面</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟 4 -->
+        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">4</div>
+          <div class="space-y-1 grow">
+            <div class="font-extrabold text-slate-900">點擊右上角的「新增」</div>
+            <div class="text-slate-600 leading-snug">畫面右上角會出現確認名稱視窗，直接點擊藍色的 <span class="text-blue-700 font-bold">「新增」</span>，即可大功告成！ App 圖示就會出現在您的手機桌面上。</div>
+          </div>
+        </div>
       </div>
 
-      <!-- 區塊二：Android / Chrome 教學 -->
-      <div id="androidGuideSection" class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-100 space-y-2">
-        <div class="font-black text-emerald-900 text-sm flex items-center gap-1">🤖 Android (Chrome) 用戶教學：</div>
-        <ol class="list-decimal list-inside space-y-1.5 font-semibold text-slate-700 leading-relaxed pl-1">
-          <li>點擊下方橫幅的 <span class="text-emerald-700 font-bold">「建立桌面捷徑」</span> 按鈕。</li>
-          <li>若系統自動彈出視窗，請直接點擊 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「安裝」</span>。</li>
-          <li>若未自動彈出，請點擊瀏覽器右上角的 <span class="inline-flex items-center px-1.5 py-0.5 bg-white border border-emerald-200 rounded text-emerald-800 font-bold">選單 (⋮)</span>。</li>
-          <li>選擇 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「加到主畫面」</span> 或 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「安裝應用程式」</span> 即可！</li>
-        </ol>
+      <!-- 🤖 Android (Chrome) 專屬詳細圖文教學 -->
+      <div id="androidGuideSection" class="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 space-y-3">
+        <div class="font-black text-emerald-900 text-sm flex items-center gap-1.5 pb-1 border-b border-emerald-200">
+          🤖 Android / 安卓 (Chrome 瀏覽器) 操作步驟：
+        </div>
+
+        <!-- 步驟 1 -->
+        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">1</div>
+          <div class="space-y-1 grow">
+            <div class="font-extrabold text-slate-900">點擊下方橫幅的「建立桌面捷徑」</div>
+            <div class="text-slate-600 leading-snug">直接點擊畫面下方黑色橫幅右側的綠色 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">建立桌面捷徑</span> 按鈕。</div>
+          </div>
+        </div>
+
+        <!-- 步驟 2 -->
+        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">2</div>
+          <div class="space-y-1 grow">
+            <div class="font-extrabold text-slate-900">確認系統彈出視窗</div>
+            <div class="text-slate-600 leading-snug">若手機彈出安裝詢問框，點擊 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「安裝」</span> 即可。若沒有自動彈出，請進行下一步。</div>
+          </div>
+        </div>
+
+        <!-- 步驟 3 -->
+        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">3</div>
+          <div class="space-y-1 grow">
+            <div class="font-extrabold text-slate-900">手動從瀏覽器選單加入</div>
+            <div class="text-slate-600 leading-snug">點擊瀏覽器右上角的 <span class="inline-flex items-center px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded font-bold text-slate-900">三個點 (⋮) 選單</span>，然後點選 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「加到主畫面」</span> 或 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「安裝應用程式」</span> 即可完成！</div>
+          </div>
+        </div>
       </div>
+
     </div>
 
-    <div class="mt-5 text-center">
-      <button id="gotItGuideBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer shadow-md">了解，馬上試試！</button>
+    <div class="mt-4 text-center">
+      <button id="gotItGuideBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-2.5 rounded-xl text-xs cursor-pointer shadow-md">我知道了，馬上來試試看！</button>
     </div>
   </dialog>
 
@@ -414,7 +477,6 @@
       if (pwaBtn) {
         pwaBtn.addEventListener("click", async () => {
           if (deferredPrompt && !isIos) {
-            // 如果瀏覽器支援自動安裝，直接呼叫
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             if (outcome === 'accepted') {
@@ -423,7 +485,7 @@
             deferredPrompt = null;
             if (pwaBanner) pwaBanner.classList.add("hidden");
           } else {
-            // 若為 iOS 或未自動觸發，開啟圖文教學 Modal
+            // 根據不同裝置，自動顯示對應的詳細圖文教學
             if (isIos) {
               iosGuideSection.style.display = "block";
               androidGuideSection.style.display = "none";
@@ -447,7 +509,7 @@
       // 如果是 iOS，直接把橫幅提示文字優化
       if (isIos && !isInStandalone) {
         if (pwaSubtext) {
-          pwaSubtext.innerText = "點擊查看 iPhone 建立捷徑教學 📖";
+          pwaSubtext.innerText = "點擊查看 iPhone 完整建立教學 📖";
         }
       }
 
