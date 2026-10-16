@@ -252,7 +252,7 @@
               <option value="8">🤝 8. 籌碼換手（融資大退+法人神救援+守月線）</option>
               <option value="11">🪜 11. 致命軋空（融券3日暴增+股價收最高）</option>
               <option value="12">🐜 12. 權證螞蟻雄兵（自營商避險爆量+股價大漲）</option>
-              <option value="13">🏳️ 13. 主力投降（資券同減+KD金叉+收復5MA）</option>
+              <option value="13">🏳️ 13. 主力投降 (資券同減+KD金叉+收復5MA)</option>
               <option value="15">🔄 15. 外資回頭（連5賣後首日認錯大買）</option>
               <option value="16">🛡️ 16. 國家隊護盤（官股自行買賣逆勢大買+長下影線）</option>
             </optgroup>
@@ -300,10 +300,46 @@
       </div>
     </div>
     <div class="flex items-center gap-1.5 shrink-0">
-      <button id="pwaInstallBtn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-3 py-1.5 rounded-xl transition cursor-pointer">建立桌面捷徑</button>
+      <button id="pwaInstallBtn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-3 py-1.5 rounded-xl transition cursor-pointer shadow-md">建立桌面捷徑</button>
       <button id="closePwaBannerBtn" class="text-slate-400 hover:text-white px-2 py-1 text-xs font-bold cursor-pointer">✕</button>
     </div>
   </div>
+
+  <!-- 圖文教學互動彈窗 (Guide Modal) -->
+  <dialog id="pwaGuideModal" class="rounded-2xl shadow-2xl p-6 max-w-md w-[90%] border border-slate-200 bg-white focus:outline-none backdrop:bg-slate-900/60">
+    <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+      <h3 class="text-base font-black text-slate-900 flex items-center gap-1.5">📱 建立手機桌面捷徑教學</h3>
+      <button id="closeGuideModalBtn" class="text-slate-400 hover:text-slate-600 font-bold text-base cursor-pointer p-1">✕</button>
+    </div>
+    
+    <div class="space-y-4 text-xs text-slate-700">
+      <!-- 區塊一：iPhone / Safari 教學 -->
+      <div id="iosGuideSection" class="p-3 bg-blue-50/70 rounded-xl border border-blue-100 space-y-2">
+        <div class="font-black text-blue-900 text-sm flex items-center gap-1">🍎 iPhone (Safari) 用戶教學：</div>
+        <ol class="list-decimal list-inside space-y-1.5 font-semibold text-slate-700 leading-relaxed pl-1">
+          <li>請確認您目前使用的是 <span class="text-blue-700 font-bold">Safari 瀏覽器</span>。</li>
+          <li>點擊下方工具列的 <span class="inline-flex items-center px-1.5 py-0.5 bg-white border border-blue-200 rounded text-blue-800 font-bold">分享圖示 ⎋ (向上箭頭)</span>。</li>
+          <li>在選單中往下滑動，找到並點選 <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold">「加入主畫面」</span>。</li>
+          <li>點擊右上角的 <span class="font-bold text-slate-900">「新增」</span>，即可完成！</li>
+        </ol>
+      </div>
+
+      <!-- 區塊二：Android / Chrome 教學 -->
+      <div id="androidGuideSection" class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-100 space-y-2">
+        <div class="font-black text-emerald-900 text-sm flex items-center gap-1">🤖 Android (Chrome) 用戶教學：</div>
+        <ol class="list-decimal list-inside space-y-1.5 font-semibold text-slate-700 leading-relaxed pl-1">
+          <li>點擊下方橫幅的 <span class="text-emerald-700 font-bold">「建立桌面捷徑」</span> 按鈕。</li>
+          <li>若系統自動彈出視窗，請直接點擊 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「安裝」</span>。</li>
+          <li>若未自動彈出，請點擊瀏覽器右上角的 <span class="inline-flex items-center px-1.5 py-0.5 bg-white border border-emerald-200 rounded text-emerald-800 font-bold">選單 (⋮)</span>。</li>
+          <li>選擇 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「加到主畫面」</span> 或 <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">「安裝應用程式」</span> 即可！</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="mt-5 text-center">
+      <button id="gotItGuideBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer shadow-md">了解，馬上試試！</button>
+    </div>
+  </dialog>
 
   <script type="module">
     import { state, showSignalInfoDialog } from './js/config.js'; 
@@ -337,12 +373,18 @@
       document.getElementById("subTabIT").addEventListener("click", () => switchChipSubTab('it'));
       document.getElementById("subTabDS").addEventListener("click", () => switchChipSubTab('ds'));
 
-      // === PWA / 桌面捷徑安裝強效控制邏輯 ===
+      // === PWA / 桌面捷徑與圖文教學互動邏輯 ===
       let deferredPrompt = null;
       const pwaBanner = document.getElementById("pwaInstallBanner");
       const pwaBtn = document.getElementById("pwaInstallBtn");
       const pwaSubtext = document.getElementById("pwaInstallSubtext");
       const closePwaBtn = document.getElementById("closePwaBannerBtn");
+
+      const pwaGuideModal = document.getElementById("pwaGuideModal");
+      const closeGuideModalBtn = document.getElementById("closeGuideModalBtn");
+      const gotItGuideBtn = document.getElementById("gotItGuideBtn");
+      const iosGuideSection = document.getElementById("iosGuideSection");
+      const androidGuideSection = document.getElementById("androidGuideSection");
 
       const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
       const isInStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
@@ -351,7 +393,6 @@
       if (isInStandalone) {
         if (pwaBanner) pwaBanner.classList.add("hidden");
       } else {
-        // 未安裝時，延遲 1 秒自動顯示橫幅供用戶點擊
         setTimeout(() => {
           if (pwaBanner) pwaBanner.classList.remove("hidden");
         }, 1000);
@@ -369,12 +410,11 @@
         deferredPrompt = e;
       });
 
-      // 2. 點擊「建立桌面捷徑」按鈕時的智慧分流處理
+      // 2. 點擊「建立桌面捷徑」按鈕時的圖文教學互動
       if (pwaBtn) {
         pwaBtn.addEventListener("click", async () => {
-          if (isIos) {
-            alert("💡 iPhone / iPad 建立桌面捷徑方法：\n請點擊下方 Safari 瀏覽器的「分享」按鈕 🔓，然後選擇「加入主畫面」即可！");
-          } else if (deferredPrompt) {
+          if (deferredPrompt && !isIos) {
+            // 如果瀏覽器支援自動安裝，直接呼叫
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             if (outcome === 'accepted') {
@@ -383,15 +423,31 @@
             deferredPrompt = null;
             if (pwaBanner) pwaBanner.classList.add("hidden");
           } else {
-            alert("💡 提示：您可以使用瀏覽器右上角的選單（或網址列右側安裝圖示），將此網頁建立桌面捷徑！");
+            // 若為 iOS 或未自動觸發，開啟圖文教學 Modal
+            if (isIos) {
+              iosGuideSection.style.display = "block";
+              androidGuideSection.style.display = "none";
+            } else {
+              iosGuideSection.style.display = "none";
+              androidGuideSection.style.display = "block";
+            }
+            if (pwaGuideModal) pwaGuideModal.showModal();
           }
         });
       }
 
-      // 如果是 iOS，直接把文字改成最直覺的提示
+      // 關閉圖文教學視窗
+      if (closeGuideModalBtn) {
+        closeGuideModalBtn.addEventListener("click", () => { if (pwaGuideModal) pwaGuideModal.close(); });
+      }
+      if (gotItGuideBtn) {
+        gotItGuideBtn.addEventListener("click", () => { if (pwaGuideModal) pwaGuideModal.close(); });
+      }
+
+      // 如果是 iOS，直接把橫幅提示文字優化
       if (isIos && !isInStandalone) {
         if (pwaSubtext) {
-          pwaSubtext.innerText = "點下方分享 🔓 ➔ 選「加入主畫面」";
+          pwaSubtext.innerText = "點擊查看 iPhone 建立捷徑教學 📖";
         }
       }
 
