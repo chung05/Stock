@@ -10,7 +10,7 @@
     ],
     "dates_format_explanation": "[T-4, T-3, T-2, T-1, T]，數列依此排序 (單位: 張/元)",
     "total_watchlist_count": 231,
-    "generated_at": "2026-10-22 15:30:55"
+    "generated_at": "2026-10-23 15:30:52"
   },
   "top_institutional_buys_1d": [
     {
@@ -1034,10 +1034,10 @@
         "macd_osc": 0.13
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 230,
+        "margin_balance": 1296,
+        "short_net_today": -12,
+        "short_balance": 62
       }
     },
     {
@@ -1666,10 +1666,10 @@
         "macd_osc": 0.29
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 15,
+        "margin_balance": 355,
+        "short_net_today": 2,
+        "short_balance": 25
       }
     },
     {
@@ -1903,10 +1903,10 @@
         "macd_osc": -0.88
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -348,
+        "margin_balance": 9358,
+        "short_net_today": 35,
+        "short_balance": 824
       }
     },
     {
@@ -2140,10 +2140,10 @@
         "macd_osc": 0.12
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -1040,
+        "margin_balance": 19578,
+        "short_net_today": 4,
+        "short_balance": 111
       }
     },
     {
@@ -3248,10 +3248,10 @@
         "macd_osc": -5.82
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 453,
+        "margin_balance": 21540,
+        "short_net_today": 11,
+        "short_balance": 68
       }
     },
     {
@@ -3485,10 +3485,10 @@
         "macd_osc": -3.13
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 304,
+        "margin_balance": 15684,
+        "short_net_today": 61,
+        "short_balance": 349
       }
     },
     {
@@ -3881,9 +3881,9 @@
       },
       "credit_data": {
         "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_balance": 9792,
+        "short_net_today": 8,
+        "short_balance": 153
       }
     },
     {
@@ -4038,10 +4038,10 @@
         "macd_osc": -1.47
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -54,
+        "margin_balance": 16305,
+        "short_net_today": 247,
+        "short_balance": 325
       }
     },
     {
@@ -4117,10 +4117,10 @@
         "macd_osc": -0.68
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -351,
+        "margin_balance": 35620,
+        "short_net_today": -16,
+        "short_balance": 313
       }
     },
     {
@@ -4433,10 +4433,10 @@
         "macd_osc": -9.33
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -899,
+        "margin_balance": 25306,
+        "short_net_today": -244,
+        "short_balance": 998
       }
     },
     {
@@ -4591,10 +4591,10 @@
         "macd_osc": -0.22
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 133,
+        "margin_balance": 1350,
+        "short_net_today": -11,
+        "short_balance": 29
       }
     },
     {
@@ -4670,10 +4670,10 @@
         "macd_osc": -0.21
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": -99,
+        "margin_balance": 5373,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 12
       }
     },
     {
@@ -4749,10 +4749,10 @@
         "macd_osc": -8.82
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 106,
+        "margin_balance": 5049,
+        "short_net_today": -35,
+        "short_balance": 87
       }
     }
   ],
@@ -5790,10 +5790,10 @@
         "macd_osc": -0.88
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -348,
+        "margin_balance": 9358,
+        "short_net_today": 35,
+        "short_balance": 824
       },
       "sum_2d_net": 15948
     },
@@ -5870,10 +5870,10 @@
         "macd_osc": 0.13
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 230,
+        "margin_balance": 1296,
+        "short_net_today": -12,
+        "short_balance": 62
       },
       "sum_2d_net": 15128
     },
@@ -6430,10 +6430,10 @@
         "macd_osc": 0.29
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 15,
+        "margin_balance": 355,
+        "short_net_today": 2,
+        "short_balance": 25
       },
       "sum_2d_net": 8488
     },
@@ -6510,10 +6510,10 @@
         "macd_osc": -0.84
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -713,
+        "margin_balance": 137505,
+        "short_net_today": -74,
+        "short_balance": 1089
       },
       "sum_2d_net": 7731
     },
@@ -7070,10 +7070,10 @@
         "macd_osc": 1.11
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -1074,
+        "margin_balance": 4900,
+        "short_net_today": 4,
+        "short_balance": 119
       },
       "sum_2d_net": 6613
     },
@@ -7472,10 +7472,10 @@
         "macd_osc": -1.47
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -54,
+        "margin_balance": 16305,
+        "short_net_today": 247,
+        "short_balance": 325
       },
       "sum_2d_net": -9816
     },
@@ -7712,10 +7712,10 @@
         "macd_osc": -9.33
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -899,
+        "margin_balance": 25306,
+        "short_net_today": -244,
+        "short_balance": 998
       },
       "sum_2d_net": -5294
     },
@@ -7952,10 +7952,10 @@
         "macd_osc": -0.22
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 133,
+        "margin_balance": 1350,
+        "short_net_today": -11,
+        "short_balance": 29
       },
       "sum_2d_net": -2085
     },
@@ -8112,10 +8112,10 @@
         "macd_osc": -8.82
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 106,
+        "margin_balance": 5049,
+        "short_net_today": -35,
+        "short_balance": 87
       },
       "sum_2d_net": -1874
     },
@@ -8192,10 +8192,10 @@
         "macd_osc": 29.06
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -24,
+        "margin_balance": 106683,
+        "short_net_today": -3,
+        "short_balance": 131
       },
       "sum_2d_net": -1638
     },
@@ -8512,10 +8512,10 @@
         "macd_osc": -23.46
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -49,
+        "margin_balance": 7590,
+        "short_net_today": 9,
+        "short_balance": 577
       },
       "sum_2d_net": -1245
     },
@@ -8672,10 +8672,10 @@
         "macd_osc": -8.91
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -218,
+        "margin_balance": 11391,
+        "short_net_today": -73,
+        "short_balance": 170
       },
       "sum_2d_net": -922
     },
@@ -8832,10 +8832,10 @@
         "macd_osc": -0.12
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": -14,
+        "margin_balance": 4985,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 4
       },
       "sum_2d_net": -876
     },
@@ -9312,10 +9312,10 @@
         "macd_osc": -59.89
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": -137,
+        "margin_balance": 4435,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 4
       },
       "sum_2d_net": -612
     },
@@ -9552,10 +9552,10 @@
         "macd_osc": -11.79
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -88,
+        "margin_balance": 9773,
+        "short_net_today": 1,
+        "short_balance": 9
       },
       "sum_2d_net": -429
     }
@@ -10194,10 +10194,10 @@
         "macd_osc": -0.88
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -348,
+        "margin_balance": 9358,
+        "short_net_today": 35,
+        "short_balance": 824
       },
       "sum_3d_net": 16349
     },
@@ -10594,10 +10594,10 @@
         "macd_osc": 1.11
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -1074,
+        "margin_balance": 4900,
+        "short_net_today": 4,
+        "short_balance": 119
       },
       "sum_3d_net": 14264
     },
@@ -10834,10 +10834,10 @@
         "macd_osc": 0.12
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -1040,
+        "margin_balance": 19578,
+        "short_net_today": 4,
+        "short_balance": 111
       },
       "sum_3d_net": 10989
     },
@@ -10914,10 +10914,10 @@
         "macd_osc": 0.29
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 15,
+        "margin_balance": 355,
+        "short_net_today": 2,
+        "short_balance": 25
       },
       "sum_3d_net": 9307
     },
@@ -11554,10 +11554,10 @@
         "macd_osc": 0.28
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": -103,
+        "margin_balance": 24884,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 9
       },
       "sum_3d_net": 5387
     },
@@ -11634,10 +11634,10 @@
         "macd_osc": -0.65
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": 118,
+        "margin_balance": 7812,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 50
       },
       "sum_3d_net": 5236
     },
@@ -11794,10 +11794,10 @@
         "macd_osc": 0.7
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": -54,
+        "margin_balance": 173,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 10
       },
       "sum_3d_net": 4366
     },
@@ -12356,10 +12356,10 @@
         "macd_osc": -9.33
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -899,
+        "margin_balance": 25306,
+        "short_net_today": -244,
+        "short_balance": 998
       },
       "sum_3d_net": -6927
     },
@@ -12596,10 +12596,10 @@
         "macd_osc": 29.06
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -24,
+        "margin_balance": 106683,
+        "short_net_today": -3,
+        "short_balance": 131
       },
       "sum_3d_net": -3454
     },
@@ -12756,10 +12756,10 @@
         "macd_osc": -8.91
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -218,
+        "margin_balance": 11391,
+        "short_net_today": -73,
+        "short_balance": 170
       },
       "sum_3d_net": -2512
     },
@@ -12836,10 +12836,10 @@
         "macd_osc": -0.22
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": 133,
+        "margin_balance": 1350,
+        "short_net_today": -11,
+        "short_balance": 29
       },
       "sum_3d_net": -2176
     },
@@ -12916,10 +12916,10 @@
         "macd_osc": -23.46
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -49,
+        "margin_balance": 7590,
+        "short_net_today": 9,
+        "short_balance": 577
       },
       "sum_3d_net": -2139
     },
@@ -13316,10 +13316,10 @@
         "macd_osc": -11.79
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -88,
+        "margin_balance": 9773,
+        "short_net_today": 1,
+        "short_balance": 9
       },
       "sum_3d_net": -1160
     },
@@ -13476,10 +13476,10 @@
         "macd_osc": -59.89
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": -137,
+        "margin_balance": 4435,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 4
       },
       "sum_3d_net": -1107
     },
@@ -14036,10 +14036,10 @@
         "macd_osc": -13.35
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -10,
+        "margin_balance": 1313,
+        "short_net_today": -1,
+        "short_balance": 5
       },
       "sum_3d_net": -431
     },
@@ -14196,10 +14196,10 @@
         "macd_osc": -5.48
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -28,
+        "margin_balance": 737,
+        "short_net_today": -1,
+        "short_balance": 4
       },
       "sum_3d_net": -407
     },
@@ -14276,10 +14276,10 @@
         "macd_osc": -13.6
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
+        "margin_net_today": 6,
+        "margin_balance": 2096,
         "short_net_today": 0,
-        "short_balance": 0
+        "short_balance": 5
       },
       "sum_3d_net": -404
     },
@@ -14356,10 +14356,10 @@
         "macd_osc": -25.85
       },
       "credit_data": {
-        "margin_net_today": 0,
-        "margin_balance": 0,
-        "short_net_today": 0,
-        "short_balance": 0
+        "margin_net_today": -46,
+        "margin_balance": 4247,
+        "short_net_today": -6,
+        "short_balance": 19
       },
       "sum_3d_net": -350
     }
