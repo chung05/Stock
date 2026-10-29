@@ -243,7 +243,7 @@
               <option value="14">💎 14. 結構性大轉折（月金叉季線+MACD站上0軸）</option>
             </optgroup>
             <optgroup label="👑 法人與主力鎖碼模組">
-              <option value="7">🔮 7. 珍珠蒙塵（法人連3買+橫盤壓縮）</option>
+              <option value="7">🔮 7. 珍珠蒙塵 (法人連3買+橫盤壓縮)</option>
               <option value="9">🌱 9. 投信無中生有（投信打破清白首日爆買）</option>
               <option value="10">🦅 10. 雙雄聯手（外資大買+投信爆買+MACD翻紅）</option>
             </optgroup>
@@ -305,73 +305,68 @@
     </div>
   </div>
 
-  <!-- 精準擬真版：圖文並茂與步驟編號教學互動彈窗 (Guide Modal) -->
+  <!-- 精準完美版：對應真實 iPhone 操作介面的圖文教學彈窗 -->
   <dialog id="pwaGuideModal" class="rounded-2xl shadow-2xl p-5 max-w-lg w-[94%] border border-slate-200 bg-white focus:outline-none backdrop:bg-slate-900/60">
     <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-      <h3 class="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">📱 手機建立桌面捷徑完整圖文教學</h3>
+      <h3 class="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">📱 手機建立桌面捷徑圖文教學</h3>
       <button id="closeGuideModalBtn" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer p-1">✕</button>
     </div>
     
-    <div class="space-y-4 max-h-[72vh] overflow-y-auto pr-1 text-xs text-slate-700">
+    <div class="space-y-4 max-h-[75vh] overflow-y-auto pr-1 text-xs text-slate-700">
       
-      <!-- 🍎 iPhone (Safari) 專屬精準圖文教學（對應最新 iOS 介面） -->
+      <!-- 🍎 iPhone (Safari) 專屬精準步驟教學 -->
       <div id="iosGuideSection" class="p-4 bg-blue-50/80 rounded-2xl border border-blue-200 space-y-3">
         <div class="font-black text-blue-900 text-sm flex items-center gap-1.5 pb-1 border-b border-blue-200">
           🍎 iPhone / iPad (Safari 瀏覽器) 操作步驟：
         </div>
 
-        <!-- 步驟 1 -->
+        <!-- 步驟 1：點擊 ... -->
         <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-2xs">
           <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">1</div>
-          <div class="space-y-1.5 grow">
-            <div class="font-extrabold text-slate-900">確認使用 Safari 開啟</div>
-            <div class="text-slate-600 leading-snug">請確保您目前是用 iPhone 內建的 <span class="text-blue-700 font-bold">Safari 瀏覽器</span>開啟此網頁。</div>
-          </div>
-        </div>
-
-        <!-- 步驟 2 -->
-        <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-2xs">
-          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">2</div>
-          <div class="space-y-1.5 grow">
-            <div class="font-extrabold text-slate-900">點擊下方工具列的「...」選單</div>
-            <div class="text-slate-600 leading-snug">看手機螢幕最下方的工具列，先點擊 <span class="bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded font-black text-slate-800">「...」 (更多選項)</span>：</div>
-            <!-- 模擬 Safari 下方列圖解 -->
-            <div class="bg-slate-900 text-white p-2.5 rounded-lg flex items-center justify-around text-center my-1 font-mono text-[11px]">
-              <div class="opacity-50">AA</div>
-              <div class="opacity-50">‹ ›</div>
-              <div class="bg-blue-600 px-2 py-0.5 rounded font-bold text-white shadow-xs">... 點這裡</div>
-              <div class="opacity-50">⌂</div>
-              <div class="opacity-50">❏</div>
+          <div class="space-y-2 grow">
+            <div class="font-extrabold text-slate-900 text-sm">點擊下方工具列右側的「...」按鈕</div>
+            <div class="text-slate-600 leading-snug">請看手機螢幕最下方的工具列右下角，點擊帶有三個點的圖示：</div>
+            
+            <!-- 實體截圖圖示呈現 -->
+            <div class="my-2 p-2 bg-slate-50 rounded-lg border border-slate-200 text-center flex flex-col items-center gap-2">
+              <span class="text-[11px] font-bold text-slate-500">📸 對應您的實際畫面：</span>
+              <img src="image_d7295f.jpg" alt="點擊右下角三個點" class="max-h-36 rounded-lg border border-slate-300 shadow-sm object-contain" />
             </div>
           </div>
         </div>
 
-        <!-- 步驟 3 -->
+        <!-- 步驟 2：點選分享 -->
+        <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-2xs">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">2</div>
+          <div class="space-y-2 grow">
+            <div class="font-extrabold text-slate-900 text-sm">在跳出的選單中點選「分享」</div>
+            <div class="text-slate-600 leading-snug">點開「...」後會跳出選單，請點選頂部的 <span class="text-blue-700 font-bold">「分享」</span>（方框箭頭圖示）：</div>
+            
+            <!-- 實體截圖圖示呈現 -->
+            <div class="my-2 p-2 bg-slate-50 rounded-lg border border-slate-200 text-center flex flex-col items-center gap-2">
+              <span class="text-[11px] font-bold text-slate-500">📸 對應您的實際畫面：</span>
+              <img src="image_d7267a.jpg" alt="點選分享按鈕" class="max-h-40 rounded-lg border border-slate-300 shadow-sm object-contain" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟 3：往下滑動找加入主畫面 -->
         <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-2xs">
           <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">3</div>
           <div class="space-y-1.5 grow">
-            <div class="font-extrabold text-slate-900">在選單中找到並點選「分享」</div>
-            <div class="text-slate-600 leading-snug">彈出選單後，點選帶有向上箭頭的 <span class="bg-blue-100 text-blue-900 px-2 py-0.5 rounded font-bold">「分享...」</span> 功能。</div>
-          </div>
-        </div>
-
-        <!-- 步驟 4 -->
-        <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-2xs">
-          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">4</div>
-          <div class="space-y-1.5 grow">
-            <div class="font-extrabold text-slate-900">往下滑動尋找「加入主畫面」</div>
-            <div class="text-slate-600 leading-snug">點開分享後，頂部會先顯示 App 名稱，請用手指<span class="text-rose-600 font-bold underline">往下捲動選單</span>，找到並點選帶有加號的選項：</div>
+            <div class="font-extrabold text-slate-900 text-sm">往下捲動選單，點選「加入主畫面」</div>
+            <div class="text-slate-600 leading-snug">點開分享後，上方會先顯示 App 名稱，請用手指<span class="text-rose-600 font-bold underline">往下滑動選單</span>，找到並點選帶有加號的選項：</div>
             <div class="inline-flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-xs my-1 shadow-2xs">
-              <span>➕ 加入主畫面 (往下滑動才看得到)</span>
+              <span>➕ 加入主畫面 (需往下滑動才看得到)</span>
             </div>
           </div>
         </div>
 
-        <!-- 步驟 5 -->
+        <!-- 步驟 4：點右上角新增 -->
         <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-2xs">
-          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">5</div>
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">4</div>
           <div class="space-y-1.5 grow">
-            <div class="font-extrabold text-slate-900">點擊右上角的「新增」</div>
+            <div class="font-extrabold text-slate-900 text-sm">點擊右上角的「新增」</div>
             <div class="text-slate-600 leading-snug">畫面右上角會出現確認名稱視窗，直接點擊右上角藍色的 <span class="text-blue-700 font-bold text-sm">「新增」</span>，即可大功告成！ App 圖示就會出現在您的手機桌面上。</div>
           </div>
         </div>
@@ -383,7 +378,6 @@
           🤖 Android / 安卓 (Chrome 瀏覽器) 操作步驟：
         </div>
 
-        <!-- 步驟 1 -->
         <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs">
           <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">1</div>
           <div class="space-y-1 grow">
@@ -392,7 +386,6 @@
           </div>
         </div>
 
-        <!-- 步驟 2 -->
         <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs">
           <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">2</div>
           <div class="space-y-1 grow">
@@ -401,7 +394,6 @@
           </div>
         </div>
 
-        <!-- 步驟 3 -->
         <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-emerald-100 shadow-2xs">
           <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center shrink-0 text-xs shadow-xs">3</div>
           <div class="space-y-1 grow">
