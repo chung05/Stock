@@ -10,7 +10,6 @@ TW_TZ = ZoneInfo("Asia/Taipei")
 def get_twse_margin(date_str):
     """
     抓取 TWSE (上市) 全市場信用交易統計
-    API 格式: YYYYMMDD
     """
     url = f"https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date={date_str}&response=json"
     headers = {
@@ -26,34 +25,29 @@ def get_twse_margin(date_str):
             return None
             
         result = {}
-        # 尋找信用交易統計總表 (通常為 tables[0])
         for table in data.get("tables", []):
             if "信用交易統計" in table.get("title", ""):
                 for row in table.get("data", []):
-                    # 抓取大盤融資金額 (仟元)
                     if "融資金額(仟元)" in row[0]:
+                        today_val = int(row[5].replace(",", ""))
+                        prev_val = int(row[4].replace(",", ""))
                         result = {
-                            "today_balance_thousand_ntd": int(row[5].replace(",", "")),
-                            "today_balance_hundred_million_ntd": round(int(row[5].replace(",", "")) / 100000, 2),
-                            "prev_balance_hundred_million_ntd": round(int(row[4].replace(",", "")) / 100000, 2),
+                            "today_balance_thousand_ntd": today_val,
+                            "today_balance_hundred_million_ntd": round(today_val / 100000, 2),
+                            "prev_balance_hundred_million_ntd": round(prev_val / 100000, 2),
                             "buy_hundred_million_ntd": round(int(row[1].replace(",", "")) / 100000, 2),
                             "sell_hundred_million_ntd": round(int(row[2].replace(",", "")) / 100000, 2),
-                            "repay_hundred_million_ntd": round(int(row[3].replace(",", "")) / 100000, 2)
+                            "repay_hundred_million_ntd": round(int(row[3].replace(",", "")) / 100000, 2),
+                            "change_hundred_million_ntd": round((today_val - prev_val) / 100000, 2)
                         }
-                        # 計算單日增減 (億元)
-                        result["change_hundred_million_ntd"] = round(
-                            result["today_balance_hundred_million_ntd"] - result["prev_balance_hundred_million_ntd"], 2
-                        )
                         break
         return result
     except Exception as e:
-        print(f"⚠️ 抓取 TWSE 異常: {e}")
         return None
 
 def get_tpex_margin(roc_date_str):
     """
     抓取 TPEx (上櫃) 信用交易統計
-    格式: 民國年/MM/DD (例如 115/11/06)
     """
     url = f"https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal_result.php?l=zh-tw&d={roc_date_str}"
     headers = {
@@ -62,63 +56,63 @@ def get_tpex_margin(roc_date_str):
     
     try:
         res = requests.get(url, headers=headers, timeout=15)
-        if res.status_code != 200:
-            return None
+        if res.status_code != 200 or not res.text.strip().startswith("{"):
+            return None  # 避免休假日非 JSON 內容拋出 Exception
+            
         data = res.json()
-        
-        # 取得上櫃融資總計
         total_data = data.get("reportTot", [])
-        if total_data and len(total_data) > 0:
-            today_bal = int(str(total_data[4]).replace(",", "")) # 融資今日餘額(仟元)
-            prev_bal = int(str(total_data[3]).replace(",", ""))  # 融資前日餘額(仟元)
+        if total_data and len(total_data) > 4:
+            today_bal = int(str(total_data[4]).replace(",", ""))
+            prev_bal = int(str(total_data[3]).replace(",", ""))
             return {
                 "today_balance_hundred_million_ntd": round(today_bal / 100000, 2),
                 "prev_balance_hundred_million_ntd": round(prev_bal / 100000, 2),
                 "change_hundred_million_ntd": round((today_bal - prev_bal) / 100000, 2)
             }
         return None
-    except Exception as e:
-        print(f"⚠️ 抓取 TPEx 異常: {e}")
+    except Exception:
         return None
 
 def main():
     now_tw = datetime.now(TW_TZ)
     current_hour = now_tw.hour
     
-    # 依照 fetch_rss.py 邏輯判定資料歸屬日期：
-    # 若在凌晨 00:00~11:59 執行，資料歸屬為前一天；下午或晚上執行，歸屬當天
-    if current_hour < 12:
-        target_date = now_tw - timedelta(days=1)
+    # 決定起始基準日
+    if current_hour < 20: 
+        # 晚上 20:00 前證交所通常尚未結算完成，往前推一天
+        base_date = now_tw - timedelta(days=1)
     else:
-        target_date = now_tw
+        base_date = now_tw
 
-    file_date_str = target_date.strftime("%Y-%m-%d")
-    twse_date_str = target_date.strftime("%Y%m%d")
-    roc_date_str = f"{target_date.year - 1911}/{target_date.strftime('%m/%d')}"
-
-    # 設定儲存目錄與檔名（比照 fetch_rss 的 ../docs/ 規則）
-    target_dir = os.path.join("..", "docs")
-    os.makedirs(target_dir, exist_ok=True)
-    file_path = os.path.join(target_dir, f"margin_{file_date_str}.json")
-
-    print(f"📡 開始擷取 {file_date_str} (民國 {roc_date_str}) 融資水位數據...")
-
-    # 重試機制（若結算未完成，最多嘗試 3 次，每次間隔 10 秒）
+    # 智慧回溯：若當日是週末或查無資料，自動往前尋找最近一個有開盤的交易日（最多往前找 7 天）
+    target_date = base_date
     twse_data = None
-    for attempt in range(1, 4):
-        print(f"  [嘗試 {attempt}/3] 抓取上市 (TWSE)...")
-        twse_data = get_twse_margin(twse_date_str)
-        if twse_data:
-            break
-        time.sleep(10)
+    tpex_data = None
+    valid_file_date = ""
 
-    tpex_data = get_tpex_margin(roc_date_str)
+    for _ in range(7):
+        twse_date_str = target_date.strftime("%Y%m%d")
+        roc_date_str = f"{target_date.year - 1911}/{target_date.strftime('%m/%d')}"
+        check_date_str = target_date.strftime("%Y-%m-%d")
+        
+        print(f"📡 嘗試確認 {check_date_str} (民國 {roc_date_str}) 交易資料...")
+        twse_data = get_twse_margin(twse_date_str)
+        
+        if twse_data:
+            valid_file_date = check_date_str
+            tpex_data = get_tpex_margin(roc_date_str)
+            print(f"✅ 成功鎖定交易日: {valid_file_date}")
+            break
+        else:
+            print(f"  ℹ️ {check_date_str} 為休假日或尚未公布，往前一天尋找...")
+            target_date -= timedelta(days=1)
+            time.sleep(1)
 
     if not twse_data:
-        print(f"⚠️ {file_date_str} 資料尚未公布或非交易日，略過儲存。")
+        print("⚠️ 連續 7 天均無交易資料，結束執行。")
         return
 
-    # 彙整上市櫃總計
+    # 計算市場總計
     total_margin_market = twse_data["today_balance_hundred_million_ntd"]
     total_margin_change = twse_data["change_hundred_million_ntd"]
 
@@ -127,7 +121,7 @@ def main():
         total_margin_change = round(total_margin_change + tpex_data["change_hundred_million_ntd"], 2)
 
     payload = {
-        "date": file_date_str,
+        "date": valid_file_date,
         "updated_at": now_tw.strftime("%Y-%m-%d %H:%M:%S"),
         "market_summary": {
             "total_margin_balance_hundred_million_ntd": total_margin_market,
@@ -137,11 +131,15 @@ def main():
         "tpex_otc": tpex_data
     }
 
+    target_dir = os.path.join("..", "docs")
+    os.makedirs(target_dir, exist_ok=True)
+    file_path = os.path.join(target_dir, f"margin_{valid_file_date}.json")
+
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=4)
 
-    print(f"💾 融資水位存檔成功 ➡️ 目的地: docs/margin_{file_date_str}.json")
-    print(f"📊 上市融資餘額: {twse_data['today_balance_hundred_million_ntd']} 億元 (單日增減: {twse_data['change_hundred_million_ntd']} 億元)")
+    print(f"💾 存檔成功 ➡️ 目的地: docs/margin_{valid_file_date}.json")
+    print(f"📊 {valid_file_date} 上市融資餘額: {twse_data['today_balance_hundred_million_ntd']} 億元 (單日增減: {twse_data['change_hundred_million_ntd']} 億元)")
 
 if __name__ == "__main__":
     main()
