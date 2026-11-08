@@ -63,7 +63,7 @@ def get_twse_margin(date_str):
 
 def get_tpex_margin(roc_date_str):
     """
-    抓取 TPEx (上櫃) 信用交易統計（雙保險模式）
+    抓取 TPEx (上櫃) 信用交易統計（容錯模式）
     roc_date_str: 民國年格式，如 "115/11/06"
     """
     headers = dict(COMMON_HEADERS)
@@ -91,13 +91,13 @@ def get_tpex_margin(roc_date_str):
                     "今日融資餘額_千元": today_bal
                 }
     except Exception as e:
-        print(f"⚠️ TPEx 標準端點讀取失敗: {e}，切換備援 OpenAPI...")
+        print(f"⚠️ TPEx 標準端點讀取失敗: {e}")
 
-    # 方案 B: 官方 OpenAPI (當日最新融資總結)
+    # 方案 B: 備援 OpenAPI
     try:
         openapi_url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_trading"
         res = requests.get(openapi_url, headers=headers, timeout=15)
-        if res.status_code == 200:
+        if res.status_code == 200 and res.text.strip().startswith("["):
             items = res.json()
             for row in items:
                 if "全市場" in row.get("項目", "") or "合計" in row.get("項目", ""):
@@ -152,8 +152,7 @@ def save_to_supabase(trade_date, twse_data, tpex_data):
                 "margin_change": tpex_data["單日增減_億元"]
             })
 
-        # 批次 Upsert（衝突自動覆寫）
-        res = supabase.table("margin_daily").upsert(records, on_conflict="trade_date,market").execute()
+        supabase.table("margin_daily").upsert(records, on_conflict="trade_date,market").execute()
         print(f"✅ Supabase 資料庫寫入成功（共寫入 {len(records)} 列資料）。")
     except Exception as e:
         print(f"❌ Supabase 寫入異常: {e}")
@@ -161,13 +160,12 @@ def save_to_supabase(trade_date, twse_data, tpex_data):
 def main():
     now_tw = datetime.now(TW_TZ)
     current_hour = now_tw.hour
-    is_weekend = now_tw.weekday() in [5, 6]  # 5:週六, 6:週日
+    is_weekend = now_tw.weekday() in [5, 6]
 
-    # 判定起點：若在週末或平日晚上 20:00 前執行，自動啟動回溯尋找最近營業日
     if is_weekend or current_hour < 20:
         print(f"ℹ️ 當前時間 ({now_tw.strftime('%Y-%m-%d %H:%M')}) 非結算公布時段，自動回溯尋找最近營業日...")
         target_date = now_tw - timedelta(days=1)
-        max_lookback = 7  # 長假最多回溯 7 天
+        max_lookback = 7
     else:
         target_date = now_tw
         max_lookback = 1
@@ -176,9 +174,7 @@ def main():
     tpex_data = None
     valid_file_date = ""
 
-    # 交易日輪巡檢查
     for _ in range(max_lookback):
-        # 遇週末直接略過
         if target_date.weekday() in [5, 6]:
             target_date -= timedelta(days=1)
             continue
@@ -204,7 +200,6 @@ def main():
         print("⚠️ 未取得任何有效交易日資料，安全退出。")
         return
 
-    # 計算全市場統計
     twse_bal = twse_data["今日融資餘額_億元"]
     twse_chg = twse_data["單日增減_億元"]
     prev_twse = twse_data["前日融資餘額_億元"]
@@ -230,9 +225,9 @@ def main():
         "櫃買市場_上櫃": tpex_data
     }
 
-    # 1. 存入 docs 目錄（路徑參考 fetch_rss.py）[cite: 1]
-    target_dir = os.path.join("..", "docs")[cite: 1]
-    os.makedirs(target_dir, exist_ok=True)[cite: 1]
+    # 存入 docs 目錄
+    target_dir = os.path.join("..", "docs")
+    os.makedirs(target_dir, exist_ok=True)
     file_path = os.path.join(target_dir, f"margin_{valid_file_date}.json")
 
     with open(file_path, "w", encoding="utf-8") as f:
@@ -241,7 +236,7 @@ def main():
     print(f"💾 檔案存檔成功 ➡️ 目的地: docs/margin_{valid_file_date}.json")
     print(f"📊 {valid_file_date} 上市: {twse_bal} 億元 ({twse_chg} 億元) | 上櫃: {tpex_bal} 億元 ({tpex_chg} 億元)")
 
-    # 2. 寫入 Supabase 資料庫
+    # 寫入 Supabase 資料庫
     save_to_supabase(valid_file_date, twse_data, tpex_data)
 
 if __name__ == "__main__":
