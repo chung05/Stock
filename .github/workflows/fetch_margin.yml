@@ -23,6 +23,8 @@ jobs:
           pip install requests
 
       - name: Run Fetch Script
+        # 指定在 Python 資料夾內執行，以確保相對路徑 os.path.join("..", "docs") 準確對應到根目錄的 docs/
+        working-directory: ./Python
         run: |
           python fetch_margin.py
 
