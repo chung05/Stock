@@ -1,0 +1,18 @@
+{
+    "date": "2026-11-06",
+    "updated_at": "2026-11-08 21:25:37",
+    "market_summary": {
+        "total_margin_balance_hundred_million_ntd": 5340.53,
+        "total_margin_change_hundred_million_ntd": -423.56
+    },
+    "twse_listed": {
+        "today_balance_thousand_ntd": 534052632,
+        "today_balance_hundred_million_ntd": 5340.53,
+        "prev_balance_hundred_million_ntd": 5764.09,
+        "buy_hundred_million_ntd": 281.44,
+        "sell_hundred_million_ntd": 632.54,
+        "repay_hundred_million_ntd": 72.46,
+        "change_hundred_million_ntd": -423.56
+    },
+    "tpex_otc": null
+}
