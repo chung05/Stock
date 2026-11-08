@@ -5,6 +5,13 @@ import requests
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+# 若已安裝 supabase 套件可啟用寫入，未安裝則純存檔至 docs/
+try:
+    from supabase import create_client, Client
+    HAS_SUPABASE = True
+except ImportError:
+    HAS_SUPABASE = False
+
 TW_TZ = ZoneInfo("Asia/Taipei")
 
 COMMON_HEADERS = {
@@ -16,6 +23,7 @@ COMMON_HEADERS = {
 def get_twse_margin(date_str):
     """
     抓取 TWSE (上市) 全市場信用交易統計
+    API 格式: YYYYMMDD
     """
     url = f"https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date={date_str}&response=json"
     try:
@@ -55,161 +63,148 @@ def get_twse_margin(date_str):
 
 def get_tpex_margin(roc_date_str):
     """
-    抓取 TPEx (上櫃) 信用交易統計 (修復 null 問題)
+    抓取 TPEx (上櫃) 信用交易統計（雙保險模式）
+    roc_date_str: 民國年格式，如 "115/11/06"
     """
-    url = f"https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal_result.php?l=zh-tw&d={roc_date_str}"
     headers = dict(COMMON_HEADERS)
     headers["Referer"] = "https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal.php?l=zh-tw"
     
+    # 方案 A: 歷史報表端點
+    url = f"https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal_result.php?l=zh-tw&d={roc_date_str}"
     try:
-        res = requests.get(url, headers=headers, timeout=15)
-        if res.status_code != 200 or not res.text.strip():
-            return None
-            
-        data = res.json()
+        session = requests.Session()
+        session.get("https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal.php?l=zh-tw", headers=headers, timeout=10)
+        res = session.get(url, headers=headers, timeout=15)
         
-        # 1. 優先從 reportTot 取總計
-        total_data = data.get("reportTot", [])
-        if total_data and len(total_data) >= 5:
-            today_bal = int(str(total_data[4]).replace(",", ""))
-            prev_bal = int(str(total_data[3]).replace(",", ""))
-            diff_bal = today_bal - prev_bal
-            change_rate = round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0
-
-            return {
-                "今日融資餘額_億元": round(today_bal / 100000, 2),
-                "前日融資餘額_億元": round(prev_bal / 100000, 2),
-                "單日增減_億元": round(diff_bal / 100000, 2),
-                "單日增減幅_百分比": change_rate,
-                "今日融資餘額_千元": today_bal
-            }
-            
-        # 2. 備援：若無 reportTot 則遍歷 tables
-        for table in data.get("tables", []):
-            if "融資" in table.get("title", ""):
-                for row in table.get("data", []):
-                    if "總計" in str(row[0]) or "合計" in str(row[0]):
-                        today_bal = int(str(row[5]).replace(",", ""))
-                        prev_bal = int(str(row[4]).replace(",", ""))
-                        diff_bal = today_bal - prev_bal
-                        change_rate = round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0
-                        return {
-                            "今日融資餘額_億元": round(today_bal / 100000, 2),
-                            "前日融資餘額_億元": round(prev_bal / 100000, 2),
-                            "單日增減_億元": round(diff_bal / 100000, 2),
-                            "單日增減幅_百分比": change_rate,
-                            "今日融資餘額_千元": today_bal
-                        }
-        return None
+        if res.status_code == 200 and res.text.strip().startswith("{"):
+            data = res.json()
+            total_data = data.get("reportTot", [])
+            if total_data and len(total_data) >= 5:
+                today_bal = int(str(total_data[4]).replace(",", ""))
+                prev_bal = int(str(total_data[3]).replace(",", ""))
+                diff_bal = today_bal - prev_bal
+                return {
+                    "今日融資餘額_億元": round(today_bal / 100000, 2),
+                    "前日融資餘額_億元": round(prev_bal / 100000, 2),
+                    "單日增減_億元": round(diff_bal / 100000, 2),
+                    "單日增減幅_百分比": round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0,
+                    "今日融資餘額_千元": today_bal
+                }
     except Exception as e:
-        print(f"⚠️ TPEx 抓取異常: {e}")
-        return None
+        print(f"⚠️ TPEx 標準端點讀取失敗: {e}，切換備援 OpenAPI...")
 
-def update_and_calculate_trends(target_dir, current_record):
+    # 方案 B: 官方 OpenAPI (當日最新融資總結)
+    try:
+        openapi_url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_trading"
+        res = requests.get(openapi_url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            items = res.json()
+            for row in items:
+                if "全市場" in row.get("項目", "") or "合計" in row.get("項目", ""):
+                    today_bal = int(str(row.get("今日餘額", "0")).replace(",", ""))
+                    prev_bal = int(str(row.get("前日餘額", "0")).replace(",", ""))
+                    diff_bal = today_bal - prev_bal
+                    return {
+                        "今日融資餘額_億元": round(today_bal / 100000, 2),
+                        "前日融資餘額_億元": round(prev_bal / 100000, 2),
+                        "單日增減_億元": round(diff_bal / 100000, 2),
+                        "單日增減幅_百分比": round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0,
+                        "今日融資餘額_千元": today_bal
+                    }
+    except Exception as e:
+        print(f"⚠️ TPEx OpenAPI 備援抓取失敗: {e}")
+
+    return None
+
+def save_to_supabase(trade_date, twse_data, tpex_data):
     """
-    讀取歷史每日記錄，計算近 1 日、3 日、5 日、20 日、60 日的累計增減與高點減幅
+    寫入 Supabase 資料庫（窄表架構：上市/上櫃分別獨立一筆記錄）
     """
-    history_file = os.path.join(target_dir, "margin_history.json")
-    history = []
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_KEY")
     
-    if os.path.exists(history_file):
-        try:
-            with open(history_file, "r", encoding="utf-8") as f:
-                history = json.load(f)
-        except:
-            history = []
+    if not supabase_url or not supabase_key:
+        print("ℹ️ 未設定 SUPABASE_URL 或 SUPABASE_KEY 環境變數，略過資料庫寫入。")
+        return
 
-    # 依日期去重並加入當日
-    history = [h for h in history if h.get("日期") != current_record["日期"]]
-    history.append({
-        "日期": current_record["日期"],
-        "全市場融資總餘額_億元": current_record["全市場融資總結"]["全市場融資總餘額_億元"],
-        "上市融資餘額_億元": current_record["集中市場_上市"]["今日融資餘額_億元"],
-        "上櫃融資餘額_億元": current_record["櫃買市場_上櫃"]["今日融資餘額_億元"] if current_record.get("櫃買市場_上櫃") else 0.0
-    })
-    
-    # 依日期由舊到新排序
-    history.sort(key=lambda x: x["日期"])
+    if not HAS_SUPABASE:
+        print("⚠️ 未安裝 supabase 套件（pip install supabase），略過資料庫寫入。")
+        return
 
-    # 寫回歷史檔
-    with open(history_file, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=4)
+    try:
+        supabase: Client = create_client(supabase_url, supabase_key)
+        records = []
+        
+        # 1. 上市紀錄
+        records.append({
+            "trade_date": trade_date,
+            "market": "TWSE",
+            "margin_balance": twse_data["今日融資餘額_億元"],
+            "margin_change": twse_data["單日增減_億元"]
+        })
+        
+        # 2. 上櫃紀錄
+        if tpex_data:
+            records.append({
+                "trade_date": trade_date,
+                "market": "TPEX",
+                "margin_balance": tpex_data["今日融資餘額_億元"],
+                "margin_change": tpex_data["單日增減_億元"]
+            })
 
-    # 計算多週期統計
-    current_val = current_record["全市場融資總結"]["全市場融資總餘額_億元"]
-    total_len = len(history)
-
-    def calc_period_stat(days):
-        if total_len <= days:
-            return {"說明": f"歷史資料不足 {days} 個交易日"}
-        past_val = history[-1 - days]["全市場融資總餘額_億元"]
-        diff = round(current_val - past_val, 2)
-        rate = round((diff / past_val) * 100, 2) if past_val else 0.0
-        return {
-            "比較基準日": history[-1 - days]["日期"],
-            "期間增減_億元": diff,
-            "期間增減幅_百分比": rate
-        }
-
-    # 近 60 日 (一季) 高點回落幅度分析 (去槓桿指標)
-    recent_60 = history[-60:] if total_len >= 60 else history
-    max_record = max(recent_60, key=lambda x: x["全市場融資總餘額_億元"])
-    peak_val = max_record["全市場融資總餘額_億元"]
-    drop_from_peak = round(current_val - peak_val, 2)
-    drop_rate = round((drop_from_peak / peak_val) * 100, 2) if peak_val else 0.0
-
-    analysis = {
-        "比昨天": calc_period_stat(1),
-        "近3日累計": calc_period_stat(3),
-        "近5日累計_一週": calc_period_stat(5),
-        "近20日累計_一個月": calc_period_stat(20),
-        "近60日波段最高點分析_一季": {
-            "波段最高點日期": max_record["日期"],
-            "波段最高餘額_億元": peak_val,
-            "自最高點累積增減_億元": drop_from_peak,
-            "自最高點累積減幅_百分比": drop_rate
-        }
-    }
-    
-    return analysis
+        # 批次 Upsert（衝突自動覆寫）
+        res = supabase.table("margin_daily").upsert(records, on_conflict="trade_date,market").execute()
+        print(f"✅ Supabase 資料庫寫入成功（共寫入 {len(records)} 列資料）。")
+    except Exception as e:
+        print(f"❌ Supabase 寫入異常: {e}")
 
 def main():
     now_tw = datetime.now(TW_TZ)
     current_hour = now_tw.hour
-    
-    if current_hour < 20: 
-        base_date = now_tw - timedelta(days=1)
-    else:
-        base_date = now_tw
+    is_weekend = now_tw.weekday() in [5, 6]  # 5:週六, 6:週日
 
-    target_date = base_date
+    # 判定起點：若在週末或平日晚上 20:00 前執行，自動啟動回溯尋找最近營業日
+    if is_weekend or current_hour < 20:
+        print(f"ℹ️ 當前時間 ({now_tw.strftime('%Y-%m-%d %H:%M')}) 非結算公布時段，自動回溯尋找最近營業日...")
+        target_date = now_tw - timedelta(days=1)
+        max_lookback = 7  # 長假最多回溯 7 天
+    else:
+        target_date = now_tw
+        max_lookback = 1
+
     twse_data = None
     tpex_data = None
     valid_file_date = ""
 
-    for _ in range(7):
+    # 交易日輪巡檢查
+    for _ in range(max_lookback):
+        # 遇週末直接略過
+        if target_date.weekday() in [5, 6]:
+            target_date -= timedelta(days=1)
+            continue
+
         twse_date_str = target_date.strftime("%Y%m%d")
         roc_date_str = f"{target_date.year - 1911}/{target_date.strftime('%m/%d')}"
         check_date_str = target_date.strftime("%Y-%m-%d")
-        
-        print(f"📡 嘗試確認 {check_date_str} (民國 {roc_date_str}) 交易資料...")
+
+        print(f"📡 檢查 {check_date_str} (民國 {roc_date_str}) 交易資料...")
         twse_data = get_twse_margin(twse_date_str)
-        tpex_data = get_tpex_margin(roc_date_str)
-        
+
         if twse_data:
             valid_file_date = check_date_str
+            tpex_data = get_tpex_margin(roc_date_str)
             print(f"✅ 成功鎖定交易日: {valid_file_date}")
             break
         else:
-            print(f"  ℹ️ {check_date_str} 為休假日或尚未公布，往前一天尋找...")
+            print(f"  ℹ️ {check_date_str} 查無資料（可能為國定假日/未公布）。")
             target_date -= timedelta(days=1)
             time.sleep(1)
 
     if not twse_data:
-        print("⚠️ 連續 7 天均無交易資料，結束執行。")
+        print("⚠️ 未取得任何有效交易日資料，安全退出。")
         return
 
-    # 計算全市場總和
+    # 計算全市場統計
     twse_bal = twse_data["今日融資餘額_億元"]
     twse_chg = twse_data["單日增減_億元"]
     prev_twse = twse_data["前日融資餘額_億元"]
@@ -224,7 +219,7 @@ def main():
     total_change_rate = round((total_change / prev_total) * 100, 2) if prev_total else 0.0
 
     payload = {
-        "日期": valid_file_date,
+        "交易日期": valid_file_date,
         "資料更新時間": now_tw.strftime("%Y-%m-%d %H:%M:%S"),
         "全市場融資總結": {
             "全市場融資總餘額_億元": total_margin,
@@ -235,20 +230,19 @@ def main():
         "櫃買市場_上櫃": tpex_data
     }
 
-    # 儲存目錄
-    target_dir = os.path.join("..", "docs")
-    os.makedirs(target_dir, exist_ok=True)
-
-    # 執行歷史累積與多週期統計運算
-    period_trends = update_and_calculate_trends(target_dir, payload)
-    payload["波段趨勢統計"] = period_trends
-
+    # 1. 存入 docs 目錄（路徑參考 fetch_rss.py）[cite: 1]
+    target_dir = os.path.join("..", "docs")[cite: 1]
+    os.makedirs(target_dir, exist_ok=True)[cite: 1]
     file_path = os.path.join(target_dir, f"margin_{valid_file_date}.json")
+
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=4)
 
-    print(f"💾 存檔成功 ➡️ 目的地: docs/margin_{valid_file_date}.json 與 docs/margin_history.json")
-    print(f"📊 {valid_file_date} 全市場融資餘額: {total_margin} 億元 (單日增減: {total_change} 億元)")
+    print(f"💾 檔案存檔成功 ➡️ 目的地: docs/margin_{valid_file_date}.json")
+    print(f"📊 {valid_file_date} 上市: {twse_bal} 億元 ({twse_chg} 億元) | 上櫃: {tpex_bal} 億元 ({tpex_chg} 億元)")
+
+    # 2. 寫入 Supabase 資料庫
+    save_to_supabase(valid_file_date, twse_data, tpex_data)
 
 if __name__ == "__main__":
     main()
