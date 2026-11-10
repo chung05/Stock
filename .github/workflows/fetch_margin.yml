@@ -20,11 +20,14 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests
+          pip install requests beautifulsoup4 supabase
 
       - name: Run Fetch Script
         # 指定在 Python 資料夾內執行，以確保相對路徑 os.path.join("..", "docs") 準確對應到根目錄的 docs/
         working-directory: ./Python
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           python fetch_margin.py
 
