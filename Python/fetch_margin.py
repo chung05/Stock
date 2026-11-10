@@ -1,250 +1,85 @@
-import os
-import json
-import time
+import re
 import requests
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-
-try:
-    from supabase import create_client, Client
-    HAS_SUPABASE = True
-except ImportError:
-    HAS_SUPABASE = False
-
-TW_TZ = ZoneInfo("Asia/Taipei")
-
-COMMON_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/javascript, */*; q=0.01",
-    "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
-}
-
-def get_twse_margin(date_str):
-    """
-    抓取 TWSE (上市) 全市場信用交易統計
-    API 格式: YYYYMMDD
-    """
-    url = f"https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date={date_str}&response=json"
-    try:
-        res = requests.get(url, headers=COMMON_HEADERS, timeout=15)
-        if res.status_code != 200:
-            return None
-        data = res.json()
-        if data.get("stat") != "OK":
-            return None
-            
-        for table in data.get("tables", []):
-            if "信用交易統計" in table.get("title", ""):
-                for row in table.get("data", []):
-                    if "融資金額(仟元)" in row[0]:
-                        today_val = int(row[5].replace(",", ""))
-                        prev_val = int(row[4].replace(",", ""))
-                        buy_val = int(row[1].replace(",", ""))
-                        sell_val = int(row[2].replace(",", ""))
-                        repay_val = int(row[3].replace(",", ""))
-                        diff_val = today_val - prev_val
-                        change_rate = round((diff_val / prev_val) * 100, 2) if prev_val else 0.0
-
-                        return {
-                            "今日融資餘額_億元": round(today_val / 100000, 2),
-                            "前日融資餘額_億元": round(prev_val / 100000, 2),
-                            "單日增減_億元": round(diff_val / 100000, 2),
-                            "單日增減幅_百分比": change_rate,
-                            "本日融資買進_億元": round(buy_val / 100000, 2),
-                            "本日融資賣出_億元": round(sell_val / 100000, 2),
-                            "現金償還_億元": round(repay_val / 100000, 2),
-                            "今日融資餘額_千元": today_val
-                        }
-        return None
-    except Exception as e:
-        print(f"⚠️ TWSE 抓取異常: {e}")
-        return None
+from bs4 import BeautifulSoup
 
 def get_tpex_margin(roc_date_str):
     """
-    抓取 TPEx (上櫃) 信用交易統計
-    roc_date_str 格式範例: 115/11/06
-    正確端點為: .../margin_balance/margin_bal_result.php 並帶入 o=json
+    透過 HTML 爬蟲解析 TPEx (上櫃) 全市場融資數據
+    roc_date_str 格式範例: 115/11/09
     """
-    session = requests.Session()
-    headers = dict(COMMON_HEADERS)
-    headers["Referer"] = "https://www.tpex.org.tw/web/stock/margin_trading/margin_balance/margin_bal.php?l=zh-tw"
-    
     clean_date = roc_date_str.replace("{", "").replace("}", "").strip()
-    
-    # 正確端點（包含 margin_balance 目錄、o=json 與民國日期 d 參數）
-    url_web = f"https://www.tpex.org.tw/web/stock/margin_trading/margin_balance/margin_bal_result.php?l=zh-tw&o=json&d={clean_date}"
-    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Referer": "https://www.tpex.org.tw/"
+    }
+
+    # -------------------------------------------------------------
+    # 策略 1：爬取 TPEx 官方 HTML 報表 (o=htm)
+    # -------------------------------------------------------------
+    url_official_html = f"https://www.tpex.org.tw/web/stock/margin_trading/margin_balance/margin_bal_result.php?l=zh-tw&o=htm&d={clean_date}"
     try:
-        res = session.get(url_web, headers=headers, timeout=15)
-        
-        if res.status_code == 200 and res.text.strip().startswith("{"):
-            data = res.json()
+        res = requests.get(url_official_html, headers=headers, timeout=15)
+        if res.status_code == 200 and ("融資" in res.text or "tfoot" in res.text.lower()):
+            soup = BeautifulSoup(res.text, "html.parser")
             
-            # 優先從 tfootData_two 取得全市場融資金額(仟元)
-            # 格式: [前日餘額, 買進, 賣出, 現償, 今日餘額]
-            tfoot2 = data.get("tfootData_two", [])
-            if tfoot2 and len(tfoot2) >= 5:
-                prev_bal = int(str(tfoot2[0]).replace(",", ""))
-                today_bal = int(str(tfoot2[4]).replace(",", ""))
-                diff_bal = today_bal - prev_bal
-                change_rate = round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0
-
-                return {
-                    "今日融資餘額_億元": round(today_bal / 100000, 2),
-                    "前日融資餘額_億元": round(prev_bal / 100000, 2),
-                    "單日增減_億元": round(diff_bal / 100000, 2),
-                    "單日增減幅_百分比": change_rate,
-                    "本日融資買進_億元": round(int(str(tfoot2[1]).replace(",", "")) / 100000, 2),
-                    "本日融資賣出_億元": round(int(str(tfoot2[2]).replace(",", "")) / 100000, 2),
-                    "現金償還_億元": round(int(str(tfoot2[3]).replace(",", "")) / 100000, 2),
-                    "今日融資餘額_千元": today_bal
-                }
-
-            # 備援：若官方改版由 tables 回傳
-            for table in data.get("tables", []):
-                for row in table.get("data", []):
-                    title_col = str(row[0]).strip()
-                    if "融資" in title_col and ("仟元" in title_col or "金額" in title_col):
-                        today_bal = int(str(row[5]).replace(",", ""))
-                        prev_bal = int(str(row[4]).replace(",", ""))
+            # 尋找頁尾 tfoot 或是表格最後幾列
+            tfoot = soup.find("tfoot")
+            if tfoot:
+                rows = tfoot.find_all("tr")
+                for row in rows:
+                    cells = [td.get_text(strip=True).replace(",", "") for td in row.find_all(["td", "th"])]
+                    # 融資金額列通常有 5 個純數字（前日餘額、買進、賣出、現償、今日餘額）
+                    num_cells = [c for c in cells if re.match(r'^-?\d+$', c)]
+                    if len(num_cells) >= 5:
+                        prev_bal = int(num_cells[0])
+                        today_bal = int(num_cells[4])
                         diff_bal = today_bal - prev_bal
                         change_rate = round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0
                         return {
-                            "今日融資餘額_億元": round(today_bal / 100000, 2),
+                            "今日融資餘額_億元": round(today_bal / 100000, 2), # 仟元轉億元
                             "前日融資餘額_億元": round(prev_bal / 100000, 2),
                             "單日增減_億元": round(diff_bal / 100000, 2),
                             "單日增減幅_百分比": change_rate,
+                            "本日融資買進_億元": round(int(num_cells[1]) / 100000, 2),
+                            "本日融資賣出_億元": round(int(num_cells[2]) / 100000, 2),
+                            "現金償還_億元": round(int(num_cells[3]) / 100000, 2),
                             "今日融資餘額_千元": today_bal
                         }
-
     except Exception as e:
-        print(f"⚠️ TPEx 抓取異常: {e}")
+        print(f"⚠️ 官方 HTML 報表爬取異常: {e}")
+
+    # -------------------------------------------------------------
+    # 策略 2：鉅亨網 (Anue) 上櫃大盤融資融券彙整頁面爬蟲 (備援)
+    # -------------------------------------------------------------
+    url_cnyes = "https://www.cnyes.com/twstock/margin/otc"
+    try:
+        res = requests.get(url_cnyes, headers=headers, timeout=15)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
+            # 尋找包含融資餘額金額的區塊
+            text_block = soup.get_text()
+            # 匹配例如：「融資餘額 1,024.5 億」或「今日餘額(億) 1024.5」
+            match = re.search(r"融資(?:餘額)?.*?([\d,]+\.?\d*)\s*億", text_block)
+            diff_match = re.search(r"融資(?:增減)?.*?([+-]?[\d,]+\.?\d*)\s*億", text_block)
+            
+            if match:
+                today_bal_yi = float(match.group(1).replace(",", ""))
+                diff_bal_yi = float(diff_match.group(1).replace(",", "")) if diff_match else 0.0
+                prev_bal_yi = round(today_bal_yi - diff_bal_yi, 2)
+                change_rate = round((diff_bal_yi / prev_bal_yi) * 100, 2) if prev_bal_yi else 0.0
+                
+                return {
+                    "今日融資餘額_億元": today_bal_yi,
+                    "前日融資餘額_億元": prev_bal_yi,
+                    "單日增減_億元": diff_bal_yi,
+                    "單日增減幅_百分比": change_rate,
+                    "本日融資買進_億元": 0.0,
+                    "本日融資賣出_億元": 0.0,
+                    "現金償還_億元": 0.0,
+                    "今日融資餘額_千元": int(today_bal_yi * 100000)
+                }
+    except Exception as e:
+        print(f"⚠️ 鉅亨網備援爬蟲異常: {e}")
 
     return None
-
-def save_to_supabase(trade_date, twse_data, tpex_data):
-    """
-    寫入 Supabase 資料庫（窄表架構）
-    """
-    supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_KEY")
-    
-    if not supabase_url or not supabase_key:
-        print("ℹ️ 未設定 SUPABASE_URL 或 SUPABASE_KEY 環境變數，略過資料庫寫入。")
-        return
-
-    if not HAS_SUPABASE:
-        print("⚠️ 未安裝 supabase 套件（pip install supabase），略過資料庫寫入。")
-        return
-
-    try:
-        supabase: Client = create_client(supabase_url, supabase_key)
-        records = [
-            {
-                "trade_date": trade_date,
-                "market": "TWSE",
-                "margin_balance": twse_data["今日融資餘額_億元"],
-                "margin_change": twse_data["單日增減_億元"]
-            }
-        ]
-        
-        if tpex_data:
-            records.append({
-                "trade_date": trade_date,
-                "market": "TPEX",
-                "margin_balance": tpex_data["今日融資餘額_億元"],
-                "margin_change": tpex_data["單日增減_億元"]
-            })
-
-        supabase.table("margin_daily").upsert(records, on_conflict="trade_date,market").execute()
-        print(f"✅ Supabase 資料庫寫入成功（共寫入 {len(records)} 列資料）。")
-    except Exception as e:
-        print(f"❌ Supabase 寫入異常: {e}")
-
-def main():
-    now_tw = datetime.now(TW_TZ)
-    current_hour = now_tw.hour
-    is_weekend = now_tw.weekday() in [5, 6]
-
-    # 非營業時段或尚未公布資料時自動回溯尋找最近營業日
-    if is_weekend or current_hour < 20:
-        print(f"ℹ️ 當前時間 ({now_tw.strftime('%Y-%m-%d %H:%M')}) 非結算公布時段，自動回溯尋找最近營業日...")
-        target_date = now_tw - timedelta(days=1)
-        max_lookback = 7
-    else:
-        target_date = now_tw
-        max_lookback = 1
-
-    twse_data = None
-    tpex_data = None
-    valid_file_date = ""
-
-    # 交易日檢查
-    for _ in range(max_lookback):
-        if target_date.weekday() in [5, 6]:
-            target_date -= timedelta(days=1)
-            continue
-
-        twse_date_str = target_date.strftime("%Y%m%d")
-        roc_date_str = f"{target_date.year - 1911}/{target_date.strftime('%m/%d')}"
-        check_date_str = target_date.strftime("%Y-%m-%d")
-
-        print(f"📡 檢查 {check_date_str} (民國 {roc_date_str}) 交易資料...")
-        twse_data = get_twse_margin(twse_date_str)
-
-        if twse_data:
-            valid_file_date = check_date_str
-            tpex_data = get_tpex_margin(roc_date_str)
-            print(f"✅ 成功鎖定交易日: {valid_file_date}")
-            break
-        else:
-            print(f"  ℹ️ {check_date_str} 查無資料（可能為國定假日/未公布）。")
-            target_date -= timedelta(days=1)
-            time.sleep(1)
-
-    if not twse_data:
-        print("⚠️ 未取得任何有效交易日資料，安全退出。")
-        return
-
-    twse_bal = twse_data["今日融資餘額_億元"]
-    twse_chg = twse_data["單日增減_億元"]
-    prev_twse = twse_data["前日融資餘額_億元"]
-
-    tpex_bal = tpex_data["今日融資餘額_億元"] if tpex_data else 0.0
-    tpex_chg = tpex_data["單日增減_億元"] if tpex_data else 0.0
-    prev_tpex = tpex_data["前日融資餘額_億元"] if tpex_data else 0.0
-
-    total_margin = round(twse_bal + tpex_bal, 2)
-    total_change = round(twse_chg + tpex_chg, 2)
-    prev_total = round(prev_twse + prev_tpex, 2)
-    total_change_rate = round((total_change / prev_total) * 100, 2) if prev_total else 0.0
-
-    payload = {
-        "交易日期": valid_file_date,
-        "資料更新時間": now_tw.strftime("%Y-%m-%d %H:%M:%S"),
-        "全市場融資總結": {
-            "全市場融資總餘額_億元": total_margin,
-            "全市場單日融資增減_億元": total_change,
-            "全市場融資增減幅_百分比": total_change_rate
-        },
-        "集中市場_上市": twse_data,
-        "櫃買市場_上櫃": tpex_data
-    }
-
-    # 存檔至 docs/
-    target_dir = os.path.join("..", "docs")
-    os.makedirs(target_dir, exist_ok=True)
-    file_path = os.path.join(target_dir, f"margin_{valid_file_date}.json")
-
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=4)
-
-    print(f"💾 檔案存檔成功 ➡️ 目的地: docs/margin_{valid_file_date}.json")
-    print(f"📊 {valid_file_date} 上市: {twse_bal} 億元 ({twse_chg} 億元) | 上櫃: {tpex_bal} 億元 ({tpex_chg} 億元)")
-
-    # 寫入 Supabase 資料庫
-    save_to_supabase(valid_file_date, twse_data, tpex_data)
-
-if __name__ == "__main__":
-    main()
