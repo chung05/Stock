@@ -63,76 +63,69 @@ def get_twse_margin(date_str):
 def get_tpex_margin(roc_date_str):
     """
     抓取 TPEx (上櫃) 信用交易統計
-    roc_date_str 格式: 115/11/06
+    roc_date_str 格式範例: 115/11/06
+    正確端點為: .../margin_balance/margin_bal_result.php 並帶入 o=json
     """
     session = requests.Session()
     headers = dict(COMMON_HEADERS)
-    headers["Referer"] = "https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal.php?l=zh-tw"
-    headers["X-Requested-With"] = "XMLHttpRequest"
-
-    # 方案 1：官方報表 API（指定日期）
-    url_web = f"https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal_result.php?l=zh-tw&d={roc_date_str}"
+    headers["Referer"] = "https://www.tpex.org.tw/web/stock/margin_trading/margin_balance/margin_bal.php?l=zh-tw"
+    
+    clean_date = roc_date_str.replace("{", "").replace("}", "").strip()
+    
+    # 正確端點（包含 margin_balance 目錄、o=json 與民國日期 d 參數）
+    url_web = f"https://www.tpex.org.tw/web/stock/margin_trading/margin_balance/margin_bal_result.php?l=zh-tw&o=json&d={clean_date}"
+    
     try:
-        session.get("https://www.tpex.org.tw/web/stock/margin_trading/margin_bal/margin_bal.php?l=zh-tw", headers=headers, timeout=10)
         res = session.get(url_web, headers=headers, timeout=15)
         
         if res.status_code == 200 and res.text.strip().startswith("{"):
             data = res.json()
-            tot = data.get("reportTot", [])
-            if tot and len(tot) >= 6:
-                today_bal = int(str(tot[5]).replace(",", ""))
-                prev_bal = int(str(tot[4]).replace(",", ""))
+            
+            # 優先從 tfootData_two 取得全市場融資金額(仟元)
+            # 格式: [前日餘額, 買進, 賣出, 現償, 今日餘額]
+            tfoot2 = data.get("tfootData_two", [])
+            if tfoot2 and len(tfoot2) >= 5:
+                prev_bal = int(str(tfoot2[0]).replace(",", ""))
+                today_bal = int(str(tfoot2[4]).replace(",", ""))
                 diff_bal = today_bal - prev_bal
+                change_rate = round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0
+
                 return {
                     "今日融資餘額_億元": round(today_bal / 100000, 2),
                     "前日融資餘額_億元": round(prev_bal / 100000, 2),
                     "單日增減_億元": round(diff_bal / 100000, 2),
-                    "單日增減幅_百分比": round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0,
+                    "單日增減幅_百分比": change_rate,
+                    "本日融資買進_億元": round(int(str(tfoot2[1]).replace(",", "")) / 100000, 2),
+                    "本日融資賣出_億元": round(int(str(tfoot2[2]).replace(",", "")) / 100000, 2),
+                    "現金償還_億元": round(int(str(tfoot2[3]).replace(",", "")) / 100000, 2),
                     "今日融資餘額_千元": today_bal
                 }
-            
+
+            # 備援：若官方改版由 tables 回傳
             for table in data.get("tables", []):
                 for row in table.get("data", []):
-                    if len(row) >= 6 and ("合計" in str(row[0]) or "全市場" in str(row[0]) or "融資" in str(row[0])):
+                    title_col = str(row[0]).strip()
+                    if "融資" in title_col and ("仟元" in title_col or "金額" in title_col):
                         today_bal = int(str(row[5]).replace(",", ""))
                         prev_bal = int(str(row[4]).replace(",", ""))
                         diff_bal = today_bal - prev_bal
+                        change_rate = round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0
                         return {
                             "今日融資餘額_億元": round(today_bal / 100000, 2),
                             "前日融資餘額_億元": round(prev_bal / 100000, 2),
                             "單日增減_億元": round(diff_bal / 100000, 2),
-                            "單日增減幅_百分比": round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0,
+                            "單日增減幅_百分比": change_rate,
                             "今日融資餘額_千元": today_bal
                         }
-    except Exception as e:
-        print(f"⚠️ TPEx 方案 1 抓取異常: {e}")
 
-    # 方案 2：TPEx 官方 OpenAPI 備援
-    url_openapi = "https://www.tpex.org.tw/openapi/v1/mkt_margin_trade"
-    try:
-        res = session.get(url_openapi, headers={"User-Agent": headers["User-Agent"]}, timeout=15)
-        if res.status_code == 200 and res.text.strip().startswith("["):
-            items = res.json()
-            for row in items:
-                if "融資" in row.get("Item", "") or "合計" in row.get("Item", ""):
-                    today_bal = int(str(row.get("TodayBalance", "0")).replace(",", ""))
-                    prev_bal = int(str(row.get("PreviousBalance", "0")).replace(",", ""))
-                    diff_bal = today_bal - prev_bal
-                    return {
-                        "今日融資餘額_億元": round(today_bal / 100000, 2),
-                        "前日融資餘額_億元": round(prev_bal / 100000, 2),
-                        "單日增減_億元": round(diff_bal / 100000, 2),
-                        "單日增減幅_百分比": round((diff_bal / prev_bal) * 100, 2) if prev_bal else 0.0,
-                        "今日融資餘額_千元": today_bal
-                    }
     except Exception as e:
-        print(f"⚠️ TPEx 方案 2 抓取異常: {e}")
+        print(f"⚠️ TPEx 抓取異常: {e}")
 
     return None
 
 def save_to_supabase(trade_date, twse_data, tpex_data):
     """
-    寫入 Supabase 資料庫（窄表架構：上市/上櫃分別獨立一筆記錄）
+    寫入 Supabase 資料庫（窄表架構）
     """
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_KEY")
@@ -147,17 +140,15 @@ def save_to_supabase(trade_date, twse_data, tpex_data):
 
     try:
         supabase: Client = create_client(supabase_url, supabase_key)
-        records = []
+        records = [
+            {
+                "trade_date": trade_date,
+                "market": "TWSE",
+                "margin_balance": twse_data["今日融資餘額_億元"],
+                "margin_change": twse_data["單日增減_億元"]
+            }
+        ]
         
-        # 1. 上市紀錄
-        records.append({
-            "trade_date": trade_date,
-            "market": "TWSE",
-            "margin_balance": twse_data["今日融資餘額_億元"],
-            "margin_change": twse_data["單日增減_億元"]
-        })
-        
-        # 2. 上櫃紀錄
         if tpex_data:
             records.append({
                 "trade_date": trade_date,
@@ -176,7 +167,7 @@ def main():
     current_hour = now_tw.hour
     is_weekend = now_tw.weekday() in [5, 6]
 
-    # 判定起點：若在週末或平日晚上 20:00 前執行，自動啟動回溯尋找最近營業日
+    # 非營業時段或尚未公布資料時自動回溯尋找最近營業日
     if is_weekend or current_hour < 20:
         print(f"ℹ️ 當前時間 ({now_tw.strftime('%Y-%m-%d %H:%M')}) 非結算公布時段，自動回溯尋找最近營業日...")
         target_date = now_tw - timedelta(days=1)
@@ -189,9 +180,8 @@ def main():
     tpex_data = None
     valid_file_date = ""
 
-    # 交易日輪巡檢查
+    # 交易日檢查
     for _ in range(max_lookback):
-        # 遇週末直接略過
         if target_date.weekday() in [5, 6]:
             target_date -= timedelta(days=1)
             continue
@@ -242,7 +232,7 @@ def main():
         "櫃買市場_上櫃": tpex_data
     }
 
-    # 存入 docs 目錄（路徑參考 fetch_rss.py）
+    # 存檔至 docs/
     target_dir = os.path.join("..", "docs")
     os.makedirs(target_dir, exist_ok=True)
     file_path = os.path.join(target_dir, f"margin_{valid_file_date}.json")
