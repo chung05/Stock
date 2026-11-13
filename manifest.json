@@ -1,0 +1,21 @@
+{
+  "name": "牛牛分析站",
+  "short_name": "牛牛分析",
+  "description": "智慧過濾籌碼寬資版 - 股市籌碼與技術分析工具",
+  "start_url": "/Stock/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#38bdf8",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

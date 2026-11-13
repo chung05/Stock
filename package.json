@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "axios": "^1.21.1",
+    "dotenv": "^18.0.10",
+    "xlsx": "^0.18.5"
+  }
+}
