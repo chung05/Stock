@@ -6,6 +6,9 @@ on:
     - cron: '30 13 * * 1-5'
   workflow_dispatch: # 支援在 GitHub 網頁上手動點擊立即執行
 
+permissions:
+  contents: write # 賦予 GitHub Actions 推送更新至 docs/ 的寫入權限
+
 jobs:
   run-fetch:
     runs-on: ubuntu-latest
@@ -26,10 +29,11 @@ jobs:
         # 指定在 Python 資料夾內執行，以確保相對路徑 os.path.join("..", "docs") 準確對應到根目錄的 docs/
         working-directory: ./Python
         env:
+          TZ: Asia/Taipei
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          python fetch_margin.py
+          python -u fetch_margin.py
 
       - name: Commit and Push Results
         run: |
