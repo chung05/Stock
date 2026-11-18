@@ -21,8 +21,6 @@ except ImportError:
 
 TW_TZ = ZoneInfo("Asia/Taipei")
 DEFAULT_SUPABASE_URL = "https://fekesirsqjbkrgaibrjf.supabase.co"
-
-# 設定目標歷史回補日曆天數（95 個日曆天約包含 62~65 個實際交易日，足夠支撐 60 日波段高點分析）
 HISTORY_LOOKBACK_CALENDAR_DAYS = 95
 
 COMMON_HEADERS = {
@@ -46,9 +44,6 @@ def get_supabase_client():
         return None
 
 def get_twse_margin(date_str):
-    """
-    抓取 TWSE (上市) 指定日期全市場信用交易統計 (API 格式: YYYYMMDD)
-    """
     url = f"https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date={date_str}&response=json"
     try:
         res = requests.get(url, headers=COMMON_HEADERS, timeout=15)
@@ -86,9 +81,6 @@ def get_twse_margin(date_str):
         return None
 
 def get_tpex_margin(roc_date_str):
-    """
-    透過 HTML 爬蟲解析 TPEx (上櫃) 指定日期全市場融資金額(仟元)
-    """
     clean_date = roc_date_str.replace("{", "").replace("}", "").strip()
     headers = dict(COMMON_HEADERS)
     headers["Referer"] = "https://www.tpex.org.tw/"
@@ -131,9 +123,12 @@ def get_tpex_margin(roc_date_str):
 
     return None
 
-def calculate_peak_and_trends(history_rows, balance_key, change_key):
+def analyze_margin_dynamics(history_rows, balance_key, change_key):
     """
-    從資料庫讀出的歷史序列 (由舊到新排序) 動態推算趨勢與波段高點回落
+    從資料庫讀出的歷史序列 (由舊到新排序) 動態推算：
+    1. 近 3 / 7 / 10 / 20 日的累計增減、增減天數結構與每日變化序列
+    2. 跨週期動能轉折定性結論（解決有增有減時的解讀歧異）
+    3. 近 20 日 / 60 日波段最高點日期、峰值金額與自高點回落幅度
     """
     if not history_rows:
         return {}
@@ -141,9 +136,65 @@ def calculate_peak_and_trends(history_rows, balance_key, change_key):
     latest = history_rows[-1]
     curr_bal = float(latest.get(balance_key, 0))
 
-    def sum_recent_chg(n):
+    def build_period_stats(n):
         subset = history_rows[-n:]
-        return round(sum(float(r.get(change_key, 0)) for r in subset), 2)
+        actual_days = len(subset)
+        changes = [round(float(r.get(change_key, 0)), 2) for r in subset]
+        net_chg = round(sum(changes), 2)
+        inc_days = sum(1 for c in changes if c > 0)
+        dec_days = sum(1 for c in changes if c < 0)
+        
+        # 計算區間起點前一日的基準餘額
+        first_bal = float(subset[0].get(balance_key, 0))
+        first_chg = float(subset[0].get(change_key, 0))
+        base_bal = round(first_bal - first_chg, 2)
+        net_pct = round((net_chg / base_bal) * 100, 2) if base_bal else 0.0
+
+        # 單週期內部結構描述
+        if inc_days == actual_days:
+            pattern = f"連續{actual_days}日全面增加"
+        elif dec_days == actual_days:
+            pattern = f"連續{actual_days}日全面減少"
+        elif net_chg > 0 and dec_days >= inc_days:
+            pattern = f"震盪偏多（{inc_days}增{dec_days}減，受單日大增拉抬）"
+        elif net_chg < 0 and inc_days >= dec_days:
+            pattern = f"震盪偏空（{inc_days}增{dec_days}減，受單日大減拖累）"
+        elif net_chg > 0:
+            pattern = f"多數時間增加（{inc_days}增{dec_days}減）"
+        else:
+            pattern = f"多數時間減少（{inc_days}增{dec_days}減）"
+
+        return {
+            "統計交易日數": actual_days,
+            "累計淨增減_億元": net_chg,
+            "累計增減幅_百分比": net_pct,
+            "增減天數分布": f"{inc_days}天增加 / {dec_days}天減少",
+            "區間結構特徵": pattern,
+            "每日增減序列_億元": changes
+        }
+
+    p3 = build_period_stats(3)
+    p7 = build_period_stats(7)
+    p10 = build_period_stats(10)
+    p20 = build_period_stats(20)
+
+    # 跨週期動能轉折定性判斷（比較近3日短線 vs 近7/20日中線）
+    c3 = p3["累計淨增減_億元"]
+    c7 = p7["累計淨增減_億元"]
+    c20 = p20["累計淨增減_億元"]
+
+    if c3 > 0 and c7 < 0:
+        momentum_signal = f"🔄 止跌回溫（近7日累計 {c7:+.2f}億 仍為減碼，但近3日已轉為淨增 {c3:+.2f}億，短線槓桿開始回補）"
+    elif c3 < 0 and c7 > 0:
+        momentum_signal = f"⚠️ 動能降溫（近7日累計 {c7:+.2f}億 雖為增加，但近3日已轉為淨減 {c3:+.2f}億，短線浮額開始退場）"
+    elif c3 > 0 and c7 >= 0 and c20 > 0:
+        momentum_signal = f"🔥 全面擴張（近3日 {c3:+.2f}億、近7日 {c7:+.2f}億、近20日 {c20:+.2f}億 同步增加，散戶追價積極）"
+    elif c3 < 0 and c7 <= 0 and c20 < 0:
+        momentum_signal = f"❄️ 持續去槓桿（近3日 {c3:+.2f}億、近7日 {c7:+.2f}億、近20日 {c20:+.2f}億 同步縮減，籌碼持續沉澱）"
+    elif c3 > 0:
+        momentum_signal = f"📈 短線偏多（近3日淨增 {c3:+.2f}億，短線買盤回流）"
+    else:
+        momentum_signal = f"📉 短線偏空（近3日淨減 {c3:+.2f}億，短線持續調節）"
 
     def calc_peak_drawdown(n):
         subset = history_rows[-n:]
@@ -166,20 +217,21 @@ def calculate_peak_and_trends(history_rows, balance_key, change_key):
         }
 
     return {
-        "近3日累計增減_億元": sum_recent_chg(3),
-        "近5日累計增減_億元": sum_recent_chg(5),
-        "近20日累計增減_億元": sum_recent_chg(20),
+        "動能轉折總評": momentum_signal,
+        "近3日動態": p3,
+        "近7日動態": p7,
+        "近10日動態": p10,
+        "近20日動態": p20,
         "近20日波段高點分析": calc_peak_drawdown(20),
         "近60日波段高點分析": calc_peak_drawdown(60)
     }
 
 def main():
-    print("🚀 fetch_margin.py 啟動執行（支援歷史 60 交易日自動補齊＋每日增量更新）...", flush=True)
+    print("🚀 fetch_margin.py 啟動執行...", flush=True)
     now_tw = datetime.now(TW_TZ)
     current_hour = now_tw.hour
     is_weekend = now_tw.weekday() in [5, 6]
 
-    # 判定最新應檢查的交易日起點
     if is_weekend or current_hour < 20:
         end_date = now_tw - timedelta(days=1)
     else:
@@ -205,22 +257,17 @@ def main():
             print(f"📖 Supabase 區間 ({start_str} ~ {end_str}) 已有 {len(existing_dates)} 個交易日紀錄。", flush=True)
         except Exception as e:
             print(f"⚠️ 查詢既有歷史日期異常: {e}", flush=True)
-    else:
-        print("⚠️ 未偵測到有效 Supabase 連線，將僅抓取最新交易日寫入本地 JSON。", flush=True)
 
-    # 產生所有非週末的候選日期（由舊到新排序，依序補齊）
     candidate_dates = []
     curr = start_date
     while curr.date() <= end_date.date():
         if curr.weekday() not in [5, 6]:
             d_str = curr.strftime("%Y-%m-%d")
-            # 若已有資料庫連線，只抓資料庫尚未存在的日期；且永遠強制重新驗證最近 2 個平日以確保最新資料完整
             if not supabase or (d_str not in existing_dates) or (curr.date() >= (end_date - timedelta(days=3)).date()):
                 candidate_dates.append(curr)
         curr += timedelta(days=1)
 
     if not supabase and candidate_dates:
-        # 無資料庫時僅需抓最近 7 個平日找最新一日即可
         candidate_dates = list(reversed(candidate_dates[-7:]))
 
     print(f"🔍 本次預計檢查與補齊 {len(candidate_dates)} 個候選平日...", flush=True)
@@ -237,7 +284,6 @@ def main():
 
         twse_data = get_twse_margin(twse_date_str)
         if not twse_data:
-            # 國定假日或尚未公布，安靜略過
             time.sleep(0.5)
             continue
 
@@ -261,13 +307,11 @@ def main():
             "total_change": total_chg
         })
 
-        # 記錄最新一個有效交易日的明細
         if check_date_str >= latest_valid_date:
             latest_valid_date = check_date_str
             latest_twse_detail = twse_data
             latest_tpex_detail = tpex_data
 
-        # 每累積 10 筆就先批次寫入一次 Supabase，防止中途逾時遺失進度
         if supabase and len(records_to_upsert) >= 10:
             try:
                 supabase.table("margin_daily").upsert(records_to_upsert, on_conflict="trade_date").execute()
@@ -276,14 +320,11 @@ def main():
             except Exception as e:
                 print(f"  ❌ 批次寫入異常: {e}", flush=True)
 
-        # 無資料庫模式找到最新一天就結束
         if not supabase:
             break
 
-        # 禮貌性延遲，避免頻繁請求遭證交所暫時封鎖
         time.sleep(1.5)
 
-    # 將剩餘未寫入的紀錄寫入 Supabase
     if supabase and records_to_upsert:
         try:
             supabase.table("margin_daily").upsert(records_to_upsert, on_conflict="trade_date").execute()
@@ -291,7 +332,6 @@ def main():
         except Exception as e:
             print(f"❌ Supabase 寫入異常: {e}", flush=True)
 
-    # 從 Supabase 讀回完整近 60 個交易日序列進行動態波段高點與趨勢推算
     history_asc = []
     if supabase:
         try:
@@ -308,11 +348,10 @@ def main():
         except Exception as e:
             print(f"❌ 從 Supabase 讀取歷史序列異常: {e}", flush=True)
 
-    if not history_asc and not records_to_upsert and not latest_valid_date:
+    if not history_asc and not latest_valid_date:
         print("⚠️ 未取得任何有效資料，結束程式。", flush=True)
         return
 
-    # 決定最終輸出的最新交易日基準列
     if history_asc:
         latest_db_row = history_asc[-1]
         final_date = latest_db_row["trade_date"]
@@ -343,20 +382,20 @@ def main():
     prev_total_bal = round(final_total_bal - final_total_chg, 2)
     total_change_rate = round((final_total_chg / prev_total_bal) * 100, 2) if prev_total_bal else 0.0
 
-    # 計算各市場趨勢與波段最高點回落
-    total_trends = calculate_peak_and_trends(history_asc, "total_balance", "total_change")
-    twse_trends = calculate_peak_and_trends(history_asc, "twse_balance", "twse_change")
-    tpex_trends = calculate_peak_and_trends(history_asc, "tpex_balance", "tpex_change")
+    # 計算各市場 3/7/10/20 日動態與 20/60 日波段高點回落
+    total_dynamics = analyze_margin_dynamics(history_asc, "total_balance", "total_change")
+    twse_dynamics = analyze_margin_dynamics(history_asc, "twse_balance", "twse_change")
+    tpex_dynamics = analyze_margin_dynamics(history_asc, "tpex_balance", "tpex_change")
 
     twse_out = latest_twse_detail or {}
     twse_out["今日融資餘額_億元"] = final_twse_bal
     twse_out["單日增減_億元"] = final_twse_chg
-    twse_out["趨勢與波段高點"] = twse_trends
+    twse_out["多週期動態與波段高點"] = twse_dynamics
 
     tpex_out = latest_tpex_detail or {}
     tpex_out["今日融資餘額_億元"] = final_tpex_bal
     tpex_out["單日增減_億元"] = final_tpex_chg
-    tpex_out["趨勢與波段高點"] = tpex_trends
+    tpex_out["多週期動態與波段高點"] = tpex_dynamics
 
     output_payload = {
         "交易日期": final_date,
@@ -366,7 +405,7 @@ def main():
             "全市場融資總餘額_億元": final_total_bal,
             "全市場單日融資增減_億元": final_total_chg,
             "全市場融資增減幅_百分比": total_change_rate,
-            "趨勢與波段高點": total_trends
+            "多週期動態與波段高點": total_dynamics
         },
         "集中市場_上市": twse_out,
         "櫃買市場_上櫃": tpex_out
@@ -380,8 +419,8 @@ def main():
         json.dump(output_payload, f, ensure_ascii=False, indent=4)
 
     print(f"💾 最新報告 JSON 寫入成功 ➡️ docs/margin_{final_date}.json", flush=True)
-    print(f"📊 {final_date} 上市: {final_twse_bal} 億元 ({final_twse_chg:+.2f} 億元) | 上櫃: {final_tpex_bal} 億元 ({final_tpex_chg:+.2f} 億元) | 合計: {final_total_bal} 億元", flush=True)
-    print("🏁 全部歷史補齊與更新流程執行完畢！", flush=True)
+    print(f"📊 {final_date} 總評: {total_dynamics.get('動能轉折總評', '')}", flush=True)
+    print("🏁 全部流程執行完畢！", flush=True)
 
 if __name__ == "__main__":
     main()
