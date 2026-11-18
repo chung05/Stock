@@ -127,7 +127,7 @@ def analyze_margin_dynamics(history_rows, balance_key, change_key):
     """
     從資料庫讀出的歷史序列 (由舊到新排序) 動態推算：
     1. 近 3 / 7 / 10 / 20 日的累計增減、增減天數結構與每日變化序列
-    2. 跨週期動能轉折定性結論（解決有增有減時的解讀歧異）
+    2. 跨週期動能轉折定性結論（比對近3日、7日、10日、20日方向）
     3. 近 20 日 / 60 日波段最高點日期、峰值金額與自高點回落幅度
     """
     if not history_rows:
@@ -144,13 +144,11 @@ def analyze_margin_dynamics(history_rows, balance_key, change_key):
         inc_days = sum(1 for c in changes if c > 0)
         dec_days = sum(1 for c in changes if c < 0)
         
-        # 計算區間起點前一日的基準餘額
         first_bal = float(subset[0].get(balance_key, 0))
         first_chg = float(subset[0].get(change_key, 0))
         base_bal = round(first_bal - first_chg, 2)
         net_pct = round((net_chg / base_bal) * 100, 2) if base_bal else 0.0
 
-        # 單週期內部結構描述
         if inc_days == actual_days:
             pattern = f"連續{actual_days}日全面增加"
         elif dec_days == actual_days:
@@ -178,23 +176,24 @@ def analyze_margin_dynamics(history_rows, balance_key, change_key):
     p10 = build_period_stats(10)
     p20 = build_period_stats(20)
 
-    # 跨週期動能轉折定性判斷（比較近3日短線 vs 近7/20日中線）
     c3 = p3["累計淨增減_億元"]
     c7 = p7["累計淨增減_億元"]
+    c10 = p10["累計淨增減_億元"]
     c20 = p20["累計淨增減_億元"]
 
-    if c3 > 0 and c7 < 0:
-        momentum_signal = f"🔄 止跌回溫（近7日累計 {c7:+.2f}億 仍為減碼，但近3日已轉為淨增 {c3:+.2f}億，短線槓桿開始回補）"
-    elif c3 < 0 and c7 > 0:
-        momentum_signal = f"⚠️ 動能降溫（近7日累計 {c7:+.2f}億 雖為增加，但近3日已轉為淨減 {c3:+.2f}億，短線浮額開始退場）"
-    elif c3 > 0 and c7 >= 0 and c20 > 0:
-        momentum_signal = f"🔥 全面擴張（近3日 {c3:+.2f}億、近7日 {c7:+.2f}億、近20日 {c20:+.2f}億 同步增加，散戶追價積極）"
-    elif c3 < 0 and c7 <= 0 and c20 < 0:
-        momentum_signal = f"❄️ 持續去槓桿（近3日 {c3:+.2f}億、近7日 {c7:+.2f}億、近20日 {c20:+.2f}億 同步縮減，籌碼持續沉澱）"
+    # 跨週期動能轉折定性判斷（納入近3日、7日、10日、20日綜合對照）
+    if c3 > 0 and (c7 < 0 or c10 < 0):
+        momentum_signal = f"🔄 止跌回溫（近7日 {c7:+.2f}億 / 近10日 {c10:+.2f}億 仍屬去槓桿，但近3日已轉為淨增 {c3:+.2f}億，短線槓桿開始回補）"
+    elif c3 < 0 and (c7 > 0 or c10 > 0):
+        momentum_signal = f"⚠️ 動能降溫（近7日 {c7:+.2f}億 / 近10日 {c10:+.2f}億 雖為增加，但近3日已轉為淨減 {c3:+.2f}億，短線浮額開始退場）"
+    elif c3 > 0 and c7 >= 0 and c10 >= 0 and c20 > 0:
+        momentum_signal = f"🔥 全面擴張（近3日 {c3:+.2f}億、7日 {c7:+.2f}億、10日 {c10:+.2f}億、20日 {c20:+.2f}億 同步增加，散戶追價積極）"
+    elif c3 < 0 and c7 <= 0 and c10 <= 0 and c20 < 0:
+        momentum_signal = f"❄️ 持續去槓桿（近3日 {c3:+.2f}億、7日 {c7:+.2f}億、10日 {c10:+.2f}億、20日 {c20:+.2f}億 同步縮減，籌碼持續沉澱）"
     elif c3 > 0:
-        momentum_signal = f"📈 短線偏多（近3日淨增 {c3:+.2f}億，短線買盤回流）"
+        momentum_signal = f"📈 短線偏多（近3日淨增 {c3:+.2f}億，近10日 {c10:+.2f}億，短線買盤回流）"
     else:
-        momentum_signal = f"📉 短線偏空（近3日淨減 {c3:+.2f}億，短線持續調節）"
+        momentum_signal = f"📉 短線偏空（近3日淨減 {c3:+.2f}億，近10日 {c10:+.2f}億，短線持續調節）"
 
     def calc_peak_drawdown(n):
         subset = history_rows[-n:]
@@ -382,7 +381,7 @@ def main():
     prev_total_bal = round(final_total_bal - final_total_chg, 2)
     total_change_rate = round((final_total_chg / prev_total_bal) * 100, 2) if prev_total_bal else 0.0
 
-    # 計算各市場 3/7/10/20 日動態與 20/60 日波段高點回落
+    # 計算各市場 3 / 7 / 10 / 20 日動態與 20 / 60 日波段高點回落
     total_dynamics = analyze_margin_dynamics(history_asc, "total_balance", "total_change")
     twse_dynamics = analyze_margin_dynamics(history_asc, "twse_balance", "twse_change")
     tpex_dynamics = analyze_margin_dynamics(history_asc, "tpex_balance", "tpex_change")
