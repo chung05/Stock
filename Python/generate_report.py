@@ -12,6 +12,56 @@ import edge_tts
 TW_TZ = ZoneInfo("Asia/Taipei")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
+def format_margin_for_prompt(margin_data):
+    """將結構化的台股上市櫃融資多週期與波段高點資料轉換為高密度 Prompt 摘要"""
+    if not margin_data:
+        return "無最新融資數據。\n"
+
+    trade_date = margin_data.get("交易日期", "未知日期")
+    total = margin_data.get("全市場融資總結", {})
+    twse = margin_data.get("集中市場_上市", {})
+    tpex = margin_data.get("櫃買市場_上櫃", {})
+
+    def summarize_market(title, m_dict):
+        if not m_dict:
+            return f"- {title}: 無數據"
+        bal = m_dict.get("今日融資餘額_億元", m_dict.get("全市場融資總餘額_億元", 0))
+        chg = m_dict.get("單日增減_億元", m_dict.get("全市場單日融資增減_億元", 0))
+        pct = m_dict.get("單日增減幅_百分比", m_dict.get("全市場融資增減幅_百分比", 0))
+        
+        dyn = m_dict.get("多週期動態與波段高點", {})
+        comment = dyn.get("動能轉折總評", "")
+        
+        d3 = dyn.get("近3日動態", {})
+        d7 = dyn.get("近7日動態", {})
+        d10 = dyn.get("近10日動態", {})
+        d20 = dyn.get("近20日動態", {})
+        
+        p20 = dyn.get("近20日波段高點分析", {})
+        p60 = dyn.get("近60日波段高點分析", {})
+
+        return (
+            f"### {title}\n"
+            f"- 最新融資餘額: {bal} 億元 | 單日增減: {chg:+.2f} 億元 ({pct:+.2f}%)\n"
+            f"- 動能狀態總評: {comment}\n"
+            f"- 多週期累計增減: 近3日 {d3.get('累計淨增減_億元', 0):+.2f}億 ({d3.get('增減天數分布', '')}) | "
+            f"近7日 {d7.get('累計淨增減_億元', 0):+.2f}億 ({d7.get('增減天數分布', '')}) | "
+            f"近10日 {d10.get('累計淨增減_億元', 0):+.2f}億 ({d10.get('增減天數分布', '')}) | "
+            f"近20日 {d20.get('累計淨增減_億元', 0):+.2f}億 ({d20.get('增減天數分布', '')})\n"
+            f"- 波段高點去槓桿基準: "
+            f"近20日高點 {p20.get('高點餘額_億元', 0)}億 ({p20.get('高點日期', '')})，至今 {p20.get('自高點增減_億元', 0):+.2f}億 ({p20.get('自高點回落幅_百分比', 0):+.2f}%，歷經{p20.get('距高點交易日數', 0)}日) | "
+            f"近60日高點 {p60.get('高點餘額_億元', 0)}億 ({p60.get('高點日期', '')})，至今 {p60.get('自高點增減_億元', 0):+.2f}億 ({p60.get('自高點回落幅_百分比', 0):+.2f}%，歷經{p60.get('距高點交易日數', 0)}日)"
+        )
+
+    lines = [
+        f"【台股全市場信用交易（融資餘額與去槓桿水位）監控 — 資料基準日：{trade_date}】",
+        summarize_market("全市場融資總結（上市+上櫃）", total),
+        summarize_market("集中市場（上市 TWSE）", twse),
+        summarize_market("櫃買市場（上櫃 TPEx）", tpex),
+        ""
+    ]
+    return "\n".join(lines)
+
 def format_chips_for_prompt(chips_data):
     """將結構化的 5 日量價與籌碼資料轉換為高密度 Prompt 摘要"""
     if not chips_data:
@@ -96,16 +146,17 @@ def format_chips_for_prompt(chips_data):
 
     return "\n".join(lines)
 
-def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80, max_content_len=900):
+def build_prompt(news_list, market_data, chips_data, margin_data, today_dt, max_news_count=80, max_content_len=900):
     weekday = today_dt.weekday()  # 0:週一, 5:週六, 6:週日
     chips_context = format_chips_for_prompt(chips_data)
+    margin_context = format_margin_for_prompt(margin_data)
     is_weekend = (weekday == 6)
     
     if is_weekend:
         market_header = "【本週五美股與台指期夜盤最終收盤數據（週末休市）】\n"
         role_and_context = (
             "你是一位資深的台股首席專業操盤手。今天是星期天，台股與美股均處於週末休市狀態。\n"
-            "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』、本週末最新『台股與國際財經新聞』，以及本週最新『核心觀察股 (231檔) 三大法人籌碼、5日量價與技術指標監控』。\n"
+            "請詳細閱讀以下提供的『週五美股與夜盤收盤數據』、『台股全市場融資餘額與去槓桿水位』、本週末最新『台股與國際財經新聞』，以及本週最新『核心觀察股 (231檔) 三大法人籌碼、5日量價與技術指標監控』。\n"
             "請統整出一份兼具基本面與深度量價籌碼動向的『台股週末財經總覽與下週展望報告』。\n"
             "嚴格禁止提及『昨日美股』或『今日開盤』等錯誤字眼，應以『週五美股表現』及『展望下週一開盤』角度分析。\n\n"
             "【個股覆蓋與量價籌碼排版要求（請務必嚴格遵循）】：\n"
@@ -121,14 +172,14 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
             "1. 📈 國際大盤焦點（週五美股四大指數、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。\n"
             "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合驗證，無則僅寫消息面）。\n"
             "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但高檔爆量倒貨/破月線背離』個股）。\n"
-            "4. 💡 操盤手筆記（綜合週末情勢、均線多空排列、土洋對作重點族群與資金流向，展望下週一操作策略）。\n\n"
+            "4. 💡 操盤手筆記（綜合週末情勢、全市場上市櫃融資水位與去槓桿進度、均線多空排列、土洋對作重點族群與資金流向，展望下週一操作策略）。\n\n"
         )
     else:
         market_header = "【昨日美股與台指期夜盤最終收盤數據】\n"
         role_and_context = (
-            "你是一位資深的台股首席專業操盤手。請仔細閱讀以下提供的大盤/海外夜盤數據、最新台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼、5日量價與技術指標監控』。\n"
+            "你是一位資深的台股首席專業操盤手。請仔細閱讀以下提供的大盤/海外夜盤數據、『台股全市場融資餘額與去槓桿水位』、最新台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼、5日量價與技術指標監控』。\n"
             "請統整出一份深入、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-            "必須特別對照夜盤、美股與 ADR 的表現，並深入解讀個股消息面與量價籌碼背離狀況。\n\n"
+            "必須特別對照夜盤、美股與 ADR 的表現，並結合全市場融資變化趨勢（近3/7/10/20日增減與波段高點去槓桿幅度）深入解讀大盤籌碼安定度與個股背離狀況。\n\n"
             "【個股覆蓋與量價籌碼排版要求（請務必嚴格遵循）】：\n"
             "1. 涵蓋數量：重大個股利多請詳實篩選 10 ~ 15 檔；重大個股利空請篩選 6 ~ 10 檔。禁止只挑 4~5 檔！\n"
             "2. 動態顯示與強制換行模板（重要！【消息面】與【量價與籌碼面】必須換行，嚴禁擠在同一行）：\n"
@@ -142,7 +193,7 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
             "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
             "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合驗證，無則僅寫消息面）。\n"
             "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但高檔爆量倒貨/破月線背離』個股）。\n"
-            "4. 💡 操盤手筆記（綜合大盤情勢、均線多空排列、土洋對作族群與資金流向，給出開盤操作實戰指南）。\n\n"
+            "4. 💡 操盤手筆記（綜合大盤情勢、全市場上市櫃融資水位與去槓桿進度、均線多空排列、土洋對作族群與資金流向，給出開盤操作實戰指南）。\n\n"
         )
 
     market_context = market_header
@@ -160,10 +211,10 @@ def build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=80
             content_snippet += "...(以下字數省略)"
         news_context += f"新聞 {i} [{news['source']}]({news['time']})：{news['title']}\n內文重點：{content_snippet}\n\n"
     
-    prompt = f"{role_and_context}數據來源：\n{market_context}\n{chips_context}\n新聞資料來源如下：\n{news_context}"
+    prompt = f"{role_and_context}數據來源：\n{market_context}\n{margin_context}\n{chips_context}\n新聞資料來源如下：\n{news_context}"
     return prompt
 
-def ai_generate_report(news_list, market_data, chips_data, today_dt):
+def ai_generate_report(news_list, market_data, chips_data, margin_data, today_dt):
     if not GEMINI_API_KEY:
         raise ValueError("❌ 錯誤：GEMINI_API_KEY 環境變數為空，請確認 GitHub Secrets 設定！")
         
@@ -177,9 +228,9 @@ def ai_generate_report(news_list, market_data, chips_data, today_dt):
     for attempt in range(max_retries):
         if attempt >= 2:
             print("⚡ 啟動防塞車降載策略：縮減分析新聞為重要前 40 筆...")
-            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=40, max_content_len=500)
+            prompt = build_prompt(news_list, market_data, chips_data, margin_data, today_dt, max_news_count=40, max_content_len=500)
         else:
-            prompt = build_prompt(news_list, market_data, chips_data, today_dt, max_news_count=70, max_content_len=800)
+            prompt = build_prompt(news_list, market_data, chips_data, margin_data, today_dt, max_news_count=70, max_content_len=800)
             
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -325,6 +376,7 @@ def main():
     all_combined_news = []
     market_data = {}
     chips_data = {}
+    margin_data = {}
     
     # 1. 讀取新聞快取檔案
     cnyes_path = os.path.join(target_dir, f"cnyes_{yesterday_str}.json")
@@ -373,10 +425,27 @@ def main():
             print(f"⚠️ 讀取籌碼 JSON 異常: {e}")
     else:
         print("ℹ️ 未找到任何 chips_*.json 檔案。")
+
+    # 4. 讀取最新全市場融資餘額與去槓桿分析 JSON 檔 (自動匹配最新日期檔案)
+    margin_target_path = os.path.join(target_dir, f"margin_{market_date_str}.json")
+    if not os.path.exists(margin_target_path):
+        margin_files = sorted(glob.glob(os.path.join(target_dir, "margin_*.json")))
+        if margin_files:
+            margin_target_path = margin_files[-1]
+            
+    if os.path.exists(margin_target_path):
+        print(f"📖 讀取全市場融資與去槓桿資料: {os.path.basename(margin_target_path)}")
+        try:
+            with open(margin_target_path, "r", encoding="utf-8") as f:
+                margin_data = json.load(f)
+        except Exception as e:
+            print(f"⚠️ 讀取融資 JSON 異常: {e}")
+    else:
+        print("ℹ️ 未找到任何 margin_*.json 檔案。")
             
     if all_combined_news:
-        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆新聞，深度融合市場夜盤與 5 日量價籌碼大帳本...")
-        content = ai_generate_report(all_combined_news, market_data, chips_data, now_tw)
+        print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆新聞，深度融合市場夜盤、全市場融資水位與 5 日量價籌碼大帳本...")
+        content = ai_generate_report(all_combined_news, market_data, chips_data, margin_data, now_tw)
         
         audio_file = asyncio.run(generate_microsoft_tts(content, today_str))
         save_to_html(content, all_combined_news, today_str, now_tw, audio_filename=audio_file)
