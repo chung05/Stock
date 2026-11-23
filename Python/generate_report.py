@@ -14,7 +14,9 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 def format_margin_for_prompt(margin_data):
     """將結構化的台股上市櫃融資多週期與波段高點資料轉換為高密度 Prompt 摘要"""
-    if not margin_data:
+    if isinstance(margin_data, list):
+        margin_data = margin_data[-1] if margin_data and isinstance(margin_data[-1], dict) else {}
+    if not isinstance(margin_data, dict) or not margin_data:
         return "無最新融資數據。\n"
 
     trade_date = margin_data.get("交易日期", "未知日期")
@@ -23,7 +25,7 @@ def format_margin_for_prompt(margin_data):
     tpex = margin_data.get("櫃買市場_上櫃", {})
 
     def summarize_market(title, m_dict):
-        if not m_dict:
+        if not isinstance(m_dict, dict) or not m_dict:
             return f"- {title}: 無數據"
         bal = m_dict.get("今日融資餘額_億元", m_dict.get("全市場融資總餘額_億元", 0))
         chg = m_dict.get("單日增減_億元", m_dict.get("全市場單日融資增減_億元", 0))
@@ -163,37 +165,37 @@ def build_prompt(news_list, market_data, chips_data, margin_data, today_dt, max_
             "1. 涵蓋數量：重大個股利多請詳實篩選 10 ~ 15 檔；重大個股利空請篩選 6 ~ 10 檔。禁止只挑 4~5 檔！\n"
             "2. 動態顯示與強制換行模板（重要！【消息面】與【量價與籌碼面】必須換行，嚴禁擠在同一行）：\n"
             "   - 若該股票在提供的 231 檔監控數據中，輸出格式必須嚴格如下（中間使用 <br> 換行）：\n"
-            "     <li><strong>公司名稱 (代號)：</strong><br>【消息面】新聞核心重點與財務業務展望。<br>【量價與籌碼面】當日收盤價(漲跌幅)、K線型態(影線/開高低)、成交量增比、三大法人買賣超(外資/投信張數與佔比)、均線位置(是否站上月線)及KD/RSI狀態，並給予『量價齊揚鎖碼』或『高檔爆量出貨』之實戰定性評估。</li>\n"
+            "     <li><strong>公司名稱 (代號)：</strong><br>【消息面】新聞核心重點與財務業務展望。<br>【量價與籌碼面】當日收盤價(漲跌幅)、K線型態(影線/開高低)、成交量增比、三大法人買賣超(外資/投信張數與佔比)、個股融資券增減(散戶進場接刀或退場洗淨)、均線位置(是否站上月線)及KD/RSI狀態，並給予『量價齊揚鎖碼』或『高檔爆量出貨』之實戰定性評估。</li>\n"
             "   - 若該股票不在提供的監控數據中：【完全不需要顯示籌碼與技術面】，直接輸出消息面即可：\n"
             "     <li><strong>公司名稱 (代號)：</strong><br>【消息面】新聞核心重點與財務業務展望。</li>\n"
             "3. 假利多真出貨警示：若個股營收創新高，但法人連續大賣且爆量留長上影線(或融資暴增散戶接刀)，務必歸入『重大個股利空』進行示警。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
-            "1. 📈 國際大盤焦點（週五美股四大指數、重要經濟數據、台積電ADR動態與台指期夜盤收盤重點）。\n"
-            "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合驗證，無則僅寫消息面）。\n"
-            "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但高檔爆量倒貨/破月線背離』個股）。\n"
-            "4. 💡 操盤手筆記（綜合週末情勢、全市場上市櫃融資水位與去槓桿進度、均線多空排列、土洋對作重點族群與資金流向，展望下週一操作策略）。\n\n"
+            "1. 📈 國際大盤與台股融資籌碼總覽（結合週五美股四大指數、台積電ADR、台指期夜盤收盤重點，與全市場上市櫃融資近3/7/10/20日增減及自60日高點去槓桿幅度進行交叉判讀，定調下週一開盤大盤走勢與籌碼安定度）。\n"
+            "2. 🚀 週末重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合法人與資券驗證，無則僅寫消息面）。\n"
+            "3. ⚠️ 週末重大個股利空（列出 6~10 檔實質利空或『營收高但高檔爆量倒貨/融資接刀/破月線背離』個股）。\n"
+            "4. 💡 操盤手筆記（綜合週末情勢、上市櫃融資水位變化、均線多空排列、土洋對作重點族群與資金流向，展望下週一操作策略）。\n\n"
         )
     else:
         market_header = "【昨日美股與台指期夜盤最終收盤數據】\n"
         role_and_context = (
             "你是一位資深的台股首席專業操盤手。請仔細閱讀以下提供的大盤/海外夜盤數據、『台股全市場融資餘額與去槓桿水位』、最新台股與國際財經新聞，以及『核心觀察股 (231檔) 三大法人籌碼、5日量價與技術指標監控』。\n"
             "請統整出一份深入、適合在開盤前閱讀的『台股盤前焦點分析報告』。\n"
-            "必須特別對照夜盤、美股與 ADR 的表現，並結合全市場融資變化趨勢（近3/7/10/20日增減與波段高點去槓桿幅度）深入解讀大盤籌碼安定度與個股背離狀況。\n\n"
+            "必須特別對照夜盤、美股與 ADR 的表現，並結合全市場融資變化趨勢（近3/7/10/20日增減與波段高點去槓桿幅度）深入解讀大盤走勢與籌碼安定度。\n\n"
             "【個股覆蓋與量價籌碼排版要求（請務必嚴格遵循）】：\n"
             "1. 涵蓋數量：重大個股利多請詳實篩選 10 ~ 15 檔；重大個股利空請篩選 6 ~ 10 檔。禁止只挑 4~5 檔！\n"
             "2. 動態顯示與強制換行模板（重要！【消息面】與【量價與籌碼面】必須換行，嚴禁擠在同一行）：\n"
             "   - 若該股票在提供的 231 檔監控數據中，輸出格式必須嚴格如下（中間使用 <br> 換行）：\n"
-            "     <li><strong>公司名稱 (代號)：</strong><br>【消息面】新聞核心重點與財務業務展望。<br>【量價與籌碼面】當日收盤價(漲跌幅)、K線型態(影線/開高低)、成交量增比、三大法人買賣超(外資/投信張數與佔比)、均線位置(是否站上月線)及KD/RSI狀態，並給予『量價齊揚鎖碼』或『高檔爆量出貨』之實戰定性評估。</li>\n"
+            "     <li><strong>公司名稱 (代號)：</strong><br>【消息面】新聞核心重點與財務業務展望。<br>【量價與籌碼面】當日收盤價(漲跌幅)、K線型態(影線/開高低)、成交量增比、三大法人買賣超(外資/投信張數與佔比)、個股融資券增減(散戶進場接刀或退場洗淨)、均線位置(是否站上月線)及KD/RSI狀態，並給予『量價齊揚鎖碼』或『高檔爆量出貨』之實戰定性評估。</li>\n"
             "   - 若該股票不在提供的監控數據中：【完全不需要顯示籌碼與技術面】，直接輸出消息面即可：\n"
             "     <li><strong>公司名稱 (代號)：</strong><br>【消息面】新聞核心重點與財務業務展望。</li>\n"
             "3. 假利多真出貨警示：若個股營收創新高，但法人連續大賣且爆量留長上影線(或融資暴增散戶接刀)，務必歸入『重大個股利空』進行示警。\n\n"
             "報告必須嚴格包含以下四個區塊，並使用乾淨的 HTML 標籤格式輸出（如 <h2>, <p>, <ul>, <li> 等，不要包含額外的 ```html 標記，直接輸出 HTML 內容）：\n"
             "注意：絕對不要輸出 <!DOCTYPE>, <html>, <head>, <style>, <body> 等外層網頁標籤，僅輸出內容片段標籤。\n"
-            "1. 📈 國際大盤焦點（美股表現、重要經濟數據、台積電ADR動態與台指期夜盤收盤解析）。\n"
-            "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合驗證，無則僅寫消息面）。\n"
-            "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但高檔爆量倒貨/破月線背離』個股）。\n"
-            "4. 💡 操盤手筆記（綜合大盤情勢、全市場上市櫃融資水位與去槓桿進度、均線多空排列、土洋對作族群與資金流向，給出開盤操作實戰指南）。\n\n"
+            "1. 📈 國際大盤與台股融資籌碼總覽（結合美股表現、台積電ADR、台指期夜盤收盤解析，與全市場上市櫃融資近3/7/10/20日增減及自60日高點去槓桿幅度進行交叉判讀，定調今日開盤大盤走勢與籌碼安定度）。\n"
+            "2. 🚀 今日重大個股利多（列出 10~15 檔基本面亮點個股，有量價籌碼數據則結合法人與資券驗證，無則僅寫消息面）。\n"
+            "3. ⚠️ 今日重大個股利空（列出 6~10 檔實質利空或『營收高但高檔爆量倒貨/融資接刀/破月線背離』個股）。\n"
+            "4. 💡 操盤手筆記（綜合大盤情勢、上市櫃融資水位變化、均線多空排列、土洋對作族群與資金流向，給出開盤操作實戰指南）。\n\n"
         )
 
     market_context = market_header
@@ -421,17 +423,24 @@ def main():
         try:
             with open(chips_target_path, "r", encoding="utf-8") as f:
                 chips_data = json.load(f)
+            buy_cnt = len(chips_data.get("top_institutional_buys_1d", []))
+            sell_cnt = len(chips_data.get("top_institutional_sells_1d", []))
+            print(f"   ✅ 籌碼資料驗證：買超榜 {buy_cnt} 檔、賣超榜 {sell_cnt} 檔")
         except Exception as e:
             print(f"⚠️ 讀取籌碼 JSON 異常: {e}")
     else:
         print("ℹ️ 未找到任何 chips_*.json 檔案。")
 
-    # 4. 讀取最新全市場融資餘額與去槓桿分析 JSON 檔 (自動匹配最新日期檔案)
+    # 4. 讀取最新全市場融資餘額與去槓桿分析 JSON 檔 (嚴格匹配 margin_YYYY-MM-DD.json，排除 margin_history.json)
     margin_target_path = os.path.join(target_dir, f"margin_{market_date_str}.json")
     if not os.path.exists(margin_target_path):
-        margin_files = sorted(glob.glob(os.path.join(target_dir, "margin_*.json")))
-        if margin_files:
-            margin_target_path = margin_files[-1]
+        all_margin_files = sorted(glob.glob(os.path.join(target_dir, "margin_*.json")))
+        daily_margin_files = [
+            f for f in all_margin_files
+            if re.match(r"^margin_\d{4}-\d{2}-\d{2}\.json$", os.path.basename(f))
+        ]
+        if daily_margin_files:
+            margin_target_path = daily_margin_files[-1]
             
     if os.path.exists(margin_target_path):
         print(f"📖 讀取全市場融資與去槓桿資料: {os.path.basename(margin_target_path)}")
@@ -441,7 +450,7 @@ def main():
         except Exception as e:
             print(f"⚠️ 讀取融資 JSON 異常: {e}")
     else:
-        print("ℹ️ 未找到任何 margin_*.json 檔案。")
+        print("ℹ️ 未找到任何每日 margin_YYYY-MM-DD.json 檔案。")
             
     if all_combined_news:
         print(f"🔥 交付 Gemini 分析共 {len(all_combined_news)} 筆新聞，深度融合市場夜盤、全市場融資水位與 5 日量價籌碼大帳本...")
